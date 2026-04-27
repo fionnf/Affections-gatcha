@@ -227,8 +227,6 @@
         </g>
         <ellipse cx="140" cy="148" rx="34" ry="46" fill="url(#ag-glass)" opacity=".85"/>
         <rect x="64" y="266" width="152" height="20" rx="10" fill="rgba(8,28,18,.55)"/>
-        <text x="140" y="282" text-anchor="middle" fill="rgba(255,253,242,.7)"
-          font-family="'Satoshi',sans-serif" font-size="9" letter-spacing="2">SOUVENIRS</text>
       </svg>
     `;
   }
