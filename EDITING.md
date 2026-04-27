@@ -90,11 +90,39 @@ the site, it lives at:
 https://fionnf.github.io/Affections-gatcha/media-preview.html
 ```
 
-The page reads `config/photos.json` directly, renders images with
-`object-fit: cover` and videos with `controls muted playsinline`, hides the
-caption when none is provided, and tells you to configure
-`config/album-source.json` and run the **Sync shared album** workflow if
-only placeholder URLs are present.
+The page reads `config/photos.json` directly, hides the caption when none is
+provided, and tells you to configure `config/album-source.json` and run the
+**Sync shared album** workflow if only placeholder URLs are present.
+
+### Portrait & landscape framing
+
+Both the main widget and the preview page render photos and videos in a
+framed stage with `object-fit: contain`: the entire image is visible
+without aggressive cropping. A blurred, dimmed copy of the same image
+sits behind it as a backdrop. The stage adapts its aspect ratio
+automatically: portrait (3:4), landscape / default (4:3), or square (1:1).
+Videos keep `controls muted playsinline`. Captions are hidden when
+empty or missing.
+
+## History tab
+
+The main widget has a small `Heute` / `Verlauf` segmented control. The
+`Verlauf` tab shows deterministically computed pulls for recent days,
+newest first. It is **not** a tap log — it is the same daily seeded
+calculation run backwards, so it shows what would have been drawn on each
+day regardless of whether the capsule was actually pulled. Foto-Drops get
+a small thumbnail or a video indicator.
+
+How many days appear is controlled by `historyDays` in `config/theme.json`
+(default `14`). Change it to any positive integer.
+
+## Daily album sync
+
+`.github/workflows/sync-shared-album.yml` runs both manually
+(`workflow_dispatch` from the Actions tab) and on a daily cron
+(`17 4 * * *`, i.e. 04:17 UTC every day). It only commits changes to
+`config/photos.json`, with `[skip ci]` in the message so it never triggers
+itself. Adjust the cron in the YAML if you want a different cadence.
 
 ## Best GitHub editing flow
 

@@ -153,12 +153,41 @@ https://fionnf.github.io/Affections-gatcha/media-preview.html
 ```
 
 Sie lädt direkt `config/photos.json`, zeigt eine große Vorschau plus eine
-Galerie aller Einträge und nutzt dieselbe Darstellung (Bilder mit
-`object-fit: cover`, Videos mit `controls muted playsinline`, Caption nur,
-wenn vorhanden) wie die Gacha-Resultatkarte. Wenn nur Platzhalter-Einträge
-in `config/photos.json` stehen, weist die Seite darauf hin, dass du
-`config/album-source.json` konfigurieren und den Sync-Workflow ausführen
-solltest.
+Galerie aller Einträge und nutzt dieselbe Darstellung wie die Gacha-Resultatkarte.
+
+### Hochformat / Querformat
+
+Sowohl die Hauptmaschine als auch die Vorschauseite zeigen Fotos und Videos
+in einer gerahmten Bühne mit `object-fit: contain`: das gesamte Bild bleibt
+sichtbar, ohne aggressives Zuschneiden. Hinter dem Motiv liegt eine sanft
+weichgezeichnete, abgedunkelte Version desselben Bildes als Backdrop. Die
+Bühne passt ihr Seitenverhältnis automatisch an: `portrait` (3:4) für
+Hochkant, `landscape` / Standard (4:3) für Querformat, `square` (1:1) für
+quadratische Inhalte. Videos behalten `controls muted playsinline`,
+Captions werden nur gezeigt, wenn `caption` vorhanden und nicht leer ist.
+
+### Verlauf-Tab
+
+Auf der Hauptseite gibt es ein kleines Tab-Steuerelement mit
+`Heute` und `Verlauf`. Der Verlauf zeigt deterministisch berechnete Pulls
+der letzten Tage, neueste zuerst. Das ist **kein Tap-Log**: Es ist dieselbe
+tägliche Berechnung rückwärts gerechnet — also genau das, was an jedem
+dieser Tage als Kapsel angezeigt worden wäre, unabhängig davon, ob du sie
+tatsächlich gezogen hast. Foto-Drops bekommen einen kleinen Thumbnail oder
+ein Video-Indikator; Texte sind kompakt gehalten.
+
+Die Anzahl der gezeigten Tage steht in `config/theme.json` unter
+`historyDays` (Standard: `14`). Setze sie auf eine andere ganze Zahl, um
+mehr oder weniger Verlauf anzuzeigen.
+
+### Täglicher Album-Sync
+
+Der Workflow `.github/workflows/sync-shared-album.yml` läuft sowohl
+manuell (`workflow_dispatch` über den Actions-Tab) als auch nach einem
+Cron-Plan (`17 4 * * *`, also täglich um 04:17 UTC). Er committet
+ausschließlich Änderungen an `config/photos.json`, mit `[skip ci]` im
+Commit, damit kein Endlos-Loop entsteht. Die Cadenz lässt sich direkt in
+der YAML-Datei anpassen.
 
 ### Wichtiger Privacy-Hinweis
 

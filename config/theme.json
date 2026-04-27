@@ -16,6 +16,7 @@
   "tokenParam": "token",
   "messageTarget": "https://wa.me/+41778089500?text={text}",
   "revealDelayMs": 3200,
+  "historyDays": 14,
   "loadingSteps": [
     "Route wird geprüft",
     "Snacklage wird berechnet",
