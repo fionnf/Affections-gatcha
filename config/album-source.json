@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "provider": "google",
   "url": "https://photos.app.goo.gl/rZTsngx2x2sAXQhv9",
   "output": "config/photos.json",
