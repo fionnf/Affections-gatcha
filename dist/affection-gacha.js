@@ -333,7 +333,7 @@
   }
 
   function defaultChips() {
-    return ["Wald", "Velo", "Stadt", "Bärlauch", "See"];
+    return ["Wald", "Velo", "Stadt", "Bärlauch"];
   }
 
   function hydrateCopy() {
