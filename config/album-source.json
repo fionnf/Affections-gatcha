@@ -1,7 +1,7 @@
 {
   "enabled": false,
-  "provider": "auto",
-  "url": "",
+  "provider": "google",
+  "url": "https://photos.app.goo.gl/rZTsngx2x2sAXQhv9",
   "output": "config/photos.json",
   "notes": "Paste a public iCloud Shared Album URL (https://www.icloud.com/sharedalbum/#TOKEN) or a public Google Photos shared link. Set provider to 'icloud', 'google', or 'auto'. iCloud public shared albums work best; Google Photos scraping is best-effort. Anyone with the link can see these photos — do not put them in public shares if you do not want them public."
 }
