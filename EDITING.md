@@ -80,6 +80,22 @@ the Google sync is best-effort scraping, not a stable API. For reliability,
 prefer iCloud public shared albums. Don't put content in the album that you
 wouldn't want public.
 
+## Preview page for photos and videos
+
+Open [`media-preview.html`](media-preview.html) to see how the synced media
+looks without waiting for a random Foto-Drop. After GitHub Pages has built
+the site, it lives at:
+
+```text
+https://fionnf.github.io/Affections-gatcha/media-preview.html
+```
+
+The page reads `config/photos.json` directly, renders images with
+`object-fit: cover` and videos with `controls muted playsinline`, hides the
+caption when none is provided, and tells you to configure
+`config/album-source.json` and run the **Sync shared album** workflow if
+only placeholder URLs are present.
+
 ## Best GitHub editing flow
 
 1. Open the repo on GitHub.

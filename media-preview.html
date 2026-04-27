@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Foto-/Video-Vorschau · Affektions-Gacha</title>
+    <meta
+      name="description"
+      content="Vorschau der synchronisierten Fotos und Videos für die Affektions-Gacha."
+    />
+    <link
+      rel="stylesheet"
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=boska@400,500,700&display=swap"
+    />
+    <style>
+      :root {
+        --bg: #eef5ea;
+        --surface: #fffdf8;
+        --surface-2: #e6efdf;
+        --text: #172018;
+        --muted: #5a6b5c;
+        --border: rgba(38, 75, 45, 0.18);
+        --primary: #2f7a4f;
+        --primary-dark: #1f5635;
+        --radius-lg: 28px;
+        --radius-md: 18px;
+        --radius-sm: 12px;
+        --shadow: 0 24px 60px rgba(38, 75, 45, 0.14);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1612;
+          --surface: rgba(23, 32, 23, 0.78);
+          --surface-2: #1f2a20;
+          --text: #f1f5ec;
+          --muted: #b3c0b1;
+          --border: rgba(255, 255, 255, 0.14);
+          --primary: #6ab581;
+          --primary-dark: #2f7a4f;
+          --shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: clamp(20px, 4vw, 48px);
+        background: radial-gradient(
+            circle at 20% 0%,
+            rgba(198, 225, 185, 0.68),
+            transparent 34rem
+          ),
+          radial-gradient(
+            circle at 100% 40%,
+            rgba(47, 122, 79, 0.18),
+            transparent 28rem
+          ),
+          var(--bg);
+        color: var(--text);
+        font-family: "Satoshi", "Inter", system-ui, sans-serif;
+        line-height: 1.5;
+      }
+
+      .page {
+        max-width: 1080px;
+        margin-inline: auto;
+      }
+
+      header.intro {
+        margin-bottom: clamp(20px, 3vw, 32px);
+      }
+
+      .kicker {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+
+      header.intro h1 {
+        margin: 0 0 12px;
+        font-family: "Boska", Georgia, serif;
+        font-size: clamp(2rem, 1.2rem + 3vw, 3.6rem);
+        line-height: 1;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+      }
+
+      header.intro p {
+        margin: 0;
+        max-width: 56ch;
+        color: var(--muted);
+        font-size: clamp(0.98rem, 0.95rem + 0.25vw, 1.08rem);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        gap: clamp(20px, 3vw, 32px);
+        margin-top: clamp(20px, 3vw, 32px);
+      }
+
+      @media (max-width: 860px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: clamp(16px, 3vw, 24px);
+        box-shadow: var(--shadow);
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 1.1rem;
+        letter-spacing: -0.01em;
+      }
+
+      .selected-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: var(--surface-2);
+        color: var(--primary-dark);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .selected-counter {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .media-frame {
+        margin: 0;
+        overflow: hidden;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+      }
+
+      .media-frame .media-box {
+        position: relative;
+        background: #000;
+      }
+
+      .media-frame img,
+      .media-frame video {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        display: block;
+        background: #000;
+      }
+
+      .media-frame figcaption {
+        padding: 12px 14px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .grid-item {
+        position: relative;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--surface-2);
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .grid-item:hover {
+        transform: translateY(-1px);
+      }
+
+      .grid-item:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .grid-item.is-active {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(47, 122, 79, 0.3);
+      }
+
+      .grid-item img,
+      .grid-item video {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        display: block;
+        background: #000;
+      }
+
+      .grid-item .type-tag {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fffdf8;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .empty {
+        padding: clamp(20px, 4vw, 32px);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface-2);
+        color: var(--text);
+      }
+
+      .empty h2 {
+        margin: 0 0 8px;
+        font-size: 1.1rem;
+      }
+
+      .empty p {
+        margin: 0 0 8px;
+        color: var(--muted);
+      }
+
+      .empty code {
+        font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+        font-size: 0.92em;
+        background: rgba(0, 0, 0, 0.06);
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+
+      .footer-note {
+        margin-top: clamp(20px, 3vw, 32px);
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .footer-note a {
+        color: var(--primary-dark);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="intro">
+        <p class="kicker">Vorschau</p>
+        <h1>Foto-/Video-Drops Vorschau</h1>
+        <p>
+          Diese Seite zeigt, wie die synchronisierten Fotos und Videos im
+          Gacha-Resultat aussehen — ohne dass du auf einen zufälligen
+          Foto-Drop warten musst. Die Inhalte werden direkt aus
+          <code>config/photos.json</code> geladen.
+        </p>
+      </header>
+
+      <div id="content"></div>
+
+      <p class="footer-note">
+        Tipp: Wenn neue Inhalte fehlen, lauf den Workflow
+        <em>Sync shared album</em> oder bearbeite
+        <code>config/photos.json</code> direkt.
+      </p>
+    </main>
+
+    <script>
+      (function () {
+        const PLACEHOLDER_HOST = "deine-webflow-domain.com";
+        const content = document.getElementById("content");
+
+        function isPlaceholder(photo) {
+          if (!photo || typeof photo.url !== "string") return true;
+          return photo.url.includes(PLACEHOLDER_HOST);
+        }
+
+        function escapeText(value) {
+          const div = document.createElement("div");
+          div.textContent = value == null ? "" : String(value);
+          return div.innerHTML;
+        }
+
+        function normalizePhotos(data) {
+          const list = Array.isArray(data && data.photos) ? data.photos : [];
+          return list.map(function (photo, index) {
+            return {
+              url: photo && photo.url ? String(photo.url) : "",
+              alt:
+                photo && photo.alt
+                  ? String(photo.alt)
+                  : "Eintrag " + (index + 1),
+              caption:
+                photo && typeof photo.caption === "string"
+                  ? photo.caption.trim()
+                  : "",
+              type: photo && photo.type === "video" ? "video" : "image"
+            };
+          });
+        }
+
+        function buildEmpty(reason) {
+          const wrap = document.createElement("section");
+          wrap.className = "panel empty";
+          wrap.innerHTML =
+            "<h2>Noch keine echten Inhalte vorhanden</h2>" +
+            "<p>" +
+            escapeText(reason) +
+            "</p>" +
+            "<p>So legst du los:</p>" +
+            "<ol>" +
+            "<li>Öffne <code>config/album-source.json</code> und setze " +
+            "<code>enabled</code> auf <code>true</code> sowie eine echte " +
+            "Album-URL.</li>" +
+            "<li>Starte den Workflow <em>Sync shared album</em> in GitHub " +
+            "Actions oder lokal mit <code>npm run sync:album</code>.</li>" +
+            "<li>Lade diese Vorschau neu — die echten Fotos und Videos " +
+            "erscheinen dann hier.</li>" +
+            "</ol>";
+          return wrap;
+        }
+
+        function buildSelectedPanel() {
+          const panel = document.createElement("section");
+          panel.className = "panel";
+          panel.innerHTML =
+            '<div class="selected-meta">' +
+            '<span class="badge" data-type-badge>Foto</span>' +
+            '<span class="selected-counter" data-counter></span>' +
+            "</div>" +
+            '<figure class="media-frame">' +
+            '<div class="media-box" data-media></div>' +
+            '<figcaption data-caption hidden></figcaption>' +
+            "</figure>";
+          return panel;
+        }
+
+        function buildGridPanel(photos, onSelect) {
+          const panel = document.createElement("section");
+          panel.className = "panel";
+          const heading = document.createElement("h2");
+          heading.textContent =
+            "Alle Einträge (" + photos.length + ")";
+          panel.appendChild(heading);
+
+          const grid = document.createElement("div");
+          grid.className = "grid";
+          photos.forEach(function (photo, index) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "grid-item";
+            button.dataset.index = String(index);
+            button.setAttribute(
+              "aria-label",
+              (photo.type === "video" ? "Video " : "Foto ") +
+                (index + 1) +
+                ": " +
+                photo.alt
+            );
+
+            let media;
+            if (photo.type === "video") {
+              media = document.createElement("video");
+              media.src = photo.url;
+              media.muted = true;
+              media.setAttribute("playsinline", "");
+              media.setAttribute("preload", "metadata");
+              media.setAttribute("aria-hidden", "true");
+            } else {
+              media = document.createElement("img");
+              media.src = photo.url;
+              media.alt = "";
+              media.loading = "lazy";
+              media.decoding = "async";
+            }
+            button.appendChild(media);
+
+            const tag = document.createElement("span");
+            tag.className = "type-tag";
+            tag.textContent = photo.type === "video" ? "Video" : "Foto";
+            button.appendChild(tag);
+
+            button.addEventListener("click", function () {
+              onSelect(index);
+            });
+            grid.appendChild(button);
+          });
+
+          panel.appendChild(grid);
+          return panel;
+        }
+
+        function renderSelected(panel, photos, index) {
+          const photo = photos[index];
+          const mediaSlot = panel.querySelector("[data-media]");
+          const caption = panel.querySelector("[data-caption]");
+          const badge = panel.querySelector("[data-type-badge]");
+          const counter = panel.querySelector("[data-counter]");
+
+          mediaSlot.innerHTML = "";
+          let media;
+          if (photo.type === "video") {
+            media = document.createElement("video");
+            media.src = photo.url;
+            media.controls = true;
+            media.muted = true;
+            media.playsInline = true;
+            media.setAttribute("playsinline", "");
+            media.setAttribute("preload", "metadata");
+            media.setAttribute("aria-label", photo.alt);
+          } else {
+            media = document.createElement("img");
+            media.src = photo.url;
+            media.alt = photo.alt;
+            media.loading = "eager";
+            media.decoding = "async";
+          }
+          mediaSlot.appendChild(media);
+
+          if (photo.caption) {
+            caption.textContent = photo.caption;
+            caption.hidden = false;
+          } else {
+            caption.textContent = "";
+            caption.hidden = true;
+          }
+
+          badge.textContent = photo.type === "video" ? "Video" : "Foto";
+          counter.textContent =
+            "Eintrag " + (index + 1) + " von " + photos.length;
+        }
+
+        function setActiveTile(grid, index) {
+          const tiles = grid.querySelectorAll(".grid-item");
+          tiles.forEach(function (tile) {
+            tile.classList.toggle(
+              "is-active",
+              Number(tile.dataset.index) === index
+            );
+          });
+        }
+
+        function renderGallery(photos) {
+          content.innerHTML = "";
+          const layout = document.createElement("div");
+          layout.className = "layout";
+
+          const selectedPanel = buildSelectedPanel();
+
+          let activeIndex = 0;
+          const gridPanel = buildGridPanel(photos, function (next) {
+            activeIndex = next;
+            renderSelected(selectedPanel, photos, activeIndex);
+            setActiveTile(gridPanel, activeIndex);
+          });
+
+          layout.appendChild(selectedPanel);
+          layout.appendChild(gridPanel);
+          content.appendChild(layout);
+
+          renderSelected(selectedPanel, photos, activeIndex);
+          setActiveTile(gridPanel, activeIndex);
+        }
+
+        function renderError(message) {
+          const panel = document.createElement("section");
+          panel.className = "panel empty";
+          panel.innerHTML =
+            "<h2>Konfiguration konnte nicht geladen werden</h2>" +
+            "<p>" +
+            escapeText(message) +
+            "</p>" +
+            "<p>Stelle sicher, dass <code>config/photos.json</code> existiert " +
+            "und gültiges JSON enthält.</p>";
+          content.innerHTML = "";
+          content.appendChild(panel);
+        }
+
+        async function load() {
+          try {
+            const response = await fetch("config/photos.json", {
+              cache: "no-store"
+            });
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status);
+            }
+            const data = await response.json();
+            const photos = normalizePhotos(data);
+            const realPhotos = photos.filter(function (photo) {
+              return !isPlaceholder(photo);
+            });
+
+            if (!photos.length) {
+              content.innerHTML = "";
+              content.appendChild(
+                buildEmpty(
+                  "In config/photos.json sind aktuell keine Einträge hinterlegt."
+                )
+              );
+              return;
+            }
+
+            if (!realPhotos.length) {
+              content.innerHTML = "";
+              content.appendChild(
+                buildEmpty(
+                  "In config/photos.json stehen nur Platzhalter-URLs (deine-webflow-domain.com)."
+                )
+              );
+              return;
+            }
+
+            renderGallery(realPhotos);
+          } catch (error) {
+            renderError(error && error.message ? error.message : String(error));
+          }
+        }
+
+        load();
+      })();
+    </script>
+  </body>
+</html>

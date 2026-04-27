@@ -27,6 +27,9 @@ Nicht jeder Tag ist ein Gewinn. Manche Tage sind Nieten, Mini-Quests, verfluchte
 - `webflow-embed.html`  
   Alte self-contained Variante. Funktioniert weiterhin, aber empfohlen ist jetzt `webflow-loader.html`.
 
+- `media-preview.html`  
+  Vorschauseite für synchronisierte Fotos und Videos. Nach dem GitHub-Pages-Build erreichbar unter `https://fionnf.github.io/Affections-gatcha/media-preview.html`.
+
 - `scripts/validate-gacha-config.js`  
   Prüft, ob die JSON-Konfiguration gültig ist und ob die Gewichte sauber sind.
 
@@ -137,6 +140,25 @@ Einträge in `config/photos.json` können `"type": "image"` oder
 playsinline>` gerendert. Wenn `caption` leer ist oder fehlt, wird kein
 Untertitel angezeigt — das ist das gewünschte Verhalten für direkt
 synchronisierte Album-Inhalte.
+
+### Vorschauseite für Foto-/Video-Drops
+
+Damit du nicht auf einen zufälligen Foto-Drop warten musst, gibt es eine
+dedizierte Vorschauseite: [`media-preview.html`](media-preview.html).
+
+Nach dem GitHub-Pages-Build ist sie erreichbar unter:
+
+```text
+https://fionnf.github.io/Affections-gatcha/media-preview.html
+```
+
+Sie lädt direkt `config/photos.json`, zeigt eine große Vorschau plus eine
+Galerie aller Einträge und nutzt dieselbe Darstellung (Bilder mit
+`object-fit: cover`, Videos mit `controls muted playsinline`, Caption nur,
+wenn vorhanden) wie die Gacha-Resultatkarte. Wenn nur Platzhalter-Einträge
+in `config/photos.json` stehen, weist die Seite darauf hin, dass du
+`config/album-source.json` konfigurieren und den Sync-Workflow ausführen
+solltest.
 
 ### Wichtiger Privacy-Hinweis
 
