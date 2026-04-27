@@ -1,0 +1,60 @@
+{
+  "brand": {
+    "machineName": "Affektions-Gacha",
+    "displayNameDefault": "Lennart",
+    "fromName": "Fionn",
+    "titleTemplate": "{name}s Affektions-Gacha",
+    "kicker": "Einmal pro Tag",
+    "intro": "Eine kleine Maschine für Wege, Essen, schöne Orte und sehr unzuverlässige Preise.",
+    "buttonIdle": "Kapsel ziehen",
+    "buttonShown": "Heute nochmal anzeigen",
+    "rulesTitle": "Maschinenregeln",
+    "rulesText": "Refreshing bringt nichts: Für denselben Tag kommt immer dieselbe Kapsel. Morgen würfelt die Maschine neu."
+  },
+  "secret": "AENDERN-geheimes-wort-damit-die-kapseln-nicht-vorhersagbar-sind",
+  "timezone": "Europe/Zurich",
+  "tokenParam": "token",
+  "messageTarget": "mailto:fionn@fionnferreira.com",
+  "revealDelayMs": 3200,
+  "loadingSteps": [
+    "Route wird geprüft",
+    "Snacklage wird berechnet",
+    "Fotoarchiv wird durchsucht",
+    "Kapsel fällt gleich"
+  ],
+  "colors": {
+    "background": "#f3f7ef",
+    "surface": "#fffdf8",
+    "surfaceAlt": "#e6efdf",
+    "text": "#172018",
+    "muted": "#5f705f",
+    "border": "rgba(38, 75, 45, 0.18)",
+    "primary": "#2f7a4f",
+    "primaryDark": "#215a3a",
+    "gold": "#b9782e",
+    "green": "#2f7a4f",
+    "blue": "#376a83",
+    "sky": "#d7e7df",
+    "mountain": "#c7d7b3"
+  },
+  "darkColors": {
+    "background": "#101711",
+    "surface": "#172017",
+    "surfaceAlt": "#213024",
+    "text": "#eef8ec",
+    "muted": "#b5c8b2",
+    "border": "rgba(220, 242, 214, 0.16)",
+    "primary": "#8fcf9e",
+    "primaryDark": "#b7e5c2",
+    "gold": "#e0a75d",
+    "green": "#8fcf9e",
+    "blue": "#8ab8cf",
+    "sky": "#263d35",
+    "mountain": "#31452c"
+  },
+  "stickers": [
+    "Alpen",
+    "Café",
+    "Design"
+  ]
+}

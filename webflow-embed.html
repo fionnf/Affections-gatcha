@@ -1,0 +1,1115 @@
+<!--
+  AFFEKTIONS-GACHA / WEBFLOW EMBED
+  Paste this whole block into a Webflow Embed element on the page your NFC tag opens.
+
+  Wichtig:
+  1. Replace machine.secret with a private phrase.
+  2. Replace photos[].url with real Webflow image URLs.
+  3. Point the NFC tag to your Webflow page, optionally with ?token=sein-name.
+-->
+
+<link
+  href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=boska@400,500,700&display=swap"
+  rel="stylesheet"
+/>
+
+<section class="ag-widget" id="affektions-gacha" aria-labelledby="ag-title">
+  <div class="ag-shell">
+    <div class="ag-machine" aria-hidden="true">
+      <div class="ag-machine-top"></div>
+      <div class="ag-stickers">
+        <span>Alpen</span>
+        <span>Café</span>
+        <span>Design</span>
+      </div>
+      <div class="ag-window">
+        <div class="ag-capsule" data-capsule></div>
+      </div>
+      <div class="ag-landscape">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="ag-slot"></div>
+    </div>
+
+    <div class="ag-copy">
+      <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
+      <h1 id="ag-title" data-ag-main-title>Lennarts Affektions-Gacha</h1>
+      <p class="ag-intro">
+        Eine kleine Maschine für Wege, Essen, schöne Orte und sehr unzuverlässige Preise.
+      </p>
+
+      <button class="ag-button" type="button" data-ag-draw>
+        <span data-ag-button-text>Kapsel ziehen</span>
+      </button>
+
+      <article class="ag-result" data-ag-result aria-live="polite" hidden>
+        <div class="ag-result-head">
+          <span class="ag-badge" data-ag-rarity></span>
+          <span class="ag-date" data-ag-date></span>
+        </div>
+
+        <h2 data-ag-title></h2>
+        <p data-ag-message></p>
+
+        <figure class="ag-photo" data-ag-photo-wrap hidden>
+          <img data-ag-photo alt="" loading="lazy" decoding="async" />
+          <figcaption data-ag-photo-caption></figcaption>
+        </figure>
+
+        <div class="ag-actions">
+          <button class="ag-secondary" type="button" data-ag-copy>
+            Resultat kopieren
+          </button>
+          <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">
+            An Fionn schicken
+          </a>
+        </div>
+      </article>
+
+      <details class="ag-rules">
+        <summary>Maschinenregeln</summary>
+        <p>
+          Refreshing bringt nichts: Für denselben Tag kommt immer dieselbe Kapsel.
+          Morgen würfelt die Maschine neu.
+        </p>
+        <ul data-ag-odds></ul>
+      </details>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" id="ag-config">
+{
+  "machine": {
+    "name": "Affektions-Gacha",
+    "displayNameDefault": "Lennart",
+    "fromName": "Fionn",
+    "secret": "AENDERN-geheimes-wort-damit-die-kapseln-nicht-vorhersagbar-sind",
+    "timezone": "Europe/Zurich",
+    "tokenParam": "token",
+    "messageTarget": "mailto:fionn@fionnferreira.com",
+    "revealDelayMs": 2800,
+    "photoManifestUrl": ""
+  },
+  "categories": [
+    {
+      "id": "niete",
+      "label": "Niete",
+      "weight": 120,
+      "tone": "quiet",
+      "outcomes": [
+        {
+          "title": "Leere Souvenirbox",
+          "message": "Heute kein Preis. Nur ein imaginärer Kassenzettel aus einem sehr hübschen Museumsshop."
+        },
+        {
+          "title": "Keine Aussicht",
+          "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen."
+        },
+        {
+          "title": "Geschlossen wegen Architektur",
+          "message": "Die Maschine betrachtet gerade eine Fassade und ist nicht bereit, Preise auszugeben."
+        },
+        {
+          "title": "Kein Preis",
+          "message": "Nur ein winziges: du bist trotzdem ziemlich süß. Leider nicht einlösbar, nur aktenkundig."
+        }
+      ]
+    },
+    {
+      "id": "common",
+      "label": "Gewöhnlich",
+      "weight": 170,
+      "tone": "soft",
+      "outcomes": [
+        {
+          "title": "+1 Wegproviant",
+          "message": "Du bekommst einen sehr kleinen Motivationspunkt. Pack ihn neben die Snacks."
+        },
+        {
+          "title": "Passstempel",
+          "message": "Du bist heute offiziell süß. Die Maschine hat es in deinen imaginären Reisepass gestempelt."
+        },
+        {
+          "title": "Wasser am Brunnen",
+          "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang."
+        },
+        {
+          "title": "Mini-Aussicht",
+          "message": "Du hast einen kleinen Blick über die Dächer freigeschaltet. Innerlich kurz stehen bleiben."
+        },
+        {
+          "title": "Gedanken-Ping",
+          "message": "Du musst jetzt acht Sekunden an Fionn denken. Die Maschine behauptet, sie könne das überprüfen."
+        }
+      ]
+    },
+    {
+      "id": "quest",
+      "label": "Mini-Quest",
+      "weight": 150,
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Postkarten-Quest",
+          "message": "Schick Fionn ein Foto von etwas, das heute wie eine Postkarte aussieht: Himmel, Essen, Fassade, Berg, egal."
+        },
+        {
+          "title": "Tagesfund",
+          "message": "Nenne eine kleine gute Sache von heute. Sie darf sehr klein sein. Krümel und gute Kaffeetassen zählen."
+        },
+        {
+          "title": "Restaurant-Orakel",
+          "message": "Schlag einen Ort vor, an dem wir irgendwann essen sollten. Unvernünftig schöne Innenräume zählen doppelt."
+        },
+        {
+          "title": "Drei-Wort-Reisebericht",
+          "message": "Schick Fionn deinen Tag in genau drei Worten, als wärst du sehr erschöpft in einem Zug."
+        },
+        {
+          "title": "Route wählen",
+          "message": "Wähle eine Kategorie für unser nächstes Mini-Date: Kaffee, Spaziergang, Dessert, Aussicht oder Designladen."
+        }
+      ]
+    },
+    {
+      "id": "uncommon",
+      "label": "Ungewöhnlich",
+      "weight": 130,
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Sprachnachricht",
+          "message": "Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."
+        },
+        {
+          "title": "Dessert-Kommission",
+          "message": "Du darfst beim nächsten Mal das Dessert bestimmen. Architektur des Tellers wird mitbewertet."
+        },
+        {
+          "title": "Sympathie-Gutschein",
+          "message": "Du darfst eine dramatische Beschwerde einreichen und bekommst nur Mitgefühl, keine Lösungsvorschläge."
+        },
+        {
+          "title": "Foto-Anfrage",
+          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: alle drei."
+        },
+        {
+          "title": "Kleiner Reise-Call",
+          "message": "Du hast einen 15-Minuten-Call freigeschaltet, ideal für Routen, Pläne oder grundlose Updates."
+        }
+      ]
+    },
+    {
+      "id": "cursed",
+      "label": "Verflucht",
+      "weight": 90,
+      "tone": "cursed",
+      "outcomes": [
+        {
+          "title": "Snack-Steuer",
+          "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden."
+        },
+        {
+          "title": "Selfie-Zoll",
+          "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken. Möglichst wie ein müder Wanderer im Zug."
+        },
+        {
+          "title": "Designkritik-Pflicht",
+          "message": "Du musst Fionn ein Kompliment machen, aber es muss klingen wie eine seriöse Architekturkritik."
+        },
+        {
+          "title": "Kleiner-Löffel-Dekret",
+          "message": "Die Maschine hat entschieden: Du wurdest vorübergehend zum kleinen Löffel ernannt."
+        },
+        {
+          "title": "Formular 7B",
+          "message": "Bitte reiche eine schriftliche Begründung ein, warum du heute Aufmerksamkeit verdient hast. Skizzen erlaubt."
+        }
+      ]
+    },
+    {
+      "id": "rare",
+      "label": "Selten",
+      "weight": 90,
+      "tone": "rare",
+      "outcomes": [
+        {
+          "title": "Date-Credit: Kaffee-Spaziergang",
+          "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt."
+        },
+        {
+          "title": "Date-Credit: Kleine Expedition",
+          "message": "Wir gehen irgendwo hin, wo keiner von uns genau weiß, was dort ist. Sehr wissenschaftlich."
+        },
+        {
+          "title": "Date-Credit: Komfortabend",
+          "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung."
+        },
+        {
+          "title": "Date-Credit: Dessert-Mission",
+          "message": "Wir suchen ein Dessert. Es muss nicht sinnvoll sein. Nur lecker."
+        },
+        {
+          "title": "Date-Credit: Fionn plant die Route",
+          "message": "Du musst nichts entscheiden. Fionn plant ein kleines Date mit mindestens einem schönen Detail."
+        }
+      ]
+    },
+    {
+      "id": "photo",
+      "label": "Foto-Drop",
+      "weight": 200,
+      "tone": "photo",
+      "outcomes": [
+        {
+          "title": "Foto-Drop",
+          "message": "Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut."
+        },
+        {
+          "title": "Bildkapsel",
+          "message": "Heute gibt es kein Gutschein-Drama, nur ein kleines Bild von uns."
+        },
+        {
+          "title": "Archivfund",
+          "message": "Die Maschine hat im geheimen Fotoarchiv gekramt."
+        }
+      ]
+    },
+    {
+      "id": "jackpot",
+      "label": "JACKPOT",
+      "weight": 50,
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "JACKPOT: Vollständige kleine Expedition",
+          "message": "Fionn plant ein ganzes Mini-Date: Weg, Essen, schöner Ort. Du musst nur auftauchen und süß sein."
+        },
+        {
+          "title": "JACKPOT: Wunsch-Date",
+          "message": "Du darfst eine realistische Date-Aktivität wählen. Die Maschine empfiehlt: Aussicht, Essen oder eine gute Treppe."
+        },
+        {
+          "title": "JACKPOT: Überraschung",
+          "message": "Eine kleine Überraschung wurde freigeschaltet. Details bleiben absichtlich verdächtig."
+        },
+        {
+          "title": "JACKPOT: Sehr netter Abend",
+          "message": "Ein extrem netter Abend ist fällig. Gemütlich, lecker, schön gestaltet oder abenteuerlich nach gemeinsamer Wetterlage."
+        }
+      ]
+    }
+  ],
+  "photos": [
+    {
+      "url": "https://deine-webflow-domain.com/pfad/foto-1.jpg",
+      "alt": "Ein Foto von uns",
+      "caption": "Beweisstück A: ziemlich süß."
+    },
+    {
+      "url": "https://deine-webflow-domain.com/pfad/foto-2.jpg",
+      "alt": "Eine gemeinsame Erinnerung",
+      "caption": "Die Maschine nennt das: emotional relevante Daten."
+    },
+    {
+      "url": "https://deine-webflow-domain.com/pfad/foto-3.jpg",
+      "alt": "Ein weiteres Foto von uns",
+      "caption": "Archivfund mit hohem Süßigkeitswert."
+    }
+  ]
+}
+</script>
+
+<style>
+  .ag-widget,
+  .ag-widget * {
+    box-sizing: border-box;
+  }
+
+  .ag-widget {
+    --ag-bg: #fff8ef;
+    --ag-surface: #fffdf8;
+    --ag-surface-2: #f8efe5;
+    --ag-text: #2b211b;
+    --ag-muted: #7b6b60;
+    --ag-border: rgba(79, 53, 35, 0.16);
+    --ag-primary: #a73d53;
+    --ag-primary-dark: #7d2f40;
+    --ag-gold: #b9782e;
+    --ag-green: #3f7460;
+    --ag-blue: #376a83;
+    --ag-sky: #c4d9d4;
+    --ag-mountain: #d9c8b1;
+    --ag-shadow: 0 24px 60px rgba(79, 53, 35, 0.14);
+    --ag-radius-lg: 28px;
+    --ag-radius-md: 18px;
+    --ag-radius-sm: 12px;
+    --ag-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    color: var(--ag-text);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(255, 214, 190, 0.65), transparent 34rem),
+      radial-gradient(circle at 100% 40%, rgba(217, 143, 162, 0.2), transparent 28rem),
+      linear-gradient(145deg, rgba(196, 217, 212, 0.3), transparent 38%),
+      var(--ag-bg);
+    border-radius: var(--ag-radius-lg);
+    overflow: hidden;
+    font-family: "Satoshi", "Inter", system-ui, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .ag-widget {
+      --ag-bg: #1a1412;
+      --ag-surface: #211a17;
+      --ag-surface-2: #2b211d;
+      --ag-text: #f6eee6;
+      --ag-muted: #c0aca0;
+      --ag-border: rgba(255, 238, 218, 0.16);
+      --ag-primary: #e0778b;
+      --ag-primary-dark: #f0a4b2;
+      --ag-gold: #e0a75d;
+      --ag-green: #8fc6ad;
+      --ag-blue: #8ab8cf;
+      --ag-sky: #2e4a49;
+      --ag-mountain: #4a3b31;
+      --ag-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+    }
+  }
+
+  .ag-shell {
+    width: min(100%, 980px);
+    margin-inline: auto;
+    padding: clamp(24px, 6vw, 72px);
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(24px, 5vw, 64px);
+    align-items: center;
+  }
+
+  .ag-machine {
+    position: relative;
+    min-height: 360px;
+    border: 1px solid var(--ag-border);
+    border-radius: 44px;
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.38), transparent 42%),
+      linear-gradient(180deg, var(--ag-sky), transparent 36%),
+      var(--ag-surface);
+    box-shadow: var(--ag-shadow);
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+  }
+
+  .ag-machine::before {
+    content: "";
+    position: absolute;
+    width: 42%;
+    aspect-ratio: 1;
+    top: 22px;
+    right: 28px;
+    border-radius: 999px;
+    background: rgba(167, 61, 83, 0.1);
+    filter: blur(8px);
+    z-index: -1;
+  }
+
+  .ag-machine::after {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 32px;
+    pointer-events: none;
+  }
+
+  .ag-machine-top {
+    position: absolute;
+    top: 28px;
+    width: 44%;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--ag-primary);
+    opacity: 0.86;
+  }
+
+  .ag-stickers {
+    position: absolute;
+    top: 58px;
+    left: 26px;
+    right: 26px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    z-index: 2;
+  }
+
+  .ag-stickers span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--ag-border);
+    border-radius: 999px;
+    background: rgba(255, 253, 248, 0.68);
+    color: var(--ag-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transform: rotate(-4deg);
+  }
+
+  .ag-stickers span:nth-child(2) {
+    transform: rotate(3deg);
+  }
+
+  .ag-stickers span:nth-child(3) {
+    transform: rotate(-1deg);
+  }
+
+  .ag-window {
+    width: min(68%, 240px);
+    aspect-ratio: 1;
+    border-radius: 999px;
+    border: 1px solid var(--ag-border);
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.72), transparent 45%),
+      radial-gradient(circle at 46% 28%, rgba(255, 240, 168, 0.8), transparent 9%),
+      linear-gradient(180deg, var(--ag-sky) 0 42%, var(--ag-mountain) 42% 62%, var(--ag-surface-2) 62% 100%);
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 8px 24px rgba(79, 53, 35, 0.08);
+  }
+
+  .ag-capsule {
+    width: 92px;
+    aspect-ratio: 1.35;
+    border-radius: 999px;
+    border: 1px solid rgba(79, 53, 35, 0.16);
+    background:
+      linear-gradient(90deg, var(--ag-primary) 0 50%, #ffd5a3 50% 100%);
+    box-shadow: 0 10px 30px rgba(79, 53, 35, 0.18);
+    position: relative;
+    z-index: 2;
+    transition:
+      transform 700ms var(--ag-ease),
+      background 240ms var(--ag-ease);
+  }
+
+  .ag-capsule::after {
+    content: "";
+    position: absolute;
+    inset: 14px 32px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.32);
+    filter: blur(1px);
+  }
+
+  .ag-widget.is-revealing .ag-capsule {
+    animation: ag-shake 950ms var(--ag-ease) 3;
+  }
+
+  .ag-landscape {
+    position: absolute;
+    left: 34px;
+    right: 34px;
+    bottom: 74px;
+    height: 54px;
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  .ag-landscape span {
+    position: absolute;
+    bottom: 0;
+    width: 86px;
+    height: 54px;
+    background: var(--ag-mountain);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+
+  .ag-landscape span:nth-child(1) {
+    left: 4%;
+    transform: scale(1.1);
+  }
+
+  .ag-landscape span:nth-child(2) {
+    left: 32%;
+    transform: scale(0.84);
+    opacity: 0.72;
+  }
+
+  .ag-landscape span:nth-child(3) {
+    right: 2%;
+    transform: scale(1.28);
+    opacity: 0.82;
+  }
+
+  .ag-slot {
+    position: absolute;
+    bottom: 42px;
+    width: 42%;
+    height: 14px;
+    border-radius: 999px;
+    background: rgba(43, 33, 27, 0.2);
+  }
+
+  .ag-slot::after {
+    content: "souvenirs";
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--ag-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ag-copy {
+    min-width: 0;
+  }
+
+  .ag-kicker,
+  .ag-date {
+    margin: 0;
+    color: var(--ag-muted);
+    font-size: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .ag-copy h1 {
+    margin: 8px 0 14px;
+    font-family: "Boska", Georgia, serif;
+    font-size: clamp(2.1rem, 1.15rem + 4vw, 4.6rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+  }
+
+  .ag-intro {
+    margin: 0 0 24px;
+    max-width: 34rem;
+    color: var(--ag-muted);
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    line-height: 1.6;
+  }
+
+  .ag-button,
+  .ag-secondary {
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0 20px;
+    font-weight: 700;
+    transition:
+      transform 180ms var(--ag-ease),
+      background 180ms var(--ag-ease),
+      border-color 180ms var(--ag-ease),
+      color 180ms var(--ag-ease),
+      box-shadow 180ms var(--ag-ease);
+  }
+
+  .ag-button {
+    background: var(--ag-primary);
+    color: #fffdf8;
+    box-shadow: 0 12px 28px rgba(167, 61, 83, 0.25);
+  }
+
+  .ag-button:hover,
+  .ag-secondary:hover {
+    transform: translateY(-1px);
+  }
+
+  .ag-button:active,
+  .ag-secondary:active {
+    transform: translateY(0);
+  }
+
+  .ag-button[disabled] {
+    opacity: 0.72;
+    cursor: wait;
+  }
+
+  .ag-button[disabled] span::after {
+    content: "...";
+    display: inline-block;
+    width: 1.2em;
+    text-align: left;
+  }
+
+  .ag-result {
+    margin-top: 24px;
+    padding: clamp(18px, 3vw, 28px);
+    border: 1px solid var(--ag-border);
+    border-radius: var(--ag-radius-lg);
+    background: rgba(255, 253, 248, 0.72);
+    box-shadow: 0 14px 40px rgba(79, 53, 35, 0.1);
+    animation: ag-enter 420ms var(--ag-ease);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .ag-result {
+      background: rgba(33, 26, 23, 0.78);
+    }
+  }
+
+  .ag-result-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .ag-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: var(--ag-surface-2);
+    color: var(--ag-primary-dark);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .ag-result h2 {
+    margin: 0 0 10px;
+    font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .ag-result p {
+    margin: 0;
+    color: var(--ag-muted);
+    line-height: 1.6;
+  }
+
+  .ag-photo {
+    margin: 18px 0 0;
+    overflow: hidden;
+    border-radius: var(--ag-radius-md);
+    border: 1px solid var(--ag-border);
+    background: var(--ag-surface-2);
+  }
+
+  .ag-photo img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ag-photo figcaption {
+    padding: 12px 14px;
+    color: var(--ag-muted);
+    font-size: 0.92rem;
+  }
+
+  .ag-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .ag-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--ag-primary-dark);
+    border-color: var(--ag-border);
+    text-decoration: none;
+  }
+
+  .ag-rules {
+    margin-top: 18px;
+    color: var(--ag-muted);
+    font-size: 0.95rem;
+  }
+
+  .ag-rules summary {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    color: var(--ag-text);
+    font-weight: 700;
+  }
+
+  .ag-rules p {
+    margin: 0 0 10px;
+  }
+
+  .ag-rules ul {
+    margin: 0;
+    padding-left: 18px;
+    columns: 2;
+  }
+
+  .ag-rules li {
+    break-inside: avoid;
+    margin-bottom: 4px;
+  }
+
+  .ag-widget[data-tone="quiet"] .ag-badge {
+    color: var(--ag-muted);
+  }
+
+  .ag-widget[data-tone="quest"] .ag-badge {
+    color: var(--ag-blue);
+  }
+
+  .ag-widget[data-tone="warm"] .ag-badge {
+    color: var(--ag-gold);
+  }
+
+  .ag-widget[data-tone="cursed"] .ag-badge {
+    color: var(--ag-primary-dark);
+    background: rgba(167, 61, 83, 0.12);
+  }
+
+  .ag-widget[data-tone="rare"] .ag-badge,
+  .ag-widget[data-tone="photo"] .ag-badge {
+    color: var(--ag-green);
+  }
+
+  .ag-widget[data-tone="jackpot"] .ag-badge {
+    color: var(--ag-gold);
+    background: rgba(185, 120, 46, 0.16);
+  }
+
+  @keyframes ag-shake {
+    0%,
+    100% {
+      transform: rotate(0deg) translateY(0);
+    }
+    18% {
+      transform: rotate(-8deg) translateY(-6px);
+    }
+    38% {
+      transform: rotate(9deg) translateY(3px);
+    }
+    58% {
+      transform: rotate(-5deg) translateY(-2px);
+    }
+    78% {
+      transform: rotate(4deg) translateY(1px);
+    }
+  }
+
+  @keyframes ag-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .ag-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .ag-machine {
+      min-height: 260px;
+    }
+
+    .ag-rules ul {
+      columns: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ag-widget *,
+    .ag-widget *::before,
+    .ag-widget *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    const root = document.getElementById("affektions-gacha");
+    const configEl = document.getElementById("ag-config");
+    if (!root || !configEl) return;
+
+    const config = JSON.parse(configEl.textContent);
+    const totalWeight = config.categories.reduce((sum, category) => sum + category.weight, 0);
+
+    const $ = (selector) => root.querySelector(selector);
+    const drawButton = $("[data-ag-draw]");
+    const buttonText = $("[data-ag-button-text]");
+    const resultCard = $("[data-ag-result]");
+    const rarityEl = $("[data-ag-rarity]");
+    const dateEl = $("[data-ag-date]");
+    const titleEl = $("[data-ag-title]");
+    const messageEl = $("[data-ag-message]");
+    const capsuleEl = $("[data-capsule]");
+    const photoWrap = $("[data-ag-photo-wrap]");
+    const photoEl = $("[data-ag-photo]");
+    const photoCaption = $("[data-ag-photo-caption]");
+    const copyButton = $("[data-ag-copy]");
+    const sendLink = $("[data-ag-send]");
+    const oddsList = $("[data-ag-odds]");
+    const mainTitle = $("[data-ag-main-title]");
+    const kicker = $("[data-ag-kicker]");
+
+    let todaysPull = null;
+    let albumPhotosLoaded = false;
+
+    function dateKeyInTimezone(timezone) {
+      const parts = new Intl.DateTimeFormat("de-CH", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+
+      const get = (type) => parts.find((part) => part.type === type).value;
+      return `${get("year")}-${get("month")}-${get("day")}`;
+    }
+
+    function hashStringToUint32(input) {
+      let hash = 2166136261;
+      for (let index = 0; index < input.length; index += 1) {
+        hash ^= input.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0;
+    }
+
+    function mulberry32(seed) {
+      return function () {
+        let t = (seed += 0x6D2B79F5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function seededRandom(seedText) {
+      return mulberry32(hashStringToUint32(seedText))();
+    }
+
+    function seededIndex(seedText, length) {
+      if (!length) return 0;
+      return Math.floor(seededRandom(seedText) * length);
+    }
+
+    function pickWeighted(seedText) {
+      const roll = Math.floor(seededRandom(seedText) * totalWeight);
+      let cursor = 0;
+      for (const category of config.categories) {
+        cursor += category.weight;
+        if (roll < cursor) return category;
+      }
+      return config.categories[config.categories.length - 1];
+    }
+
+    function getToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(config.machine.tokenParam) || "default";
+    }
+
+    function displayNameFromToken() {
+      const token = getToken();
+      if (!token || token === "default") return config.machine.displayNameDefault || "Lennart";
+      return token
+        .replace(/[-_]+/g, " ")
+        .trim()
+        .split(/\s+/)
+        .map((part) => part.charAt(0).toLocaleUpperCase("de-CH") + part.slice(1))
+        .join(" ");
+    }
+
+    function buildPull() {
+      const day = dateKeyInTimezone(config.machine.timezone);
+      const token = getToken();
+      const baseSeed = `${config.machine.secret}|${token}|${day}`;
+      let category = pickWeighted(`${baseSeed}|category`);
+
+      if (category.id === "photo" && !config.photos.length) {
+        category = config.categories.find((item) => item.id === "common") || category;
+      }
+
+      const outcome = category.outcomes[
+        seededIndex(`${baseSeed}|${category.id}|outcome`, category.outcomes.length)
+      ];
+
+      const photo =
+        category.id === "photo" && config.photos.length
+          ? config.photos[seededIndex(`${baseSeed}|photo`, config.photos.length)]
+          : null;
+
+      return {
+        day,
+        token,
+        category,
+        outcome,
+        photo
+      };
+    }
+
+    function setCapsuleTone(tone) {
+      const colors = {
+        quiet: "linear-gradient(90deg, #b9aa9f 0 50%, #efe4da 50% 100%)",
+        soft: "linear-gradient(90deg, #a73d53 0 50%, #ffd5a3 50% 100%)",
+        quest: "linear-gradient(90deg, #376a83 0 50%, #f6d9b7 50% 100%)",
+        warm: "linear-gradient(90deg, #b9782e 0 50%, #f3c7a4 50% 100%)",
+        cursed: "linear-gradient(90deg, #2b211b 0 50%, #d88fa0 50% 100%)",
+        rare: "linear-gradient(90deg, #3f7460 0 50%, #ffd5a3 50% 100%)",
+        photo: "linear-gradient(90deg, #3f7460 0 50%, #d9e8e0 50% 100%)",
+        jackpot: "linear-gradient(90deg, #b9782e 0 50%, #fff0a8 50% 100%)"
+      };
+      capsuleEl.style.background = colors[tone] || colors.soft;
+    }
+
+    function messageText(pull) {
+      return [
+        `${displayNameFromToken()}s ${config.machine.name}: ${pull.category.label}`,
+        `${pull.outcome.title}`,
+        pull.outcome.message,
+        pull.photo ? `Foto: ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
+        `Tag: ${pull.day}`
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    function renderPull(pull) {
+      root.dataset.tone = pull.category.tone;
+      setCapsuleTone(pull.category.tone);
+
+      rarityEl.textContent = pull.category.label;
+      dateEl.textContent = pull.day;
+      titleEl.textContent = pull.outcome.title;
+      messageEl.textContent = pull.outcome.message;
+
+      if (pull.photo) {
+        photoEl.src = pull.photo.url;
+        photoEl.alt = pull.photo.alt || "Foto von uns";
+        photoCaption.textContent = pull.photo.caption || "";
+        photoWrap.hidden = false;
+      } else {
+        photoEl.removeAttribute("src");
+        photoEl.alt = "";
+        photoCaption.textContent = "";
+        photoWrap.hidden = true;
+      }
+
+      const text = messageText(pull);
+      const encodedSubject = encodeURIComponent("Mein Gacha-Zug");
+      const encodedBody = encodeURIComponent(text);
+
+      if (config.machine.messageTarget.startsWith("mailto:")) {
+        sendLink.href = `${config.machine.messageTarget}?subject=${encodedSubject}&body=${encodedBody}`;
+      } else {
+        sendLink.href = config.machine.messageTarget.replace("{text}", encodedBody);
+      }
+
+      resultCard.hidden = false;
+    }
+
+    function reveal() {
+      if (!todaysPull) todaysPull = buildPull();
+
+      root.classList.add("is-revealing");
+      drawButton.disabled = true;
+      const steps = [
+        "Route wird geprüft",
+        "Snacklage wird berechnet",
+        "Fotoarchiv wird durchsucht",
+        "Kapsel fällt gleich"
+      ];
+      let stepIndex = 0;
+      buttonText.textContent = steps[stepIndex];
+      const stepTimer = window.setInterval(() => {
+        stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+        buttonText.textContent = steps[stepIndex];
+      }, Math.max(420, Math.floor((config.machine.revealDelayMs || 2800) / steps.length)));
+
+      window.setTimeout(() => {
+        window.clearInterval(stepTimer);
+        renderPull(todaysPull);
+        root.classList.remove("is-revealing");
+        drawButton.disabled = false;
+        buttonText.textContent = "Heute nochmal anzeigen";
+      }, config.machine.revealDelayMs || 2800);
+    }
+
+    function renderOdds() {
+      oddsList.innerHTML = "";
+      for (const category of config.categories) {
+        const li = document.createElement("li");
+        li.textContent = `${category.label}: ${(category.weight / totalWeight * 100).toFixed(1)} %`;
+        oddsList.appendChild(li);
+      }
+    }
+
+    copyButton.addEventListener("click", async () => {
+      if (!todaysPull) return;
+      const text = messageText(todaysPull);
+      try {
+        await navigator.clipboard.writeText(text);
+        copyButton.textContent = "Kopiert";
+        window.setTimeout(() => {
+          copyButton.textContent = "Resultat kopieren";
+        }, 1400);
+      } catch (error) {
+        window.prompt("Resultat kopieren:", text);
+      }
+    });
+
+    drawButton.addEventListener("click", reveal);
+
+    async function loadPhotoManifest() {
+      const url = config.machine.photoManifestUrl;
+      if (!url) return;
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const manifest = await response.json();
+        if (Array.isArray(manifest.photos) && manifest.photos.length) {
+          config.photos = manifest.photos.map((photo) => ({
+            ...photo,
+            url: new URL(photo.url, url).toString()
+          }));
+          albumPhotosLoaded = true;
+          kicker.textContent = `Einmal pro Tag · ${config.photos.length} Erinnerungen geladen`;
+        }
+      } catch (error) {
+        console.warn("Could not load photo manifest:", error);
+      }
+    }
+
+    function personalize() {
+      const displayName = displayNameFromToken();
+      mainTitle.textContent = `${displayName}s Affektions-Gacha`;
+      kicker.textContent = "Einmal pro Tag";
+    }
+
+    personalize();
+    renderOdds();
+    loadPhotoManifest();
+  })();
+</script>

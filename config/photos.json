@@ -1,0 +1,23 @@
+{
+  "source": {
+    "mode": "manual",
+    "notes": "For no-code photo updates, change this file or generate it with scripts. For Google/Apple Photos, see README: browser pages cannot reliably hotlink private albums forever."
+  },
+  "photos": [
+    {
+      "url": "https://deine-webflow-domain.com/pfad/foto-1.jpg",
+      "alt": "Ein Foto von uns",
+      "caption": "Beweisstück A: ziemlich süß."
+    },
+    {
+      "url": "https://deine-webflow-domain.com/pfad/foto-2.jpg",
+      "alt": "Eine gemeinsame Erinnerung",
+      "caption": "Die Maschine nennt das: emotional relevante Daten."
+    },
+    {
+      "url": "https://deine-webflow-domain.com/pfad/foto-3.jpg",
+      "alt": "Ein weiteres Foto von uns",
+      "caption": "Archivfund mit hohem Süßigkeitswert."
+    }
+  ]
+}

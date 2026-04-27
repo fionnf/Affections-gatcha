@@ -1,0 +1,212 @@
+{
+  "categories": [
+    {
+      "id": "niete",
+      "label": "Niete",
+      "weight": 120,
+      "tone": "quiet",
+      "outcomes": [
+        {
+          "title": "Leere Souvenirbox",
+          "message": "Heute kein Preis. Nur ein imaginärer Kassenzettel aus einem sehr hübschen Museumsshop."
+        },
+        {
+          "title": "Keine Aussicht",
+          "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen."
+        },
+        {
+          "title": "Geschlossen wegen Architektur",
+          "message": "Die Maschine betrachtet gerade eine Fassade und ist nicht bereit, Preise auszugeben."
+        },
+        {
+          "title": "Kein Preis",
+          "message": "Nur ein winziges: du bist trotzdem ziemlich süß. Leider nicht einlösbar, nur aktenkundig."
+        }
+      ]
+    },
+    {
+      "id": "common",
+      "label": "Gewöhnlich",
+      "weight": 170,
+      "tone": "soft",
+      "outcomes": [
+        {
+          "title": "+1 Wegproviant",
+          "message": "Du bekommst einen sehr kleinen Motivationspunkt. Pack ihn neben die Snacks."
+        },
+        {
+          "title": "Passstempel",
+          "message": "Du bist heute offiziell süß. Die Maschine hat es in deinen imaginären Reisepass gestempelt."
+        },
+        {
+          "title": "Wasser am Brunnen",
+          "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang."
+        },
+        {
+          "title": "Mini-Aussicht",
+          "message": "Du hast einen kleinen Blick über die Dächer freigeschaltet. Innerlich kurz stehen bleiben."
+        },
+        {
+          "title": "Gedanken-Ping",
+          "message": "Du musst jetzt acht Sekunden an Fionn denken. Die Maschine behauptet, sie könne das überprüfen."
+        }
+      ]
+    },
+    {
+      "id": "quest",
+      "label": "Mini-Quest",
+      "weight": 150,
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Postkarten-Quest",
+          "message": "Schick Fionn ein Foto von etwas, das heute wie eine Postkarte aussieht: Himmel, Essen, Fassade, Berg, egal."
+        },
+        {
+          "title": "Tagesfund",
+          "message": "Nenne eine kleine gute Sache von heute. Sie darf sehr klein sein. Krümel und gute Kaffeetassen zählen."
+        },
+        {
+          "title": "Restaurant-Orakel",
+          "message": "Schlag einen Ort vor, an dem wir irgendwann essen sollten. Unvernünftig schöne Innenräume zählen doppelt."
+        },
+        {
+          "title": "Drei-Wort-Reisebericht",
+          "message": "Schick Fionn deinen Tag in genau drei Worten, als wärst du sehr erschöpft in einem Zug."
+        },
+        {
+          "title": "Route wählen",
+          "message": "Wähle eine Kategorie für unser nächstes Mini-Date: Kaffee, Spaziergang, Dessert, Aussicht oder Designladen."
+        }
+      ]
+    },
+    {
+      "id": "uncommon",
+      "label": "Ungewöhnlich",
+      "weight": 130,
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Sprachnachricht",
+          "message": "Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."
+        },
+        {
+          "title": "Dessert-Kommission",
+          "message": "Du darfst beim nächsten Mal das Dessert bestimmen. Architektur des Tellers wird mitbewertet."
+        },
+        {
+          "title": "Sympathie-Gutschein",
+          "message": "Du darfst eine dramatische Beschwerde einreichen und bekommst nur Mitgefühl, keine Lösungsvorschläge."
+        },
+        {
+          "title": "Foto-Anfrage",
+          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: alle drei."
+        },
+        {
+          "title": "Kleiner Reise-Call",
+          "message": "Du hast einen 15-Minuten-Call freigeschaltet, ideal für Routen, Pläne oder grundlose Updates."
+        }
+      ]
+    },
+    {
+      "id": "cursed",
+      "label": "Verflucht",
+      "weight": 90,
+      "tone": "cursed",
+      "outcomes": [
+        {
+          "title": "Snack-Steuer",
+          "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden."
+        },
+        {
+          "title": "Selfie-Zoll",
+          "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken. Möglichst wie ein müder Wanderer im Zug."
+        },
+        {
+          "title": "Designkritik-Pflicht",
+          "message": "Du musst Fionn ein Kompliment machen, aber es muss klingen wie eine seriöse Architekturkritik."
+        },
+        {
+          "title": "Kleiner-Löffel-Dekret",
+          "message": "Die Maschine hat entschieden: Du wurdest vorübergehend zum kleinen Löffel ernannt."
+        },
+        {
+          "title": "Formular 7B",
+          "message": "Bitte reiche eine schriftliche Begründung ein, warum du heute Aufmerksamkeit verdient hast. Skizzen erlaubt."
+        }
+      ]
+    },
+    {
+      "id": "rare",
+      "label": "Selten",
+      "weight": 90,
+      "tone": "rare",
+      "outcomes": [
+        {
+          "title": "Date-Credit: Kaffee-Spaziergang",
+          "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt."
+        },
+        {
+          "title": "Date-Credit: Kleine Expedition",
+          "message": "Wir gehen irgendwo hin, wo keiner von uns genau weiß, was dort ist. Sehr wissenschaftlich."
+        },
+        {
+          "title": "Date-Credit: Komfortabend",
+          "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung."
+        },
+        {
+          "title": "Date-Credit: Dessert-Mission",
+          "message": "Wir suchen ein Dessert. Es muss nicht sinnvoll sein. Nur lecker."
+        },
+        {
+          "title": "Date-Credit: Fionn plant die Route",
+          "message": "Du musst nichts entscheiden. Fionn plant ein kleines Date mit mindestens einem schönen Detail."
+        }
+      ]
+    },
+    {
+      "id": "photo",
+      "label": "Foto-Drop",
+      "weight": 200,
+      "tone": "photo",
+      "outcomes": [
+        {
+          "title": "Foto-Drop",
+          "message": "Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut."
+        },
+        {
+          "title": "Bildkapsel",
+          "message": "Heute gibt es kein Gutschein-Drama, nur ein kleines Bild von uns."
+        },
+        {
+          "title": "Archivfund",
+          "message": "Die Maschine hat im geheimen Fotoarchiv gekramt."
+        }
+      ]
+    },
+    {
+      "id": "jackpot",
+      "label": "JACKPOT",
+      "weight": 50,
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "JACKPOT: Vollständige kleine Expedition",
+          "message": "Fionn plant ein ganzes Mini-Date: Weg, Essen, schöner Ort. Du musst nur auftauchen und süß sein."
+        },
+        {
+          "title": "JACKPOT: Wunsch-Date",
+          "message": "Du darfst eine realistische Date-Aktivität wählen. Die Maschine empfiehlt: Aussicht, Essen oder eine gute Treppe."
+        },
+        {
+          "title": "JACKPOT: Überraschung",
+          "message": "Eine kleine Überraschung wurde freigeschaltet. Details bleiben absichtlich verdächtig."
+        },
+        {
+          "title": "JACKPOT: Sehr netter Abend",
+          "message": "Ein extrem netter Abend ist fällig. Gemütlich, lecker, schön gestaltet oder abenteuerlich nach gemeinsamer Wetterlage."
+        }
+      ]
+    }
+  ]
+}
