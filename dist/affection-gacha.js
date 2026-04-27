@@ -408,7 +408,7 @@
       const delay = -seededRandom(`${seedBase}|delay|${i}`) * duration;
       const direction = seededRandom(`${seedBase}|dir|${i}`) > 0.5 ? 1 : -1;
       span.style.setProperty("--ag-emoji-angle", `${angle}deg`);
-      span.style.setProperty("--ag-emoji-radius", `${228 + radiusJitter}%`);
+      span.style.setProperty("--ag-emoji-radius", `${228 + radiusJitter}px`);
       span.style.setProperty("--ag-emoji-duration", `${duration.toFixed(2)}s`);
       span.style.setProperty("--ag-emoji-delay", `${delay.toFixed(2)}s`);
       span.style.setProperty("--ag-emoji-direction", direction === 1 ? "normal" : "reverse");
