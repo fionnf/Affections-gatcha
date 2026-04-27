@@ -4,12 +4,15 @@
   const baseUrl = script?.dataset.configBase || "";
   const mount = document.querySelector(mountSelector) || createMount();
 
+  const STORAGE_KEY = "affektions-gacha:history:v1";
+
   const state = {
     theme: null,
     outcomes: null,
     photos: null,
     todaysPull: null,
-    activeTab: "today"
+    activeTab: "today",
+    revealed: false
   };
 
   const defaultPhotos = { photos: [] };
@@ -21,8 +24,17 @@
     return element;
   }
 
+  function resolveBase() {
+    if (!baseUrl) return window.location.href;
+    try {
+      return new URL(baseUrl, window.location.href).toString();
+    } catch (_error) {
+      return window.location.href;
+    }
+  }
+
   function urlFor(file) {
-    return new URL(file, baseUrl || window.location.href).toString();
+    return new URL(file, resolveBase()).toString();
   }
 
   async function fetchJson(file, fallback = null) {
@@ -74,33 +86,197 @@
     document.head.appendChild(link);
   }
 
+  function sceneSvg() {
+    return `
+      <svg class="ag-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="ag-sky-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ag-scene-sky-top)"/>
+            <stop offset="100%" stop-color="var(--ag-scene-sky-bottom)"/>
+          </linearGradient>
+          <linearGradient id="ag-water" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ag-scene-water-top)"/>
+            <stop offset="100%" stop-color="var(--ag-scene-water-bottom)"/>
+          </linearGradient>
+          <radialGradient id="ag-sun" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(255,238,180,.95)"/>
+            <stop offset="55%" stop-color="rgba(255,215,140,.35)"/>
+            <stop offset="100%" stop-color="rgba(255,215,140,0)"/>
+          </radialGradient>
+          <pattern id="ag-leaf" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M24 6 C 14 14, 14 30, 24 42 C 34 30, 34 14, 24 6 Z" fill="rgba(255,255,255,.04)"/>
+            <line x1="24" y1="6" x2="24" y2="42" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+          </pattern>
+        </defs>
+
+        <rect width="1200" height="600" fill="url(#ag-sky-grad)"/>
+        <circle class="ag-sun" cx="940" cy="150" r="180" fill="url(#ag-sun)"/>
+
+        <g class="ag-mountains">
+          <polygon points="-40,360 220,170 360,300 540,180 720,330 880,210 1080,340 1240,260 1240,420 -40,420"
+            fill="var(--ag-scene-mountain-far)"/>
+          <polygon points="-40,420 160,300 320,400 500,290 660,400 840,310 1020,420 1240,330 1240,520 -40,520"
+            fill="var(--ag-scene-mountain-mid)"/>
+        </g>
+
+        <g class="ag-forest-back">
+          <path d="M-40 460 C 80 420, 160 470, 240 440 C 320 410, 400 470, 500 450 C 620 430, 720 480, 820 450 C 920 420, 1040 470, 1240 450 L 1240 600 L -40 600 Z"
+            fill="var(--ag-scene-forest-far)"/>
+        </g>
+
+        <g class="ag-water-band">
+          <rect x="-40" y="455" width="1280" height="34" fill="url(#ag-water)" opacity=".9"/>
+          <path class="ag-shimmer" d="M0 470 Q 60 466 120 470 T 240 470 T 360 470 T 480 470 T 600 470 T 720 470 T 840 470 T 960 470 T 1080 470 T 1200 470"
+            stroke="rgba(255,255,255,.55)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path class="ag-shimmer ag-shimmer-2" d="M0 478 Q 80 474 160 478 T 320 478 T 480 478 T 640 478 T 800 478 T 960 478 T 1120 478 T 1280 478"
+            stroke="rgba(255,255,255,.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </g>
+
+        <g class="ag-city">
+          <rect x="780" y="380" width="14" height="80" fill="var(--ag-scene-city)"/>
+          <rect x="800" y="360" width="20" height="100" fill="var(--ag-scene-city)"/>
+          <polygon points="826,360 836,344 846,360" fill="var(--ag-scene-city)"/>
+          <rect x="828" y="360" width="16" height="100" fill="var(--ag-scene-city)"/>
+          <rect x="850" y="372" width="18" height="88" fill="var(--ag-scene-city)"/>
+          <rect x="872" y="350" width="10" height="110" fill="var(--ag-scene-city)"/>
+          <rect x="886" y="370" width="22" height="90" fill="var(--ag-scene-city)"/>
+          <rect x="912" y="358" width="14" height="102" fill="var(--ag-scene-city)"/>
+          <g fill="rgba(255,236,170,.7)">
+            <rect x="803" y="372" width="3" height="3"/>
+            <rect x="809" y="382" width="3" height="3"/>
+            <rect x="833" y="376" width="3" height="3"/>
+            <rect x="855" y="386" width="3" height="3"/>
+            <rect x="876" y="362" width="3" height="3"/>
+            <rect x="892" y="384" width="3" height="3"/>
+            <rect x="916" y="372" width="3" height="3"/>
+          </g>
+        </g>
+
+        <g class="ag-road">
+          <path d="M-20 588 C 200 520, 360 540, 520 510 C 720 472, 880 500, 1240 460"
+            stroke="var(--ag-scene-road)" stroke-width="22" fill="none" stroke-linecap="round" opacity=".9"/>
+          <path class="ag-road-dash" d="M-20 588 C 200 520, 360 540, 520 510 C 720 472, 880 500, 1240 460"
+            stroke="rgba(255,253,242,.85)" stroke-width="2" fill="none" stroke-linecap="round"
+            stroke-dasharray="10 18"/>
+        </g>
+
+        <g class="ag-trees">
+          <g transform="translate(80,470)"><polygon points="0,0 18,-44 36,0" fill="var(--ag-scene-tree)"/><polygon points="4,-16 18,-58 32,-16" fill="var(--ag-scene-tree-light)"/><rect x="16" y="0" width="4" height="10" fill="#3a2418"/></g>
+          <g transform="translate(150,488)"><polygon points="0,0 14,-32 28,0" fill="var(--ag-scene-tree)"/><rect x="12" y="0" width="4" height="8" fill="#3a2418"/></g>
+          <g transform="translate(220,478)"><polygon points="0,0 22,-52 44,0" fill="var(--ag-scene-tree)"/><polygon points="6,-20 22,-66 38,-20" fill="var(--ag-scene-tree-light)"/><rect x="20" y="0" width="4" height="10" fill="#3a2418"/></g>
+          <g transform="translate(310,498)"><polygon points="0,0 12,-26 24,0" fill="var(--ag-scene-tree)"/></g>
+          <g transform="translate(420,492)"><polygon points="0,0 16,-36 32,0" fill="var(--ag-scene-tree)"/><polygon points="4,-12 16,-46 28,-12" fill="var(--ag-scene-tree-light)"/></g>
+          <g transform="translate(560,494)"><polygon points="0,0 12,-28 24,0" fill="var(--ag-scene-tree)"/></g>
+          <g transform="translate(640,488)"><polygon points="0,0 18,-42 36,0" fill="var(--ag-scene-tree)"/><polygon points="4,-14 18,-54 32,-14" fill="var(--ag-scene-tree-light)"/></g>
+          <g transform="translate(1080,490)"><polygon points="0,0 16,-38 32,0" fill="var(--ag-scene-tree)"/></g>
+          <g transform="translate(1140,500)"><polygon points="0,0 12,-26 24,0" fill="var(--ag-scene-tree)"/></g>
+        </g>
+
+        <g class="ag-baerlauch">
+          <g transform="translate(60,548)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(380,558)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(720,562)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(990,556)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(160,572)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
+          <g transform="translate(540,572)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
+          <g transform="translate(880,576)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
+        </g>
+
+        <g class="ag-fireflies">
+          <circle class="ag-firefly" cx="180" cy="220" r="2.4" fill="rgba(255,236,170,.95)"/>
+          <circle class="ag-firefly ag-firefly-2" cx="430" cy="170" r="1.8" fill="rgba(255,236,170,.85)"/>
+          <circle class="ag-firefly ag-firefly-3" cx="720" cy="240" r="2.2" fill="rgba(255,236,170,.9)"/>
+          <circle class="ag-firefly ag-firefly-4" cx="980" cy="200" r="1.6" fill="rgba(255,236,170,.8)"/>
+          <circle class="ag-firefly ag-firefly-5" cx="320" cy="310" r="1.6" fill="rgba(255,236,170,.7)"/>
+          <circle class="ag-firefly ag-firefly-6" cx="610" cy="320" r="1.4" fill="rgba(255,236,170,.7)"/>
+        </g>
+
+        <rect width="1200" height="600" fill="url(#ag-leaf)"/>
+      </svg>
+    `;
+  }
+
+  function machineSvg() {
+    return `
+      <svg class="ag-machine-svg" viewBox="0 0 280 320" aria-hidden="true">
+        <defs>
+          <linearGradient id="ag-mach-body" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ag-mach-top)"/>
+            <stop offset="100%" stop-color="var(--ag-mach-bottom)"/>
+          </linearGradient>
+          <radialGradient id="ag-mach-glow" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="rgba(255,236,170,.9)"/>
+            <stop offset="55%" stop-color="rgba(255,236,170,.18)"/>
+            <stop offset="100%" stop-color="rgba(255,236,170,0)"/>
+          </radialGradient>
+          <linearGradient id="ag-glass" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
+            <stop offset="50%" stop-color="rgba(255,255,255,.06)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,.18)"/>
+          </linearGradient>
+        </defs>
+        <rect x="20" y="14" width="240" height="292" rx="36" fill="url(#ag-mach-body)" stroke="rgba(255,255,255,.16)"/>
+        <rect x="44" y="36" width="192" height="10" rx="5" fill="rgba(255,253,242,.55)"/>
+        <circle class="ag-mach-glow" cx="140" cy="148" r="120" fill="url(#ag-mach-glow)"/>
+        <circle cx="140" cy="148" r="86" fill="rgba(8,28,18,.65)" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
+        <path d="M62 152 a78 78 0 0 1 156 0" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="2"/>
+        <g class="ag-mach-orbit">
+          <circle cx="140" cy="62" r="3" fill="rgba(255,236,170,.95)"/>
+          <circle cx="218" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
+          <circle cx="140" cy="234" r="2" fill="rgba(255,236,170,.6)"/>
+          <circle cx="62" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
+        </g>
+        <ellipse cx="140" cy="148" rx="34" ry="46" fill="url(#ag-glass)" opacity=".85"/>
+        <rect x="64" y="266" width="152" height="20" rx="10" fill="rgba(8,28,18,.55)"/>
+        <text x="140" y="282" text-anchor="middle" fill="rgba(255,253,242,.7)"
+          font-family="'Satoshi',sans-serif" font-size="9" letter-spacing="2">SOUVENIRS</text>
+      </svg>
+    `;
+  }
+
   function renderShell() {
     mount.className = "ag-widget";
     mount.setAttribute("aria-labelledby", "ag-title");
     mount.innerHTML = `
-      <div class="ag-shell">
-        <div class="ag-machine" aria-hidden="true">
-          <div class="ag-machine-top"></div>
-          <div class="ag-stickers" data-ag-stickers></div>
-          <div class="ag-window">
-            <div class="ag-capsule" data-capsule></div>
-          </div>
-          <div class="ag-landscape"><span></span><span></span><span></span></div>
-          <div class="ag-slot"></div>
-        </div>
-        <div class="ag-copy">
-          <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
-          <h1 id="ag-title" data-ag-main-title>Affektions-Gacha</h1>
-          <p class="ag-intro" data-ag-intro></p>
-          <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
-            <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
-            <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
-          </div>
-          <div class="ag-panel" data-ag-panel-today role="tabpanel">
-            <button class="ag-button" type="button" data-ag-draw>
-              <span data-ag-button-text>Kapsel ziehen</span>
-            </button>
-            <article class="ag-result" data-ag-result aria-live="polite" hidden>
+      <div class="ag-stage">
+        ${sceneSvg()}
+        <div class="ag-stage-veil" aria-hidden="true"></div>
+        <div class="ag-shell">
+          <header class="ag-hero">
+            <div class="ag-machine-wrap" aria-hidden="true">
+              ${machineSvg()}
+              <div class="ag-machine-capsule" data-capsule>
+                <span class="ag-capsule-shine"></span>
+              </div>
+              <div class="ag-orbit">
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+            <div class="ag-copy">
+              <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
+              <h1 id="ag-title" data-ag-main-title>Affektions-Gacha</h1>
+              <p class="ag-intro" data-ag-intro></p>
+              <ul class="ag-chips" data-ag-chips></ul>
+              <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
+                <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
+                <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
+              </div>
+            </div>
+          </header>
+
+          <section class="ag-panel" data-ag-panel-today role="tabpanel">
+            <div class="ag-card ag-draw-card">
+              <div class="ag-draw-meta">
+                <span class="ag-pill" data-ag-today-pill>Heute</span>
+                <span class="ag-draw-hint" data-ag-draw-hint></span>
+              </div>
+              <button class="ag-button" type="button" data-ag-draw>
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span data-ag-button-text>Kapsel ziehen</span>
+              </button>
+            </div>
+
+            <article class="ag-card ag-result" data-ag-result aria-live="polite" hidden>
               <div class="ag-result-head">
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
@@ -116,16 +292,21 @@
                 <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
               </div>
             </article>
-            <details class="ag-rules">
+
+            <details class="ag-card ag-rules">
               <summary data-ag-rules-title>Maschinenregeln</summary>
               <p data-ag-rules-text></p>
               <ul data-ag-odds></ul>
             </details>
-          </div>
-          <div class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
-            <p class="ag-history-note" data-ag-history-note></p>
-            <ol class="ag-history" data-ag-history></ol>
-          </div>
+          </section>
+
+          <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
+            <div class="ag-card">
+              <p class="ag-history-note" data-ag-history-note></p>
+              <ol class="ag-history" data-ag-history></ol>
+              <p class="ag-history-empty" data-ag-history-empty hidden></p>
+            </div>
+          </section>
         </div>
       </div>
     `;
@@ -151,6 +332,10 @@
       .join(" ") || state.theme.brand.displayNameDefault || "Lennart";
   }
 
+  function defaultChips() {
+    return ["Wald", "Velo", "Stadt", "Bärlauch", "See"];
+  }
+
   function hydrateCopy() {
     const name = displayNameFromToken();
     $("[data-ag-main-title]").textContent = state.theme.brand.titleTemplate.replace("{name}", name);
@@ -160,16 +345,32 @@
     $("[data-ag-rules-title]").textContent = state.theme.brand.rulesTitle;
     $("[data-ag-rules-text]").textContent = state.theme.brand.rulesText;
     $("[data-ag-send]").textContent = `An ${state.theme.brand.fromName} schicken`;
-    const historyDays = Number.isInteger(state.theme.historyDays) ? state.theme.historyDays : 14;
-    $("[data-ag-history-note]").textContent =
-      `Deterministischer Verlauf der letzten ${historyDays} Tage. Kein Tap-Log — nur dieselbe tägliche Berechnung rückwärts gerechnet.`;
+    $("[data-ag-today-pill]").textContent = formatToday();
+    $("[data-ag-draw-hint]").textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
 
-    const stickers = $("[data-ag-stickers]");
-    stickers.innerHTML = "";
-    for (const sticker of state.theme.stickers || []) {
-      const span = document.createElement("span");
-      span.textContent = sticker;
-      stickers.appendChild(span);
+    const chips = $("[data-ag-chips]");
+    chips.innerHTML = "";
+    const chipList = (Array.isArray(state.theme.stickers) && state.theme.stickers.length)
+      ? state.theme.stickers
+      : defaultChips();
+    for (const chip of chipList) {
+      const li = document.createElement("li");
+      li.textContent = chip;
+      chips.appendChild(li);
+    }
+  }
+
+  function formatToday() {
+    try {
+      const date = new Date();
+      return new Intl.DateTimeFormat("de-CH", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        timeZone: state.theme.timezone
+      }).format(date);
+    } catch (error) {
+      return dateKeyInTimezone(state.theme.timezone);
     }
   }
 
@@ -286,6 +487,7 @@
 
   function setCapsuleTone(tone) {
     const capsule = $("[data-capsule]");
+    if (!capsule) return;
     const colors = {
       quiet: "linear-gradient(90deg, #9faf9a 0 50%, #e6efdf 50% 100%)",
       soft: "linear-gradient(90deg, var(--ag-primary) 0 50%, #d8ecbf 50% 100%)",
@@ -398,6 +600,64 @@
     $("[data-ag-result]").hidden = false;
   }
 
+  function readHistory() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return [];
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((entry) =>
+        entry && typeof entry.day === "string" && typeof entry.token === "string"
+      );
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeHistory(entries) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    } catch (error) {
+      /* localStorage unavailable or full — ignore */
+    }
+  }
+
+  function recordHistoryEntry(pull) {
+    if (!pull) return;
+    const entry = {
+      day: pull.day,
+      token: pull.token,
+      categoryId: pull.category.id,
+      categoryLabel: pull.category.label,
+      tone: pull.category.tone,
+      title: pull.outcome.title,
+      message: pull.outcome.message,
+      photo: pull.photo
+        ? {
+            url: pull.photo.url,
+            alt: pull.photo.alt || "",
+            caption: (pull.photo.caption || "").trim(),
+            type: pull.photo.type === "video" ? "video" : "image"
+          }
+        : null,
+      revealedAt: Date.now()
+    };
+    const existing = readHistory();
+    const seen = new Set();
+    const merged = [entry, ...existing].filter((item) => {
+      if (!item || typeof item.day !== "string" || typeof item.token !== "string") return false;
+      const key = `${item.day}|${item.token}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    merged.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 14;
+    writeHistory(merged.slice(0, Math.max(cap, 1)));
+  }
+
   function reveal() {
     if (!state.todaysPull) state.todaysPull = buildPull();
     const button = $("[data-ag-draw]");
@@ -417,8 +677,12 @@
       window.clearInterval(stepTimer);
       renderPull(state.todaysPull);
       mount.classList.remove("is-revealing");
+      mount.classList.add("is-revealed");
       button.disabled = false;
       buttonText.textContent = state.theme.brand.buttonShown;
+      state.revealed = true;
+      recordHistoryEntry(state.todaysPull);
+      if (state.activeTab === "history") renderHistory();
     }, state.theme.revealDelayMs || 3200);
   }
 
@@ -431,17 +695,6 @@
       li.textContent = `${category.label}: ${(category.weight / total * 100).toFixed(1)} %`;
       oddsList.appendChild(li);
     }
-  }
-
-  function pastDays(count) {
-    const days = [];
-    const tz = state.theme.timezone;
-    const now = new Date();
-    for (let offset = 0; offset < count; offset += 1) {
-      const date = new Date(now.getTime() - offset * 24 * 60 * 60 * 1000);
-      days.push(dateKeyInTimezone(tz, date));
-    }
-    return days;
   }
 
   function formatHistoryDate(dayKey) {
@@ -460,44 +713,60 @@
 
   function renderHistory() {
     const list = $("[data-ag-history]");
+    const empty = $("[data-ag-history-empty]");
+    const note = $("[data-ag-history-note]");
     list.innerHTML = "";
-    const historyDays = Number.isInteger(state.theme.historyDays) ? state.theme.historyDays : 14;
-    const days = pastDays(Math.max(1, historyDays));
 
-    for (const dayKey of days) {
-      const pull = buildPullForDay(dayKey);
+    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 14;
+    const entries = readHistory()
+      .slice()
+      .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0))
+      .slice(0, cap);
+
+    note.textContent =
+      `Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst. Bis zu ${cap} Tage.`;
+
+    if (!entries.length) {
+      empty.hidden = false;
+      empty.textContent =
+        "Noch keine Kapseln auf diesem Gerät bzw. Browser geöffnet. Zieh heute eine — dann erscheint sie hier.";
+      return;
+    }
+    empty.hidden = true;
+
+    for (const entry of entries) {
       const li = document.createElement("li");
       li.className = "ag-history-item";
-      li.dataset.tone = pull.category.tone;
+      li.dataset.tone = entry.tone || "soft";
 
       const head = document.createElement("div");
       head.className = "ag-history-head";
       const date = document.createElement("span");
       date.className = "ag-history-date";
-      date.textContent = formatHistoryDate(dayKey);
+      date.textContent = formatHistoryDate(entry.day);
       const badge = document.createElement("span");
       badge.className = "ag-history-badge";
-      badge.textContent = pull.category.label;
+      badge.textContent = entry.categoryLabel || "Kapsel";
       head.appendChild(date);
       head.appendChild(badge);
 
       const title = document.createElement("p");
       title.className = "ag-history-title";
-      title.textContent = pull.outcome.title;
+      title.textContent = entry.title || "";
 
       const message = document.createElement("p");
       message.className = "ag-history-message";
-      message.textContent = pull.outcome.message;
+      message.textContent = entry.message || "";
 
       li.appendChild(head);
 
-      if (pull.photo) {
+      if (entry.photo) {
         const body = document.createElement("div");
         body.className = "ag-history-body";
 
         const thumb = document.createElement("div");
         thumb.className = "ag-history-thumb";
-        if (pull.photo.type === "video") {
+        if (entry.photo.type === "video") {
           thumb.classList.add("is-video");
           const icon = document.createElement("span");
           icon.className = "ag-history-video-icon";
@@ -510,8 +779,8 @@
           thumb.appendChild(label);
         } else {
           const img = document.createElement("img");
-          img.src = pull.photo.url;
-          img.alt = pull.photo.alt || "Foto-Drop";
+          img.src = entry.photo.url;
+          img.alt = entry.photo.alt || "Foto-Drop";
           img.loading = "lazy";
           img.decoding = "async";
           thumb.appendChild(img);
@@ -592,22 +861,33 @@
     style.dataset.agStyles = "true";
     style.textContent = `
       .ag-widget,.ag-widget *{box-sizing:border-box}
+      .ag-widget [hidden]{display:none!important}
       .ag-widget{
-        --ag-shadow:0 18px 48px rgba(38,75,45,.12);
-        --ag-shadow-soft:0 8px 24px rgba(38,75,45,.08);
-        --ag-radius-lg:24px;
-        --ag-radius-md:16px;
-        --ag-radius-sm:10px;
+        --ag-shadow:0 24px 60px rgba(8,28,18,.32);
+        --ag-shadow-soft:0 12px 32px rgba(8,28,18,.18);
+        --ag-radius-lg:28px;
+        --ag-radius-md:18px;
+        --ag-radius-sm:12px;
         --ag-ease:cubic-bezier(.16,1,.3,1);
+        --ag-scene-sky-top:#1a3a2c;
+        --ag-scene-sky-bottom:#0e2419;
+        --ag-scene-mountain-far:#1d3a2c;
+        --ag-scene-mountain-mid:#13291f;
+        --ag-scene-forest-far:#0c2118;
+        --ag-scene-water-top:#3b6e58;
+        --ag-scene-water-bottom:#1f4633;
+        --ag-scene-tree:#0a1c14;
+        --ag-scene-tree-light:#16382a;
+        --ag-scene-leaf:#3e8a55;
+        --ag-scene-leaf-light:#6dbf80;
+        --ag-scene-road:#2d4a3a;
+        --ag-scene-city:#12291f;
+        --ag-mach-top:#102b1f;
+        --ag-mach-bottom:#06150f;
         color:var(--ag-text);
-        background:
-          radial-gradient(circle at 20% 0%, rgba(198,225,185,.68), transparent 34rem),
-          radial-gradient(circle at 100% 40%, rgba(47,122,79,.18), transparent 28rem),
-          var(--ag-bg);
-        border-radius:var(--ag-radius-lg);
-        overflow:hidden;
         font-family:"Satoshi","Inter",system-ui,sans-serif;
         line-height:1.5;
+        display:block;
       }
       @media (prefers-color-scheme:dark){
         .ag-widget{
@@ -624,134 +904,204 @@
           --ag-blue:var(--ag-dark-blue)!important;
           --ag-sky:var(--ag-dark-sky)!important;
           --ag-mountain:var(--ag-dark-mountain)!important;
-          --ag-shadow:0 18px 48px rgba(0,0,0,.36);
-          --ag-shadow-soft:0 8px 24px rgba(0,0,0,.28);
         }
       }
+
+      .ag-stage{
+        position:relative;
+        border-radius:var(--ag-radius-lg);
+        overflow:hidden;
+        background:var(--ag-scene-sky-bottom);
+        isolation:isolate;
+        box-shadow:var(--ag-shadow);
+      }
+      .ag-scene{
+        position:absolute;inset:0;width:100%;height:100%;
+        z-index:0;
+        display:block;
+      }
+      .ag-stage-veil{
+        position:absolute;inset:0;z-index:1;pointer-events:none;
+        background:
+          radial-gradient(circle at 20% 12%, rgba(255,236,170,.18), transparent 36%),
+          radial-gradient(circle at 80% 90%, rgba(8,28,18,.7), transparent 60%),
+          linear-gradient(180deg, rgba(8,28,18,.05) 0%, rgba(8,28,18,.55) 70%, rgba(8,28,18,.85) 100%);
+      }
       .ag-shell{
-        width:min(100%,980px);
-        margin-inline:auto;
-        padding:clamp(20px,5vw,56px);
+        position:relative;z-index:2;
+        padding:clamp(20px,4vw,44px);
         display:grid;
-        grid-template-columns:minmax(220px,.8fr) minmax(0,1.2fr);
-        gap:clamp(20px,4vw,52px);
+        gap:clamp(18px,2.4vw,28px);
+      }
+
+      .ag-hero{
+        display:grid;
+        grid-template-columns:minmax(220px,.85fr) minmax(0,1.15fr);
+        gap:clamp(20px,3.2vw,40px);
         align-items:center;
       }
-      .ag-machine{
+      @media (max-width:760px){
+        .ag-hero{grid-template-columns:1fr;text-align:left}
+      }
+
+      .ag-machine-wrap{
         position:relative;
-        min-height:340px;
-        border:1px solid var(--ag-border);
-        border-radius:36px;
-        background:
-          linear-gradient(160deg, rgba(255,255,255,.36), transparent 42%),
-          linear-gradient(180deg, var(--ag-sky), transparent 36%),
-          var(--ag-surface);
-        box-shadow:var(--ag-shadow);
-        display:grid;place-items:center;isolation:isolate;
+        width:100%;
+        max-width:340px;
+        margin:0 auto;
+        aspect-ratio:280/320;
+        filter:drop-shadow(0 24px 40px rgba(0,0,0,.45));
       }
-      .ag-machine:before{
-        content:"";position:absolute;width:42%;aspect-ratio:1;top:22px;right:28px;
-        border-radius:999px;background:rgba(47,122,79,.12);filter:blur(10px);z-index:-1;
+      .ag-machine-svg{width:100%;height:100%;display:block}
+      .ag-mach-glow{transform-origin:140px 148px;animation:ag-pulse 4.4s ease-in-out infinite}
+      .ag-widget.is-revealing .ag-mach-glow{animation-duration:1.2s}
+      .ag-mach-orbit{transform-origin:140px 148px;animation:ag-spin 22s linear infinite}
+      .ag-widget.is-revealing .ag-mach-orbit{animation-duration:5s}
+
+      .ag-machine-capsule{
+        position:absolute;
+        left:50%;top:46%;transform:translate(-50%,-50%);
+        width:22%;aspect-ratio:1.35;border-radius:999px;
+        background:linear-gradient(90deg,var(--ag-primary) 0 50%,#d8ecbf 50% 100%);
+        box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 24px rgba(255,236,170,.18);
+        animation:ag-float 5.5s ease-in-out infinite;
       }
-      .ag-machine:after{
-        content:"";position:absolute;inset:18px;border:1px solid rgba(255,255,255,.32);
-        border-radius:26px;pointer-events:none;
+      .ag-capsule-shine{
+        position:absolute;inset:14% 28%;border-radius:999px;
+        background:rgba(255,255,255,.45);filter:blur(2px);
       }
-      .ag-machine-top{position:absolute;top:24px;width:42%;height:14px;border-radius:999px;background:var(--ag-primary);opacity:.82}
-      .ag-stickers{position:absolute;top:54px;left:24px;right:24px;display:flex;justify-content:space-between;gap:8px;z-index:2}
-      .ag-stickers span{
-        display:inline-flex;align-items:center;min-height:26px;padding:0 9px;
-        border:1px solid var(--ag-border);border-radius:999px;
-        background:rgba(255,253,248,.7);color:var(--ag-muted);
-        font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-        transform:rotate(-4deg);
+      .ag-widget.is-revealing .ag-machine-capsule{animation:ag-shake 950ms var(--ag-ease) 3}
+      .ag-widget.is-revealed .ag-machine-capsule{animation:ag-pop 700ms var(--ag-ease) both}
+
+      .ag-orbit{position:absolute;inset:0;pointer-events:none}
+      .ag-orbit span{
+        position:absolute;width:6px;height:6px;border-radius:999px;
+        background:rgba(255,236,170,.85);
+        box-shadow:0 0 12px rgba(255,236,170,.85);
       }
-      .ag-stickers span:nth-child(2){transform:rotate(3deg)}
-      .ag-stickers span:nth-child(3){transform:rotate(-1deg)}
-      .ag-window{
-        width:min(66%,232px);aspect-ratio:1;border-radius:999px;
-        border:1px solid var(--ag-border);
-        background:
-          linear-gradient(145deg, rgba(255,255,255,.7), transparent 45%),
-          radial-gradient(circle at 46% 28%, rgba(255,240,168,.78), transparent 9%),
-          linear-gradient(180deg, var(--ag-sky) 0 42%, var(--ag-mountain) 42% 62%, var(--ag-surface-2) 62% 100%);
-        display:grid;place-items:center;
-        box-shadow:inset 0 8px 24px rgba(38,75,45,.08);
+      .ag-orbit span:nth-child(1){left:50%;top:8%;animation:ag-orbit-1 7s linear infinite}
+      .ag-orbit span:nth-child(2){left:88%;top:50%;animation:ag-orbit-2 9s linear infinite}
+      .ag-orbit span:nth-child(3){left:50%;top:90%;animation:ag-orbit-3 8s linear infinite}
+      .ag-orbit span:nth-child(4){left:8%;top:50%;animation:ag-orbit-4 10s linear infinite}
+
+      .ag-copy{min-width:0;color:#fffdf2}
+      .ag-kicker{
+        margin:0;color:#cfe7d4;font-size:clamp(.74rem,.7rem + .2vw,.84rem);
+        letter-spacing:.14em;text-transform:uppercase;font-weight:700;
       }
-      .ag-capsule{
-        position:relative;z-index:2;width:88px;aspect-ratio:1.35;border-radius:999px;
-        border:1px solid rgba(38,75,45,.16);
-        background:linear-gradient(90deg, var(--ag-primary) 0 50%, #d8ecbf 50% 100%);
-        box-shadow:0 10px 28px rgba(38,75,45,.18);
-        transition:transform 700ms var(--ag-ease), background 240ms var(--ag-ease);
-      }
-      .ag-capsule:after{content:"";position:absolute;inset:14px 30px;border-radius:999px;background:rgba(255,255,255,.32);filter:blur(1px)}
-      .ag-widget.is-revealing .ag-capsule{animation:ag-shake 950ms var(--ag-ease) 3}
-      .ag-landscape{position:absolute;left:32px;right:32px;bottom:70px;height:50px;opacity:.7;pointer-events:none}
-      .ag-landscape span{position:absolute;bottom:0;width:84px;height:50px;background:var(--ag-mountain);clip-path:polygon(50% 0,100% 100%,0 100%)}
-      .ag-landscape span:nth-child(1){left:4%;transform:scale(1.1)}
-      .ag-landscape span:nth-child(2){left:32%;transform:scale(.84);opacity:.72}
-      .ag-landscape span:nth-child(3){right:2%;transform:scale(1.28);opacity:.82}
-      .ag-slot{position:absolute;bottom:38px;width:42%;height:12px;border-radius:999px;background:rgba(23,32,24,.18)}
-      .ag-slot:after{
-        content:"souvenirs";position:absolute;top:16px;left:50%;transform:translateX(-50%);
-        color:var(--ag-muted);font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-      }
-      .ag-copy{min-width:0}
-      .ag-kicker,.ag-date{margin:0;color:var(--ag-muted);font-size:clamp(.74rem,.7rem + .2vw,.84rem);letter-spacing:.08em;text-transform:uppercase;font-weight:700}
       .ag-copy h1{
-        margin:6px 0 12px;font-family:"Boska",Georgia,serif;
-        font-size:clamp(2rem,1.15rem + 3.6vw,4.2rem);line-height:.96;letter-spacing:-.035em;font-weight:700;
+        margin:8px 0 12px;
+        font-family:"Boska",Georgia,serif;
+        font-size:clamp(2.1rem,1.2rem + 3.8vw,4.4rem);
+        line-height:.96;letter-spacing:-.035em;font-weight:700;
+        color:#fffdf2;
+        text-shadow:0 2px 24px rgba(0,0,0,.5);
       }
-      .ag-intro{margin:0 0 20px;max-width:34rem;color:var(--ag-muted);font-size:clamp(.98rem,.95rem + .2vw,1.08rem);line-height:1.6}
+      .ag-intro{
+        margin:0 0 18px;max-width:34rem;color:#dfeedb;
+        font-size:clamp(.98rem,.95rem + .2vw,1.08rem);line-height:1.6;
+      }
+
+      .ag-chips{
+        list-style:none;padding:0;margin:0 0 18px;
+        display:flex;flex-wrap:wrap;gap:8px;
+      }
+      .ag-chips li{
+        display:inline-flex;align-items:center;min-height:28px;padding:0 12px;
+        border-radius:999px;border:1px solid rgba(255,255,255,.18);
+        background:rgba(8,28,18,.45);backdrop-filter:blur(8px);
+        color:#e7f5e3;font-size:.78rem;font-weight:700;letter-spacing:.04em;
+      }
 
       .ag-tabs{
         display:inline-flex;padding:4px;border-radius:999px;
-        background:var(--ag-surface-2);border:1px solid var(--ag-border);
-        box-shadow:var(--ag-shadow-soft);margin-bottom:18px;gap:2px;
+        background:rgba(8,28,18,.55);border:1px solid rgba(255,255,255,.16);
+        backdrop-filter:blur(10px);
+        margin-bottom:0;gap:2px;
       }
       .ag-tab{
         appearance:none;border:none;background:transparent;
-        min-height:36px;padding:0 16px;border-radius:999px;cursor:pointer;
-        color:var(--ag-muted);font-weight:700;font-size:.92rem;letter-spacing:.01em;
+        min-height:36px;padding:0 18px;border-radius:999px;cursor:pointer;
+        color:#bdd6c4;font-weight:700;font-size:.92rem;letter-spacing:.01em;
         transition:background 180ms var(--ag-ease), color 180ms var(--ag-ease), transform 180ms var(--ag-ease);
         font-family:inherit;
       }
-      .ag-tab:hover{color:var(--ag-text)}
+      .ag-tab:hover{color:#fffdf2}
       .ag-tab.is-active{
-        background:var(--ag-surface);color:var(--ag-primary-dark);
-        box-shadow:0 4px 12px rgba(38,75,45,.1);
+        background:linear-gradient(180deg, rgba(255,253,242,.95), rgba(231,245,227,.85));
+        color:#143524;
+        box-shadow:0 6px 18px rgba(0,0,0,.3);
       }
-      .ag-tab:focus-visible{outline:2px solid var(--ag-primary);outline-offset:2px}
+      .ag-tab:focus-visible{outline:2px solid #fffdf2;outline-offset:2px}
 
-      .ag-panel{min-width:0}
+      .ag-panel{display:grid;gap:clamp(14px,2vw,18px)}
+
+      .ag-card{
+        background:linear-gradient(180deg, rgba(255,253,242,.96), rgba(245,250,238,.92));
+        border:1px solid rgba(255,255,255,.4);
+        border-radius:var(--ag-radius-lg);
+        padding:clamp(16px,2.6vw,24px);
+        box-shadow:0 18px 44px rgba(0,0,0,.28),0 1px 0 rgba(255,255,255,.5) inset;
+        color:var(--ag-text);
+      }
+      @media (prefers-color-scheme:dark){
+        .ag-card{
+          background:linear-gradient(180deg, rgba(28,42,32,.92), rgba(18,30,22,.9));
+          border-color:rgba(255,255,255,.08);
+          color:var(--ag-text);
+        }
+      }
+
+      .ag-draw-card{
+        display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
+      }
+      .ag-draw-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+      .ag-pill{
+        display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
+        border-radius:999px;background:var(--ag-surface-2);
+        color:var(--ag-primary-dark);font-size:.74rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+      }
+      .ag-draw-hint{color:var(--ag-muted);font-size:.92rem}
 
       .ag-button,.ag-secondary{
-        min-height:42px;border:1px solid transparent;border-radius:999px;padding:0 20px;
-        font-weight:700;font-family:inherit;font-size:.95rem;letter-spacing:.01em;cursor:pointer;
+        min-height:46px;border:1px solid transparent;border-radius:999px;padding:0 22px;
+        font-weight:700;font-family:inherit;font-size:.98rem;letter-spacing:.01em;cursor:pointer;
         transition:transform 180ms var(--ag-ease), background 180ms var(--ag-ease), border-color 180ms var(--ag-ease), color 180ms var(--ag-ease), box-shadow 180ms var(--ag-ease);
       }
-      .ag-button{background:var(--ag-primary);color:#fffdf8;box-shadow:0 10px 24px rgba(47,122,79,.22)}
-      .ag-button:hover{transform:translateY(-1px);background:var(--ag-primary-dark);box-shadow:0 12px 28px rgba(47,122,79,.28)}
-      .ag-button:active,.ag-secondary:active{transform:translateY(0)}
-      .ag-button[disabled]{opacity:.72;cursor:wait}
-      .ag-button[disabled] span:after{content:"...";display:inline-block;width:1.2em;text-align:left}
-
-      .ag-result{
-        margin-top:20px;padding:clamp(16px,2.6vw,24px);
-        border:1px solid var(--ag-border);border-radius:var(--ag-radius-lg);
-        background:rgba(255,253,248,.8);box-shadow:var(--ag-shadow);
-        animation:ag-enter 420ms var(--ag-ease);
+      .ag-button{
+        position:relative;display:inline-flex;align-items:center;gap:10px;
+        background:linear-gradient(180deg,var(--ag-primary),var(--ag-primary-dark));
+        color:#fffdf8;
+        box-shadow:0 14px 30px rgba(47,122,79,.32),0 0 0 4px rgba(255,253,242,.12);
+        overflow:hidden;
       }
-      @media (prefers-color-scheme:dark){.ag-result{background:rgba(23,32,23,.78)}}
+      .ag-button:before{
+        content:"";position:absolute;inset:-2px;border-radius:inherit;
+        background:linear-gradient(120deg,transparent 30%,rgba(255,236,170,.25),transparent 70%);
+        transform:translateX(-100%);transition:transform 700ms var(--ag-ease);pointer-events:none;
+      }
+      .ag-button:hover:before{transform:translateX(100%)}
+      .ag-button:hover{transform:translateY(-1px);box-shadow:0 18px 36px rgba(47,122,79,.36)}
+      .ag-button:active,.ag-secondary:active{transform:translateY(0)}
+      .ag-button[disabled]{opacity:.85;cursor:wait}
+      .ag-button[disabled] span:not(.ag-button-orb):after{content:"...";display:inline-block;width:1.2em;text-align:left}
+      .ag-button-orb{
+        width:14px;height:14px;border-radius:999px;
+        background:radial-gradient(circle at 35% 35%, #fffdf2, var(--ag-gold));
+        box-shadow:0 0 12px rgba(255,236,170,.7);
+      }
+      .ag-widget.is-revealing .ag-button-orb{animation:ag-pulse 800ms ease-in-out infinite}
+
+      .ag-result{animation:ag-enter 460ms var(--ag-ease)}
       .ag-result-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
       .ag-badge{
         display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;
         background:var(--ag-surface-2);color:var(--ag-primary-dark);
         font-size:.78rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
       }
-      .ag-result h2{margin:0 0 8px;font-size:clamp(1.2rem,1rem + .9vw,1.65rem);line-height:1.15;letter-spacing:-.015em}
+      .ag-result h2{margin:0 0 8px;font-family:"Boska",Georgia,serif;font-size:clamp(1.3rem,1rem + 1vw,1.8rem);line-height:1.15;letter-spacing:-.015em}
       .ag-result p{margin:0;color:var(--ag-muted);line-height:1.6}
+      .ag-date{color:var(--ag-muted);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
 
       .ag-photo{margin:16px 0 0;overflow:hidden;border-radius:var(--ag-radius-md);border:1px solid var(--ag-border);background:var(--ag-surface-2)}
       .ag-photo figcaption{padding:11px 14px;color:var(--ag-muted);font-size:.92rem;border-top:1px solid var(--ag-border)}
@@ -782,22 +1132,35 @@
         display:inline-flex;align-items:center;justify-content:center;
         background:transparent;color:var(--ag-primary-dark);border-color:var(--ag-border);text-decoration:none;
       }
-      .ag-secondary:hover{transform:translateY(-1px);border-color:var(--ag-primary);background:rgba(47,122,79,.06)}
+      .ag-secondary:hover{transform:translateY(-1px);border-color:var(--ag-primary);background:rgba(47,122,79,.08)}
 
-      .ag-rules{margin-top:18px;color:var(--ag-muted);font-size:.94rem}
-      .ag-rules summary{min-height:36px;display:inline-flex;align-items:center;cursor:pointer;color:var(--ag-text);font-weight:700}
-      .ag-rules p{margin:0 0 8px}
-      .ag-rules ul{margin:0;padding-left:18px;columns:2}
+      .ag-rules{color:var(--ag-text)}
+      .ag-rules summary{
+        list-style:none;cursor:pointer;font-weight:800;letter-spacing:.02em;
+        display:inline-flex;align-items:center;gap:8px;
+      }
+      .ag-rules summary::-webkit-details-marker{display:none}
+      .ag-rules summary:before{
+        content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+        transform:rotate(-45deg);transition:transform 200ms var(--ag-ease);
+      }
+      .ag-rules[open] summary:before{transform:rotate(45deg)}
+      .ag-rules p{margin:10px 0 8px;color:var(--ag-muted)}
+      .ag-rules ul{margin:0;padding-left:18px;columns:2;color:var(--ag-muted);font-size:.94rem}
       .ag-rules li{break-inside:avoid;margin-bottom:4px}
 
       .ag-history-note{margin:0 0 14px;color:var(--ag-muted);font-size:.92rem;line-height:1.55}
       .ag-history{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+      .ag-history-empty{
+        margin:8px 0 0;padding:16px;border:1px dashed var(--ag-border);border-radius:var(--ag-radius-md);
+        color:var(--ag-muted);font-size:.95rem;line-height:1.55;background:var(--ag-surface-2);
+      }
       .ag-history-item{
         padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
-        background:rgba(255,253,248,.78);box-shadow:var(--ag-shadow-soft);
+        background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
         transition:transform 180ms var(--ag-ease), border-color 180ms var(--ag-ease);
       }
-      @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.65)}}
+      @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
       .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
       .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -840,17 +1203,41 @@
 
       .ag-error{padding:24px;border:1px solid var(--ag-border);border-radius:18px;background:var(--ag-surface);color:var(--ag-text)}
 
-      @keyframes ag-shake{0%,100%{transform:rotate(0deg) translateY(0)}18%{transform:rotate(-8deg) translateY(-6px)}38%{transform:rotate(9deg) translateY(3px)}58%{transform:rotate(-5deg) translateY(-2px)}78%{transform:rotate(4deg) translateY(1px)}}
-      @keyframes ag-enter{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+      .ag-shimmer{animation:ag-shimmer 6s ease-in-out infinite}
+      .ag-shimmer-2{animation-duration:8s;animation-delay:-2s}
+      .ag-road-dash{animation:ag-dash 28s linear infinite}
+      .ag-firefly{animation:ag-firefly 5s ease-in-out infinite}
+      .ag-firefly-2{animation-duration:7s;animation-delay:-1s}
+      .ag-firefly-3{animation-duration:6.4s;animation-delay:-3s}
+      .ag-firefly-4{animation-duration:8s;animation-delay:-2s}
+      .ag-firefly-5{animation-duration:5.6s;animation-delay:-1.5s}
+      .ag-firefly-6{animation-duration:7.2s;animation-delay:-2.5s}
+      .ag-sun{animation:ag-pulse 6s ease-in-out infinite}
+
+      @keyframes ag-shake{0%,100%{transform:translate(-50%,-50%) rotate(0deg)}18%{transform:translate(-50%,-58%) rotate(-8deg)}38%{transform:translate(-50%,-44%) rotate(9deg)}58%{transform:translate(-50%,-52%) rotate(-5deg)}78%{transform:translate(-50%,-48%) rotate(4deg)}}
+      @keyframes ag-pop{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}60%{transform:translate(-50%,-50%) scale(1.12);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+      @keyframes ag-float{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-56%)}}
+      @keyframes ag-enter{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+      @keyframes ag-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.85}}
+      @keyframes ag-spin{to{transform:rotate(360deg)}}
+      @keyframes ag-shimmer{0%,100%{opacity:.55;transform:translateX(0)}50%{opacity:.95;transform:translateX(-6px)}}
+      @keyframes ag-dash{to{stroke-dashoffset:-280}}
+      @keyframes ag-firefly{0%,100%{opacity:.2;transform:translate(0,0)}50%{opacity:1;transform:translate(8px,-12px)}}
+      @keyframes ag-orbit-1{0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+      @keyframes ag-orbit-2{0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(-360deg)}}
+      @keyframes ag-orbit-3{0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+      @keyframes ag-orbit-4{0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(-360deg)}}
 
       @media (max-width:760px){
-        .ag-shell{grid-template-columns:1fr;gap:24px}
-        .ag-machine{min-height:240px}
+        .ag-machine-wrap{max-width:240px}
         .ag-rules ul{columns:1}
         .ag-history-thumb{width:56px;height:56px}
+        .ag-draw-card{flex-direction:column;align-items:stretch}
+        .ag-button{justify-content:center}
       }
       @media (prefers-reduced-motion:reduce){
         .ag-widget *,.ag-widget *:before,.ag-widget *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+        .ag-machine-capsule,.ag-mach-glow,.ag-mach-orbit,.ag-orbit span,.ag-shimmer,.ag-road-dash,.ag-firefly,.ag-sun,.ag-button-orb{animation:none!important}
       }
     `;
     document.head.appendChild(style);

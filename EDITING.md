@@ -107,14 +107,22 @@ empty or missing.
 ## History tab
 
 The main widget has a small `Heute` / `Verlauf` segmented control. The
-`Verlauf` tab shows deterministically computed pulls for recent days,
-newest first. It is **not** a tap log — it is the same daily seeded
-calculation run backwards, so it shows what would have been drawn on each
-day regardless of whether the capsule was actually pulled. Foto-Drops get
-a small thumbnail or a video indicator.
+`Verlauf` tab is a **real local log**: it only shows capsules that were
+actually drawn and revealed in this browser/device. It is not a backwards
+deterministic preview of unvisited days.
 
-How many days appear is controlled by `historyDays` in `config/theme.json`
-(default `14`). Change it to any positive integer.
+- Storage: `localStorage` key `affektions-gacha:history:v1`.
+- One entry per `day|token` (dedupe), sorted newest first.
+- Capped at `historyDays` from `config/theme.json` (default `14`).
+- Reads are wrapped in `try/catch`, so a missing or corrupt storage just
+  shows the empty state.
+- Empty-state copy in German: *"Noch keine Kapseln auf diesem Gerät
+  bzw. Browser geöffnet."*
+
+Clearing browser storage, opening on a new device, or using a different
+token resets the visible history. The deterministic daily pull itself is
+unchanged — refreshing today still yields the same capsule for the same
+day+token+secret.
 
 ## Daily album sync
 

@@ -155,6 +155,26 @@ https://fionnf.github.io/Affections-gatcha/media-preview.html
 Sie lädt direkt `config/photos.json`, zeigt eine große Vorschau plus eine
 Galerie aller Einträge und nutzt dieselbe Darstellung wie die Gacha-Resultatkarte.
 
+### Visuelles Design der Hauptmaschine
+
+Das Widget rendert eine durchgehende Wald/Stadt-Szenerie als SVG-Hintergrund:
+geschichtete Berge, ein See mit schimmernden Wellen, eine kleine Skyline,
+eine geschwungene Straße mit animierter Mittellinie, kleine Bäume, Bärlauch-
+Blätter und ein paar Glühwürmchen. Darüber sitzt die Gacha-Maschine mit
+warmem Innenlicht und einer langsam orbitierenden Kapsel. Beim Ziehen
+beschleunigen sich Glow und Orbit, die Kapsel wackelt und ploppt am Ende
+rein.
+
+Unter der Maschine liegen "echte" Karten (Heute, Resultat, Regeln bzw.
+Verlauf) auf hellem cremefarbenem Glas — so füllt das Widget die Seite
+aus, statt eine große leere Fläche unter einem dunklen Hero-Block zu
+hinterlassen. Theme-Chips wie *Wald · Velo · Stadt · Bärlauch · See*
+liegen unter dem Titel; sie kommen aus `config/theme.json` → `stickers`.
+
+Sämtliche Animationen (Sonnenpuls, Glühwürmchen, Wassershimmer,
+Straßen-Dash, Kapsel-Orbit) werden bei `prefers-reduced-motion: reduce`
+deaktiviert.
+
 ### Hochformat / Querformat
 
 Sowohl die Hauptmaschine als auch die Vorschauseite zeigen Fotos und Videos
@@ -169,14 +189,28 @@ Captions werden nur gezeigt, wenn `caption` vorhanden und nicht leer ist.
 ### Verlauf-Tab
 
 Auf der Hauptseite gibt es ein kleines Tab-Steuerelement mit
-`Heute` und `Verlauf`. Der Verlauf zeigt deterministisch berechnete Pulls
-der letzten Tage, neueste zuerst. Das ist **kein Tap-Log**: Es ist dieselbe
-tägliche Berechnung rückwärts gerechnet — also genau das, was an jedem
-dieser Tage als Kapsel angezeigt worden wäre, unabhängig davon, ob du sie
-tatsächlich gezogen hast. Foto-Drops bekommen einen kleinen Thumbnail oder
-ein Video-Indikator; Texte sind kompakt gehalten.
+`Heute` und `Verlauf`. Der Verlauf zeigt **nur Kapseln, die auf diesem
+Gerät bzw. in diesem Browser tatsächlich gezogen und enthüllt wurden**,
+neueste zuerst. Es ist also ein echtes lokales Log und kein
+deterministischer Rückblick auf nicht besuchte Tage.
 
-Die Anzahl der gezeigten Tage steht in `config/theme.json` unter
+Technische Details:
+
+- Die Liste lebt in `localStorage` unter dem Schlüssel
+  `affektions-gacha:history:v1`.
+- Jede enthüllte Kapsel wird einmal pro `Tag|Token` gespeichert
+  (Dedupe über `day|token`).
+- Liste wird beim Laden defensiv gelesen: wenn `localStorage` fehlt oder
+  der Inhalt kaputt ist, fällt der Tab still auf eine leere Liste zurück.
+- Nach Datum absteigend sortiert (neueste zuerst) und auf
+  `historyDays` Einträge gekürzt.
+- Wenn noch nichts gezogen wurde, erscheint ein freundlicher Hinweis:
+  *"Noch keine Kapseln auf diesem Gerät bzw. Browser geöffnet."*
+- Browser-Storage geleert oder anderes Gerät? → Verlauf ist leer, das
+  ist Absicht. Der tägliche deterministische Pull selbst ändert sich
+  dadurch nicht.
+
+Die Anzahl der gezeigten Einträge steht in `config/theme.json` unter
 `historyDays` (Standard: `14`). Setze sie auf eine andere ganze Zahl, um
 mehr oder weniger Verlauf anzuzeigen.
 
