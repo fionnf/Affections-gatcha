@@ -89,6 +89,19 @@ skipped (with a warning) rather than being silently exported as a static image
 thumbnail. If videos are important to you, an iCloud public shared album is
 the more reliable source.
 
+**Live Photos / motion photos:** iPhone Live Photos and short motion frames
+are flagged in Google's structured data with the same media-type marker as
+real videos (`14`). Treating them as video produces broken playback because
+the bundled clip is only 1–3 seconds long and `=dv` often returns just the
+still frame. The sync therefore requires *both* `marker == 14` *and*
+`durationMs >= LIVE_PHOTO_MAX_MS` (default 4000 ms, defined in
+`scripts/sync-shared-album.js`) before emitting an item as
+`"type": "video"`. Anything below that threshold — or with no duration at
+all — is exported as the still image (`=s2048` URL, `"type": "image"`).
+The sync logs each Live-Photo downgrade and prints a summary
+(`X Live Photo(s) emitted as still images`). Better a clean still than a
+janky short clip.
+
 ## Preview page for photos and videos
 
 Open [`media-preview.html`](media-preview.html) to see how the synced media
@@ -140,6 +153,34 @@ day+token+secret.
 (`17 4 * * *`, i.e. 04:17 UTC every day). It only commits changes to
 `config/photos.json`, with `[skip ci]` in the message so it never triggers
 itself. Adjust the cron in the YAML if you want a different cadence.
+
+## Layout, margins, and the emoji orbit
+
+The widget renders inside a centered `.ag-frame` with `max-width: 1120px`
+and `margin-inline: auto`. It does **not** span the full page width — it
+sits as a self-contained card with breathing room on either side, even
+when embedded in a full-bleed Webflow section. Inner padding scales with
+viewport via `clamp()`. The dark hero stage (scene + machine + title +
+tabs) is one rounded card; the cream content cards (Heute-button, result,
+rules, history) sit beneath it on the page background, not inside the
+hero. There is no longer a beige separator strip between the two.
+
+A small floating emoji constellation orbits the capsule. Bike (🚴) and
+garlic (🧄) are always present; an additional 3–5 emojis are picked
+deterministically from a curated pool keyed on `secret|token|day`, so the
+constellation refreshes daily but is stable across reloads. The pool
+includes 🎻 and 👨‍❤️‍👨 alongside woods/coffee/music/mountain motifs.
+Animations respect `prefers-reduced-motion: reduce`. To change the pool
+or always-on set, edit `EMOJI_POOL` and `REQUIRED_EMOJIS` near the top of
+`dist/affection-gacha.js`.
+
+The "send to Fionn" message starts with a category-appropriate emoji
+(e.g. ✨ for warm, 🧭 for quest, 📸 for photo). URL encoding for
+WhatsApp/`mailto:` is preserved.
+
+On mobile (`max-width: 760px`), hero stacks vertically, the title scales
+down, the machine wrap caps at 220 px, the tabs stretch to full width,
+and the draw button becomes full-width.
 
 ## Best GitHub editing flow
 

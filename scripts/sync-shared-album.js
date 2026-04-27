@@ -287,12 +287,28 @@ async function syncGooglePhotos(url) {
   return photos;
 }
 
+// Live Photos / motion photos appear in the ds:1 payload looking very similar
+// to real videos: they carry a non-image media-type marker and a short
+// duration. Treating them as videos produces broken playback (the =dv URL
+// either redirects to the still frame or to a short clip that renders
+// poorly). We only trust an item as a real video when both:
+//   1) the structured marker reads as video (14 — other non-1 markers tend
+//      to be motion/live photos), AND
+//   2) duration is at least LIVE_PHOTO_MAX_MS (real captured videos are
+//      typically multiple seconds; Live Photos are ~1.5–3s clips bundled
+//      with a still).
+// Anything ambiguous is downgraded to image so the still frame renders
+// correctly instead of a janky short clip.
+const VIDEO_TYPE_MARKER = 14;
+const LIVE_PHOTO_MAX_MS = 4000;
+
 function parseGooglePhotosItems(html) {
   // The ds:1 init-data block contains an array of media items. Each item is
   // shaped roughly:
   //   [ id, [url, w, h, ..., [null, null, mediaTypeMarker], [fileSize], ...], timestamp, ..., { "146008172": [null, durationMs] } ]
-  // mediaTypeMarker: 1 = image, 14 = video (other non-1 values are also
-  // treated as video to be safe).
+  // mediaTypeMarker: 1 = image, 14 = video. Other markers (e.g. motion/live)
+  // are present on Live Photos and short motion frames — those are NOT
+  // playable videos and should be exported as still images.
   const start = html.indexOf("AF_initDataCallback({key: 'ds:1'");
   if (start < 0) return null;
   const dataIdx = html.indexOf("data:", start);
@@ -330,14 +346,20 @@ function parseGooglePhotosItems(html) {
       const dur = extras["146008172"];
       if (Array.isArray(dur) && typeof dur[1] === "number") durationMs = dur[1];
     }
-    const isVideo = typeMarker !== null && typeMarker !== 1;
-    out.push({ baseUrl, isVideo: isVideo || durationMs !== null, durationMs });
+    const markerSaysVideo = typeMarker === VIDEO_TYPE_MARKER;
+    const longEnough = typeof durationMs === "number" && durationMs >= LIVE_PHOTO_MAX_MS;
+    const isVideo = markerSaysVideo && longEnough;
+    const isLivePhoto =
+      typeMarker !== null && typeMarker !== 1 && !isVideo;
+    out.push({ baseUrl, isVideo, isLivePhoto, typeMarker, durationMs });
   }
   return out;
 }
 
 async function buildGooglePhotosFromItems(items) {
   const photos = [];
+  let livePhotoCount = 0;
+  let skippedVideoCount = 0;
   let index = 0;
   for (const item of items) {
     index += 1;
@@ -353,16 +375,33 @@ async function buildGooglePhotosFromItems(items) {
         });
         continue;
       }
+      skippedVideoCount += 1;
       console.warn(
-        `Google Photos: item ${index} is a video but no playable URL could be resolved — skipping. Use iCloud sharing for reliable video URLs.`
+        `Google Photos: item ${index} looked like a video (marker=${item.typeMarker}, duration=${item.durationMs}ms) but no playable URL could be resolved — skipping. Use iCloud sharing for reliable video URLs.`
       );
       continue;
+    }
+    if (item.isLivePhoto) {
+      livePhotoCount += 1;
+      console.log(
+        `Google Photos: item ${index} is a Live Photo / motion frame (marker=${item.typeMarker}, duration=${item.durationMs}ms) — exporting still image only.`
+      );
     }
     photos.push({
       url: `${cleaned}=s2048`,
       alt: `Erinnerung ${index}`,
       type: "image"
     });
+  }
+  if (livePhotoCount) {
+    console.log(
+      `Google Photos: ${livePhotoCount} Live Photo(s) emitted as still images (threshold: video marker=14 AND duration>=${LIVE_PHOTO_MAX_MS}ms).`
+    );
+  }
+  if (skippedVideoCount) {
+    console.log(
+      `Google Photos: ${skippedVideoCount} ambiguous video item(s) skipped because no playable stream URL resolved.`
+    );
   }
   return photos;
 }

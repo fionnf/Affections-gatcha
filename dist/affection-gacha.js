@@ -238,32 +238,37 @@
     mount.className = "ag-widget";
     mount.setAttribute("aria-labelledby", "ag-title");
     mount.innerHTML = `
-      <div class="ag-stage">
-        ${sceneSvg()}
-        <div class="ag-stage-veil" aria-hidden="true"></div>
-        <div class="ag-shell">
-          <header class="ag-hero">
-            <div class="ag-machine-wrap" aria-hidden="true">
-              ${machineSvg()}
-              <div class="ag-machine-capsule" data-capsule>
-                <span class="ag-capsule-shine"></span>
+      <div class="ag-frame">
+        <div class="ag-stage">
+          ${sceneSvg()}
+          <div class="ag-stage-veil" aria-hidden="true"></div>
+          <div class="ag-shell">
+            <header class="ag-hero">
+              <div class="ag-machine-wrap" aria-hidden="true">
+                ${machineSvg()}
+                <div class="ag-machine-capsule" data-capsule>
+                  <span class="ag-capsule-shine"></span>
+                </div>
+                <div class="ag-orbit">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <div class="ag-emoji-orbit" data-ag-emoji-orbit aria-hidden="true"></div>
               </div>
-              <div class="ag-orbit">
-                <span></span><span></span><span></span><span></span>
+              <div class="ag-copy">
+                <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
+                <h1 id="ag-title" data-ag-main-title>Affektions-Gacha</h1>
+                <p class="ag-intro" data-ag-intro></p>
+                <ul class="ag-chips" data-ag-chips></ul>
+                <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
+                  <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
+                </div>
               </div>
-            </div>
-            <div class="ag-copy">
-              <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
-              <h1 id="ag-title" data-ag-main-title>Affektions-Gacha</h1>
-              <p class="ag-intro" data-ag-intro></p>
-              <ul class="ag-chips" data-ag-chips></ul>
-              <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
-                <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
-                <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
-              </div>
-            </div>
-          </header>
+            </header>
+          </div>
+        </div>
 
+        <div class="ag-content">
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -336,6 +341,97 @@
     return ["Wald", "Velo", "Stadt", "Bärlauch"];
   }
 
+  // Always-on emojis (bike + garlic) plus a deterministic selection from the
+  // curated pool below — picked per day+token so the constellation refreshes
+  // daily but is stable across reloads on the same day.
+  const REQUIRED_EMOJIS = ["🚴", "🧄"];
+  const EMOJI_POOL = [
+    "🥾", "🌲", "🧗‍♂️", "✨",
+    "📚", "💭", "🌙", "☕",
+    "🔥", "💛", "🫶", "🌿",
+    "🎿", "❄️", "😄", "🎶",
+    "🌊", "🚤", "🍃", "🌍",
+    "💌", "🥹", "🌈", "🕊️",
+    "😏", "💫", "🧠", "⚡",
+    "🍝", "🍷", "😋", "🌆",
+    "🎧", "🎵", "💃", "🪩",
+    "🌄", "🧭", "🚶‍♂️", "🍂",
+    "💬", "👀", "🤍", "🔐",
+    "🏔️", "🪨", "💪", "🌤️",
+    "😂", "🤭", "🎯", "💥",
+    "🛤️", "🌌", "🕯️", "📖",
+    "❤️‍🔥", "😇", "😈",
+    "🍓", "🍫", "😚",
+    "🫂", "🌻", "🌞",
+    "🐻", "🛌",
+    "🎻", "👨‍❤️‍👨"
+  ];
+
+  function emojiSeedKey() {
+    const day = dateKeyInTimezone(state.theme.timezone);
+    const token = getToken();
+    return `${state.theme.secret}|${token}|${day}|emoji`;
+  }
+
+  // Pick 3-5 distinct emojis from EMOJI_POOL deterministically, then prepend
+  // the always-on bike + garlic. Result: 5-7 total floating accents.
+  function pickEmojiSet() {
+    const seedBase = emojiSeedKey();
+    const count = 3 + Math.floor(seededRandom(`${seedBase}|count`) * 3); // 3..5
+    const pool = EMOJI_POOL.slice();
+    const chosen = [];
+    for (let i = 0; i < count && pool.length; i += 1) {
+      const idx = Math.floor(seededRandom(`${seedBase}|pick|${i}`) * pool.length);
+      chosen.push(pool.splice(idx, 1)[0]);
+    }
+    return [...REQUIRED_EMOJIS, ...chosen];
+  }
+
+  function renderEmojiOrbit() {
+    const orbit = $("[data-ag-emoji-orbit]");
+    if (!orbit) return;
+    orbit.innerHTML = "";
+    const emojis = pickEmojiSet();
+    const total = emojis.length;
+    const seedBase = emojiSeedKey();
+    emojis.forEach((emoji, i) => {
+      const span = document.createElement("span");
+      span.className = "ag-emoji";
+      span.textContent = emoji;
+      // Distribute around the circle, with a small deterministic jitter so
+      // the constellation doesn't look like a perfect compass rose.
+      const baseAngle = (360 / total) * i;
+      const jitter = (seededRandom(`${seedBase}|angle|${i}`) - 0.5) * 28;
+      const angle = baseAngle + jitter;
+      const radiusJitter = seededRandom(`${seedBase}|radius|${i}`) * 6 - 3;
+      const duration = 28 + seededRandom(`${seedBase}|dur|${i}`) * 18; // 28..46s
+      const delay = -seededRandom(`${seedBase}|delay|${i}`) * duration;
+      const direction = seededRandom(`${seedBase}|dir|${i}`) > 0.5 ? 1 : -1;
+      span.style.setProperty("--ag-emoji-angle", `${angle}deg`);
+      span.style.setProperty("--ag-emoji-radius", `${48 + radiusJitter}%`);
+      span.style.setProperty("--ag-emoji-duration", `${duration.toFixed(2)}s`);
+      span.style.setProperty("--ag-emoji-delay", `${delay.toFixed(2)}s`);
+      span.style.setProperty("--ag-emoji-direction", direction === 1 ? "normal" : "reverse");
+      orbit.appendChild(span);
+    });
+  }
+
+  // Map a tone to a complementary emoji used in messages sent to Fionn.
+  // Falls back to ❤️ if tone is missing/unknown.
+  function emojiForTone(tone) {
+    const map = {
+      quiet: "🌙",
+      soft: "🌿",
+      quest: "🧭",
+      warm: "✨",
+      cursed: "😈",
+      rare: "💫",
+      photo: "📸",
+      jackpot: "🎰"
+    };
+    return map[tone] || "❤️";
+  }
+
   function hydrateCopy() {
     const name = displayNameFromToken();
     $("[data-ag-main-title]").textContent = state.theme.brand.titleTemplate.replace("{name}", name);
@@ -358,6 +454,8 @@
       li.textContent = chip;
       chips.appendChild(li);
     }
+
+    renderEmojiOrbit();
   }
 
   function formatToday() {
@@ -502,11 +600,12 @@
   }
 
   function messageText(pull) {
+    const emoji = emojiForTone(pull.category.tone);
     return [
-      `${displayNameFromToken()}s ${state.theme.brand.machineName}: ${pull.category.label}`,
+      `${emoji} ${displayNameFromToken()}s ${state.theme.brand.machineName}: ${pull.category.label}`,
       pull.outcome.title,
       pull.outcome.message,
-      pull.photo ? `Foto: ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
+      pull.photo ? `📸 ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
       `Tag: ${pull.day}`
     ]
       .filter(Boolean)
@@ -889,6 +988,19 @@
         line-height:1.5;
         display:block;
       }
+
+      /* Outer frame: centers the widget on the page with breathing room.
+         Webflow embeds may already constrain width — the inner clamp keeps
+         this widget from spanning edge-to-edge even on a full-bleed section. */
+      .ag-frame{
+        width:100%;
+        max-width:1120px;
+        margin-inline:auto;
+        padding:clamp(12px,2.4vw,28px) clamp(12px,3vw,32px);
+        display:flex;
+        flex-direction:column;
+        gap:clamp(16px,2.4vw,28px);
+      }
       @media (prefers-color-scheme:dark){
         .ag-widget{
           --ag-bg:var(--ag-dark-bg)!important;
@@ -930,8 +1042,14 @@
       .ag-shell{
         position:relative;z-index:2;
         padding:clamp(20px,4vw,44px);
+      }
+
+      /* Cards live outside the dark stage now, so they sit on the page itself
+         with breathing room and rounded edges instead of forming an
+         edge-to-edge dark band under the hero. */
+      .ag-content{
         display:grid;
-        gap:clamp(18px,2.4vw,28px);
+        gap:clamp(14px,2vw,18px);
       }
 
       .ag-hero{
@@ -983,6 +1101,42 @@
       .ag-orbit span:nth-child(2){left:88%;top:50%;animation:ag-orbit-2 9s linear infinite}
       .ag-orbit span:nth-child(3){left:50%;top:90%;animation:ag-orbit-3 8s linear infinite}
       .ag-orbit span:nth-child(4){left:8%;top:50%;animation:ag-orbit-4 10s linear infinite}
+
+      /* Tasteful floating emoji constellation around the capsule.
+         Each .ag-emoji sits at the centre of the machine wrap and is rotated
+         out by --ag-emoji-angle, then translated --ag-emoji-radius along that
+         vector. The whole element slowly rotates around the centre. */
+      .ag-emoji-orbit{
+        position:absolute;inset:0;pointer-events:none;
+        z-index:3;
+      }
+      .ag-emoji{
+        position:absolute;left:50%;top:50%;
+        font-size:clamp(.95rem,1.1vw + .6rem,1.25rem);
+        line-height:1;
+        transform-origin:0 0;
+        transform:rotate(var(--ag-emoji-angle))
+          translate(var(--ag-emoji-radius))
+          rotate(calc(-1 * var(--ag-emoji-angle)));
+        animation:ag-emoji-spin var(--ag-emoji-duration,32s) linear infinite;
+        animation-delay:var(--ag-emoji-delay,0s);
+        animation-direction:var(--ag-emoji-direction,normal);
+        filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
+        opacity:.9;
+        will-change:transform;
+      }
+      @keyframes ag-emoji-spin{
+        0%{
+          transform:rotate(var(--ag-emoji-angle))
+            translate(var(--ag-emoji-radius))
+            rotate(calc(-1 * var(--ag-emoji-angle)));
+        }
+        100%{
+          transform:rotate(calc(var(--ag-emoji-angle) + 360deg))
+            translate(var(--ag-emoji-radius))
+            rotate(calc(-1 * (var(--ag-emoji-angle) + 360deg)));
+        }
+      }
 
       .ag-copy{min-width:0;color:#fffdf2}
       .ag-kicker{
@@ -1037,18 +1191,19 @@
       .ag-panel{display:grid;gap:clamp(14px,2vw,18px)}
 
       .ag-card{
-        background:linear-gradient(180deg, rgba(255,253,242,.96), rgba(245,250,238,.92));
-        border:1px solid rgba(255,255,255,.4);
+        background:linear-gradient(180deg, #fffdf6, #f7f3e8);
+        border:1px solid var(--ag-border);
         border-radius:var(--ag-radius-lg);
         padding:clamp(16px,2.6vw,24px);
-        box-shadow:0 18px 44px rgba(0,0,0,.28),0 1px 0 rgba(255,255,255,.5) inset;
+        box-shadow:0 12px 36px rgba(8,28,18,.14),0 1px 0 rgba(255,255,255,.6) inset;
         color:var(--ag-text);
       }
       @media (prefers-color-scheme:dark){
         .ag-card{
-          background:linear-gradient(180deg, rgba(28,42,32,.92), rgba(18,30,22,.9));
+          background:linear-gradient(180deg, rgba(28,42,32,.96), rgba(18,30,22,.94));
           border-color:rgba(255,255,255,.08);
           color:var(--ag-text);
+          box-shadow:0 12px 36px rgba(0,0,0,.4);
         }
       }
 
@@ -1229,15 +1384,21 @@
       @keyframes ag-orbit-4{0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(-360deg)}}
 
       @media (max-width:760px){
-        .ag-machine-wrap{max-width:240px}
+        .ag-frame{padding:clamp(8px,3vw,16px) clamp(8px,3vw,16px)}
+        .ag-shell{padding:clamp(16px,4vw,24px)}
+        .ag-machine-wrap{max-width:220px}
+        .ag-emoji{font-size:clamp(.85rem,2.4vw,1.05rem)}
+        .ag-copy h1{font-size:clamp(1.9rem,1rem + 6vw,3rem)}
         .ag-rules ul{columns:1}
         .ag-history-thumb{width:56px;height:56px}
         .ag-draw-card{flex-direction:column;align-items:stretch}
         .ag-button{justify-content:center}
+        .ag-tabs{display:flex;width:100%}
+        .ag-tab{flex:1;padding:0 12px}
       }
       @media (prefers-reduced-motion:reduce){
         .ag-widget *,.ag-widget *:before,.ag-widget *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-        .ag-machine-capsule,.ag-mach-glow,.ag-mach-orbit,.ag-orbit span,.ag-shimmer,.ag-road-dash,.ag-firefly,.ag-sun,.ag-button-orb{animation:none!important}
+        .ag-machine-capsule,.ag-mach-glow,.ag-mach-orbit,.ag-orbit span,.ag-shimmer,.ag-road-dash,.ag-firefly,.ag-sun,.ag-button-orb,.ag-emoji{animation:none!important}
       }
     `;
     document.head.appendChild(style);

@@ -151,6 +151,23 @@ auflösen, wird der Eintrag mit Warnung **übersprungen**, statt als
 Standbild getarnt zu werden. Für robuste Video-Synchronisation ist ein
 öffentliches iCloud Shared Album die zuverlässigere Quelle.
 
+#### Live Photos / Motion Photos
+
+iPhone-Live-Photos und kurze Motion-Frames tauchen im Google-Photos-Album
+mit demselben Marker (`14`) auf wie echte Videos, sind aber nur ~1–3
+Sekunden lang und spielen schlecht ab (das `=dv`-Endpoint liefert oft nur
+das Standbild oder einen ruckeligen Clip). Der Sync verlangt deshalb für
+einen `"type": "video"`-Eintrag **beides**: Marker `14` *und* eine Dauer
+≥ `LIVE_PHOTO_MAX_MS` (Standard: 4000 ms, in
+`scripts/sync-shared-album.js` als Konstante).
+
+Items, die diesen Schwellenwert nicht erreichen oder gar keine Dauer im
+strukturierten Payload tragen, werden konservativ als Standbild
+exportiert (`=s2048`-URL, `"type": "image"`). Der Sync loggt pro Item den
+Grund (Marker + Dauer) und am Ende eine Zusammenfassung
+(`X Live Photo(s) emitted as still images`, `Y video(s) skipped`).
+Lieber ein hübsches Standbild als ein kaputt aussehendes Video.
+
 ### Vorschauseite für Foto-/Video-Drops
 
 Damit du nicht auf einen zufälligen Foto-Drop warten musst, gibt es eine
@@ -175,15 +192,41 @@ warmem Innenlicht und einer langsam orbitierenden Kapsel. Beim Ziehen
 beschleunigen sich Glow und Orbit, die Kapsel wackelt und ploppt am Ende
 rein.
 
-Unter der Maschine liegen "echte" Karten (Heute, Resultat, Regeln bzw.
-Verlauf) auf hellem cremefarbenem Glas — so füllt das Widget die Seite
-aus, statt eine große leere Fläche unter einem dunklen Hero-Block zu
-hinterlassen. Theme-Chips wie *Wald · Velo · Stadt · Bärlauch · See*
-liegen unter dem Titel; sie kommen aus `config/theme.json` → `stickers`.
+#### Layout & Margins
+
+Das Widget rendert sich in einem zentrierten `.ag-frame`-Container mit
+`max-width: 1120px` und `margin-inline: auto`. Im Webflow-Embed sieht es
+also wie ein hübsches Objekt auf der Seite aus, statt randlos den ganzen
+Viewport auszufüllen. Innen sitzt der dunkle Hero-Stage (Szene + Maschine
++ Titel + Chips + Tabs) und **darunter, außerhalb des Stages**, liegen die
+Karten (Heute-Button, Resultat, Regeln, Verlauf) auf cremefarbenem Glas
+mit abgerundeten Ecken und Schatten. Die alte beige-Trennleiste zwischen
+Hero und Karten ist damit weg, weil die Karten nicht mehr im selben dunklen
+Container leben wie der Hero. Theme-Chips wie *Wald · Velo · Stadt ·
+Bärlauch · See* liegen unter dem Titel; sie kommen aus `config/theme.json`
+→ `stickers`.
+
+#### Emoji-Orbit
+
+Um die Kapsel kreist eine kleine Konstellation aus Emojis. Bike (🚴) und
+Knoblauch (🧄) sind immer dabei; dazu kommen 3–5 weitere, deterministisch
+aus einem kuratierten Pool gewählt — Seed ist `secret|token|tag`, also
+wechselt die Auswahl täglich, ist aber bei jedem Reload am selben Tag
+gleich. Der Pool enthält u.a. 🥾🌲✨💛🫶🌿🎶🌊🍃🌍💌🥹🌈🎻👨‍❤️‍👨 (vollständige
+Liste in `dist/affection-gacha.js` → `EMOJI_POOL`). Die Emojis kreisen
+langsam, mit zufälliger Richtung/Dauer/Verzögerung. Bei
+`prefers-reduced-motion: reduce` stehen sie still.
+
+#### Mobile
+
+Auf schmalen Viewports stapelt der Hero (Maschine über Text), der Titel
+skaliert mit `clamp()`, die Tabs strecken sich auf volle Breite, der
+Heute-Button wird zur Vollbreite-Pille, und die Maschinen-Wrap ist auf
+220 px begrenzt, damit sie nicht das halbe Display einnimmt.
 
 Sämtliche Animationen (Sonnenpuls, Glühwürmchen, Wassershimmer,
-Straßen-Dash, Kapsel-Orbit) werden bei `prefers-reduced-motion: reduce`
-deaktiviert.
+Straßen-Dash, Kapsel-Orbit, Emoji-Konstellation) werden bei
+`prefers-reduced-motion: reduce` deaktiviert.
 
 ### Hochformat / Querformat
 
@@ -352,6 +395,12 @@ Du kannst auch WhatsApp verwenden:
 ```
 
 Die Nummer braucht internationales Format ohne `+`, Leerzeichen oder Klammern.
+
+Die Nachricht enthält am Anfang ein zur Kategorie passendes Emoji
+(z.B. 🌿 für `soft`, 🧭 für `quest`, ✨ für `warm`, 😈 für `cursed`,
+💫 für `rare`, 📸 für `photo`, 🎰 für `jackpot`, 🌙 für `quiet`).
+Foto-Drops bekommen zusätzlich ein 📸 vor dem Caption-Text. URL-Encoding
+funktioniert für WhatsApp und `mailto:` weiterhin.
 
 ## GitHub Action
 
