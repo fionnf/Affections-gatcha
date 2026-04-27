@@ -11,16 +11,19 @@
     "rulesTitle": "Maschinenregeln",
     "rulesText": "Refreshing bringt nichts: Für denselben Tag kommt immer dieselbe Kapsel. Morgen würfelt die Maschine neu."
   },
-  "secret": "AENDERN-geheimes-wort-damit-die-kapseln-nicht-vorhersagbar-sind",
+  "secret": "lennart-fionn-gruene-souvenir-gacha-maschine-2026",
   "timezone": "Europe/Zurich",
   "tokenParam": "token",
-  "messageTarget": "mailto:fionn@fionnferreira.com",
+  "messageTarget": "https://wa.me/+41778089500?text={text}",
   "revealDelayMs": 3200,
   "loadingSteps": [
     "Route wird geprüft",
     "Snacklage wird berechnet",
+    "Vespa wird geölt",
+    "Bergpanorama wird gerendert",
     "Fotoarchiv wird durchsucht",
-    "Kapsel fällt gleich"
+    "Kapsel fällt gleich",
+    "Hinten am velo festhalten",
   ],
   "colors": {
     "background": "#f3f7ef",
