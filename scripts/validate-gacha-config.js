@@ -7,6 +7,7 @@ const configDir = path.join(__dirname, "..", "config");
 const theme = readJson("theme.json");
 const outcomes = readJson("outcomes.json");
 const photosConfig = readJson("photos.json");
+const specialDaysConfig = readJsonOptional("special-days.json");
 
 const errors = [];
 const warnings = [];
@@ -122,6 +123,44 @@ if (Array.isArray(photosConfig.photos)) {
   }
 }
 
+const KNOWN_TONES = new Set(["quiet", "soft", "quest", "warm", "cursed", "rare", "photo", "jackpot"]);
+const DATE_MMDD = /^\d{2}-\d{2}$/;
+const DATE_YYYYMMDD = /^\d{4}-\d{2}-\d{2}$/;
+
+if (specialDaysConfig !== null) {
+  assert(Array.isArray(specialDaysConfig.days), "special-days.json: 'days' must be an array.");
+
+  if (Array.isArray(specialDaysConfig.days)) {
+    const seenDates = new Set();
+    specialDaysConfig.days.forEach((entry, index) => {
+      const prefix = `special-days[${index}]`;
+      assert(
+        typeof entry.date === "string" && (DATE_MMDD.test(entry.date) || DATE_YYYYMMDD.test(entry.date)),
+        `${prefix}.date must be "MM-DD" (yearly) or "YYYY-MM-DD" (one-off).`
+      );
+      if (typeof entry.date === "string") {
+        if (seenDates.has(entry.date)) addWarning(`${prefix}: duplicate date "${entry.date}".`);
+        seenDates.add(entry.date);
+      }
+      assert(typeof entry.label === "string" && entry.label.trim(), `${prefix}.label is required.`);
+      assert(
+        Array.isArray(entry.outcomes) && entry.outcomes.length > 0,
+        `${prefix}.outcomes must be a non-empty array.`
+      );
+      if (Array.isArray(entry.outcomes)) {
+        entry.outcomes.forEach((outcome, oi) => {
+          assert(typeof outcome.title === "string" && outcome.title.trim(), `${prefix}.outcomes[${oi}].title is required.`);
+          assert(typeof outcome.message === "string" && outcome.message.trim(), `${prefix}.outcomes[${oi}].message is required.`);
+        });
+      }
+      if (entry.tone !== undefined && !KNOWN_TONES.has(entry.tone)) {
+        addWarning(`${prefix}.tone "${entry.tone}" is not a recognised tone. Known tones: ${[...KNOWN_TONES].join(", ")}.`);
+      }
+    });
+    console.log(`Special days: ${specialDaysConfig.days.length} entr${specialDaysConfig.days.length === 1 ? "y" : "ies"} found.`);
+  }
+}
+
 if (warnings.length) {
   console.warn("\nWarnings:");
   for (const warning of warnings) console.warn(`- ${warning}`);
@@ -140,6 +179,16 @@ function readJson(fileName) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
+    fail(`${fileName} is not valid JSON or cannot be read: ${error.message}`);
+  }
+}
+
+function readJsonOptional(fileName) {
+  const filePath = path.join(configDir, fileName);
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
     fail(`${fileName} is not valid JSON or cannot be read: ${error.message}`);
   }
 }
