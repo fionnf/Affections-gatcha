@@ -1,0 +1,44 @@
+# Affektions-Gacha Worker configuration
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name            = "affektions-gacha-gate"
+main            = "worker.js"
+compatibility_date = "2024-09-23"
+
+# ── KV namespace ─────────────────────────────────────────────────────────────
+# Create the namespace first:
+#   wrangler kv namespace create TAP_LOG
+# Then replace the id below with the one printed by that command.
+[[kv_namespaces]]
+binding = "TAP_LOG"
+id      = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# ── Public vars ───────────────────────────────────────────────────────────────
+# These are visible in the deployed Worker — do NOT put secrets here.
+[vars]
+# The page to redirect to after a valid NFC tap.
+# Must be the full URL, e.g. https://yoursite.webflow.io/gacha
+REDIRECT_URL = "https://YOUR-WEBFLOW-SITE.webflow.io/gacha"
+
+# CORS origin for the /verify endpoint called by the frontend.
+# Set this to your exact Webflow domain to restrict cross-origin calls.
+# Use * to allow any origin (fine for a private personal project).
+ALLOWED_ORIGIN = "https://YOUR-WEBFLOW-SITE.webflow.io"
+
+# URL query-param name that identifies which NFC chip was tapped.
+# The NFC chip URL should look like:
+#   https://YOUR-WORKER.workers.dev/tap?token=lennart
+TOKEN_PARAM = "token"
+
+# How long (in seconds) a session JWT stays valid after the NFC tap.
+# 900 = 15 minutes.  Increase if you often have slow connections.
+SESSION_TTL_S = "900"
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# Set these with wrangler — they are NEVER stored in this file:
+#
+#   wrangler secret put JWT_SECRET
+#   (enter a long random string, e.g. output of: openssl rand -hex 32)
+#
+#   wrangler secret put ADMIN_TOKEN
+#   (enter any password you want to protect the /stats endpoint)

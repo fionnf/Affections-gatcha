@@ -5,6 +5,9 @@
   Replace USERNAME and REPO with your GitHub Pages URL.
   Example:
   https://fionnf.github.io/Affections-gacha/
+
+  Replace the data-session-verify-url value with your Cloudflare Worker URL.
+  See cloudflare-worker/README.md for setup instructions.
 -->
 
 <section id="affektions-gacha"></section>
@@ -13,5 +16,6 @@
   src="https://fionnf.github.io/Affections-gatcha/dist/affection-gacha.js"
   data-mount="#affektions-gacha"
   data-config-base="https://fionnf.github.io/Affections-gatcha/"
+  data-session-verify-url="https://affektions-gacha-gate.YOUR-SUBDOMAIN.workers.dev/verify"
   defer
 ></script>

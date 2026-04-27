@@ -2,6 +2,7 @@
   const script = document.currentScript;
   const mountSelector = script?.dataset.mount || "#affektions-gacha";
   const baseUrl = script?.dataset.configBase || "";
+  const sessionVerifyUrl = script?.dataset.sessionVerifyUrl || "";
   const mount = document.querySelector(mountSelector) || createMount();
 
   const STORAGE_KEY = "affektions-gacha:history:v1";
@@ -12,7 +13,9 @@
     photos: null,
     todaysPull: null,
     activeTab: "today",
-    revealed: false
+    revealed: false,
+    verifiedToken: null,
+    sessionExp: null
   };
 
   const defaultPhotos = { photos: [] };
@@ -49,6 +52,15 @@
   async function init() {
     injectFonts();
     injectStyles();
+
+    if (sessionVerifyUrl) {
+      const session = await verifySession();
+      if (!session) return; // gate screen already rendered
+      state.verifiedToken = session.token;
+      state.sessionExp = session.exp;
+      scheduleSessionExpiry(session.exp);
+    }
+
     renderShell();
     try {
       const [theme, outcomes, photos] = await Promise.all([
@@ -319,6 +331,7 @@
   }
 
   function getToken() {
+    if (state.verifiedToken) return state.verifiedToken;
     const params = new URLSearchParams(window.location.search);
     return params.get(state.theme.tokenParam) || state.theme.brand.displayNameDefault || "Lennart";
   }
@@ -955,6 +968,68 @@
     });
   }
 
+  // ── NFC session gate ───────────────────────────────────────────────────────
+
+  function renderGateScreen(reason) {
+    const screens = {
+      nfc:     { icon: "📱", title: "NFC antippen",          text: "Halte die Gacha-Maschine ans Handy, um eine Kapsel zu ziehen." },
+      expired: { icon: "⏱",  title: "Sitzung abgelaufen",    text: "Tippe die Gacha-Maschine erneut an, um eine neue Kapsel zu ziehen." },
+      invalid: { icon: "🔒", title: "Ungültiger Link",        text: "Dieser Link ist nicht mehr gültig. Tippe die Gacha-Maschine an." },
+      error:   { icon: "⚠️", title: "Verbindungsproblem",    text: "Die Sitzung konnte nicht geprüft werden. Bitte versuche es erneut." }
+    };
+    const { icon, title, text } = screens[reason] || screens.invalid;
+    mount.className = "ag-widget";
+    mount.innerHTML = `
+      <div class="ag-gate">
+        <div class="ag-gate-icon">${icon}</div>
+        <h2>${escapeHtml(title)}</h2>
+        <p>${escapeHtml(text)}</p>
+      </div>
+    `;
+  }
+
+  async function verifySession() {
+    const params = new URLSearchParams(window.location.search);
+    const session = params.get("session");
+
+    if (!session) {
+      renderGateScreen("nfc");
+      return null;
+    }
+
+    try {
+      const response = await fetch(sessionVerifyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session })
+      });
+      const data = await response.json();
+
+      if (!data.ok) {
+        renderGateScreen(data.error === "expired" ? "expired" : "invalid");
+        return null;
+      }
+
+      // Remove ?session=... from the address bar so it cannot be copy-pasted
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("session");
+      window.history.replaceState({}, "", cleanUrl.toString());
+
+      return { token: data.token, exp: data.exp };
+    } catch (_err) {
+      renderGateScreen("error");
+      return null;
+    }
+  }
+
+  function scheduleSessionExpiry(exp) {
+    const remainingMs = exp * 1000 - Date.now();
+    if (remainingMs <= 0) return;
+    window.setTimeout(() => renderGateScreen("expired"), remainingMs);
+  }
+
+  // ── Error screen ───────────────────────────────────────────────────────────
+
   function renderError(error) {
     mount.innerHTML = `
       <div class="ag-error">
@@ -1377,6 +1452,19 @@
       .ag-widget[data-tone=jackpot] .ag-badge{color:var(--ag-gold);background:rgba(185,120,46,.16)}
 
       .ag-error{padding:24px;border:1px solid var(--ag-border);border-radius:18px;background:var(--ag-surface);color:var(--ag-text)}
+
+      .ag-gate{
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        min-height:300px;padding:clamp(28px,5vw,52px) clamp(20px,4vw,32px);text-align:center;
+        border:1px solid var(--ag-border);border-radius:var(--ag-radius-lg);
+        background:var(--ag-surface);color:var(--ag-text);gap:14px;
+      }
+      @media (prefers-color-scheme:dark){
+        .ag-gate{background:linear-gradient(180deg,rgba(28,42,32,.96),rgba(18,30,22,.94));border-color:rgba(255,255,255,.08)}
+      }
+      .ag-gate-icon{font-size:3rem;line-height:1;margin-bottom:4px}
+      .ag-gate h2{margin:0;font-family:"Boska",Georgia,serif;font-size:clamp(1.4rem,1rem + 1.5vw,1.8rem);letter-spacing:-.02em;line-height:1.15;color:var(--ag-text)}
+      .ag-gate p{margin:0;color:var(--ag-muted);max-width:26rem;line-height:1.65;font-size:clamp(.96rem,.9rem + .2vw,1.05rem)}
 
       .ag-shimmer{animation:ag-shimmer 6s ease-in-out infinite}
       .ag-shimmer-2{animation-duration:8s;animation-delay:-2s}
