@@ -80,6 +80,15 @@ the Google sync is best-effort scraping, not a stable API. For reliability,
 prefer iCloud public shared albums. Don't put content in the album that you
 wouldn't want public.
 
+**Videos & Google Photos:** the Google sync now reads the album's structured
+data and tags each item as `"image"` or `"video"`. Videos use a
+`googleusercontent.com/...=dv` URL that 302-redirects to a playable MP4 stream.
+This works today, but is best-effort — Google does not promise the `=dv`
+endpoint will keep working, and any item where `=dv` cannot be resolved is
+skipped (with a warning) rather than being silently exported as a static image
+thumbnail. If videos are important to you, an iCloud public shared album is
+the more reliable source.
+
 ## Preview page for photos and videos
 
 Open [`media-preview.html`](media-preview.html) to see how the synced media

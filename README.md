@@ -141,6 +141,16 @@ playsinline>` gerendert. Wenn `caption` leer ist oder fehlt, wird kein
 Untertitel angezeigt — das ist das gewünschte Verhalten für direkt
 synchronisierte Album-Inhalte.
 
+Beim Google-Photos-Sync liest `scripts/sync-shared-album.js` die im
+Album-HTML eingebettete Item-Liste und erkennt damit Videos zuverlässig
+(Marker `[null,null,14]` + Dauer-Feld). Für Videos wird die
+`googleusercontent.com/...=dv`-URL geschrieben — Google liefert darauf
+eine 302-Weiterleitung auf einen abspielbaren MP4-Stream. Das funktioniert
+heute, ist aber best-effort: lässt sich für ein Video keine spielbare URL
+auflösen, wird der Eintrag mit Warnung **übersprungen**, statt als
+Standbild getarnt zu werden. Für robuste Video-Synchronisation ist ein
+öffentliches iCloud Shared Album die zuverlässigere Quelle.
+
 ### Vorschauseite für Foto-/Video-Drops
 
 Damit du nicht auf einen zufälligen Foto-Drop warten musst, gibt es eine

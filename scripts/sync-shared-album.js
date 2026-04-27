@@ -231,9 +231,32 @@ async function syncGooglePhotos(url) {
   }
   const html = await response.text();
 
-  // Public Google Photos shared albums embed media URLs in the HTML payload as
-  // googleusercontent.com links. We extract unique image URLs and try to also
-  // detect video flags from inline JSON arrays.
+  // Public Google Photos shared albums embed an AF_initDataCallback for ds:1
+  // that contains the ordered list of media items with their media-type marker
+  // and optional duration. Parsing this gives us reliable image vs. video
+  // detection and preserves album order. URL-pattern fallback is used only if
+  // the structured payload is missing or unparseable.
+  const items = parseGooglePhotosItems(html);
+  if (items && items.length) {
+    const photos = await buildGooglePhotosFromItems(items);
+    if (photos.length) {
+      const imageCount = photos.filter((p) => p.type === "image").length;
+      const videoCount = photos.filter((p) => p.type === "video").length;
+      console.log(
+        `Google Photos: parsed ${photos.length} item(s) — ${imageCount} image(s), ${videoCount} video(s).`
+      );
+      if (videoCount === 0) {
+        console.warn(
+          "Google Photos: no playable video URLs were resolved. If the album contains videos, the share page may not expose them as MP4 — consider an iCloud public shared album for reliable video URLs."
+        );
+      }
+      return photos;
+    }
+  }
+
+  console.warn(
+    "Google Photos: structured data parse failed, falling back to URL pattern scrape (videos cannot be detected this way)."
+  );
   const urlPattern = /https:\/\/lh\d\.googleusercontent\.com\/[\w\-./=?]+/g;
   const found = html.match(urlPattern) || [];
   const seen = new Set();
@@ -259,9 +282,113 @@ async function syncGooglePhotos(url) {
     );
   }
   console.warn(
-    `Google Photos: scraped ${photos.length} image(s). Videos are not reliably detectable via scraping and are skipped.`
+    `Google Photos fallback: scraped ${photos.length} image(s). Videos are not reliably detectable via fallback and are skipped.`
   );
   return photos;
+}
+
+function parseGooglePhotosItems(html) {
+  // The ds:1 init-data block contains an array of media items. Each item is
+  // shaped roughly:
+  //   [ id, [url, w, h, ..., [null, null, mediaTypeMarker], [fileSize], ...], timestamp, ..., { "146008172": [null, durationMs] } ]
+  // mediaTypeMarker: 1 = image, 14 = video (other non-1 values are also
+  // treated as video to be safe).
+  const start = html.indexOf("AF_initDataCallback({key: 'ds:1'");
+  if (start < 0) return null;
+  const dataIdx = html.indexOf("data:", start);
+  if (dataIdx < 0) return null;
+  const tail = html.slice(dataIdx + 5);
+  const sideIdx = tail.indexOf(", sideChannel");
+  if (sideIdx < 0) return null;
+  const jsonText = tail.slice(0, sideIdx);
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (_error) {
+    return null;
+  }
+  const items = Array.isArray(parsed) ? parsed[1] : null;
+  if (!Array.isArray(items)) return null;
+  const out = [];
+  for (const entry of items) {
+    if (!Array.isArray(entry)) continue;
+    const meta = entry[1];
+    if (!Array.isArray(meta) || typeof meta[0] !== "string") continue;
+    const baseUrl = meta[0];
+    if (!/^https:\/\/lh\d\.googleusercontent\.com\//.test(baseUrl)) continue;
+    let typeMarker = null;
+    for (let i = 2; i < meta.length; i += 1) {
+      const v = meta[i];
+      if (Array.isArray(v) && v.length === 3 && typeof v[2] === "number") {
+        typeMarker = v[2];
+        break;
+      }
+    }
+    let durationMs = null;
+    const extras = entry[entry.length - 1];
+    if (extras && typeof extras === "object" && !Array.isArray(extras)) {
+      const dur = extras["146008172"];
+      if (Array.isArray(dur) && typeof dur[1] === "number") durationMs = dur[1];
+    }
+    const isVideo = typeMarker !== null && typeMarker !== 1;
+    out.push({ baseUrl, isVideo: isVideo || durationMs !== null, durationMs });
+  }
+  return out;
+}
+
+async function buildGooglePhotosFromItems(items) {
+  const photos = [];
+  let index = 0;
+  for (const item of items) {
+    index += 1;
+    const cleaned = item.baseUrl.replace(/=[swhmd][\w\d-]*$/, "");
+    if (item.isVideo) {
+      const videoUrl = `${cleaned}=dv`;
+      const ok = await canFetchAsVideo(videoUrl);
+      if (ok) {
+        photos.push({
+          url: videoUrl,
+          alt: `Erinnerung ${index}`,
+          type: "video"
+        });
+        continue;
+      }
+      console.warn(
+        `Google Photos: item ${index} is a video but no playable URL could be resolved — skipping. Use iCloud sharing for reliable video URLs.`
+      );
+      continue;
+    }
+    photos.push({
+      url: `${cleaned}=s2048`,
+      alt: `Erinnerung ${index}`,
+      type: "image"
+    });
+  }
+  return photos;
+}
+
+async function canFetchAsVideo(url) {
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+      }
+    });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location") || "";
+      return /videoplayback|video-downloads|googlevideo\.com/.test(loc);
+    }
+    if (res.ok) {
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      return ct.startsWith("video/");
+    }
+    return false;
+  } catch (_error) {
+    return false;
+  }
 }
 
 /* ---------- helpers ---------- */

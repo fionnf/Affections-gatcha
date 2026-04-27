@@ -100,7 +100,26 @@ if (Array.isArray(photosConfig.photos)) {
     if (typeof photo.url === "string" && photo.url.includes("deine-webflow-domain.com")) {
       addWarning(`photos[${index}].url still looks like a placeholder.`);
     }
+    if (photo.type === "video" && typeof photo.url === "string") {
+      const url = photo.url;
+      const isGoogleHost = /googleusercontent\.com\//.test(url);
+      const looksLikeGoogleVideo = /=(dv|m\d+)(?:$|[?&])/.test(url);
+      const looksLikeGoogleImage = /=s\d+(?:$|[?&-])/.test(url) || /=w\d+/.test(url);
+      if (isGoogleHost && !looksLikeGoogleVideo) {
+        addWarning(
+          `photos[${index}] is type "video" but URL ${looksLikeGoogleImage ? "looks like a Google Photos image thumbnail" : "is a googleusercontent URL without a video suffix (=dv or =m18)"} — it likely will not play. Re-run npm run sync:album, or switch to an iCloud public shared album for reliable video URLs.`
+        );
+      }
+    }
   });
+
+  const videoCount = photosConfig.photos.filter((p) => p && p.type === "video").length;
+  const source = photosConfig.source;
+  if (source && source.provider === "google" && photosConfig.photos.length > 0 && videoCount === 0) {
+    addWarning(
+      "photos source is Google Photos and no items are typed as video. If the album contains videos, the public share page may not expose playable MP4 URLs — they may have been skipped. iCloud public shared albums tend to be more reliable for video."
+    );
+  }
 }
 
 if (warnings.length) {
