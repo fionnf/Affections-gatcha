@@ -1,0 +1,39 @@
+{
+  "days": [
+    {
+      "date": "05-29",
+      "label": "Geburtstag 🎂",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Alles Gute zum Geburtstag!",
+          "message": "Heute ist dein Geburtstag – die Maschine hat extra für dich gewürfelt und natürlich gewonnen. Du bekommst einen ganzen Fionn."
+        },
+        {
+          "title": "Geburtstagskapsel 🎉",
+          "message": "Die Maschine feiert mit. Du hast ein vollständiges Date freigeschaltet: Ort, Essen und schöne Architektur nach Wahl."
+        },
+        {
+          "title": "Sonderedition: Geburtstag",
+          "message": "Nur einmal im Jahr verfügbar. Enthält: Gratulationen, ein echtes Date und möglicherweise Kuchen."
+        }
+      ],
+      "colors": {
+        "background": "#fffbf0",
+        "surface": "#fff8e0",
+        "surfaceAlt": "#fef0c0",
+        "primary": "#c8860a",
+        "primaryDark": "#a06608",
+        "gold": "#e8a020"
+      },
+      "darkColors": {
+        "background": "#1a1400",
+        "surface": "#261c00",
+        "surfaceAlt": "#332500",
+        "primary": "#e8a020",
+        "primaryDark": "#f0b830",
+        "gold": "#f0b830"
+      }
+    }
+  ]
+}

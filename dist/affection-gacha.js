@@ -10,6 +10,7 @@
     theme: null,
     outcomes: null,
     photos: null,
+    specialDays: null,
     todaysPull: null,
     activeTab: "today",
     revealed: false
@@ -51,15 +52,18 @@
     injectStyles();
     renderShell();
     try {
-      const [theme, outcomes, photos] = await Promise.all([
+      const [theme, outcomes, photos, specialDays] = await Promise.all([
         fetchJson("config/theme.json"),
         fetchJson("config/outcomes.json"),
-        fetchJson("config/photos.json", defaultPhotos)
+        fetchJson("config/photos.json", defaultPhotos),
+        fetchJson("config/special-days.json", { days: [] })
       ]);
       state.theme = theme;
       state.outcomes = outcomes;
       state.photos = normalizePhotos(photos);
+      state.specialDays = specialDays;
       applyTheme(theme);
+      applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
       renderOdds();
       bindEvents();
@@ -501,6 +505,75 @@
     set("--ag-dark-mountain", dark.mountain);
   }
 
+  const COLOR_VAR_MAP = {
+    background: "--ag-bg",
+    surface: "--ag-surface",
+    surfaceAlt: "--ag-surface-2",
+    text: "--ag-text",
+    muted: "--ag-muted",
+    border: "--ag-border",
+    primary: "--ag-primary",
+    primaryDark: "--ag-primary-dark",
+    gold: "--ag-gold",
+    green: "--ag-green",
+    blue: "--ag-blue",
+    sky: "--ag-sky",
+    mountain: "--ag-mountain"
+  };
+
+  const DARK_COLOR_VAR_MAP = {
+    background: "--ag-dark-bg",
+    surface: "--ag-dark-surface",
+    surfaceAlt: "--ag-dark-surface-2",
+    text: "--ag-dark-text",
+    muted: "--ag-dark-muted",
+    border: "--ag-dark-border",
+    primary: "--ag-dark-primary",
+    primaryDark: "--ag-dark-primary-dark",
+    gold: "--ag-dark-gold",
+    green: "--ag-dark-green",
+    blue: "--ag-dark-blue",
+    sky: "--ag-dark-sky",
+    mountain: "--ag-dark-mountain"
+  };
+
+  function getPreviewDay() {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("preview-day");
+    if (!raw) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    if (/^\d{2}-\d{2}$/.test(raw)) {
+      const year = new Date().getFullYear().toString();
+      return `${year}-${raw}`;
+    }
+    return null;
+  }
+
+  function checkSpecialDay(day) {
+    const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
+    const mmdd = day.slice(5); // "MM-DD" from "YYYY-MM-DD"
+    for (const entry of days) {
+      if (entry.date === day || entry.date === mmdd) return entry;
+    }
+    return null;
+  }
+
+  function applySpecialDayColors(day) {
+    const special = checkSpecialDay(day);
+    if (!special) return;
+    const set = (name, value) => mount.style.setProperty(name, value);
+    if (special.colors && typeof special.colors === "object") {
+      for (const [key, value] of Object.entries(special.colors)) {
+        if (COLOR_VAR_MAP[key] && typeof value === "string") set(COLOR_VAR_MAP[key], value);
+      }
+    }
+    if (special.darkColors && typeof special.darkColors === "object") {
+      for (const [key, value] of Object.entries(special.darkColors)) {
+        if (DARK_COLOR_VAR_MAP[key] && typeof value === "string") set(DARK_COLOR_VAR_MAP[key], value);
+      }
+    }
+  }
+
   function dateKeyInTimezone(timezone, date) {
     const parts = new Intl.DateTimeFormat("de-CH", {
       timeZone: timezone,
@@ -557,6 +630,23 @@
   function buildPullForDay(day) {
     const token = getToken();
     const baseSeed = `${state.theme.secret}|${token}|${day}`;
+
+    const special = checkSpecialDay(day);
+    if (special) {
+      const specialOutcomes = Array.isArray(special.outcomes) && special.outcomes.length
+        ? special.outcomes
+        : [{ title: special.label, message: "" }];
+      const outcome = specialOutcomes[seededIndex(`${baseSeed}|special|outcome`, specialOutcomes.length)];
+      const category = {
+        id: "special",
+        label: special.label,
+        weight: 0,
+        tone: special.tone || "jackpot",
+        outcomes: specialOutcomes
+      };
+      return { day, token, category, outcome, photo: null };
+    }
+
     let category = pickWeighted(`${baseSeed}|category`);
 
     if (category.id === "photo" && !state.photos.length) {
@@ -576,7 +666,7 @@
   }
 
   function buildPull() {
-    const day = dateKeyInTimezone(state.theme.timezone);
+    const day = getPreviewDay() || dateKeyInTimezone(state.theme.timezone);
     return buildPullForDay(day);
   }
 

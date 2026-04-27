@@ -59,6 +59,83 @@ Each photo has:
 
 Videos render as `<video controls muted playsinline>`.
 
+## Special days (birthdays, anniversaries, one-off events)
+
+Edit:
+
+```text
+config/special-days.json
+```
+
+On a matching day the normal weighted random draw is **skipped entirely** and the
+special-day outcome is shown instead. Colors can also be overridden for that day.
+
+### Date formats
+
+| Format | Matches |
+|---|---|
+| `"MM-DD"` | That day every year (e.g. birthdays) |
+| `"YYYY-MM-DD"` | One specific date only |
+
+### Fields per entry
+
+| Field | Required | Description |
+|---|---|---|
+| `date` | ✅ | `"MM-DD"` or `"YYYY-MM-DD"` |
+| `label` | ✅ | Shown as the capsule category label |
+| `outcomes` | ✅ | Array of `{title, message}` — one is picked deterministically (stable across reloads) |
+| `tone` | optional | Visual style of the capsule (default: `"jackpot"`). Same values as categories: `quiet`, `soft`, `quest`, `warm`, `cursed`, `rare`, `photo`, `jackpot` |
+| `colors` | optional | Overrides any subset of the light-mode palette for that day |
+| `darkColors` | optional | Same but for dark mode |
+
+### Available color keys
+
+`background`, `surface`, `surfaceAlt`, `text`, `muted`, `border`, `primary`, `primaryDark`, `gold`, `green`, `blue`, `sky`, `mountain`
+
+### Example
+
+```json
+{
+  "days": [
+    {
+      "date": "05-29",
+      "label": "Geburtstag 🎂",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Alles Gute zum Geburtstag!",
+          "message": "Heute ist dein Geburtstag – die Maschine hat extra für dich gewürfelt."
+        }
+      ],
+      "colors": {
+        "primary": "#c8860a",
+        "gold": "#e8a020",
+        "background": "#fffbf0"
+      },
+      "darkColors": {
+        "primary": "#e8a020",
+        "gold": "#f0b830"
+      }
+    }
+  ]
+}
+```
+
+### Testing / previewing a special day
+
+Add `?preview-day=MM-DD` or `?preview-day=YYYY-MM-DD` to the URL. The machine
+will behave as if today is that date — showing the matching special day (or a
+normal random pull if no entry matches). The pull is still deterministic and
+stable on reload, just as on the real day.
+
+**Examples:**
+```
+https://your-site.com/?token=Lennart&preview-day=05-29
+https://your-site.com/?token=Lennart&preview-day=2026-05-29
+```
+
+Remove the `preview-day` parameter to go back to normal.
+
 ## Auto-sync from a shared album
 
 Instead of pasting URLs by hand you can point the gacha at a public shared

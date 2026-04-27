@@ -21,6 +21,9 @@ Nicht jeder Tag ist ein Gewinn. Manche Tage sind Nieten, Mini-Quests, verfluchte
 - `config/photos.json`  
   Foto-Liste und Captions.
 
+- `config/special-days.json`  
+  Besondere Tage mit garantierten Ergebnissen und optionalem Farbthema (z.B. Geburtstag).
+
 - `EDITING.md`  
   Kurzanleitung, welche Datei du ändern musst, ohne Code anzufassen.
 
@@ -105,8 +108,79 @@ Nach dem Setup editierst du nur noch JSON-Dateien im GitHub Web-Editor:
 - Antworten und Gewichte: `config/outcomes.json`
 - Grün/Design/Timing/Name: `config/theme.json`
 - Fotos und Captions: `config/photos.json`
+- Besondere Tage: `config/special-days.json`
 
 GitHub Actions prüft automatisch, ob alles noch gültig ist.
+
+## Besondere Tage (Special Days)
+
+In `config/special-days.json` kannst du Geburtstage, Jahrestage oder einmalige Ereignisse eintragen. An einem solchen Tag wird die normale gewichtete Zufallsziehung **komplett übersprungen** und stattdessen das definierte Ergebnis gezeigt. Optional kannst du auch die Farben des Widgets für diesen Tag überschreiben.
+
+### Datumsformate
+
+| Format | Bedeutung |
+|---|---|
+| `"MM-DD"` | Wiederkehrend jedes Jahr (z.B. Geburtstag) |
+| `"YYYY-MM-DD"` | Genau an einem bestimmten Datum |
+
+### Beispiel
+
+```json
+{
+  "days": [
+    {
+      "date": "05-29",
+      "label": "Geburtstag 🎂",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Alles Gute zum Geburtstag!",
+          "message": "Die Maschine hat extra für dich gewürfelt – und natürlich gewonnen."
+        }
+      ],
+      "colors": {
+        "primary": "#c8860a",
+        "gold": "#e8a020",
+        "background": "#fffbf0"
+      }
+    }
+  ]
+}
+```
+
+Felder pro Eintrag:
+- `date` — Pflicht. `"MM-DD"` für jährlich wiederkehrend, `"YYYY-MM-DD"` für einmalig.
+- `label` — Pflicht. Wird als Kategorie-Label auf der Kapsel angezeigt.
+- `outcomes` — Pflicht. Array von `{title, message}`. Eines wird deterministisch gewählt (stabil bei Reload, wechselt täglich bei mehreren Einträgen).
+- `tone` — Optional. Visueller Stil der Kapsel (Standard: `"jackpot"`). Werte: `quiet`, `soft`, `quest`, `warm`, `cursed`, `rare`, `photo`, `jackpot`.
+- `colors` — Optional. Überschreibt beliebige Farben im Light-Mode.
+- `darkColors` — Optional. Überschreibt Farben im Dark-Mode.
+
+Verfügbare Farbkeys: `background`, `surface`, `surfaceAlt`, `text`, `muted`, `border`, `primary`, `primaryDark`, `gold`, `green`, `blue`, `sky`, `mountain`.
+
+### Besondere Tage testen (`?preview-day=`)
+
+Du musst nicht auf den echten Tag warten. Hänge einfach `?preview-day=MM-DD` oder `?preview-day=YYYY-MM-DD` an die URL an:
+
+```text
+https://fionnf.github.io/Affections-gatcha/?preview-day=05-29
+```
+
+Die Maschine verhält sich dann so, als wäre heute dieses Datum — zeigt also den passenden Sonder-Tag oder, wenn kein Eintrag passt, ein normales Zufallsergebnis. Das Pull-Ergebnis ist trotzdem deterministisch und stabil bei Reload.
+
+Zum Testen lokal (ohne GitHub Pages):
+
+```bash
+npx serve .
+```
+
+Dann im Browser öffnen:
+
+```text
+http://localhost:3000/?preview-day=05-29
+```
+
+Parameter entfernen, um wieder zum normalen Tageszug zurückzukehren.
 
 ## Automatischer Album-Sync (iCloud / Google Photos)
 
