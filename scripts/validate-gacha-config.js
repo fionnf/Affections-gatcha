@@ -91,7 +91,12 @@ if (Array.isArray(photosConfig.photos)) {
   photosConfig.photos.forEach((photo, index) => {
     assert(typeof photo.url === "string" && photo.url.trim(), `photos[${index}].url is required.`);
     assert(typeof photo.alt === "string" && photo.alt.trim(), `photos[${index}].alt is required.`);
-    assert(typeof photo.caption === "string", `photos[${index}].caption should be a string.`);
+    if (photo.caption !== undefined && typeof photo.caption !== "string") {
+      addError(`photos[${index}].caption should be a string when present.`);
+    }
+    if (photo.type !== undefined && photo.type !== "image" && photo.type !== "video") {
+      addError(`photos[${index}].type must be "image" or "video" when present.`);
+    }
     if (typeof photo.url === "string" && photo.url.includes("deine-webflow-domain.com")) {
       addWarning(`photos[${index}].url still looks like a placeholder.`);
     }

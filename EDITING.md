@@ -54,7 +54,31 @@ Each photo has:
 
 - `url`
 - `alt`
-- `caption`
+- `caption` (optional — leave empty or omit to render no caption)
+- `type` (optional — `"image"` or `"video"`; defaults to `"image"`)
+
+Videos render as `<video controls muted playsinline>`.
+
+## Auto-sync from a shared album
+
+Instead of pasting URLs by hand you can point the gacha at a public shared
+album.
+
+1. Edit `config/album-source.json`:
+   - `enabled`: set to `true`
+   - `url`: public iCloud Shared Album link (`https://www.icloud.com/sharedalbum/#TOKEN`)
+     or a public Google Photos shared link
+   - `provider`: `"icloud"`, `"google"`, or `"auto"`
+2. Run `npm run sync:album` locally, or trigger the **Sync shared album**
+   workflow under the GitHub **Actions** tab. The workflow can also run on a
+   cron schedule and commits `config/photos.json` back to the repo using the
+   `github-actions[bot]` user with `[skip ci]` so it doesn't trigger itself.
+
+**Privacy:** Apple Shared Albums are public — anyone with the link can see
+them. Google Photos public shares are also visible to anyone with the link, and
+the Google sync is best-effort scraping, not a stable API. For reliability,
+prefer iCloud public shared albums. Don't put content in the album that you
+wouldn't want public.
 
 ## Best GitHub editing flow
 

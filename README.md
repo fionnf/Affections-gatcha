@@ -36,8 +36,17 @@ Nicht jeder Tag ist ein Gewinn. Manche Tage sind Nieten, Mini-Quests, verfluchte
 - `scripts/build-photo-manifest.js`  
   Erstellt aus einem exportierten Apple-Photos-Album eine `photos.json`.
 
+- `scripts/sync-shared-album.js`  
+  Liest `config/album-source.json` und schreibt `config/photos.json` aus einem öffentlichen iCloud Shared Album oder einem öffentlichen Google Photos Link.
+
+- `config/album-source.json`  
+  Quelle für den automatischen Album-Sync. URL, Provider und Output stehen hier.
+
 - `.github/workflows/validate-gacha.yml`  
   GitHub Action, die bei Änderungen automatisch validiert und simuliert.
+
+- `.github/workflows/sync-shared-album.yml`  
+  GitHub Action, die per `workflow_dispatch` und nach Cron-Plan das Album syncen und `config/photos.json` zurück committen kann.
 
 ## Webflow Setup
 
@@ -95,6 +104,53 @@ Nach dem Setup editierst du nur noch JSON-Dateien im GitHub Web-Editor:
 - Fotos und Captions: `config/photos.json`
 
 GitHub Actions prüft automatisch, ob alles noch gültig ist.
+
+## Automatischer Album-Sync (iCloud / Google Photos)
+
+Statt Bilder manuell in `config/photos.json` einzutragen, kann der Sync ein
+öffentliches Album als Quelle nehmen.
+
+1. Öffne `config/album-source.json`.
+2. Setze `enabled` auf `true`.
+3. Trage in `url` den öffentlichen Link ein:
+   - iCloud: `https://www.icloud.com/sharedalbum/#TOKEN`
+   - Google Photos: `https://photos.app.goo.gl/...` oder ein öffentlicher
+     `photos.google.com/share/...` Link
+4. Setze `provider` auf `"icloud"`, `"google"` oder `"auto"`.
+5. Lokal:
+
+   ```bash
+   npm run sync:album
+   npm run validate
+   ```
+
+   Oder über GitHub: Tab **Actions** → **Sync shared album** → **Run workflow**.
+
+Der Workflow läuft auch nach einem Cron-Zeitplan und committet Änderungen an
+`config/photos.json` mit dem `github-actions[bot]`. Der Commit enthält
+`[skip ci]`, damit kein Endlos-Loop entsteht.
+
+### Bilder UND Videos
+
+Einträge in `config/photos.json` können `"type": "image"` oder
+`"type": "video"` haben. Videos werden im Frontend als `<video controls muted
+playsinline>` gerendert. Wenn `caption` leer ist oder fehlt, wird kein
+Untertitel angezeigt — das ist das gewünschte Verhalten für direkt
+synchronisierte Album-Inhalte.
+
+### Wichtiger Privacy-Hinweis
+
+- **iCloud Shared Albums**: Apples öffentliche Shared-Album-Seite ist
+  öffentlich. Jeder mit dem Link kann das Album sehen. Lege keine Inhalte hinein,
+  die du nicht öffentlich teilen würdest.
+- **Google Photos**: Öffentliche „Link teilen“-Alben sind ebenfalls für jeden
+  mit dem Link sichtbar. Google bietet **keine** stabile öffentliche CDN/API
+  für statische Websites, daher ist der Google-Sync **best effort** und kann
+  jederzeit kaputtgehen, wenn Google die Seitenstruktur ändert.
+- **Empfehlung**: Für zuverlässige Updates ein iCloud Public Shared Album
+  verwenden. Wenn die Inhalte privat bleiben sollen, weiterhin den manuellen
+  Workflow (`config/photos.json` direkt pflegen oder `build-photo-manifest.js`)
+  nutzen.
 
 ## Google oder Apple Photos
 

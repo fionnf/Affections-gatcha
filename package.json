@@ -6,6 +6,7 @@
   "scripts": {
     "validate": "node scripts/validate-gacha-config.js",
     "simulate": "node scripts/simulate-odds.js 20000 lennart",
-    "build:photos": "node scripts/build-photo-manifest.js photos"
+    "build:photos": "node scripts/build-photo-manifest.js photos",
+    "sync:album": "node scripts/sync-shared-album.js"
   }
 }

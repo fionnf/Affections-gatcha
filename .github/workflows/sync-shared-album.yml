@@ -1,0 +1,44 @@
+name: Sync shared album
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 04:17 UTC. Edit the cron if you want a different cadence.
+    - cron: "17 4 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-shared-album
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run album sync
+        run: node scripts/sync-shared-album.js
+
+      - name: Validate config
+        run: node scripts/validate-gacha-config.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- config/photos.json; then
+            echo "No changes to config/photos.json. Skipping commit."
+            exit 0
+          fi
+          git add config/photos.json
+          git commit -m "chore(album): sync shared album [skip ci]"
+          git push
