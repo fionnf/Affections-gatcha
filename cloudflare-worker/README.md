@@ -1,110 +1,51 @@
-# NFC Session Gate — Cloudflare Worker
-
-This Worker sits between the NFC chip and the Gacha page.  
-Every tap goes through it, so it can:
-
-- issue a short-lived signed session token (JWT)
-- log how many times each chip was tapped and when
-- reject saved links once the JWT has expired
-
----
-
-## How it works
+# NFC Session Gate — setup in 5 steps
 
 ```
-NFC chip → https://your-worker.workers.dev/tap?token=lennart
-            │
-            ├─ records the tap in KV
-            ├─ creates a 15-minute signed JWT
-            └─ redirects to → https://yoursite.webflow.io/gacha?session=<JWT>
-                               │
-                               └─ page JS calls /verify with the JWT
-                                   ├─ valid  → strip ?session= from URL, show gacha
-                                   └─ invalid/expired → "Tap the NFC chip" screen
+NFC chip → /tap?token=lennart → logs tap → issues 15-min token → redirects to Webflow page
+Webflow page → /verify → valid? show gacha : show "tap the chip" screen
 ```
 
 ---
 
-## One-time setup
-
-### 1 — Install Wrangler
+## 1 — Install Wrangler & log in
 
 ```bash
 npm install -g wrangler
 wrangler login
 ```
 
-### 2 — Create the KV namespace
+## 2 — Edit `wrangler.toml`
 
-```bash
-wrangler kv namespace create TAP_LOG
-```
+Open `cloudflare-worker/wrangler.toml` and replace the **3 lines** marked `← CHANGE THIS`:
 
-Copy the `id` that is printed and paste it into `wrangler.toml`:
-
-```toml
-[[kv_namespaces]]
-binding = "TAP_LOG"
-id      = "abc123..."   # ← your id here
-```
-
-### 3 — Edit `wrangler.toml`
-
-Replace the two placeholder values:
-
-| Variable | Example |
+| Variable | What to put |
 |---|---|
-| `REDIRECT_URL` | `https://lennart.webflow.io/gacha` |
-| `ALLOWED_ORIGIN` | `https://lennart.webflow.io` |
+| `REDIRECT_URL` | Your Webflow page, e.g. `https://lennart.webflow.io/gacha` |
+| `ALLOWED_ORIGIN` | Same domain, e.g. `https://lennart.webflow.io` |
+| `ADMIN_TOKEN` | Any password, e.g. `lennart-stats-2026` |
 
-### 4 — Set secrets (never stored in files)
-
-```bash
-# A long random string — used to sign and verify session JWTs
-wrangler secret put JWT_SECRET
-
-# A password for the /stats endpoint
-wrangler secret put ADMIN_TOKEN
-```
-
-For `JWT_SECRET` you can generate a good one with:
+## 3 — Deploy
 
 ```bash
-openssl rand -hex 32
-```
-
-### 5 — Deploy
-
-```bash
+cd cloudflare-worker
 wrangler deploy
 ```
 
-Wrangler prints your Worker URL, e.g.:
-
+Wrangler prints your Worker URL — save it, you'll need it in the next steps:
 ```
 https://affektions-gacha-gate.YOUR-SUBDOMAIN.workers.dev
 ```
 
----
+## 4 — Set the one secret
 
-## NFC chip URL
-
-Write this URL to the NFC chip (use any NFC writing app):
-
+```bash
+wrangler secret put JWT_SECRET
 ```
-https://affektions-gacha-gate.YOUR-SUBDOMAIN.workers.dev/tap?token=lennart
-```
+Paste any long random string when prompted (or generate one with `openssl rand -hex 32`).
 
-- `token` is used as the display name inside the Gacha and as the key in the tap log.
-- If you have multiple chips for different people, use different tokens:  
-  `?token=lennart`, `?token=alex`, etc.
+## 5 — Update the Webflow embed
 
----
-
-## Webflow / frontend setup
-
-In the Webflow embed (or `webflow-loader.html`) add the `data-session-verify-url`
-attribute pointing to your Worker's `/verify` endpoint:
+In your Webflow Embed element, use this snippet (the dashboard shows the exact one with your URL already filled in):
 
 ```html
 <section id="affektions-gacha"></section>
@@ -118,62 +59,57 @@ attribute pointing to your Worker's `/verify` endpoint:
 ></script>
 ```
 
-Without that attribute the page loads normally (no gate) — useful for local testing.
+---
+
+## NFC chip URL
+
+Write this to the chip (any NFC writer app):
+```
+https://affektions-gacha-gate.YOUR-SUBDOMAIN.workers.dev/tap?token=lennart
+```
+
+Use different `token` values for different chips — each is tracked separately.
 
 ---
 
-## Viewing tap logs
+## Testing without a chip
 
-Open this URL in your browser (or `curl` it):
+Open your Worker URL in a browser:
+```
+https://affektions-gacha-gate.YOUR-SUBDOMAIN.workers.dev/
+```
 
+You'll see a test dashboard with:
+- **Simulate tap** button — does exactly what tapping an NFC chip does
+- **Verify JWT** box — paste a `?session=…` value to confirm it validates
+- **Tap stats** link — shows total taps per chip (needs tap logging, see below)
+- **Webflow embed snippet** — copy-pasteable, with your Worker URL already filled in
+
+---
+
+## Optional: tap logging
+
+To log how many times each chip is tapped (and when):
+
+```bash
+wrangler kv namespace create TAP_LOG
+```
+
+Copy the `id` that is printed, then uncomment and fill in the block at the bottom of `wrangler.toml`:
+
+```toml
+[[kv_namespaces]]
+binding = "TAP_LOG"
+id      = "paste-your-id-here"
+```
+
+Then redeploy:
+```bash
+wrangler deploy
+```
+
+View tap counts:
 ```
 https://affektions-gacha-gate.YOUR-SUBDOMAIN.workers.dev/stats?admin=YOUR_ADMIN_TOKEN
 ```
 
-Response example:
-
-```json
-{
-  "ok": true,
-  "taps": [
-    {
-      "nfc": "lennart",
-      "count": 14,
-      "firstTap": "2026-04-01T09:12:00.000Z",
-      "lastTap":  "2026-04-27T18:44:00.000Z",
-      "history": [
-        { "at": "2026-04-27T18:44:00.000Z", "ip": "1.2.3.4", "country": "CH" },
-        { "at": "2026-04-26T11:30:00.000Z", "ip": "1.2.3.4", "country": "CH" }
-      ]
-    }
-  ]
-}
-```
-
-- **`count`** — total taps for that chip
-- **`firstTap`** / **`lastTap`** — ISO timestamps in UTC
-- **`history`** — rolling log of the last 100 individual taps with IP and country
-
----
-
-## Session lifetime
-
-The default is 15 minutes (`SESSION_TTL_S = "900"` in `wrangler.toml`).
-
-- After the JWT expires the page shows *"Sitzung abgelaufen — bitte den NFC-Chip erneut antippen."*
-- If the page is already open when expiry happens, a countdown replaces the UI at that exact moment.
-- Saving the link and opening it after the session has expired shows the same "tap again" screen.
-
----
-
-## Cloudflare free tier
-
-Everything used here (Workers, KV) is within the Cloudflare free tier for personal use:
-
-| Resource | Free limit |
-|---|---|
-| Worker requests | 100 000 / day |
-| KV reads | 100 000 / day |
-| KV writes | 1 000 / day |
-
-A personal NFC gift will use far less than 1 % of these limits.
