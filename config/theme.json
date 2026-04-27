@@ -15,7 +15,7 @@
   "timezone": "Europe/Zurich",
   "tokenParam": "token",
   "messageTarget": "https://wa.me/+41778089500?text={text}",
-  "revealDelayMs": 3200,
+  "revealDelayMs": 5200,
   "historyDays": 14,
   "loadingSteps": [
     "Route wird geprüft",
@@ -61,6 +61,5 @@
     "Velo",
     "Stadt",
     "Bärlauch",
-    "See"
   ]
 }
