@@ -772,8 +772,31 @@
       buttonText.textContent = steps[stepIndex];
     }, Math.max(420, Math.floor((state.theme.revealDelayMs || 3200) / steps.length)));
 
+    // Speed up emoji orbits with an increasing rate during the reveal
+    const revealDuration = state.theme.revealDelayMs || 3200;
+    const emojiSpans = Array.from(($("[data-ag-emoji-orbit]") || { children: [] }).children);
+    const originalDurations = emojiSpans.map(
+      (span) => parseFloat(span.style.getPropertyValue("--ag-emoji-duration")) || 20
+    );
+    const startTime = performance.now();
+    let rafId;
+    function rampEmojis(now) {
+      const progress = Math.min((now - startTime) / revealDuration, 1);
+      // Quadratic ramp: starts at 1× speed, reaches ~6× by the end
+      const speedMultiplier = 1 + 5 * progress * progress;
+      emojiSpans.forEach((span, i) => {
+        span.style.setProperty("--ag-emoji-duration", `${(originalDurations[i] / speedMultiplier).toFixed(3)}s`);
+      });
+      if (progress < 1) rafId = requestAnimationFrame(rampEmojis);
+    }
+    rafId = requestAnimationFrame(rampEmojis);
+
     window.setTimeout(() => {
       window.clearInterval(stepTimer);
+      cancelAnimationFrame(rafId);
+      emojiSpans.forEach((span, i) => {
+        span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
+      });
       renderPull(state.todaysPull);
       mount.classList.remove("is-revealing");
       mount.classList.add("is-revealed");
