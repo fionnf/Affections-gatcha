@@ -41,10 +41,11 @@
    */
   function streakInfo(streak) {
     if (streak <= 0) return null;
-    if (streak >= 20) return { emoji: "💎", label: `${streak} Tage`, tier: 3 };
-    if (streak >= 10) return { emoji: "🔥", label: `${streak} Tage`, tier: 2 };
-    if (streak >= 5)  return { emoji: "✨", label: `${streak} Tage`, tier: 1 };
-    return { emoji: "🌱", label: `${streak} Tage`, tier: 0 };
+    const tagWord = streak === 1 ? "Tag" : "Tage";
+    if (streak >= 20) return { emoji: "💎", label: `${streak} ${tagWord}`, tier: 3 };
+    if (streak >= 10) return { emoji: "🔥", label: `${streak} ${tagWord}`, tier: 2 };
+    if (streak >= 5)  return { emoji: "✨", label: `${streak} ${tagWord}`, tier: 1 };
+    return { emoji: "🌱", label: `${streak} ${tagWord}`, tier: 0 };
   }
 
   /**
@@ -1001,7 +1002,7 @@
     if (streak >= 5) {
       const info = streakInfo(streak);
       const li = document.createElement("li");
-      li.textContent = `${info.emoji} Streak-Bonus aktiv (${streak} Tage am Stück)`;
+      li.textContent = `${info.emoji} Streak-Bonus aktiv (${streak} ${streak === 1 ? "Tag" : "Tage"} am Stück)`;
       li.style.fontWeight = "800";
       oddsList.appendChild(li);
     }
