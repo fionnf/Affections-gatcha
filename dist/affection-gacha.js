@@ -386,6 +386,7 @@
               <div class="ag-actions">
                 <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
                 <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
+                <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
               </div>
             </article>
 
@@ -875,6 +876,11 @@
       sendLink.href = state.theme.messageTarget.replace("{text}", encodedBody);
     }
 
+    const saveImgBtn = $("[data-ag-save-img]");
+    if (saveImgBtn) {
+      saveImgBtn.hidden = !(pull.category.id === "rare" || pull.category.id === "jackpot");
+    }
+
     $("[data-ag-result]").hidden = false;
   }
 
@@ -1142,9 +1148,136 @@
         window.prompt("Resultat kopieren:", text);
       }
     });
+    $("[data-ag-save-img]").addEventListener("click", () => {
+      if (!state.todaysPull) return;
+      downloadResultAsImage(state.todaysPull);
+    });
     mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
       node.addEventListener("click", () => setActiveTab(node.dataset.agTab));
     });
+  }
+
+  function drawRoundRect(ctx, x, y, w, h, r) {
+    if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+    } else {
+      const radii = Array.isArray(r) ? r : [r, r, r, r];
+      const [tl, tr, br, bl] = radii.map((v) => Math.min(v, w / 2, h / 2));
+      ctx.beginPath();
+      ctx.moveTo(x + tl, y);
+      ctx.lineTo(x + w - tr, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+      ctx.lineTo(x + w, y + h - br);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+      ctx.lineTo(x + bl, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+      ctx.lineTo(x, y + tl);
+      ctx.quadraticCurveTo(x, y, x + tl, y);
+      ctx.closePath();
+    }
+  }
+
+  function downloadResultAsImage(pull) {
+    const W = 640;
+    const H = 340;
+    const PAD = 40;
+    const canvas = document.createElement("canvas");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+
+    // Background
+    const isJackpot = pull.category.id === "jackpot";
+    const bg1 = isJackpot ? "#2d1f00" : "#0d2b1c";
+    const bg2 = isJackpot ? "#1a1000" : "#061510";
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, bg1);
+    grad.addColorStop(1, bg2);
+    ctx.fillStyle = grad;
+    drawRoundRect(ctx, 0, 0, W, H, 20);
+    ctx.fill();
+
+    // Accent stripe at top
+    const accentColor = isJackpot ? "#b9782e" : "#2f7a4f";
+    ctx.fillStyle = accentColor;
+    drawRoundRect(ctx, 0, 0, W, 5, [20, 20, 0, 0]);
+    ctx.fill();
+
+    // Badge
+    const badgeText = pull.category.label;
+    const emoji = emojiForTone(pull.category.tone);
+    ctx.font = "bold 13px Satoshi, Inter, system-ui, sans-serif";
+    ctx.fillStyle = isJackpot ? "#d4a24c" : "#5aba7e";
+    ctx.fillText(`${emoji} ${badgeText}`, PAD, PAD + 22);
+
+    // Date
+    const dateText = pull.day;
+    ctx.font = "13px Satoshi, Inter, system-ui, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    const dateW = ctx.measureText(dateText).width;
+    ctx.fillText(dateText, W - PAD - dateW, PAD + 22);
+
+    // Divider
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, PAD + 36);
+    ctx.lineTo(W - PAD, PAD + 36);
+    ctx.stroke();
+
+    // Title
+    ctx.font = "bold 24px Boska, Georgia, serif";
+    ctx.fillStyle = "#ffffff";
+    const titleLines = wrapText(ctx, pull.outcome.title, W - PAD * 2);
+    let y = PAD + 68;
+    for (const line of titleLines) {
+      ctx.fillText(line, PAD, y);
+      y += 32;
+    }
+
+    // Message
+    ctx.font = "15px Satoshi, Inter, system-ui, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    const msgLines = wrapText(ctx, pull.outcome.message, W - PAD * 2);
+    y += 4;
+    for (const line of msgLines) {
+      if (y > H - PAD - 30) break;
+      ctx.fillText(line, PAD, y);
+      y += 22;
+    }
+
+    // Branding watermark
+    ctx.font = "11px Satoshi, Inter, system-ui, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    const brand = state.theme?.brand?.machineName || "Affektions-Gacha";
+    ctx.fillText(brand, PAD, H - 16);
+
+    const link = document.createElement("a");
+    link.download = `gacha-${pull.category.id}-${pull.day}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  function wrapText(ctx, text, maxWidth) {
+    const words = text.split(" ");
+    const lines = [];
+    let current = "";
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (ctx.measureText(test).width > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
   }
 
   function renderError(error) {
