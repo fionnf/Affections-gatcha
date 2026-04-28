@@ -33,6 +33,22 @@
         {
           "title": "Kein Preis",
           "message": "Nur ein winziges: du bist trotzdem süß. Leider nicht einlösbar, nur aktenkundig."
+        },
+        {
+          "title": "SBB-Verspätung",
+          "message": "Der Preis hat 24 Stunden Verspätung. Grund: Unwetterschäden am Obersee. Bitte warten."
+        },
+        {
+          "title": "Züri-Regen",
+          "message": "Grauer Himmel über Wiedikon. Kein Preis, nur das Bedürfnis nach einem sehr großen Tee."
+        },
+        {
+          "title": "Baugespann-Sperre",
+          "message": "Hier entsteht demnächst ein Gewinn. Aktuell sieht man nur die Holzpfosten auf dem Dach."
+        },
+        {
+          "title": "Tram verpasst",
+          "message": "Du siehst die Rücklichter der 14. Lauf ihr nicht hinterher, es gibt heute keine Kapsel."
         }
       ]
     },
@@ -77,7 +93,19 @@
         {
           "title": "Gedanken-Ping",
           "message": "Du musst jetzt acht Sekunden an mich denken. Die Maschine behauptet, sie könne das überprüfen und an mir weiterleiten <3."
-        }
+        },
+        {
+          "title": "Luxemburgerli-Vibe",
+          "message": "Du bist heute klein, süß und hättest gerne eine Füllung aus Champagner-Creme."
+        },
+        {
+          "title": "Lindenhof-Moment",
+          "message": "Ein kurzer Moment der Ruhe. Stell dir vor, du schaust über die Limmat. Ich denk an dich."
+        },
+        {
+          "title": "Mo ghrá (IE)",
+          "message": "Ein irischer Begriff für 'meine Liebe'. Nur für dich, heute."
+        },
       ]
     },
     {
@@ -97,6 +125,10 @@
         {
           "title": "Vokabel-Test",
           "message": "Frag mich nach einem Wort auf Irisch oder Portugiesisch. Wenn ich es nicht weiß, schulde ich dir einen Kaffee."
+        },
+        {
+          "title": "Brunnen-Check",
+          "message": "Zürich hat 1200 Brunnen. Trink aus einem und sag mir, wie die Wasserqualität heute ist."
         },
         {
           "title": "Tagesfund",
@@ -221,7 +253,19 @@
         {
           "title": "6a-Belay-Pass",
           "message": "Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."
-        }
+        },
+        {
+          "title": "Thermalbad-Fantasie",
+          "message": "Wir stellen uns vor, wir wären auf dem Dach im Thermalbad. Gutschein für ein wellnesstag."
+        },
+        {
+          "title": "Date-Credit: Jules Verne Bar",
+          "message": "Ein Drink über den Dächern von Zürich. Die Aussicht ist fast so gut wie du."
+        },
+        {
+          "title": "Date-Credit: Rote Fabrik",
+          "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft."
+        },
       ]
     },
     {
