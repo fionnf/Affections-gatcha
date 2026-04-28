@@ -199,20 +199,28 @@
           "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt."
         },
         {
-          "title": "Date-Credit: Kleine Expedition",
-          "message": "Ein Gutschein für ein Picknick zum Sonnenuntergang auf einem Gipfel nach der arbeit."
-        },
-        {
           "title": "Date-Credit: Komfortabend",
           "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung."
         },
         {
-          "title": "Date-Credit: Dessert-Mission",
-          "message": "Wir suchen ein Dessert. Es muss nicht sinnvoll sein. Nur lecker."
-        },
-        {
           "title": "Date-Credit: Fionn plant die Route",
           "message": "Du musst nichts entscheiden. Fionn plant ein kleines Date mit mindestens einem schönen Detail."
+        },
+        {
+          "title": "Date-Credit: Mythen-Revival",
+          "message": "Ein Gutschein für einen Sunset-Ausritt oder Wanderung. Das Wetter bestimmen wir gemeinsam."
+        },
+        {
+          "title": "DJ Fionn Set",
+          "message": "Ich erstelle dir eine kleine Playlist für dein nächstes Solo-Training."
+        },
+        {
+          "title": "Architecture of Us",
+          "message": "Ein Abend mit Fokus auf 'Fine Living'. Wir suchen uns das schönste Restaurant der Stadt aus."
+        },
+        {
+          "title": "6a-Belay-Pass",
+          "message": "Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."
         }
       ]
     },
