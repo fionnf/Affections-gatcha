@@ -641,6 +641,13 @@
     return null;
   }
 
+  function getPreviewCategory() {
+    const params = new URLSearchParams(window.location.search);
+    const raw = (params.get("preview-category") || "").trim().toLowerCase();
+    if (!raw) return null;
+    return raw;
+  }
+
   function checkSpecialDay(day) {
     const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
     const mmdd = day.slice(5); // "MM-DD" from "YYYY-MM-DD"
@@ -740,6 +747,12 @@
     }
 
     let category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0);
+
+    const previewCategory = getPreviewCategory();
+    if (previewCategory) {
+      const forced = state.outcomes.categories.find((c) => c.id === previewCategory);
+      if (forced) category = forced;
+    }
 
     if (category.id === "photo" && !state.photos.length) {
       category = state.outcomes.categories.find((item) => item.id === "common") || category;
