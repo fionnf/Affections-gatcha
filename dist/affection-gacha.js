@@ -5,6 +5,7 @@
   const mount = document.querySelector(mountSelector) || createMount();
 
   const STORAGE_KEY = "affektions-gacha:history:v1";
+  const FAVORITES_KEY = "affektions-gacha:favourites:v1";
 
   // ── Streak helpers ──────────────────────────────────────────────────────────
 
@@ -352,6 +353,7 @@
                 <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
                   <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge">⭐ Lieblinge</button>
                 </div>
               </div>
             </header>
@@ -387,6 +389,7 @@
                 <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
                 <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
                 <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
+                <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
               </div>
             </article>
 
