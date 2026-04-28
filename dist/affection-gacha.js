@@ -6,6 +6,94 @@
 
   const STORAGE_KEY = "affektions-gacha:history:v1";
 
+  // ── Streak helpers ──────────────────────────────────────────────────────────
+
+  /** Count consecutive days ending at today (or yesterday if today not yet pulled) */
+  function computeStreak() {
+    const history = readHistory();
+    if (!history.length) return 0;
+    const tz = state.theme?.timezone || "UTC";
+    const today = dateKeyInTimezone(tz);
+    const pulledDays = new Set(history.map((e) => e.day));
+
+    const [y, m, d] = today.split("-").map(Number);
+    let cur = new Date(Date.UTC(y, m - 1, d));
+
+    // If today hasn't been pulled yet, start counting from yesterday
+    let dayKey = today;
+    if (!pulledDays.has(dayKey)) {
+      cur.setUTCDate(cur.getUTCDate() - 1);
+      dayKey = cur.toISOString().slice(0, 10);
+    }
+
+    let streak = 0;
+    while (pulledDays.has(dayKey)) {
+      streak++;
+      cur.setUTCDate(cur.getUTCDate() - 1);
+      dayKey = cur.toISOString().slice(0, 10);
+    }
+    return streak;
+  }
+
+  /**
+   * Returns { emoji, label, tier } for a given streak length, or null for streak < 1.
+   * tier 0 = no bonus (1–4 days), 1 = small bonus (5–9), 2 = strong bonus (10–19), 3 = max bonus (20+)
+   */
+  function streakInfo(streak) {
+    if (streak <= 0) return null;
+    if (streak >= 20) return { emoji: "💎", label: `${streak} Tage`, tier: 3 };
+    if (streak >= 10) return { emoji: "🔥", label: `${streak} Tage`, tier: 2 };
+    if (streak >= 5)  return { emoji: "✨", label: `${streak} Tage`, tier: 1 };
+    return { emoji: "🌱", label: `${streak} Tage`, tier: 0 };
+  }
+
+  /**
+   * Return a copy of state.outcomes.categories with weights boosted at streak milestones.
+   * Better outcomes (rare, jackpot, uncommon) gain weight; niete loses weight.
+   */
+  function boostedCategories(streak) {
+    if (streak < 5) return state.outcomes.categories;
+    const boosts = streak >= 20
+      ? { niete: 0.4, jackpot: 2.0, rare: 1.5, uncommon: 1.3 }
+      : streak >= 10
+      ? { niete: 0.6, jackpot: 1.5, rare: 1.3, uncommon: 1.2 }
+      : { niete: 0.8, jackpot: 1.2, rare: 1.15, uncommon: 1.1 };
+    return state.outcomes.categories.map((cat) => ({
+      ...cat,
+      weight: Math.max(1, Math.round(cat.weight * (boosts[cat.id] || 1)))
+    }));
+  }
+
+  function pickWeightedWithStreak(seedText, streak) {
+    const cats = boostedCategories(streak);
+    const total = cats.reduce((sum, cat) => sum + cat.weight, 0);
+    const roll = Math.floor(seededRandom(seedText) * total);
+    let cursor = 0;
+    for (const cat of cats) {
+      cursor += cat.weight;
+      if (roll < cursor) {
+        return state.outcomes.categories.find((c) => c.id === cat.id) || cat;
+      }
+    }
+    return state.outcomes.categories[state.outcomes.categories.length - 1];
+  }
+
+  function renderStreak() {
+    const el = $("[data-ag-streak]");
+    if (!el) return;
+    const streak = computeStreak();
+    const info = streakInfo(streak);
+    if (!info) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = `${info.emoji} ${info.label}`;
+    el.dataset.agStreakTier = info.tier;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   const state = {
     theme: null,
     outcomes: null,
@@ -274,6 +362,7 @@
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
                 <span class="ag-pill" data-ag-today-pill>Heute</span>
+                <span class="ag-streak" data-ag-streak hidden></span>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
               <button class="ag-button" type="button" data-ag-draw>
@@ -457,6 +546,7 @@
     }
 
     renderEmojiOrbit();
+    renderStreak();
   }
 
   function formatToday() {
@@ -627,7 +717,7 @@
     return state.outcomes.categories[state.outcomes.categories.length - 1];
   }
 
-  function buildPullForDay(day) {
+  function buildPullForDay(day, streak) {
     const token = getToken();
     const baseSeed = `${state.theme.secret}|${token}|${day}`;
 
@@ -647,7 +737,7 @@
       return { day, token, category, outcome, photo: null };
     }
 
-    let category = pickWeighted(`${baseSeed}|category`);
+    let category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0);
 
     if (category.id === "photo" && !state.photos.length) {
       category = state.outcomes.categories.find((item) => item.id === "common") || category;
@@ -667,7 +757,8 @@
 
   function buildPull() {
     const day = getPreviewDay() || dateKeyInTimezone(state.theme.timezone);
-    return buildPullForDay(day);
+    const streak = computeStreak();
+    return buildPullForDay(day, streak);
   }
 
   function setCapsuleTone(tone) {
@@ -891,6 +982,7 @@
       buttonText.textContent = state.theme.brand.buttonShown;
       state.revealed = true;
       recordHistoryEntry(state.todaysPull);
+      renderStreak();
       if (state.activeTab === "history") renderHistory();
     }, state.theme.revealDelayMs || 3200);
   }
@@ -898,10 +990,19 @@
   function renderOdds() {
     const oddsList = $("[data-ag-odds]");
     oddsList.innerHTML = "";
-    const total = totalWeight();
-    for (const category of state.outcomes.categories) {
+    const streak = computeStreak();
+    const cats = boostedCategories(streak);
+    const total = cats.reduce((sum, cat) => sum + cat.weight, 0);
+    for (const cat of cats) {
       const li = document.createElement("li");
-      li.textContent = `${category.label}: ${(category.weight / total * 100).toFixed(1)} %`;
+      li.textContent = `${cat.label}: ${(cat.weight / total * 100).toFixed(1)} %`;
+      oddsList.appendChild(li);
+    }
+    if (streak >= 5) {
+      const info = streakInfo(streak);
+      const li = document.createElement("li");
+      li.textContent = `${info.emoji} Streak-Bonus aktiv (${streak} Tage am Stück)`;
+      li.style.fontWeight = "800";
       oddsList.appendChild(li);
     }
   }
@@ -1327,6 +1428,21 @@
         color:var(--ag-primary-dark);font-size:.74rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
       }
       .ag-draw-hint{color:var(--ag-muted);font-size:.92rem}
+
+      .ag-streak{
+        display:inline-flex;align-items:center;gap:4px;align-self:flex-start;
+        min-height:24px;padding:0 10px;border-radius:999px;
+        font-size:.75rem;font-weight:800;letter-spacing:.04em;
+        background:rgba(47,122,79,.12);color:var(--ag-primary-dark);
+        transition:background 240ms ease, color 240ms ease;
+      }
+      .ag-streak[data-ag-streak-tier="1"]{background:rgba(185,120,46,.14);color:var(--ag-gold)}
+      .ag-streak[data-ag-streak-tier="2"]{background:rgba(220,80,40,.12);color:#c84a18}
+      @media (prefers-color-scheme:dark){.ag-streak[data-ag-streak-tier="2"]{color:#f07040}}
+      .ag-streak[data-ag-streak-tier="3"]{
+        background:linear-gradient(90deg,rgba(185,120,46,.22),rgba(47,122,79,.18));
+        color:var(--ag-gold);
+      }
 
       .ag-button,.ag-secondary{
         min-height:46px;border:1px solid transparent;border-radius:999px;padding:0 22px;
