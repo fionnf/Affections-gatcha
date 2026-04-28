@@ -11,12 +11,24 @@
           "message": "Heute kein Preis. Nur ein imaginärer Kassenzettel aus einem sehr hübschen Museumsshop."
         },
         {
+          "title": "Baustelle",
+          "message": "Hier wird gerade an einer Treppe gearbeitet. Kein Preis, nur imaginärer Baustellenlärm."
+        },
+        {
           "title": "Keine Aussicht",
           "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen. Aber! es gibt ein Feuermalasander! 🦎"
         },
         {
           "title": "Geschlossen wegen Architektur",
           "message": "Die Maschine betrachtet gerade eine Fassade und ist nicht bereit, Preise auszugeben."
+        },
+        {
+          "title": "Nebel am Mythen",
+          "message": "Die Aussicht ist heute leider verdeckt. Aber hey, du hast immerhin dieses digitale Schulterzucken gewonnen."
+        },
+        {
+          "title": "Statik-Fehler",
+          "message": "Dieser Gewinn hält leider keiner Überprüfung stand. Versuch es später noch einmal."
         },
         {
           "title": "Kein Preis",
@@ -33,6 +45,14 @@
         {
           "title": "+1 Wegproviant",
           "message": "Du bekommst einen sehr kleinen Motivationspunkt. Pack ihn neben die Snacks."
+        },
+        {
+          "title": "Lekker (NL)",
+          "message": "Ein Kompliment, so gut wie eine holländische Waffel. Du siehst heute stabil aus!"
+        },
+        {
+          "title": "Treppen-Fakt",
+          "message": "Du darfst mir einen random Fakt über ein Treppendetail schicken. Ich verspreche, interessiert zu wirken."
         },
         {
           "title": "Passstempel",
@@ -69,6 +89,14 @@
         {
           "title": "Postkarten-Quest",
           "message": "Schick Fionn ein Foto von etwas, das heute wie eine Postkarte aussieht: Himmel, Essen, Fassade, Berg, egal."
+        },
+        {
+          "title": "Design-Safari",
+          "message": "Schick mir ein Foto von einem Gebäude oder Detail, das du heute siehst und das entweder genial oder ein Verbrechen ist."
+        },
+        {
+          "title": "Vokabel-Test",
+          "message": "Frag mich nach einem Wort auf Irisch oder Portugiesisch. Wenn ich es nicht weiß, schulde ich dir einen Kaffee."
         },
         {
           "title": "Tagesfund",
@@ -111,6 +139,10 @@
           "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern, props welcome. Die Maschine empfiehlt: alle drei."
         },
         {
+          "title": "Tehran & Guatemala Tales",
+          "message": "Du darfst eine Geschichte aus deiner Reisezeit einfordern, die du noch nicht kennst."
+        },
+        {
           "title": "Meal-Prep Buddy",
           "message": "Fionn hilft Lennart dabei, das Essen für die ganze nächste Woche vorzubereiten. Fionn erfindet den mealprep rezept."
         }
@@ -127,12 +159,24 @@
           "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden."
         },
         {
+          "title": "Jogging-Zoll",
+          "message": "Schick mir ein Selfie nach deinem Training. Je verschwitzter, desto besser für die Akten, und blackmail."
+        },
+        {
+          "title": "Aussprache-Pflicht",
+          "message": "Du musst versuchen, einen irischen Satz per Voicenote nachzusprechen. Lachen ist vorprogrammiert."
+        },
+        {
           "title": "Selfie-Zoll",
           "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken zusammen mit dieser nachricht. Möglichst wie ein müder Wanderer im Zug."
         },
         {
           "title": "Designkritik-Pflicht",
           "message": "Du musst Fionn ein Kompliment machen, aber es muss klingen wie eine seriöse Architekturkritik."
+        },
+        {
+          "title": "Meal-Prep Steuer",
+          "message": "Du musst für Fionn mitplanen."
         },
         {
           "title": "Kochen",
