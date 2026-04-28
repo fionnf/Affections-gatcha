@@ -7,10 +7,10 @@ compatibility_date = "2024-09-23"
 
 [vars]
 # Where to send the user after a tap (your Webflow page URL)
-REDIRECT_URL   = "https://YOUR-WEBFLOW-SITE.webflow.io/gacha"  # ← CHANGE THIS
+REDIRECT_URL   = "https://www.fionnferreira.com/gacha"  # ← CHANGE THIS
 
 # Your Webflow domain (for CORS). Use * to allow any origin.
-ALLOWED_ORIGIN = "https://YOUR-WEBFLOW-SITE.webflow.io"        # ← CHANGE THIS
+ALLOWED_ORIGIN = "https://www.fionnferreira.com"        # ← CHANGE THIS
 
 # A password that protects the /stats page (pick anything).
 # Note: this is stored in wrangler.toml — don't commit this file to a public repo
