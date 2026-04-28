@@ -3,7 +3,7 @@
     {
       "id": "niete",
       "label": "Niete",
-      "weight": 120,
+      "weight": 150,
       "tone": "quiet",
       "outcomes": [
         {
@@ -13,6 +13,10 @@
         {
           "title": "Baustelle",
           "message": "Hier wird gerade an einer Treppe gearbeitet. Kein Preis, nur imaginärer Baustellenlärm."
+        },
+        {
+          "title": "Zeltplatz besetzt",
+          "message": "Ein fiktives Murmeltier hat sein Zelt genau hier aufgeschlagen. Wir müssen weiterziehen. Heute leider kein Gewinn."
         },
         {
           "title": "Keine Aussicht",
@@ -49,13 +53,41 @@
         {
           "title": "Tram verpasst",
           "message": "Du siehst die Rücklichter der 14. Lauf ihr nicht hinterher, es gibt heute keine Kapsel."
-        }
+        },
+        {
+          "title": "Denkmalschutz",
+          "message": "Dieser Slot darf aus historischen Gründen heute nicht verändert oder mit Preisen befüllt werden. Ein Klassiker unter den Nieten."
+        },
+        {
+          "title": "Verschlafenes Murmeltier",
+          "message": "Pssst... der Preis schläft noch tief im Winterschlaf. Wir wollen ihn nicht wecken. Versuch es morgen nochmal!"
+        },
+        {
+          "title": "Tram-Depot",
+          "message": "Endstation. Alle Preise müssen hier aussteigen. Du darfst aber sitzen bleiben und von der nächsten Fahrt träumen."
+        },
+        {
+          "title": "Höhenkrankheit",
+          "message": "Die Maschine ist gerade auf über 3000m und braucht kurz Sauerstoff. In dieser Höhe werden keine Preise ausgegeben."
+        },
+        {
+          "title": "Leere Emaille-Tasse",
+          "message": "Der Kaffee ist aus, der Gaskocher leer. Nur ein schönes Blech-Gefühl in der Hand. Aber der nächste Aufstieg kommt bestimmt!"
+        },
+        {
+          "title": "Schattenplatz",
+          "message": "Es ist kühl und ruhig hier. Genau richtig für eine Niete, die eigentlich nur eine kleine Verschnaufpause sein will."
+        },
+        {
+          "title": "Treppenhaus-Echo",
+          "message": "Du hörst nur deine eigenen Schritte auf dem Weg zum Gewinn. Er ist noch ein paar Stockwerke entfernt. Lauf weiter!"
+        },
       ]
     },
     {
       "id": "common",
       "label": "Gewöhnlich",
-      "weight": 170,
+      "weight": 180,
       "tone": "soft",
       "outcomes": [
         {
@@ -106,12 +138,26 @@
           "title": "Mo ghrá (IE)",
           "message": "Ein irischer Begriff für 'meine Liebe'. Nur für dich, heute."
         },
+        { "title": "Motivations-Boost: Fokus", "message": "Du hast die Treppenpläne bezwungen, du bezwingst auch den Rest. Ein Schritt nach dem anderen - genau wie beim Wandern." },
+        { "title": "Durchhalte-Energie", "message": "Für die Momente, in denen das Labor oder das Büro nervt: Denk an das Gefühl, wenn wir nach dem Workout den ersten Schluck Wasser trinken. Du schaffst das!" },
+        { "title": "Architecture Fact: Treppen", "message": "Es gibt in den Schweizer Alpen Treppen mit über 11.000 Stufen. Da sind deine Pläne heute doch ein Kinderspiel, oder?" },
+        { "title": "Pausen-Erlaubnis", "message": "Die Maschine verordnet dir 5 Minuten absolute Ruhe. Atme tief ein. Du bist mehr als deine Produktivität." },
+        { "title": "Züri-Motivation", "message": "Du bist heute der fähigste Architekt zwischen dem Bellevue und Hardbrücke. Mindestens." },
+        { "title": "Cool Fact: Herzschlag", "message": "Wusstest du, dass sich die Herzschläge von Paaren synchronisieren können, wenn sie sich tief in die Augen schauen? Wir sollten das bald mal wieder testen." },
+        { "title": "Kleiner Reminder", "message": "Du musst nicht perfekt sein, um für mich der absolute Gewinner der Quest zu sein." },
+        { "title": "Feierabend-Vision", "message": "Stell dir vor: Die Tasche ist gepackt, der Laptop zu, und wir treffen uns am Letten. Nur noch ein paar Stunden, schreibe mit :-)" },
+        { "title": "Züri-Life Fact", "message": "Es gibt in Zürich über 1200 Brunnen mit Trinkwasser. Genau so erfrischend soll dein heutiger Tag werden!" },
+        { "title": "Struktur-Segen", "message": "Möge dein heutiger Tag so klar strukturiert sein wie ein Entwurf von Le Corbusier (aber viel gemütlicher)." },
+        { "title": "Du bist ein Star", "message": "Nur ein kurzer Reminder, falls du es im Labor-Stress vergessen hast: Du bist der Hauptcharakter in dieser Story." },
+        { "title": "Cool Fact: Sterne", "message": "Wir bestehen buchstäblich aus Sternenstaub. Das erklärt, warum du heute wieder so strahlst. ✨" },
+        { "title": "Wildcamp-Vibe: Sternenzelt", "message": "Stell dir vor, wir öffnen den Reißverschluss vom Zelt und sehen nur Sterne. Dieses Gefühl von Freiheit schickt dir die Maschine für deinen Arbeitstag." },
+        { "title": "Ende der Quest?", "message": "Die Fionn-Quest hat kein Ende, nur immer neue Level. Und du hast gerade ein Level-Up bekommen!" }
       ]
     },
     {
       "id": "quest",
       "label": "Mini-Quest",
-      "weight": 150,
+      "weight": 120,
       "tone": "quest",
       "outcomes": [
         {
@@ -151,7 +197,7 @@
     {
       "id": "uncommon",
       "label": "Ungewöhnlich",
-      "weight": 130,
+      "weight": 100,
       "tone": "warm",
       "outcomes": [
         {
@@ -271,7 +317,7 @@
     {
       "id": "photo",
       "label": "Foto-Drop",
-      "weight": 200,
+      "weight": 250,
       "tone": "photo",
       "outcomes": [
         {
