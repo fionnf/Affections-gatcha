@@ -12,7 +12,7 @@
         },
         {
           "title": "Keine Aussicht",
-          "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen."
+          "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen. Aber! es gibt ein Feuermalasander! 🦎"
         },
         {
           "title": "Geschlossen wegen Architektur",
@@ -20,7 +20,7 @@
         },
         {
           "title": "Kein Preis",
-          "message": "Nur ein winziges: du bist trotzdem ziemlich süß. Leider nicht einlösbar, nur aktenkundig."
+          "message": "Nur ein winziges: du bist trotzdem süß. Leider nicht einlösbar, nur aktenkundig."
         }
       ]
     },
@@ -36,7 +36,7 @@
         },
         {
           "title": "Passstempel",
-          "message": "Du bist heute offiziell süß. Die Maschine hat es in deinen imaginären Reisepass gestempelt."
+          "message": "Du bist heute offiziell süß. Die Maschine hat es in deinen imaginären (Swabian) Reisepass gestempelt."
         },
         {
           "title": "Wasser am Brunnen",
@@ -48,7 +48,7 @@
         },
         {
           "title": "Gedanken-Ping",
-          "message": "Du musst jetzt acht Sekunden an Fionn denken. Die Maschine behauptet, sie könne das überprüfen."
+          "message": "Du musst jetzt acht Sekunden an mich denken. Die Maschine behauptet, sie könne das überprüfen und an mir weiterleiten <3."
         }
       ]
     },
@@ -120,19 +120,19 @@
         },
         {
           "title": "Selfie-Zoll",
-          "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken. Möglichst wie ein müder Wanderer im Zug."
+          "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken zusammen mit dieser nachricht. Möglichst wie ein müder Wanderer im Zug."
         },
         {
           "title": "Designkritik-Pflicht",
           "message": "Du musst Fionn ein Kompliment machen, aber es muss klingen wie eine seriöse Architekturkritik."
         },
         {
-          "title": "Kleiner-Löffel-Dekret",
-          "message": "Die Maschine hat entschieden: Du wurdest vorübergehend zum kleinen Löffel ernannt."
+          "title": "Kochen",
+          "message": "Du musst den Fionn ein abendessen kochen. Verwende bitte die volgenden zutaten: Austerpilze, Feta, Sumach."
         },
         {
-          "title": "Formular 7B",
-          "message": "Bitte reiche eine schriftliche Begründung ein, warum du heute Aufmerksamkeit verdient hast. Skizzen erlaubt."
+          "title": "Voicenote",
+          "message": "Bitte eine suesse voicenote den Fionn schicken! No cheating!"
         }
       ]
     },
@@ -176,7 +176,7 @@
         },
         {
           "title": "Bildkapsel",
-          "message": "Heute gibt es kein Gutschein-Drama, nur ein kleines Bild von uns."
+          "message": "Heute gibt es kein Gutschein-Drama, nur ein kleines Bild."
         },
         {
           "title": "Archivfund",
