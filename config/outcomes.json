@@ -43,8 +43,16 @@
           "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang."
         },
         {
-          "title": "Mini-Aussicht",
-          "message": "Du hast einen kleinen Blick über die Dächer freigeschaltet. Innerlich kurz stehen bleiben."
+          "title": "Portugiesisches Wort: Beijo",
+          "message": "Ein einziger, süßer Kuss. Sofort einlösbar."
+        },
+        {
+          "title": "Barróg (IE)",
+          "message": "Eine feste Umarmung (20 Sekunden Minimum)."
+        },
+        {
+          "title": "Petisco (PT)",
+          "message": "Ein kleiner Snack, den Fionn für Lennart nach der Arbeit zubereitet."
         },
         {
           "title": "Gedanken-Ping",
@@ -91,20 +99,20 @@
           "message": "Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."
         },
         {
-          "title": "Dessert-Kommission",
-          "message": "Du darfst beim nächsten Mal das Dessert bestimmen. Architektur des Tellers wird mitbewertet."
+          "title": "Saudades (PT)",
+          "message": "Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date."
         },
         {
-          "title": "Sympathie-Gutschein",
-          "message": "Du darfst eine dramatische Beschwerde einreichen und bekommst nur Mitgefühl, keine Lösungsvorschläge."
+          "title": "Gezellig (NL)",
+          "message": "Ein Abend mit Kerzen, Wein und ohne Handys."
         },
         {
           "title": "Foto-Anfrage",
-          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: alle drei."
+          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern, props welcome. Die Maschine empfiehlt: alle drei."
         },
         {
-          "title": "Kleiner Reise-Call",
-          "message": "Du hast einen 15-Minuten-Call freigeschaltet, ideal für Routen, Pläne oder grundlose Updates."
+          "title": "Meal-Prep Buddy",
+          "message": "Fionn hilft Lennart dabei, das Essen für die ganze nächste Woche vorzubereiten. Fionn erfindet den mealprep rezept."
         }
       ]
     },
