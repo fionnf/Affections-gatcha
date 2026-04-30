@@ -1918,12 +1918,14 @@
       
       .ag-baerlauch-text {
         margin: 0;
+        color: #fff;
         text-align: center;
         font-weight: 600;
       }
       
       .ag-mini-success {
         margin-top: 1rem;
+        color: #fff;
         padding: .9rem 1rem;
         border-radius: 18px;
         text-align: center;
