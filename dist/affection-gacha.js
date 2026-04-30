@@ -102,8 +102,16 @@
     specialDays: null,
     todaysPull: null,
     activeTab: "today",
-    revealed: false
+    revealed: false,
+    baerlauch: {
+      level: 1,
+      locked: false,
+      timerId: null,
+      startedAt: null,
+      durationMs: 8000
+    }
   };
+
 
   const defaultPhotos = { photos: [] };
 
@@ -411,15 +419,29 @@
               <button class="ag-secondary" type="button" id="ag-baerlauch-close">Schließen</button>
             </div>
           
-            <h2 class="ag-mini-title">Sammle alles Grüne und Knoblauchige 🌿🧄</h2>
-            <p class="ag-mini-copy">Wenn du alles gefunden hast, wartet etwas Süßes auf dich.</p>
-          
-            <div class="ag-forage-field" id="ag-baerlauch-field" aria-live="polite"></div>
-          
-            <p class="ag-mini-success" id="ag-baerlauch-success" hidden>
-              Du bist mein Lieblingsfund im Frühling. 💚
+            <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
+            <p class="ag-mini-copy" id="ag-baerlauch-instruction">
+              Sammle nur die guten grünen Blätter – aber nicht toten Lauch oder Maiglöckchen, die giftig sind.
             </p>
+            <p class="ag-mini-level" id="ag-baerlauch-level">Level 1</p>
+          
+            <div class="ag-forage-wrap">
+              <div class="ag-forage-timer" id="ag-baerlauch-timer">8.0</div>
+              <div class="ag-forage-field" id="ag-baerlauch-field">
+                <div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>
+              </div>
+            </div>
+          
+            <div class="ag-baerlauch-reward" id="ag-baerlauch-reward" hidden>
+              <div class="ag-baerlauch-photo" id="ag-baerlauch-photo"></div>
+              <p class="ag-baerlauch-text" id="ag-baerlauch-text"></p>
+            </div>
+          
+            <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
           </section>
+
+
+          
         </div>
       </div>
     `;
@@ -494,59 +516,6 @@
     }
     return [...REQUIRED_EMOJIS, ...chosen];
   }
-
-function randomBetween(min, max) {
-  return min + Math.random() * (max - min);
-}
-
-function openBaerlauchGame() {
-  const panel = $("#ag-baerlauch-panel");
-  const field = $("#ag-baerlauch-field");
-  const success = $("#ag-baerlauch-success");
-  if (!panel || !field || !success) return;
-
-  panel.hidden = false;
-  field.innerHTML = "";
-  success.hidden = true;
-
-  const items = ["🌿", "🌿", "🌿", "🧄", "🌿", "💚", "🧄"];
-  let collected = 0;
-
-  items.forEach((emoji, index) => {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "ag-forage-item";
-    item.textContent = emoji;
-    item.setAttribute("aria-label", `Sammelobjekt ${index + 1}`);
-
-    item.style.left = `${randomBetween(6, 84)}%`;
-    item.style.top = `${randomBetween(10, 72)}%`;
-
-    item.addEventListener("click", () => {
-      item.classList.add("is-picked");
-      item.disabled = true;
-      collected += 1;
-
-      window.setTimeout(() => {
-        item.remove();
-      }, 220);
-
-      if (collected === items.length) {
-        window.setTimeout(() => {
-          success.hidden = false;
-        }, 260);
-      }
-    });
-
-    field.appendChild(item);
-  });
-}
-
-function closeBaerlauchGame() {
-  const panel = $("#ag-baerlauch-panel");
-  if (panel) panel.hidden = true;
-}
-
   
   function renderEmojiOrbit() {
     const orbit = $("[data-ag-emoji-orbit]");
@@ -576,6 +545,203 @@ function closeBaerlauchGame() {
       orbit.appendChild(span);
     });
   }
+
+
+
+  
+
+  function randomBetween(min, max) {
+    return min + Math.random() * (max - min);
+  }
+  
+  function baerlauchDurationForLevel(level) {
+    return Math.max(2600, 8000 - (level - 1) * 700);
+  }
+  
+  function updateBaerlauchLevelText() {
+    const el = $("#ag-baerlauch-level");
+    if (el) el.textContent = `Level ${state.baerlauch.level}`;
+  }
+  
+  function stopBaerlauchTimer() {
+    if (state.baerlauch.timerId) {
+      clearInterval(state.baerlauch.timerId);
+      state.baerlauch.timerId = null;
+    }
+  }
+  
+  function failBaerlauchGame(reason) {
+    const field = $("#ag-baerlauch-field");
+    const success = $("#ag-baerlauch-success");
+    const reward = $("#ag-baerlauch-reward");
+    const rewardPhoto = $("#ag-baerlauch-photo");
+    const rewardText = $("#ag-baerlauch-text");
+  
+    stopBaerlauchTimer();
+    state.baerlauch.locked = true;
+  
+    if (field) {
+      field.innerHTML = `<div class="ag-forage-darkness" id="ag-baerlauch-darkness" style="opacity:.78"></div>`;
+    }
+  
+    if (reward) reward.hidden = true;
+    if (rewardPhoto) rewardPhoto.innerHTML = "";
+    if (rewardText) rewardText.textContent = "";
+  
+    if (success) {
+      success.hidden = false;
+      success.textContent =
+        reason === "timeout"
+          ? "Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei. Jetzt ist es vorbei – zumindest bis zum Neuladen."
+          : "Oops. Ich fürchte, wir haben toten Lauch oder etwas Giftiges gesammelt und sind tragisch eingegangen. Jetzt ist es vorbei – zumindest bis zum Neuladen.";
+    }
+  }
+  
+  function winBaerlauchGame() {
+    const success = $("#ag-baerlauch-success");
+    const reward = $("#ag-baerlauch-reward");
+    const rewardPhoto = $("#ag-baerlauch-photo");
+    const rewardText = $("#ag-baerlauch-text");
+  
+    stopBaerlauchTimer();
+  
+    state.baerlauch.level += 1;
+    updateBaerlauchLevelText();
+  
+    if (success) {
+      success.hidden = false;
+      success.textContent = "Sehr stark. Du hast nur den guten Bärlauch gesammelt. 💚";
+    }
+  
+    if (reward && rewardPhoto && rewardText && state.photos && state.photos.length) {
+      const photo = state.photos[Math.floor(Math.random() * state.photos.length)];
+      renderMediaInto(rewardPhoto, photo);
+      reward.hidden = false;
+  
+      const lines = [
+        "Du bist eindeutig mein Lieblingsfund.",
+        "Mit dir würde ich jederzeit wieder Bärlauch sammeln.",
+        "Sehr beruhigend, dass du uns nicht vergiftet hast.",
+        "Wald mit dir > fast alles andere.",
+        "Das war ausgesprochen sammel-kompetent von dir."
+      ];
+      rewardText.textContent = lines[Math.floor(Math.random() * lines.length)];
+    }
+  }
+  
+  function startBaerlauchTimer(onTimeout) {
+    const timerEl = $("#ag-baerlauch-timer");
+    const darknessEl = $("#ag-baerlauch-darkness");
+    const durationMs = baerlauchDurationForLevel(state.baerlauch.level);
+  
+    state.baerlauch.durationMs = durationMs;
+    state.baerlauch.startedAt = performance.now();
+  
+    stopBaerlauchTimer();
+  
+    state.baerlauch.timerId = setInterval(() => {
+      const elapsed = performance.now() - state.baerlauch.startedAt;
+      const remaining = Math.max(0, durationMs - elapsed);
+      const progress = Math.min(1, elapsed / durationMs);
+  
+      if (timerEl) timerEl.textContent = (remaining / 1000).toFixed(1);
+      if (darknessEl) darknessEl.style.opacity = String(progress * 0.78);
+  
+      if (remaining <= 0) {
+        stopBaerlauchTimer();
+        onTimeout();
+      }
+    }, 50);
+  }
+  
+  function openBaerlauchGame() {
+    const panel = $("#ag-baerlauch-panel");
+    const field = $("#ag-baerlauch-field");
+    const success = $("#ag-baerlauch-success");
+    const reward = $("#ag-baerlauch-reward");
+    const rewardPhoto = $("#ag-baerlauch-photo");
+    const rewardText = $("#ag-baerlauch-text");
+  
+    if (!panel || !field || !success || !reward || !rewardPhoto || !rewardText) return;
+  
+    panel.hidden = false;
+  
+    if (state.baerlauch.locked) {
+      success.hidden = false;
+      success.textContent = "Diese Runde ist vorbei. Vielleicht nach einem Neuladen nochmal.";
+      return;
+    }
+  
+    field.innerHTML = `<div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>`;
+    success.hidden = true;
+    reward.hidden = true;
+    rewardPhoto.innerHTML = "";
+    rewardText.textContent = "";
+    updateBaerlauchLevelText();
+  
+    const items = [
+      { emoji: "🌿", good: true },
+      { emoji: "🌱", good: true },
+      { emoji: "🍃", good: true },
+      { emoji: "🌿", good: true },
+      { emoji: "🌱", good: true },
+      { emoji: "🍃", good: true },
+      { emoji: "🥀", good: false },
+      { emoji: "🌸", good: false },
+      { emoji: "☠️", good: false },
+      { emoji: "🧄", good: false }
+    ];
+  
+    let collectedGood = 0;
+    const totalGood = items.filter((item) => item.good).length;
+  
+    items.forEach((entry) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "ag-forage-item";
+      item.textContent = entry.emoji;
+      item.dataset.good = entry.good ? "true" : "false";
+  
+      item.style.left = `${randomBetween(8, 82)}%`;
+      item.style.top = `${randomBetween(10, 72)}%`;
+      item.style.setProperty("--dx", `${randomBetween(-110, 110)}px`);
+      item.style.setProperty("--dy", `${randomBetween(-70, 70)}px`);
+      item.style.setProperty("--dur", `${randomBetween(1.1, 1.9)}s`);
+      item.style.setProperty("--delay", `${randomBetween(-1.8, 0)}s`);
+  
+      item.addEventListener("click", () => {
+        if (state.baerlauch.locked) return;
+  
+        if (item.dataset.good === "true") {
+          item.classList.add("is-picked");
+          item.disabled = true;
+          collectedGood += 1;
+  
+          setTimeout(() => item.remove(), 140);
+  
+          if (collectedGood === totalGood) {
+            winBaerlauchGame();
+          }
+        } else {
+          failBaerlauchGame("poison");
+        }
+      });
+  
+      field.appendChild(item);
+    });
+  
+    startBaerlauchTimer(() => failBaerlauchGame("timeout"));
+  }
+  
+  function closeBaerlauchGame() {
+    const panel = $("#ag-baerlauch-panel");
+    stopBaerlauchTimer();
+    if (panel) panel.hidden = true;
+  }
+
+
+
+  
 
   // Map a tone to a complementary emoji used in messages sent to Fionn.
   // Falls back to ❤️ if tone is missing/unknown.
@@ -610,20 +776,23 @@ function closeBaerlauchGame() {
     const chipList = (Array.isArray(state.theme.stickers) && state.theme.stickers.length)
       ? state.theme.stickers
       : defaultChips();
+
+
     for (const chip of chipList) {
       const li = document.createElement("li");
       li.textContent = chip;
-  
-    if (chip.toLowerCase().includes("bärlauch") || chip.toLowerCase().includes("barlauch")) {
-      li.id = "ag-btn-baerlauch";
-      li.tabIndex = 0;
-      li.setAttribute("role", "button");
-      li.setAttribute("aria-label", "Bärlauch öffnen");
-      li.classList.add("ag-chip-clickable");
+    
+      if (chip.toLowerCase().includes("bärlauch") || chip.toLowerCase().includes("barlauch")) {
+        li.id = "ag-btn-baerlauch";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Bärlauch öffnen");
+        li.classList.add("ag-chip-clickable");
+      }
+    
+      chips.appendChild(li);
     }
-  
-    chips.appendChild(li);
-  }
+
 
 
 
@@ -1613,8 +1782,9 @@ function closeBaerlauchGame() {
         background:rgba(8,28,18,.45);backdrop-filter:blur(8px);
         color:#e7f5e3;font-size:.78rem;font-weight:700;letter-spacing:.04em;
       }
-      
-      .ag-chip-clickable {
+
+
+     .ag-chip-clickable {
         cursor: pointer;
       }
       
@@ -1634,65 +1804,114 @@ function closeBaerlauchGame() {
       .ag-mini-head {
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
         align-items: center;
+        gap: 1rem;
         margin-bottom: .75rem;
       }
       
       .ag-mini-title {
         margin: 0 0 .35rem;
-        font-size: 1.15rem;
       }
       
       .ag-mini-copy {
-        margin: 0 0 1rem;
+        margin: 0 0 .35rem;
         color: var(--ag-muted);
+      }
+      
+      .ag-mini-level {
+        margin: 0 0 .85rem;
+        color: var(--ag-muted);
+        font-size: .95rem;
+      }
+      
+      .ag-forage-wrap {
+        display: grid;
+        gap: .6rem;
+      }
+      
+      .ag-forage-timer {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        letter-spacing: .04em;
       }
       
       .ag-forage-field {
         position: relative;
-        min-height: 260px;
+        min-height: 280px;
         overflow: hidden;
         border-radius: 24px;
         background:
-          radial-gradient(circle at 20% 20%, rgba(255,255,255,.08), transparent 30%),
-          linear-gradient(180deg, rgba(120,170,110,.28), rgba(60,110,70,.34));
-        border: 1px solid rgba(255,255,255,.1);
+          radial-gradient(circle at 20% 20%, rgba(255,255,255,.06), transparent 30%),
+          linear-gradient(180deg, rgba(88,140,92,.24), rgba(34,72,46,.4));
+        border: 1px solid rgba(255,255,255,.08);
+      }
+      
+      .ag-forage-darkness {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: rgba(4, 10, 8, 1);
+        opacity: 0;
+        transition: opacity .08s linear;
       }
       
       .ag-forage-item {
         position: absolute;
+        z-index: 2;
         width: 48px;
         height: 48px;
         border: none;
         background: transparent;
         font-size: 1.9rem;
         cursor: pointer;
-        transform: translateZ(0);
-        transition: transform .18s ease, opacity .18s ease, filter .18s ease;
-      }
-      
-      .ag-forage-item:hover {
-        transform: scale(1.08);
+        transition: transform .12s ease, opacity .12s ease;
+        animation: agDrift var(--dur, 1.6s) ease-in-out infinite alternate;
+        animation-delay: var(--delay, 0s);
       }
       
       .ag-forage-item.is-picked {
         opacity: 0;
-        transform: scale(1.5) rotate(10deg);
-        filter: blur(1px);
+        transform: scale(1.4);
+      }
+      
+      .ag-baerlauch-reward {
+        margin-top: 1rem;
+        display: grid;
+        gap: .8rem;
+      }
+      
+      .ag-baerlauch-photo {
+        overflow: hidden;
+        border-radius: 18px;
+      }
+      
+      .ag-baerlauch-text {
+        margin: 0;
+        text-align: center;
+        font-weight: 600;
       }
       
       .ag-mini-success {
         margin-top: 1rem;
         padding: .9rem 1rem;
         border-radius: 18px;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.16);
-        color: var(--ag-text);
-        font-weight: 700;
         text-align: center;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.12);
+        font-weight: 700;
       }
+      
+      @keyframes agDrift {
+        from { transform: translate(0px, 0px); }
+        to { transform: translate(var(--dx, 60px), var(--dy, -40px)); }
+      }
+   
 
+
+
+
+      
       .ag-tabs{
         display:inline-flex;padding:4px;border-radius:999px;
         background:rgba(8,28,18,.55);border:1px solid rgba(255,255,255,.16);
