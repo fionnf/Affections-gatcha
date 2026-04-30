@@ -438,7 +438,7 @@
             </div>
             
             <div class="ag-baerlauch-actions" id="ag-baerlauch-actions" hidden>
-              <button class="ag-primary" type="button" id="ag-baerlauch-next">
+              <button class="ag-secondary" type="button" id="ag-baerlauch-next">
                 Nächstes Level
               </button>
             </div>
