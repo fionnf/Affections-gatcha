@@ -555,7 +555,7 @@
   }
   
   function baerlauchDurationForLevel(level) {
-    return Math.max(2600, 8000 - (level - 1) * 700);
+    return Math.max(1800, 15000 - (level - 1) * 500);
   }
   
   function updateBaerlauchLevelText() {
@@ -645,7 +645,7 @@
       const progress = Math.min(1, elapsed / durationMs);
   
       if (timerEl) timerEl.textContent = (remaining / 1000).toFixed(1);
-      if (darknessEl) darknessEl.style.opacity = String(progress * 0.78);
+      if (darknessEl) darknessEl.style.opacity = String(Math.pow(progress, 1.5) * 0.92);
   
       if (remaining <= 0) {
         stopBaerlauchTimer();
@@ -679,17 +679,15 @@
     rewardText.textContent = "";
     updateBaerlauchLevelText();
   
+    const goodItems = ["🌿", "🌱", "🍃", "🌿", "🌱", "🍃", "🍀", "🌿", "🌱"];
+    const badItems = ["🥀", "🌸", "☠️", "🧄", "🍂", "💀", "🪦"];
+    
+    const goodCount = Math.min(4 + state.baerlauch.level, goodItems.length);
+    const badCount = Math.min(3 + Math.floor(state.baerlauch.level / 2), badItems.length);
+    
     const items = [
-      { emoji: "🌿", good: true },
-      { emoji: "🌱", good: true },
-      { emoji: "🍃", good: true },
-      { emoji: "🌿", good: true },
-      { emoji: "🌱", good: true },
-      { emoji: "🍃", good: true },
-      { emoji: "🥀", good: false },
-      { emoji: "🌸", good: false },
-      { emoji: "☠️", good: false },
-      { emoji: "🧄", good: false }
+      ...goodItems.slice(0, goodCount).map((emoji) => ({ emoji, good: true })),
+      ...badItems.slice(0, badCount).map((emoji) => ({ emoji, good: false }))
     ];
   
     let collectedGood = 0;
@@ -1849,9 +1847,13 @@
       .ag-forage-darkness {
         position: absolute;
         inset: 0;
-        z-index: 1;
+        z-index: 3;
         pointer-events: none;
-        background: rgba(4, 10, 8, 1);
+        background: linear-gradient(
+          180deg,
+          rgba(7, 16, 20, 0.35),
+          rgba(4, 10, 8, 1)
+        );
         opacity: 0;
         transition: opacity .08s linear;
       }
@@ -1859,8 +1861,8 @@
       .ag-forage-item {
         position: absolute;
         z-index: 2;
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border: none;
         background: transparent;
         font-size: 1.9rem;
