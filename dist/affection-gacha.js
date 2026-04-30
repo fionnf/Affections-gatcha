@@ -1946,7 +1946,7 @@
       }
       
       .ag-baerlauch-text {
-        margin: 0;
+        margin: 0 auto;
         color: #fff;
         text-align: center;
         font-weight: 600;
@@ -1954,13 +1954,15 @@
       
       .ag-mini-success {
         margin-top: 1rem;
-        color: #fff;
         padding: .9rem 1rem;
         border-radius: 18px;
         text-align: center;
         background: rgba(255,255,255,.10);
         border: 1px solid rgba(255,255,255,.12);
         font-weight: 700;
+        color: #fff !important;
+        width: fit-content;
+        max-width: min(92%, 640px);
       }
       
       @keyframes agDrift {
