@@ -549,8 +549,8 @@
 
 
   const BAERLAUCH_LEVELS = [
-    { timeMs: 20000, good: 8, bad: 8, speedMin: 2.2, speedMax: 3.2 },
-    { timeMs: 17000, good: 10, bad: 8, speedMin: 2.0, speedMax: 2.9 },
+    { timeMs: 20000, good: 8, bad: 8, speedMin: 2.2, speedMax: 2.7 },
+    { timeMs: 17000, good: 10, bad: 8, speedMin: 2.0, speedMax: 2.7 },
     { timeMs: 14500, good: 12, bad: 10, speedMin: 1.8, speedMax: 2.6 },
     { timeMs: 12200, good: 14, bad: 10, speedMin: 1.6, speedMax: 2.3 },
     { timeMs: 10200, good: 14, bad: 12, speedMin: 1.45, speedMax: 2.05 },
@@ -558,7 +558,7 @@
     { timeMs: 7000, good: 18, bad: 14, speedMin: 1.15, speedMax: 1.65 },
     { timeMs: 5800, good: 20, bad: 16, speedMin: 1.0, speedMax: 1.45 },
     { timeMs: 4700, good: 22, bad: 18, speedMin: 0.9, speedMax: 1.25 },
-    { timeMs: 3800, good: 24, bad: 20, speedMin: 0.8, speedMax: 1.1 }
+    { timeMs: 3800, good: 24, bad: 20, speedMin: 0.4, speedMax: 0.8 }
   ];
   
   function baerlauchConfigForLevel(level) {
