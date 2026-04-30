@@ -404,6 +404,7 @@
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
             </div>
           </section>
+          
           <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Bärlauch-Modus</span>
@@ -611,20 +612,19 @@ function closeBaerlauchGame() {
       : defaultChips();
     for (const chip of chipList) {
       const li = document.createElement("li");
+      li.textContent = chip;
   
     if (chip.toLowerCase().includes("bärlauch") || chip.toLowerCase().includes("barlauch")) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "ag-chip-action";
-      button.id = "ag-btn-baerlauch";
-      button.textContent = "Bärlauch 🌿";
-      li.appendChild(button);
-    } else {
-      li.textContent = chip;
+      li.id = "ag-btn-baerlauch";
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      li.setAttribute("aria-label", "Bärlauch öffnen");
+      li.classList.add("ag-chip-clickable");
     }
   
     chips.appendChild(li);
   }
+
 
 
     renderEmojiOrbit();
@@ -1230,6 +1230,13 @@ function closeBaerlauchGame() {
     $("[data-ag-draw]").addEventListener("click", reveal);
     $("#ag-btn-baerlauch")?.addEventListener("click", openBaerlauchGame);
     $("#ag-baerlauch-close")?.addEventListener("click", closeBaerlauchGame);
+    $("#ag-btn-baerlauch")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openBaerlauchGame();
+      }
+    });
+
     $("[data-ag-copy]").addEventListener("click", async () => {
       if (!state.todaysPull) return;
       const text = messageText(state.todaysPull);
@@ -1607,21 +1614,17 @@ function closeBaerlauchGame() {
         color:#e7f5e3;font-size:.78rem;font-weight:700;letter-spacing:.04em;
       }
       
-      .ag-chip-action {
-        appearance: none;
-        border: 1px solid rgba(255,255,255,.18);
-        background: rgba(255,255,255,.08);
-        color: inherit;
-        border-radius: 999px;
-        padding: .45rem .85rem;
-        font: inherit;
+      .ag-chip-clickable {
         cursor: pointer;
-        transition: transform .18s ease, background .18s ease, border-color .18s ease;
       }
       
-      .ag-chip-action:hover {
+      .ag-chip-clickable:hover {
         transform: translateY(-1px);
-        background: rgba(255,255,255,.14);
+      }
+      
+      .ag-chip-clickable:focus-visible {
+        outline: 2px solid rgba(255,255,255,.35);
+        outline-offset: 2px;
       }
       
       .ag-mini-panel {
