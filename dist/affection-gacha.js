@@ -759,8 +759,8 @@
   
       item.style.left = `${randomBetween(8, 82)}%`;
       item.style.top = `${randomBetween(10, 72)}%`;
-      item.style.setProperty("--dx", `${randomBetween(-110, 110)}px`);
-      item.style.setProperty("--dy", `${randomBetween(-70, 70)}px`);
+      item.style.setProperty("--dx", `${randomBetween(-320, 320)}px`);
+      item.style.setProperty("--dy", `${randomBetween(-220, 220)}px`);
       item.style.setProperty("--dur", `${randomBetween(config.speedMin, config.speedMax)}s`);
       item.style.setProperty("--delay", `${randomBetween(-1.8, 0)}s`);
   
