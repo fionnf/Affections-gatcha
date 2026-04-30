@@ -548,7 +548,24 @@
 
 
 
+  const BAERLAUCH_LEVELS = [
+    { timeMs: 20000, good: 4, bad: 2, speedMin: 2.2, speedMax: 3.2 },
+    { timeMs: 17000, good: 5, bad: 3, speedMin: 2.0, speedMax: 2.9 },
+    { timeMs: 14500, good: 6, bad: 4, speedMin: 1.8, speedMax: 2.6 },
+    { timeMs: 12200, good: 7, bad: 5, speedMin: 1.6, speedMax: 2.3 },
+    { timeMs: 10200, good: 8, bad: 6, speedMin: 1.45, speedMax: 2.05 },
+    { timeMs: 8500, good: 9, bad: 7, speedMin: 1.3, speedMax: 1.85 },
+    { timeMs: 7000, good: 10, bad: 8, speedMin: 1.15, speedMax: 1.65 },
+    { timeMs: 5800, good: 11, bad: 9, speedMin: 1.0, speedMax: 1.45 },
+    { timeMs: 4700, good: 12, bad: 10, speedMin: 0.9, speedMax: 1.25 },
+    { timeMs: 3800, good: 13, bad: 11, speedMin: 0.8, speedMax: 1.1 }
+  ];
   
+  function baerlauchConfigForLevel(level) {
+    return BAERLAUCH_LEVELS[Math.min(level - 1, BAERLAUCH_LEVELS.length - 1)];
+  }
+  
+
 
   function randomBetween(min, max) {
     return min + Math.random() * (max - min);
@@ -632,8 +649,9 @@
   function startBaerlauchTimer(onTimeout) {
     const timerEl = $("#ag-baerlauch-timer");
     const darknessEl = $("#ag-baerlauch-darkness");
-    const durationMs = baerlauchDurationForLevel(state.baerlauch.level);
-  
+    const config = baerlauchConfigForLevel(state.baerlauch.level);
+    const durationMs = config.timeMs;
+
     state.baerlauch.durationMs = durationMs;
     state.baerlauch.startedAt = performance.now();
   
@@ -679,16 +697,16 @@
     rewardText.textContent = "";
     updateBaerlauchLevelText();
   
-    const goodItems = ["🌿", "🌱", "🍃", "🌿", "🌱", "🍃", "🍀", "🌿", "🌱"];
-    const badItems = ["🥀", "🌸", "☠️", "🧄", "🍂", "💀", "🪦"];
-    
-    const goodCount = Math.min(4 + state.baerlauch.level, goodItems.length);
-    const badCount = Math.min(3 + Math.floor(state.baerlauch.level / 2), badItems.length);
+    const config = baerlauchConfigForLevel(state.baerlauch.level);
+
+    const goodPool = ["🌿", "🌱", "🍃", "🌿", "🌱", "🍃", "🍀", "🌿", "🌱", "🍃", "🌿", "🌱", "🍀"];
+    const badPool = ["🥀", "🌸", "☠️", "🧄", "🍂", "💀", "🪦", "🌾", "🥀", "🌸", "☠️"];
     
     const items = [
-      ...goodItems.slice(0, goodCount).map((emoji) => ({ emoji, good: true })),
-      ...badItems.slice(0, badCount).map((emoji) => ({ emoji, good: false }))
+      ...goodPool.slice(0, config.good).map((emoji) => ({ emoji, good: true })),
+      ...badPool.slice(0, config.bad).map((emoji) => ({ emoji, good: false }))
     ];
+
   
     let collectedGood = 0;
     const totalGood = items.filter((item) => item.good).length;
@@ -704,7 +722,7 @@
       item.style.top = `${randomBetween(10, 72)}%`;
       item.style.setProperty("--dx", `${randomBetween(-110, 110)}px`);
       item.style.setProperty("--dy", `${randomBetween(-70, 70)}px`);
-      item.style.setProperty("--dur", `${randomBetween(1.1, 1.9)}s`);
+      item.style.setProperty("--dur", `${randomBetween(config.speedMin, config.speedMax)}s`);
       item.style.setProperty("--delay", `${randomBetween(-1.8, 0)}s`);
   
       item.addEventListener("click", () => {
