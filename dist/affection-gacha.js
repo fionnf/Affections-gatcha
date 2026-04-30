@@ -436,8 +436,15 @@
               <div class="ag-baerlauch-photo" id="ag-baerlauch-photo"></div>
               <p class="ag-baerlauch-text" id="ag-baerlauch-text"></p>
             </div>
-          
+            
+            <div class="ag-baerlauch-actions" id="ag-baerlauch-actions" hidden>
+              <button class="ag-primary" type="button" id="ag-baerlauch-next">
+                Nächstes Level
+              </button>
+            </div>
+            
             <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
+
           </section>
 
 
@@ -593,6 +600,10 @@
     const reward = $("#ag-baerlauch-reward");
     const rewardPhoto = $("#ag-baerlauch-photo");
     const rewardText = $("#ag-baerlauch-text");
+    const actions = $("#ag-baerlauch-actions");
+    
+    if (actions) actions.hidden = true;
+
   
     stopBaerlauchTimer();
     state.baerlauch.locked = true;
@@ -620,6 +631,9 @@
     const reward = $("#ag-baerlauch-reward");
     const rewardPhoto = $("#ag-baerlauch-photo");
     const rewardText = $("#ag-baerlauch-text");
+    const actions = $("#ag-baerlauch-actions");
+    const nextButton = $("#ag-baerlauch-next");
+
   
     stopBaerlauchTimer();
   
@@ -644,6 +658,13 @@
         "Das war ausgesprochen sammel-kompetent von dir."
       ];
       rewardText.textContent = lines[Math.floor(Math.random() * lines.length)];
+    }
+    if (nextButton) {
+      nextButton.textContent = `Level ${state.baerlauch.level} starten`;
+    }
+    
+    if (actions) {
+      actions.hidden = false;
     }
   }
   
@@ -690,6 +711,8 @@
     const reward = $("#ag-baerlauch-reward");
     const rewardPhoto = $("#ag-baerlauch-photo");
     const rewardText = $("#ag-baerlauch-text");
+    const actions = $("#ag-baerlauch-actions");
+
   
     if (!panel || !field || !success || !reward || !rewardPhoto || !rewardText) return;
   
@@ -706,6 +729,7 @@
     reward.hidden = true;
     rewardPhoto.innerHTML = "";
     rewardText.textContent = "";
+    if (actions) actions.hidden = true;
     updateBaerlauchLevelText();
   
     const config = baerlauchConfigForLevel(state.baerlauch.level);
@@ -1454,6 +1478,7 @@
     $("[data-ag-draw]").addEventListener("click", reveal);
     $("#ag-btn-baerlauch")?.addEventListener("click", openBaerlauchGame);
     $("#ag-baerlauch-close")?.addEventListener("click", closeBaerlauchGame);
+    $("#ag-baerlauch-next")?.addEventListener("click", openBaerlauchGame);
     $("#ag-btn-baerlauch")?.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -1951,6 +1976,13 @@
         text-align: center;
         font-weight: 600;
       }
+
+      .ag-baerlauch-actions {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: center;
+      }
+
       
       .ag-mini-success {
         margin-top: 1rem;
