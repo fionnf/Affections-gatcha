@@ -549,16 +549,16 @@
 
 
   const BAERLAUCH_LEVELS = [
-    { timeMs: 20000, good: 4, bad: 2, speedMin: 2.2, speedMax: 3.2 },
-    { timeMs: 17000, good: 5, bad: 3, speedMin: 2.0, speedMax: 2.9 },
-    { timeMs: 14500, good: 6, bad: 4, speedMin: 1.8, speedMax: 2.6 },
-    { timeMs: 12200, good: 7, bad: 5, speedMin: 1.6, speedMax: 2.3 },
-    { timeMs: 10200, good: 8, bad: 6, speedMin: 1.45, speedMax: 2.05 },
-    { timeMs: 8500, good: 9, bad: 7, speedMin: 1.3, speedMax: 1.85 },
-    { timeMs: 7000, good: 10, bad: 8, speedMin: 1.15, speedMax: 1.65 },
-    { timeMs: 5800, good: 11, bad: 9, speedMin: 1.0, speedMax: 1.45 },
-    { timeMs: 4700, good: 12, bad: 10, speedMin: 0.9, speedMax: 1.25 },
-    { timeMs: 3800, good: 13, bad: 11, speedMin: 0.8, speedMax: 1.1 }
+    { timeMs: 20000, good: 8, bad: 8, speedMin: 2.2, speedMax: 3.2 },
+    { timeMs: 17000, good: 10, bad: 8, speedMin: 2.0, speedMax: 2.9 },
+    { timeMs: 14500, good: 12, bad: 10, speedMin: 1.8, speedMax: 2.6 },
+    { timeMs: 12200, good: 14, bad: 10, speedMin: 1.6, speedMax: 2.3 },
+    { timeMs: 10200, good: 14, bad: 12, speedMin: 1.45, speedMax: 2.05 },
+    { timeMs: 8500, good: 16, bad: 12, speedMin: 1.3, speedMax: 1.85 },
+    { timeMs: 7000, good: 18, bad: 14, speedMin: 1.15, speedMax: 1.65 },
+    { timeMs: 5800, good: 20, bad: 16, speedMin: 1.0, speedMax: 1.45 },
+    { timeMs: 4700, good: 22, bad: 18, speedMin: 0.9, speedMax: 1.25 },
+    { timeMs: 3800, good: 24, bad: 20, speedMin: 0.8, speedMax: 1.1 }
   ];
   
   function baerlauchConfigForLevel(level) {
@@ -664,6 +664,16 @@
   
       if (timerEl) timerEl.textContent = (remaining / 1000).toFixed(1);
       if (darknessEl) darknessEl.style.opacity = String(Math.pow(progress, 1.5) * 0.92);
+
+      const items = document.querySelectorAll(".ag-forage-item");
+      const itemDarkness = Math.pow(progress, 1.4);
+      
+      items.forEach((item) => {
+        item.style.filter = `brightness(${1 - itemDarkness * 0.72}) saturate(${1 - itemDarkness * 0.45}) hue-rotate(${itemDarkness * 8}deg)`;
+        item.style.opacity = String(1 - itemDarkness * 0.28);
+
+      });
+      
   
       if (remaining <= 0) {
         stopBaerlauchTimer();
@@ -1879,13 +1889,13 @@
       .ag-forage-item {
         position: absolute;
         z-index: 2;
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         border: none;
         background: transparent;
         font-size: 1.9rem;
         cursor: pointer;
-        transition: transform .12s ease, opacity .12s ease;
+        transition: transform .12s ease, opacity .12s ease, filter .12s ease;
         animation: agDrift var(--dur, 1.6s) ease-in-out infinite alternate;
         animation-delay: var(--delay, 0s);
       }
