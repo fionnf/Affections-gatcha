@@ -558,7 +558,7 @@
     { timeMs: 7000, good: 18, bad: 14, speedMin: 1.15, speedMax: 1.65 },
     { timeMs: 5800, good: 20, bad: 16, speedMin: 1.0, speedMax: 1.45 },
     { timeMs: 4700, good: 22, bad: 18, speedMin: 0.9, speedMax: 1.25 },
-    { timeMs: 3800, good: 24, bad: 20, speedMin: 0.4, speedMax: 0.8 }
+    { timeMs: 3800, good: 30, bad: 20, speedMin: 0.4, speedMax: 0.8 }
   ];
   
   function baerlauchConfigForLevel(level) {
@@ -709,8 +709,20 @@
   
     const config = baerlauchConfigForLevel(state.baerlauch.level);
 
-    const goodPool = ["🌿", "🌱", "🍃", "🌿", "🌱", "🍃", "🍀", "🌿", "🌱", "🍃", "🌿", "🌱", "🍀"];
-    const badPool = ["🥀", "🌸", "☠️", "🧄", "🍂", "💀", "🪦", "🌾", "🥀", "🌸", "☠️"];
+    const goodPool = [
+      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
+      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
+      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
+      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
+      "🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🌿","🍀"
+    ];
+    
+    const badPool = [
+      "🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂",
+      "💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸",
+      "☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄",
+      "🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂","💀"
+    ];
     
     const items = [
       ...goodPool.slice(0, config.good).map((emoji) => ({ emoji, good: true })),
