@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "endpointUrl": "",
+  "endpointUrl": "https://script.google.com/macros/s/AKfycbzV6VKQvFGrA0AB-qp8UfNQuLeE5tFXmezVeEkjIziU7KFVlznz6eCJCoRcNMNG6coVSg/exec",
   "spreadsheetId": "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4",
   "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit",
   "worksheet": "Wünsche",
