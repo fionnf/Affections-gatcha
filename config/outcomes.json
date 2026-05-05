@@ -3,7 +3,7 @@
     {
       "id": "niete",
       "label": "Niete",
-      "weight": 120,
+      "weight": 150,
       "tone": "quiet",
       "outcomes": [
         {
@@ -11,28 +11,96 @@
           "message": "Heute kein Preis. Nur ein imaginärer Kassenzettel aus einem sehr hübschen Museumsshop."
         },
         {
+          "title": "Baustelle",
+          "message": "Hier wird gerade an einer Treppe gearbeitet. Kein Preis, nur imaginärer Baustellenlärm."
+        },
+        {
+          "title": "Zeltplatz besetzt",
+          "message": "Ein fiktives Murmeltier hat sein Zelt genau hier aufgeschlagen. Wir müssen weiterziehen. Heute leider kein Gewinn."
+        },
+        {
           "title": "Keine Aussicht",
-          "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen."
+          "message": "Der Wanderweg endet heute in einer Nebelwand. Du darfst dramatisch seufzen. Aber! Es gibt einen Feuersalamander! 🦎"
         },
         {
           "title": "Geschlossen wegen Architektur",
           "message": "Die Maschine betrachtet gerade eine Fassade und ist nicht bereit, Preise auszugeben."
         },
         {
+          "title": "Nebel am Mythen",
+          "message": "Die Aussicht ist heute leider verdeckt. Aber hey, du hast immerhin dieses digitale Schulterzucken gewonnen."
+        },
+        {
+          "title": "Statik-Fehler",
+          "message": "Dieser Gewinn hält leider keiner Überprüfung stand. Versuch es später noch einmal."
+        },
+        {
           "title": "Kein Preis",
-          "message": "Nur ein winziges: du bist trotzdem ziemlich süß. Leider nicht einlösbar, nur aktenkundig."
+          "message": "Nur ein winziges: Du bist trotzdem süß. Leider nicht einlösbar, nur aktenkundig."
+        },
+        {
+          "title": "SBB-Verspätung",
+          "message": "Der Preis hat 24 Stunden Verspätung. Grund: Unwetterschäden am Obersee. Bitte warten."
+        },
+        {
+          "title": "Züri-Regen",
+          "message": "Grauer Himmel über Wiedikon. Kein Preis, nur das Bedürfnis nach einem sehr großen Tee."
+        },
+        {
+          "title": "Baugespann-Sperre",
+          "message": "Hier entsteht demnächst ein Gewinn. Aktuell sieht man nur die Holzpfosten auf dem Dach."
+        },
+        {
+          "title": "Tram verpasst",
+          "message": "Du siehst die Rücklichter der 14. Lauf ihr nicht hinterher, es gibt heute keine Kapsel."
+        },
+        {
+          "title": "Denkmalschutz",
+          "message": "Dieser Slot darf aus historischen Gründen heute nicht verändert oder mit Preisen befüllt werden. Ein Klassiker unter den Nieten."
+        },
+        {
+          "title": "Verschlafenes Murmeltier",
+          "message": "Pssst... der Preis schläft noch tief im Winterschlaf. Wir wollen ihn nicht wecken. Versuch es morgen nochmal!"
+        },
+        {
+          "title": "Tram-Depot",
+          "message": "Endstation. Alle Preise müssen hier aussteigen. Du darfst aber sitzen bleiben und von der nächsten Fahrt träumen."
+        },
+        {
+          "title": "Höhenkrankheit",
+          "message": "Die Maschine ist gerade auf über 3000m und braucht kurz Sauerstoff. In dieser Höhe werden keine Preise ausgegeben."
+        },
+        {
+          "title": "Leere Emaille-Tasse",
+          "message": "Der Kaffee ist aus, der Gaskocher leer. Nur ein schönes Blech-Gefühl in der Hand. Aber der nächste Aufstieg kommt bestimmt!"
+        },
+        {
+          "title": "Schattenplatz",
+          "message": "Es ist kühl und ruhig hier. Genau richtig für eine Niete, die eigentlich nur eine kleine Verschnaufpause sein will."
+        },
+        {
+          "title": "Treppenhaus-Echo",
+          "message": "Du hörst nur deine eigenen Schritte auf dem Weg zum Gewinn. Er ist noch ein paar Stockwerke entfernt. Lauf weiter!"
         }
       ]
     },
     {
       "id": "common",
       "label": "Gewöhnlich",
-      "weight": 170,
+      "weight": 180,
       "tone": "soft",
       "outcomes": [
         {
           "title": "+1 Wegproviant",
           "message": "Du bekommst einen sehr kleinen Motivationspunkt. Pack ihn neben die Snacks."
+        },
+        {
+          "title": "Lekker (NL)",
+          "message": "Ein Kompliment, so gut wie eine holländische Waffel. Du siehst heute stabil aus!"
+        },
+        {
+          "title": "Treppen-Fakt",
+          "message": "Du darfst mir einen random Fakt über ein Treppendetail schicken. Ich verspreche, interessiert zu wirken."
         },
         {
           "title": "Passstempel",
@@ -43,12 +111,88 @@
           "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang."
         },
         {
-          "title": "Mini-Aussicht",
-          "message": "Du hast einen kleinen Blick über die Dächer freigeschaltet. Innerlich kurz stehen bleiben."
+          "title": "Portugiesisches Wort: Beijo",
+          "message": "Ein einziger, süßer Kuss. Sofort einlösbar."
+        },
+        {
+          "title": "Barróg (IE)",
+          "message": "Eine feste Umarmung (20 Sekunden Minimum)."
+        },
+        {
+          "title": "Petisco (PT)",
+          "message": "Ein kleiner Snack, den Fionn für Lennart nach der Arbeit zubereitet."
         },
         {
           "title": "Gedanken-Ping",
-          "message": "Du musst jetzt acht Sekunden an Fionn denken. Die Maschine behauptet, sie könne das überprüfen."
+          "message": "Du musst jetzt acht Sekunden an mich denken. Die Maschine behauptet, sie könne das überprüfen <3."
+        },
+        {
+          "title": "Luxemburgerli-Vibe",
+          "message": "Du bist heute klein, süß und hättest gerne eine Füllung aus Champagner-Creme."
+        },
+        {
+          "title": "Lindenhof-Moment",
+          "message": "Ein kurzer Moment der Ruhe. Stell dir vor, du schaust über die Limmat. Ich denk an dich."
+        },
+        {
+          "title": "Mo ghrá (IE)",
+          "message": "Ein irischer Begriff für 'meine Liebe'. Nur für dich, heute."
+        },
+        {
+          "title": "Motivations-Boost: Fokus",
+          "message": "Du hast die Treppenpläne bezwungen, du bezwingst auch den Rest. Ein Schritt nach dem anderen – genau wie beim Wandern."
+        },
+        {
+          "title": "Durchhalte-Energie",
+          "message": "Für die Momente, in denen das Labor oder das Büro nervt: Denk an das Gefühl, wenn wir nach dem Workout den ersten Schluck Wasser trinken. Du schaffst das!"
+        },
+        {
+          "title": "Architecture Fact: Treppen",
+          "message": "Es gibt in den Schweizer Alpen Treppen mit über 11.000 Stufen. Da sind deine Pläne heute doch ein Kinderspiel, oder?"
+        },
+        {
+          "title": "Pausen-Erlaubnis",
+          "message": "Die Maschine verordnet dir 5 Minuten absolute Ruhe. Atme tief ein. Du bist mehr als deine Produktivität."
+        },
+        {
+          "title": "Züri-Motivation",
+          "message": "Du bist heute der fähigste Architekt zwischen dem Bellevue und Hardbrücke. Mindestens."
+        },
+        {
+          "title": "Cool Fact: Herzschlag",
+          "message": "Wusstest du, dass sich die Herzschläge von Paaren synchronisieren können, wenn sie sich tief in die Augen schauen? Wir sollten das bald mal wieder testen."
+        },
+        {
+          "title": "Kleiner Reminder",
+          "message": "Du musst nicht perfekt sein, um für mich der absolute Gewinner der Quest zu sein."
+        },
+        {
+          "title": "Feierabend-Vision",
+          "message": "Stell dir vor: Die Tasche ist gepackt, der Laptop zu, und wir treffen uns am Letten. Nur noch ein paar Stunden! :-)"
+        },
+        {
+          "title": "Züri-Life Fact",
+          "message": "Es gibt in Zürich über 1200 Brunnen mit Trinkwasser. Genau so erfrischend soll dein heutiger Tag werden!"
+        },
+        {
+          "title": "Struktur-Segen",
+          "message": "Möge dein heutiger Tag so klar strukturiert sein wie ein Entwurf von Le Corbusier (aber viel gemütlicher)."
+        },
+        {
+          "title": "Du bist ein Star",
+          "message": "Nur ein kurzer Reminder, falls du es im Labor-Stress vergessen hast: Du bist der Hauptcharakter in dieser Story."
+        },
+        {
+          "title": "Cool Fact: Sterne",
+          "message": "Wir bestehen buchstäblich aus Sternenstaub. Das erklärt, warum du heute wieder so strahlst. ✨"
+        },
+        {
+          "title": "Wildcamp-Vibe: Sternenzelt",
+          "message": "Stell dir vor, wir öffnen den Reißverschluss vom Zelt und sehen nur Sterne. Dieses Gefühl von Freiheit schickt dir die Maschine für deinen Arbeitstag."
+        },
+        {
+          "title": "Ende der Quest?",
+          "message": "Die Fionn-Quest hat kein Ende, nur immer neue Level. Und du hast gerade ein Level-Up bekommen!"
         },
         {
           "title": "Tagesfoto-Test",
@@ -75,12 +219,24 @@
     {
       "id": "quest",
       "label": "Mini-Quest",
-      "weight": 150,
+      "weight": 120,
       "tone": "quest",
       "outcomes": [
         {
           "title": "Postkarten-Quest",
           "message": "Schick Fionn ein Foto von etwas, das heute wie eine Postkarte aussieht: Himmel, Essen, Fassade, Berg, egal."
+        },
+        {
+          "title": "Design-Safari",
+          "message": "Schick mir ein Foto von einem Gebäude oder Detail, das du heute siehst und das entweder genial oder ein Verbrechen ist."
+        },
+        {
+          "title": "Vokabel-Test",
+          "message": "Frag mich nach einem Wort auf Irisch oder Portugiesisch. Wenn ich es nicht weiß, schulde ich dir einen Kaffee."
+        },
+        {
+          "title": "Brunnen-Check",
+          "message": "Zürich hat 1200 Brunnen. Trink aus einem und sag mir, wie die Wasserqualität heute ist."
         },
         {
           "title": "Tagesfund",
@@ -103,7 +259,7 @@
     {
       "id": "uncommon",
       "label": "Ungewöhnlich",
-      "weight": 130,
+      "weight": 100,
       "tone": "warm",
       "outcomes": [
         {
@@ -111,20 +267,24 @@
           "message": "Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."
         },
         {
-          "title": "Dessert-Kommission",
-          "message": "Du darfst beim nächsten Mal das Dessert bestimmen. Architektur des Tellers wird mitbewertet."
+          "title": "Saudades (PT)",
+          "message": "Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date."
         },
         {
-          "title": "Sympathie-Gutschein",
-          "message": "Du darfst eine dramatische Beschwerde einreichen und bekommst nur Mitgefühl, keine Lösungsvorschläge."
+          "title": "Gezellig (NL)",
+          "message": "Ein Abend mit Kerzen, Wein und ohne Handys."
         },
         {
           "title": "Foto-Anfrage",
-          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: alle drei."
+          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: Alle drei."
         },
         {
-          "title": "Kleiner Reise-Call",
-          "message": "Du hast einen 15-Minuten-Call freigeschaltet, ideal für Routen, Pläne oder grundlose Updates."
+          "title": "Tehran & Guatemala Tales",
+          "message": "Du darfst eine Geschichte aus deiner Reisezeit einfordern, die du noch nicht kennst."
+        },
+        {
+          "title": "Meal-Prep Buddy",
+          "message": "Fionn hilft Lennart dabei, das Essen für die ganze nächste Woche vorzubereiten. Fionn erfindet das Mealprep-Rezept."
         }
       ]
     },
@@ -139,16 +299,24 @@
           "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden."
         },
         {
+          "title": "Jogging-Zoll",
+          "message": "Schick mir ein Selfie nach deinem Training. Je verschwitzter, desto besser für die Akten und Blackmail."
+        },
+        {
+          "title": "Aussprache-Pflicht",
+          "message": "Du musst versuchen, einen irischen Satz per Voicenote nachzusprechen. Lachen ist vorprogrammiert."
+        },
+        {
           "title": "Selfie-Zoll",
-          "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken. Möglichst wie ein müder Wanderer im Zug."
+          "message": "Um diese Kapsel zu entsperren, musst du ein Selfie schicken zusammen mit dieser Nachricht. Möglichst wie ein müder Wanderer im Zug."
         },
         {
           "title": "Designkritik-Pflicht",
           "message": "Du musst Fionn ein Kompliment machen, aber es muss klingen wie eine seriöse Architekturkritik."
         },
         {
-          "title": "Kleiner-Löffel-Dekret",
-          "message": "Die Maschine hat entschieden: Du wurdest vorübergehend zum kleinen Löffel ernannt."
+          "title": "Meal-Prep-Steuer",
+          "message": "Du musst für Fionn mitplanen."
         },
         {
           "title": "Formular 7B",
@@ -173,6 +341,14 @@
         {
           "title": "Sinnlose Bestenliste",
           "message": "Erstelle eine Top-3 von etwas komplett Sinnlosem und schick sie Fionn. Die Maschine akzeptiert keine Einwände."
+        },
+        {
+          "title": "Kochen",
+          "message": "Du musst Fionn ein Abendessen kochen. Verwende bitte die folgenden Zutaten: Austernpilze, Feta, Sumach."
+        },
+        {
+          "title": "Voicenote",
+          "message": "Bitte eine süße Voicenote an Fionn schicken! No cheating!"
         }
       ]
     },
@@ -187,27 +363,47 @@
           "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt."
         },
         {
-          "title": "Date-Credit: Kleine Expedition",
-          "message": "Wir gehen irgendwo hin, wo keiner von uns genau weiß, was dort ist. Sehr wissenschaftlich."
-        },
-        {
           "title": "Date-Credit: Komfortabend",
           "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung."
         },
         {
-          "title": "Date-Credit: Dessert-Mission",
-          "message": "Wir suchen ein Dessert. Es muss nicht sinnvoll sein. Nur lecker."
-        },
-        {
           "title": "Date-Credit: Fionn plant die Route",
           "message": "Du musst nichts entscheiden. Fionn plant ein kleines Date mit mindestens einem schönen Detail."
+        },
+        {
+          "title": "Date-Credit: Mythen-Revival",
+          "message": "Ein Gutschein für einen Sunset-Ausritt oder eine Wanderung. Das Wetter bestimmen wir gemeinsam."
+        },
+        {
+          "title": "DJ Fionn Set",
+          "message": "Ich erstelle dir eine kleine Playlist für dein nächstes Solo-Training."
+        },
+        {
+          "title": "Architecture of Us",
+          "message": "Ein Abend mit Fokus auf 'Fine Living'. Wir suchen uns das schönste Restaurant der Stadt aus."
+        },
+        {
+          "title": "6a-Belay-Pass",
+          "message": "Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."
+        },
+        {
+          "title": "Thermalbad-Fantasie",
+          "message": "Wir stellen uns vor, wir wären auf dem Dach im Thermalbad. Gutschein für einen Wellnesstag."
+        },
+        {
+          "title": "Date-Credit: Jules Verne Bar",
+          "message": "Ein Drink über den Dächern von Zürich. Die Aussicht ist fast so gut wie du."
+        },
+        {
+          "title": "Date-Credit: Rote Fabrik",
+          "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft."
         }
       ]
     },
     {
       "id": "photo",
       "label": "Foto-Drop",
-      "weight": 200,
+      "weight": 250,
       "tone": "photo",
       "outcomes": [
         {
@@ -216,7 +412,7 @@
         },
         {
           "title": "Bildkapsel",
-          "message": "Heute gibt es kein Gutschein-Drama, nur ein kleines Bild von uns."
+          "message": "Heute gibt es kein Gutschein-Drama, nur ein kleines Bild."
         },
         {
           "title": "Archivfund",
@@ -235,16 +431,16 @@
           "message": "Fionn plant ein ganzes Mini-Date: Weg, Essen, schöner Ort. Du musst nur auftauchen und süß sein."
         },
         {
-          "title": "JACKPOT: Wunsch-Date",
-          "message": "Du darfst eine realistische Date-Aktivität wählen. Die Maschine empfiehlt: Aussicht, Essen oder eine gute Treppe."
+          "title": "JACKPOT: Der Fionn-Quest-Sieger",
+          "message": "Lennart ist der offizielle Gewinner. 24h lang hast du die absolute Entscheidungsgewalt über alle Freizeitaktivitäten."
         },
         {
-          "title": "JACKPOT: Überraschung",
-          "message": "Eine kleine Überraschung wurde freigeschaltet. Details bleiben absichtlich verdächtig."
+          "title": "JACKPOT: Überraschungs-Wochenende",
+          "message": "Fionn plant einen kompletten Tag für dich. Du musst nur sagen, wann du Zeit hast."
         },
         {
-          "title": "JACKPOT: Sehr netter Abend",
-          "message": "Ein extrem netter Abend ist fällig. Gemütlich, lecker, schön gestaltet oder abenteuerlich nach gemeinsamer Wetterlage."
+          "title": "JACKPOT: Mo anamchara (IE)",
+          "message": "Mein Seelenfreund. Ein Gutschein für eine Nacht ohne Wecker, nur wir."
         }
       ]
     }
