@@ -11,7 +11,8 @@
 
   /** Count consecutive days ending at today (or yesterday if today not yet pulled) */
   function computeStreak() {
-    const history = readHistory();
+    const token = getToken();
+    const history = readHistory().filter((e) => e.token === token);
     if (!history.length) return 0;
     const tz = state.theme?.timezone || "UTC";
     const today = dateKeyInTimezone(tz);
@@ -353,7 +354,7 @@
                 <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
                   <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge">⭐ Lieblinge</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">⭐</button>
                 </div>
               </div>
             </header>
@@ -405,6 +406,14 @@
               <p class="ag-history-note" data-ag-history-note></p>
               <ol class="ag-history" data-ag-history></ol>
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
+            </div>
+          </section>
+
+          <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
+            <div class="ag-card">
+              <p class="ag-history-note" data-ag-lieblinge-note></p>
+              <ol class="ag-history" data-ag-lieblinge></ol>
+              <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
           </section>
         </div>
@@ -761,8 +770,15 @@
       category = state.outcomes.categories.find((item) => item.id === "common") || category;
     }
 
-    const outcome = category.outcomes[
-      seededIndex(`${baseSeed}|${category.id}|outcome`, category.outcomes.length)
+    const usedTitles = new Set(
+      readHistory()
+        .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
+        .map((e) => e.title)
+    );
+    const availableOutcomes = category.outcomes.filter((o) => !usedTitles.has(o.title));
+    const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : category.outcomes;
+    const outcome = outcomePool[
+      seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)
     ];
 
     const photo =
@@ -898,6 +914,7 @@
     }
 
     $("[data-ag-result]").hidden = false;
+    updateStarButton();
   }
 
   function readHistory() {
@@ -922,6 +939,75 @@
     } catch (error) {
       /* localStorage unavailable or full — ignore */
     }
+  }
+
+  function readFavorites() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return [];
+      const raw = window.localStorage.getItem(FAVORITES_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((entry) =>
+        entry && typeof entry.day === "string" && typeof entry.token === "string"
+      );
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeFavorites(entries) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(entries));
+    } catch (error) {
+      /* localStorage unavailable or full — ignore */
+    }
+  }
+
+  function isFavorite(pull) {
+    if (!pull) return false;
+    return readFavorites().some((f) => f.day === pull.day && f.token === pull.token);
+  }
+
+  function toggleFavorite(pull) {
+    if (!pull) return;
+    const favs = readFavorites();
+    const idx = favs.findIndex((f) => f.day === pull.day && f.token === pull.token);
+    if (idx >= 0) {
+      favs.splice(idx, 1);
+    } else {
+      favs.unshift({
+        day: pull.day,
+        token: pull.token,
+        categoryId: pull.category.id,
+        categoryLabel: pull.category.label,
+        tone: pull.category.tone,
+        title: pull.outcome.title,
+        message: pull.outcome.message,
+        photo: pull.photo
+          ? {
+              url: pull.photo.url,
+              alt: pull.photo.alt || "",
+              caption: (pull.photo.caption || "").trim(),
+              type: pull.photo.type === "video" ? "video" : "image"
+            }
+          : null,
+        starredAt: Date.now()
+      });
+    }
+    writeFavorites(favs);
+    updateStarButton();
+    if (state.activeTab === "lieblinge") renderLieblinge();
+  }
+
+  function updateStarButton() {
+    const btn = $("[data-ag-star]");
+    if (!btn) return;
+    const starred = isFavorite(state.todaysPull);
+    btn.textContent = starred ? "★" : "☆";
+    btn.classList.toggle("is-starred", starred);
+    btn.title = starred ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
   }
 
   function recordHistoryEntry(pull) {
@@ -1044,14 +1130,84 @@
     }
   }
 
+  function renderHistoryItemEl(entry) {
+    const li = document.createElement("li");
+    li.className = "ag-history-item";
+    li.dataset.tone = entry.tone || "soft";
+
+    const head = document.createElement("div");
+    head.className = "ag-history-head";
+    const date = document.createElement("span");
+    date.className = "ag-history-date";
+    date.textContent = formatHistoryDate(entry.day);
+    const badge = document.createElement("span");
+    badge.className = "ag-history-badge";
+    badge.textContent = entry.categoryLabel || "Kapsel";
+    head.appendChild(date);
+    head.appendChild(badge);
+
+    const title = document.createElement("p");
+    title.className = "ag-history-title";
+    title.textContent = entry.title || "";
+
+    const message = document.createElement("p");
+    message.className = "ag-history-message";
+    message.textContent = entry.message || "";
+
+    li.appendChild(head);
+
+    if (entry.photo) {
+      const body = document.createElement("div");
+      body.className = "ag-history-body";
+
+      const thumb = document.createElement("div");
+      thumb.className = "ag-history-thumb";
+      if (entry.photo.type === "video") {
+        thumb.classList.add("is-video");
+        const icon = document.createElement("span");
+        icon.className = "ag-history-video-icon";
+        icon.textContent = "▶";
+        icon.setAttribute("aria-hidden", "true");
+        thumb.appendChild(icon);
+        const label = document.createElement("span");
+        label.className = "ag-history-video-label";
+        label.textContent = "Video";
+        thumb.appendChild(label);
+      } else {
+        const img = document.createElement("img");
+        img.src = entry.photo.url;
+        img.alt = entry.photo.alt || "Foto-Drop";
+        img.loading = "lazy";
+        img.decoding = "async";
+        thumb.appendChild(img);
+      }
+
+      const text = document.createElement("div");
+      text.className = "ag-history-text";
+      text.appendChild(title);
+      text.appendChild(message);
+
+      body.appendChild(thumb);
+      body.appendChild(text);
+      li.appendChild(body);
+    } else {
+      li.appendChild(title);
+      li.appendChild(message);
+    }
+
+    return li;
+  }
+
   function renderHistory() {
     const list = $("[data-ag-history]");
     const empty = $("[data-ag-history-empty]");
     const note = $("[data-ag-history-note]");
     list.innerHTML = "";
 
+    const token = getToken();
     const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 14;
     const entries = readHistory()
+      .filter((e) => e.token === token)
       .slice()
       .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0))
       .slice(0, cap);
@@ -1068,71 +1224,28 @@
     empty.hidden = true;
 
     for (const entry of entries) {
-      const li = document.createElement("li");
-      li.className = "ag-history-item";
-      li.dataset.tone = entry.tone || "soft";
+      list.appendChild(renderHistoryItemEl(entry));
+    }
+  }
 
-      const head = document.createElement("div");
-      head.className = "ag-history-head";
-      const date = document.createElement("span");
-      date.className = "ag-history-date";
-      date.textContent = formatHistoryDate(entry.day);
-      const badge = document.createElement("span");
-      badge.className = "ag-history-badge";
-      badge.textContent = entry.categoryLabel || "Kapsel";
-      head.appendChild(date);
-      head.appendChild(badge);
+  function renderLieblinge() {
+    const list = $("[data-ag-lieblinge]");
+    const empty = $("[data-ag-lieblinge-empty]");
+    const note = $("[data-ag-lieblinge-note]");
+    list.innerHTML = "";
 
-      const title = document.createElement("p");
-      title.className = "ag-history-title";
-      title.textContent = entry.title || "";
+    const favs = readFavorites();
+    note.textContent = "Deine gespeicherten Lieblingspreise — per Stern markiert.";
 
-      const message = document.createElement("p");
-      message.className = "ag-history-message";
-      message.textContent = entry.message || "";
+    if (!favs.length) {
+      empty.hidden = false;
+      empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel.";
+      return;
+    }
+    empty.hidden = true;
 
-      li.appendChild(head);
-
-      if (entry.photo) {
-        const body = document.createElement("div");
-        body.className = "ag-history-body";
-
-        const thumb = document.createElement("div");
-        thumb.className = "ag-history-thumb";
-        if (entry.photo.type === "video") {
-          thumb.classList.add("is-video");
-          const icon = document.createElement("span");
-          icon.className = "ag-history-video-icon";
-          icon.textContent = "▶";
-          icon.setAttribute("aria-hidden", "true");
-          thumb.appendChild(icon);
-          const label = document.createElement("span");
-          label.className = "ag-history-video-label";
-          label.textContent = "Video";
-          thumb.appendChild(label);
-        } else {
-          const img = document.createElement("img");
-          img.src = entry.photo.url;
-          img.alt = entry.photo.alt || "Foto-Drop";
-          img.loading = "lazy";
-          img.decoding = "async";
-          thumb.appendChild(img);
-        }
-
-        const text = document.createElement("div");
-        text.className = "ag-history-text";
-        text.appendChild(title);
-        text.appendChild(message);
-
-        body.appendChild(thumb);
-        body.appendChild(text);
-        li.appendChild(body);
-      } else {
-        li.appendChild(title);
-        li.appendChild(message);
-      }
-
-      list.appendChild(li);
+    for (const entry of favs) {
+      list.appendChild(renderHistoryItemEl(entry));
     }
   }
 
@@ -1146,7 +1259,9 @@
     });
     $("[data-ag-panel-today]").hidden = tab !== "today";
     $("[data-ag-panel-history]").hidden = tab !== "history";
+    $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
     if (tab === "history") renderHistory();
+    if (tab === "lieblinge") renderLieblinge();
   }
 
   function bindEvents() {
@@ -1167,6 +1282,9 @@
     $("[data-ag-save-img]").addEventListener("click", () => {
       if (!state.todaysPull) return;
       downloadResultAsImage(state.todaysPull);
+    });
+    $("[data-ag-star]").addEventListener("click", () => {
+      toggleFavorite(state.todaysPull);
     });
     mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
       node.addEventListener("click", () => setActiveTab(node.dataset.agTab));
@@ -1664,6 +1782,8 @@
         background:transparent;color:var(--ag-primary-dark);border-color:var(--ag-border);text-decoration:none;
       }
       .ag-secondary:hover{transform:translateY(-1px);border-color:var(--ag-primary);background:rgba(47,122,79,.08)}
+      .ag-star.is-starred{color:var(--ag-gold);border-color:var(--ag-gold);background:rgba(185,120,46,.1)}
+      .ag-star.is-starred:hover{background:rgba(185,120,46,.18)}
 
       .ag-rules{color:var(--ag-text)}
       .ag-rules summary{
