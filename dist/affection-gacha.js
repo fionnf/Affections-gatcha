@@ -5,12 +5,17 @@
   const mount = document.querySelector(mountSelector) || createMount();
 
   const STORAGE_KEY = "affektions-gacha:history:v1";
+  const FAVORITES_KEY = "affektions-gacha:favourites:v1";
+  const WISH_KEY = "affektions-gacha:wish:v1";
+  const MILESTONE_KEY = "affektions-gacha:milestones:v1";
+  const NOTIF_KEY = "affektions-gacha:notif:v1";
 
   // ── Streak helpers ──────────────────────────────────────────────────────────
 
   /** Count consecutive days ending at today (or yesterday if today not yet pulled) */
   function computeStreak() {
-    const history = readHistory();
+    const token = getToken();
+    const history = readHistory().filter((e) => e.token === token);
     if (!history.length) return 0;
     const tz = state.theme?.timezone || "UTC";
     const today = dateKeyInTimezone(tz);
@@ -163,7 +168,9 @@
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
       renderOdds();
+      renderWunschkapsel();
       bindEvents();
+      registerServiceWorker();
     } catch (error) {
       renderError(error);
     }
@@ -360,6 +367,7 @@
                 <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
                   <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">⭐</button>
                 </div>
               </div>
             </header>
@@ -381,6 +389,9 @@
             </div>
 
             <article class="ag-card ag-result" data-ag-result aria-live="polite" hidden>
+              <div class="ag-milestone" data-ag-milestone hidden>
+                <span data-ag-milestone-text></span>
+              </div>
               <div class="ag-result-head">
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
@@ -395,6 +406,7 @@
                 <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
                 <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
                 <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
+                <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
               </div>
             </article>
 
@@ -403,6 +415,38 @@
               <p data-ag-rules-text></p>
               <ul data-ag-odds></ul>
             </details>
+
+            <div class="ag-card ag-wish-card" data-ag-wish-card>
+              <div data-ag-wish-idle>
+                <p class="ag-wish-label">Wunschkapsel</p>
+                <p class="ag-wish-note">Einmal pro Woche kannst du einen Wunsch einreichen. Die Maschine nimmt ihn entgegen – ohne Versprechen.</p>
+                <button class="ag-secondary" type="button" data-ag-wish-open>Wunsch einreichen</button>
+              </div>
+              <div data-ag-wish-form hidden>
+                <p class="ag-wish-label">Was wünschst du dir?</p>
+                <textarea class="ag-wish-input" data-ag-wish-input rows="3" maxlength="280" placeholder="Ein Spaziergang, ein Abend, etwas Besonderes..."></textarea>
+                <div class="ag-wish-actions">
+                  <button class="ag-secondary" type="button" data-ag-wish-cancel>Abbrechen</button>
+                  <button class="ag-button" type="button" data-ag-wish-submit>
+                    <span class="ag-button-orb" aria-hidden="true"></span>
+                    <span>Einreichen</span>
+                  </button>
+                </div>
+              </div>
+              <div data-ag-wish-done hidden>
+                <p class="ag-wish-label" data-ag-wish-done-title></p>
+                <p class="ag-wish-note" data-ag-wish-done-note></p>
+                <p class="ag-wish-meta" data-ag-wish-done-meta></p>
+              </div>
+            </div>
+
+            <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
+              <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>
+              <div class="ag-notif-actions">
+                <button class="ag-secondary" type="button" data-ag-notif-dismiss>Nicht jetzt</button>
+                <button class="ag-secondary" type="button" data-ag-notif-enable>Erinnern</button>
+              </div>
+            </div>
           </section>
 
           <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
@@ -412,7 +456,14 @@
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
             </div>
           </section>
-          
+          <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
+            <div class="ag-card">
+              <p class="ag-history-note" data-ag-lieblinge-note></p>
+              <ol class="ag-history" data-ag-lieblinge></ol>
+              <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
+            </div>
+          </section>
+
           <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Bärlauch-Modus</span>
@@ -446,9 +497,6 @@
             <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
 
           </section>
-
-
-          
         </div>
       </div>
     `;
@@ -1086,8 +1134,15 @@
       category = state.outcomes.categories.find((item) => item.id === "common") || category;
     }
 
-    const outcome = category.outcomes[
-      seededIndex(`${baseSeed}|${category.id}|outcome`, category.outcomes.length)
+    const usedTitles = new Set(
+      readHistory()
+        .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
+        .map((e) => e.title)
+    );
+    const availableOutcomes = category.outcomes.filter((o) => !usedTitles.has(o.title));
+    const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : category.outcomes;
+    const outcome = outcomePool[
+      seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)
     ];
 
     const photo =
@@ -1151,7 +1206,7 @@
     let mediaEl;
     if (photo.type === "video") {
       mediaEl = document.createElement("video");
-      mediaEl.src = photo.url;
+      mediaEl.src = safeUrl(photo.url);
       mediaEl.controls = true;
       mediaEl.muted = true;
       mediaEl.playsInline = true;
@@ -1160,7 +1215,7 @@
       mediaEl.setAttribute("aria-label", altText);
     } else {
       mediaEl = document.createElement("img");
-      mediaEl.src = photo.url;
+      mediaEl.src = safeUrl(photo.url);
       mediaEl.alt = altText;
       mediaEl.loading = "lazy";
       mediaEl.decoding = "async";
@@ -1223,6 +1278,7 @@
     }
 
     $("[data-ag-result]").hidden = false;
+    updateStarButton();
   }
 
   function readHistory() {
@@ -1247,6 +1303,75 @@
     } catch (error) {
       /* localStorage unavailable or full — ignore */
     }
+  }
+
+  function readFavorites() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return [];
+      const raw = window.localStorage.getItem(FAVORITES_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((entry) =>
+        entry && typeof entry.day === "string" && typeof entry.token === "string"
+      );
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeFavorites(entries) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(entries));
+    } catch (error) {
+      /* localStorage unavailable or full — ignore */
+    }
+  }
+
+  function isFavorite(pull) {
+    if (!pull) return false;
+    return readFavorites().some((f) => f.day === pull.day && f.token === pull.token);
+  }
+
+  function toggleFavorite(pull) {
+    if (!pull) return;
+    const favs = readFavorites();
+    const idx = favs.findIndex((f) => f.day === pull.day && f.token === pull.token);
+    if (idx >= 0) {
+      favs.splice(idx, 1);
+    } else {
+      favs.unshift({
+        day: pull.day,
+        token: pull.token,
+        categoryId: pull.category.id,
+        categoryLabel: pull.category.label,
+        tone: pull.category.tone,
+        title: pull.outcome.title,
+        message: pull.outcome.message,
+        photo: pull.photo
+          ? {
+              url: pull.photo.url,
+              alt: pull.photo.alt || "",
+              caption: (pull.photo.caption || "").trim(),
+              type: pull.photo.type === "video" ? "video" : "image"
+            }
+          : null,
+        starredAt: Date.now()
+      });
+    }
+    writeFavorites(favs);
+    updateStarButton();
+    if (state.activeTab === "lieblinge") renderLieblinge();
+  }
+
+  function updateStarButton() {
+    const btn = $("[data-ag-star]");
+    if (!btn) return;
+    const starred = isFavorite(state.todaysPull);
+    btn.textContent = starred ? "★" : "☆";
+    btn.classList.toggle("is-starred", starred);
+    btn.title = starred ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
   }
 
   function recordHistoryEntry(pull) {
@@ -1330,8 +1455,16 @@
       buttonText.textContent = state.theme.brand.buttonShown;
       state.revealed = true;
       recordHistoryEntry(state.todaysPull);
+      const streak = computeStreak();
       renderStreak();
+      renderMilestoneBanner(streak);
+      if (MILESTONE_MESSAGES[streak]) {
+        haptic([30, 20, 30, 20, 60]);
+      } else {
+        haptic([20, 20, 40]);
+      }
       if (state.activeTab === "history") renderHistory();
+      showNotifPrompt();
     }, state.theme.revealDelayMs || 3200);
   }
 
@@ -1369,14 +1502,84 @@
     }
   }
 
+  function renderHistoryItemEl(entry) {
+    const li = document.createElement("li");
+    li.className = "ag-history-item";
+    li.dataset.tone = entry.tone || "soft";
+
+    const head = document.createElement("div");
+    head.className = "ag-history-head";
+    const date = document.createElement("span");
+    date.className = "ag-history-date";
+    date.textContent = formatHistoryDate(entry.day);
+    const badge = document.createElement("span");
+    badge.className = "ag-history-badge";
+    badge.textContent = entry.categoryLabel || "Kapsel";
+    head.appendChild(date);
+    head.appendChild(badge);
+
+    const title = document.createElement("p");
+    title.className = "ag-history-title";
+    title.textContent = entry.title || "";
+
+    const message = document.createElement("p");
+    message.className = "ag-history-message";
+    message.textContent = entry.message || "";
+
+    li.appendChild(head);
+
+    if (entry.photo) {
+      const body = document.createElement("div");
+      body.className = "ag-history-body";
+
+      const thumb = document.createElement("div");
+      thumb.className = "ag-history-thumb";
+      if (entry.photo.type === "video") {
+        thumb.classList.add("is-video");
+        const icon = document.createElement("span");
+        icon.className = "ag-history-video-icon";
+        icon.textContent = "▶";
+        icon.setAttribute("aria-hidden", "true");
+        thumb.appendChild(icon);
+        const label = document.createElement("span");
+        label.className = "ag-history-video-label";
+        label.textContent = "Video";
+        thumb.appendChild(label);
+      } else {
+        const img = document.createElement("img");
+        img.src = safeUrl(entry.photo.url);
+        img.alt = entry.photo.alt || "Foto-Drop";
+        img.loading = "lazy";
+        img.decoding = "async";
+        thumb.appendChild(img);
+      }
+
+      const text = document.createElement("div");
+      text.className = "ag-history-text";
+      text.appendChild(title);
+      text.appendChild(message);
+
+      body.appendChild(thumb);
+      body.appendChild(text);
+      li.appendChild(body);
+    } else {
+      li.appendChild(title);
+      li.appendChild(message);
+    }
+
+    return li;
+  }
+
   function renderHistory() {
     const list = $("[data-ag-history]");
     const empty = $("[data-ag-history-empty]");
     const note = $("[data-ag-history-note]");
     list.innerHTML = "";
 
+    const token = getToken();
     const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 14;
     const entries = readHistory()
+      .filter((e) => e.token === token)
       .slice()
       .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0))
       .slice(0, cap);
@@ -1393,72 +1596,226 @@
     empty.hidden = true;
 
     for (const entry of entries) {
-      const li = document.createElement("li");
-      li.className = "ag-history-item";
-      li.dataset.tone = entry.tone || "soft";
-
-      const head = document.createElement("div");
-      head.className = "ag-history-head";
-      const date = document.createElement("span");
-      date.className = "ag-history-date";
-      date.textContent = formatHistoryDate(entry.day);
-      const badge = document.createElement("span");
-      badge.className = "ag-history-badge";
-      badge.textContent = entry.categoryLabel || "Kapsel";
-      head.appendChild(date);
-      head.appendChild(badge);
-
-      const title = document.createElement("p");
-      title.className = "ag-history-title";
-      title.textContent = entry.title || "";
-
-      const message = document.createElement("p");
-      message.className = "ag-history-message";
-      message.textContent = entry.message || "";
-
-      li.appendChild(head);
-
-      if (entry.photo) {
-        const body = document.createElement("div");
-        body.className = "ag-history-body";
-
-        const thumb = document.createElement("div");
-        thumb.className = "ag-history-thumb";
-        if (entry.photo.type === "video") {
-          thumb.classList.add("is-video");
-          const icon = document.createElement("span");
-          icon.className = "ag-history-video-icon";
-          icon.textContent = "▶";
-          icon.setAttribute("aria-hidden", "true");
-          thumb.appendChild(icon);
-          const label = document.createElement("span");
-          label.className = "ag-history-video-label";
-          label.textContent = "Video";
-          thumb.appendChild(label);
-        } else {
-          const img = document.createElement("img");
-          img.src = entry.photo.url;
-          img.alt = entry.photo.alt || "Foto-Drop";
-          img.loading = "lazy";
-          img.decoding = "async";
-          thumb.appendChild(img);
-        }
-
-        const text = document.createElement("div");
-        text.className = "ag-history-text";
-        text.appendChild(title);
-        text.appendChild(message);
-
-        body.appendChild(thumb);
-        body.appendChild(text);
-        li.appendChild(body);
-      } else {
-        li.appendChild(title);
-        li.appendChild(message);
-      }
-
-      list.appendChild(li);
+      list.appendChild(renderHistoryItemEl(entry));
     }
+  }
+
+  function renderLieblinge() {
+    const list = $("[data-ag-lieblinge]");
+    const empty = $("[data-ag-lieblinge-empty]");
+    const note = $("[data-ag-lieblinge-note]");
+    list.innerHTML = "";
+
+    const favs = readFavorites();
+    note.textContent = "Deine gespeicherten Lieblingspreise — per Stern markiert.";
+
+    if (!favs.length) {
+      empty.hidden = false;
+      empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel.";
+      return;
+    }
+    empty.hidden = true;
+
+    for (const entry of favs) {
+      list.appendChild(renderHistoryItemEl(entry));
+    }
+  }
+
+  // ── Wunschkapsel ────────────────────────────────────────────────────────────
+
+  function currentWeekKey() {
+    const d = new Date();
+    const utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    utc.setUTCDate(utc.getUTCDate() + 4 - (utc.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((utc - yearStart) / 86400000 + 1) / 7);
+    return `${utc.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+  }
+
+  function readWish() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return null;
+      const raw = window.localStorage.getItem(WISH_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeWish(entry) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(WISH_KEY, JSON.stringify(entry));
+    } catch (error) {
+      /* localStorage unavailable — ignore */
+    }
+  }
+
+  function renderWunschkapsel() {
+    const idle = $("[data-ag-wish-idle]");
+    const form = $("[data-ag-wish-form]");
+    const done = $("[data-ag-wish-done]");
+    if (!idle || !form || !done) return;
+    const wish = readWish();
+    const wishThisWeek = wish && wish.week === currentWeekKey();
+    if (wishThisWeek) {
+      idle.hidden = true;
+      form.hidden = true;
+      done.hidden = false;
+      $("[data-ag-wish-done-title]").textContent = "✨ Wunsch eingereicht";
+      $("[data-ag-wish-done-note]").textContent = `„${wish.text}"`;
+      $("[data-ag-wish-done-meta]").textContent = "Die Maschine hat es notiert. Ob etwas passiert, bleibt offen.";
+    } else {
+      idle.hidden = false;
+      form.hidden = true;
+      done.hidden = true;
+    }
+  }
+
+  // ── Streak milestones ────────────────────────────────────────────────────────
+
+  const MILESTONE_MESSAGES = {
+    7:  "🌿 Sieben Tage am Stück. Die Maschine nickt anerkennend.",
+    14: "🔥 Zwei Wochen am Stück. Offiziell notiert im Maschinenregister.",
+    21: "✨ Drei Wochen. Die Maschine neigt sich leicht. Respekt.",
+    30: "💎 Dreißig Tage. Die Maschine ist gerührt und würde applaudieren, wenn sie Hände hätte."
+  };
+
+  function readMilestones() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return [];
+      const raw = window.localStorage.getItem(MILESTONE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeMilestones(entries) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(MILESTONE_KEY, JSON.stringify(entries));
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  function isMilestoneSeen(token, streak) {
+    return readMilestones().includes(`${token}|${streak}`);
+  }
+
+  function markMilestoneSeen(token, streak) {
+    const key = `${token}|${streak}`;
+    const seen = readMilestones();
+    if (!seen.includes(key)) writeMilestones([...seen, key]);
+  }
+
+  function renderMilestoneBanner(streak) {
+    const el = $("[data-ag-milestone]");
+    if (!el) return;
+    const msg = MILESTONE_MESSAGES[streak];
+    if (!msg) { el.hidden = true; return; }
+    const token = getToken();
+    if (isMilestoneSeen(token, streak)) { el.hidden = true; return; }
+    $("[data-ag-milestone-text]").textContent = msg;
+    el.hidden = false;
+    markMilestoneSeen(token, streak);
+  }
+
+  // ── Notifications ────────────────────────────────────────────────────────────
+
+  function showNotifPrompt() {
+    const card = $("[data-ag-notif-card]");
+    if (!card) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted" || Notification.permission === "denied") return;
+    try {
+      if (window.localStorage.getItem(NOTIF_KEY) === "dismissed") return;
+    } catch (error) {
+      return;
+    }
+    card.hidden = false;
+  }
+
+  function nextNotificationTimestamp() {
+    const tz = state.theme?.timezone || "Europe/Zurich";
+    const timeStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false
+    }).format(new Date());
+    const [h, m] = timeStr.split(":").map(Number);
+    const minutesSinceMidnight = h * 60 + m;
+    const targetMinutes = 8 * 60;
+    const minutesUntil = minutesSinceMidnight < targetMinutes
+      ? targetMinutes - minutesSinceMidnight
+      : 24 * 60 - minutesSinceMidnight + targetMinutes;
+    return Date.now() + minutesUntil * 60 * 1000;
+  }
+
+  async function scheduleNotification() {
+    if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const name = displayNameFromToken();
+      reg.active?.postMessage({
+        type: "SCHEDULE_NOTIFICATION",
+        targetTime: nextNotificationTimestamp(),
+        title: `${name}s Kapsel wartet 🎲`,
+        body: "Heute noch keine Kapsel gezogen — zieh jetzt!"
+      });
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  async function tryPeriodicSync() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (!("periodicSync" in reg)) return;
+      await reg.periodicSync.register("ag-daily-reminder", {
+        minInterval: 20 * 60 * 60 * 1000
+      });
+    } catch (error) {
+      /* Periodic Background Sync not supported — ignore */
+    }
+  }
+
+  async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const swUrl = urlFor("sw.js");
+      if (new URL(swUrl).origin !== window.location.origin) return;
+      await navigator.serviceWorker.register(swUrl, {
+        scope: new URL("./", swUrl).pathname
+      });
+      if (Notification.permission === "granted") {
+        await scheduleNotification();
+        await tryPeriodicSync();
+      }
+    } catch (error) {
+      /* SW not supported or cross-origin — silent fail */
+    }
+  }
+
+  async function enableNotifications() {
+    const notifCard = $("[data-ag-notif-card]");
+    if (!("Notification" in window)) {
+      if (notifCard) notifCard.hidden = true;
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (notifCard) notifCard.hidden = true;
+    if (permission !== "granted") {
+      try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
+      return;
+    }
+    try { window.localStorage.setItem(NOTIF_KEY, "granted"); } catch (error) { /* ignore */ }
+    await registerServiceWorker();
   }
 
   function setActiveTab(tab) {
@@ -1471,11 +1828,23 @@
     });
     $("[data-ag-panel-today]").hidden = tab !== "today";
     $("[data-ag-panel-history]").hidden = tab !== "history";
+    $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
     if (tab === "history") renderHistory();
+    if (tab === "lieblinge") renderLieblinge();
+  }
+
+  // ── Haptic feedback ─────────────────────────────────────────────────────────
+
+  function haptic(pattern) {
+    if (!navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch (error) { /* ignore */ }
   }
 
   function bindEvents() {
-    $("[data-ag-draw]").addEventListener("click", reveal);
+    $("[data-ag-draw]").addEventListener("click", () => {
+      haptic(12);
+      reveal();
+    });
     $("#ag-btn-baerlauch")?.addEventListener("click", openBaerlauchGame);
     $("#ag-baerlauch-close")?.addEventListener("click", closeBaerlauchGame);
     $("#ag-baerlauch-next")?.addEventListener("click", openBaerlauchGame);
@@ -1485,9 +1854,9 @@
         openBaerlauchGame();
       }
     });
-
     $("[data-ag-copy]").addEventListener("click", async () => {
       if (!state.todaysPull) return;
+      haptic(8);
       const text = messageText(state.todaysPull);
       try {
         await navigator.clipboard.writeText(text);
@@ -1501,11 +1870,68 @@
     });
     $("[data-ag-save-img]").addEventListener("click", () => {
       if (!state.todaysPull) return;
+      haptic(8);
       downloadResultAsImage(state.todaysPull);
     });
-    mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
-      node.addEventListener("click", () => setActiveTab(node.dataset.agTab));
+    $("[data-ag-star]").addEventListener("click", () => {
+      haptic(8);
+      toggleFavorite(state.todaysPull);
     });
+    mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
+      node.addEventListener("click", () => {
+        haptic(6);
+        setActiveTab(node.dataset.agTab);
+      });
+    });
+
+    // Wunschkapsel
+    const wishOpen = $("[data-ag-wish-open]");
+    const wishCancel = $("[data-ag-wish-cancel]");
+    const wishSubmit = $("[data-ag-wish-submit]");
+    if (wishOpen) {
+      wishOpen.addEventListener("click", () => {
+        haptic(8);
+        $("[data-ag-wish-idle]").hidden = true;
+        $("[data-ag-wish-form]").hidden = false;
+        const input = $("[data-ag-wish-input]");
+        if (input) window.setTimeout(() => input.focus(), 60);
+      });
+    }
+    if (wishCancel) {
+      wishCancel.addEventListener("click", () => {
+        haptic(6);
+        $("[data-ag-wish-form]").hidden = true;
+        $("[data-ag-wish-idle]").hidden = false;
+      });
+    }
+    if (wishSubmit) {
+      wishSubmit.addEventListener("click", () => {
+        const input = $("[data-ag-wish-input]");
+        const text = (input?.value || "").trim();
+        if (!text) return;
+        haptic([20, 20, 40]);
+        writeWish({ week: currentWeekKey(), text, submittedAt: Date.now() });
+        renderWunschkapsel();
+      });
+    }
+
+    // Notification prompt
+    const notifEnable = $("[data-ag-notif-enable]");
+    const notifDismiss = $("[data-ag-notif-dismiss]");
+    if (notifEnable) {
+      notifEnable.addEventListener("click", () => {
+        haptic(10);
+        enableNotifications();
+      });
+    }
+    if (notifDismiss) {
+      notifDismiss.addEventListener("click", () => {
+        haptic(6);
+        try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
+        const card = $("[data-ag-notif-card]");
+        if (card) card.hidden = true;
+      });
+    }
   }
 
   function drawRoundRect(ctx, x, y, w, h, r) {
@@ -1648,6 +2074,17 @@
       '"': "&quot;",
       "'": "&#039;"
     }[character]));
+  }
+
+  /** Validate a URL is http(s) before assigning to src/href. Returns "" for anything else. */
+  function safeUrl(url) {
+    if (typeof url !== "string") return "";
+    try {
+      const parsed = new URL(url, window.location.href);
+      return (parsed.protocol === "https:" || parsed.protocol === "http:") ? parsed.href : "";
+    } catch (error) {
+      return "";
+    }
   }
 
   function injectStyles() {
@@ -2143,6 +2580,8 @@
         background:transparent;color:var(--ag-primary-dark);border-color:var(--ag-border);text-decoration:none;
       }
       .ag-secondary:hover{transform:translateY(-1px);border-color:var(--ag-primary);background:rgba(47,122,79,.08)}
+      .ag-star.is-starred{color:var(--ag-gold);border-color:var(--ag-gold);background:rgba(185,120,46,.1)}
+      .ag-star.is-starred:hover{background:rgba(185,120,46,.18)}
 
       .ag-rules{color:var(--ag-text)}
       .ag-rules summary{
@@ -2255,6 +2694,48 @@
         .ag-widget *,.ag-widget *:before,.ag-widget *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
         .ag-machine-capsule,.ag-mach-glow,.ag-mach-orbit,.ag-orbit span,.ag-shimmer,.ag-road-dash,.ag-firefly,.ag-sun,.ag-button-orb,.ag-emoji{animation:none!important}
       }
+
+      /* ── Milestone banner ── */
+      .ag-milestone{
+        display:flex;align-items:center;gap:10px;
+        padding:12px 16px;border-radius:var(--ag-radius-md);
+        background:linear-gradient(135deg,rgba(185,120,46,.14),rgba(47,122,79,.12));
+        border:1px solid rgba(185,120,46,.3);
+        margin-bottom:14px;
+        animation:ag-enter 500ms var(--ag-ease);
+      }
+      .ag-milestone[data-ag-milestone]:not([hidden]){display:flex}
+      .ag-milestone span{font-size:.95rem;font-weight:700;color:var(--ag-primary-dark);line-height:1.4}
+      @media (prefers-color-scheme:dark){
+        .ag-milestone{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
+        .ag-milestone span{color:#d4c07a}
+      }
+
+      /* ── Wunschkapsel card ── */
+      .ag-wish-card{}
+      .ag-wish-label{margin:0 0 6px;font-weight:800;font-size:1rem;color:var(--ag-text);letter-spacing:.01em}
+      .ag-wish-note{margin:0 0 14px;color:var(--ag-muted);font-size:.92rem;line-height:1.55}
+      .ag-wish-meta{margin:6px 0 0;color:var(--ag-muted);font-size:.82rem;font-style:italic}
+      .ag-wish-input{
+        display:block;width:100%;padding:12px 14px;
+        border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
+        background:var(--ag-surface-2);color:var(--ag-text);
+        font-family:inherit;font-size:.95rem;line-height:1.5;resize:vertical;
+        transition:border-color 150ms var(--ag-ease);outline:none;
+        margin-bottom:12px;
+      }
+      .ag-wish-input:focus{border-color:var(--ag-primary)}
+      @media (prefers-color-scheme:dark){
+        .ag-wish-input{background:rgba(8,28,18,.6);border-color:rgba(255,255,255,.12)}
+        .ag-wish-input:focus{border-color:var(--ag-primary)}
+      }
+      .ag-wish-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+      /* ── Notification prompt card ── */
+      .ag-notif-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+      .ag-notif-card:not([hidden]){display:flex}
+      .ag-notif-text{margin:0;font-size:.93rem;color:var(--ag-text);flex:1;min-width:0;line-height:1.5}
+      .ag-notif-actions{display:flex;gap:8px;flex-shrink:0}
     `;
     document.head.appendChild(style);
   }
