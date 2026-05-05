@@ -6,6 +6,9 @@
 
   const STORAGE_KEY = "affektions-gacha:history:v1";
   const FAVORITES_KEY = "affektions-gacha:favourites:v1";
+  const WISH_KEY = "affektions-gacha:wish:v1";
+  const MILESTONE_KEY = "affektions-gacha:milestones:v1";
+  const NOTIF_KEY = "affektions-gacha:notif:v1";
 
   // ── Streak helpers ──────────────────────────────────────────────────────────
 
@@ -376,6 +379,9 @@
             </div>
 
             <article class="ag-card ag-result" data-ag-result aria-live="polite" hidden>
+              <div class="ag-milestone" data-ag-milestone hidden>
+                <span data-ag-milestone-text></span>
+              </div>
               <div class="ag-result-head">
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
@@ -399,6 +405,38 @@
               <p data-ag-rules-text></p>
               <ul data-ag-odds></ul>
             </details>
+
+            <div class="ag-card ag-wish-card" data-ag-wish-card>
+              <div data-ag-wish-idle>
+                <p class="ag-wish-label">Wunschkapsel</p>
+                <p class="ag-wish-note">Einmal pro Woche kannst du einen Wunsch einreichen. Die Maschine nimmt ihn entgegen – ohne Versprechen.</p>
+                <button class="ag-secondary" type="button" data-ag-wish-open>Wunsch einreichen</button>
+              </div>
+              <div data-ag-wish-form hidden>
+                <p class="ag-wish-label">Was wünschst du dir?</p>
+                <textarea class="ag-wish-input" data-ag-wish-input rows="3" maxlength="280" placeholder="Ein Spaziergang, ein Abend, etwas Besonderes..."></textarea>
+                <div class="ag-wish-actions">
+                  <button class="ag-secondary" type="button" data-ag-wish-cancel>Abbrechen</button>
+                  <button class="ag-button" type="button" data-ag-wish-submit>
+                    <span class="ag-button-orb" aria-hidden="true"></span>
+                    <span>Einreichen</span>
+                  </button>
+                </div>
+              </div>
+              <div data-ag-wish-done hidden>
+                <p class="ag-wish-label" data-ag-wish-done-title></p>
+                <p class="ag-wish-note" data-ag-wish-done-note></p>
+                <p class="ag-wish-meta" data-ag-wish-done-meta></p>
+              </div>
+            </div>
+
+            <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
+              <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>
+              <div class="ag-notif-actions">
+                <button class="ag-secondary" type="button" data-ag-notif-dismiss>Nicht jetzt</button>
+                <button class="ag-secondary" type="button" data-ag-notif-enable>Erinnern</button>
+              </div>
+            </div>
           </section>
 
           <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
@@ -1247,6 +1285,203 @@
     for (const entry of favs) {
       list.appendChild(renderHistoryItemEl(entry));
     }
+  }
+
+  // ── Wunschkapsel ────────────────────────────────────────────────────────────
+
+  function currentWeekKey() {
+    const d = new Date();
+    const utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    utc.setUTCDate(utc.getUTCDate() + 4 - (utc.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((utc - yearStart) / 86400000 + 1) / 7);
+    return `${utc.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+  }
+
+  function readWish() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return null;
+      const raw = window.localStorage.getItem(WISH_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeWish(entry) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(WISH_KEY, JSON.stringify(entry));
+    } catch (error) {
+      /* localStorage unavailable — ignore */
+    }
+  }
+
+  function renderWunschkapsel() {
+    const idle = $("[data-ag-wish-idle]");
+    const form = $("[data-ag-wish-form]");
+    const done = $("[data-ag-wish-done]");
+    if (!idle || !form || !done) return;
+    const wish = readWish();
+    const wishThisWeek = wish && wish.week === currentWeekKey();
+    if (wishThisWeek) {
+      idle.hidden = true;
+      form.hidden = true;
+      done.hidden = false;
+      $("[data-ag-wish-done-title]").textContent = "✨ Wunsch eingereicht";
+      $("[data-ag-wish-done-note]").textContent = `„${wish.text}"`;
+      $("[data-ag-wish-done-meta]").textContent = "Die Maschine hat es notiert. Ob etwas passiert, bleibt offen.";
+    } else {
+      idle.hidden = false;
+      form.hidden = true;
+      done.hidden = true;
+    }
+  }
+
+  // ── Streak milestones ────────────────────────────────────────────────────────
+
+  const MILESTONE_MESSAGES = {
+    7:  "🌿 Sieben Tage am Stück. Die Maschine nickt anerkennend.",
+    14: "🔥 Zwei Wochen am Stück. Offiziell notiert im Maschinenregister.",
+    21: "✨ Drei Wochen. Die Maschine neigt sich leicht. Respekt.",
+    30: "💎 Dreißig Tage. Die Maschine ist gerührt und würde applaudieren, wenn sie Hände hätte."
+  };
+
+  function readMilestones() {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return [];
+      const raw = window.localStorage.getItem(MILESTONE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeMilestones(entries) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return;
+      window.localStorage.setItem(MILESTONE_KEY, JSON.stringify(entries));
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  function isMilestoneSeen(token, streak) {
+    return readMilestones().includes(`${token}|${streak}`);
+  }
+
+  function markMilestoneSeen(token, streak) {
+    const key = `${token}|${streak}`;
+    const seen = readMilestones();
+    if (!seen.includes(key)) writeMilestones([...seen, key]);
+  }
+
+  function renderMilestoneBanner(streak) {
+    const el = $("[data-ag-milestone]");
+    if (!el) return;
+    const msg = MILESTONE_MESSAGES[streak];
+    if (!msg) { el.hidden = true; return; }
+    const token = getToken();
+    if (isMilestoneSeen(token, streak)) { el.hidden = true; return; }
+    $("[data-ag-milestone-text]").textContent = msg;
+    el.hidden = false;
+    markMilestoneSeen(token, streak);
+  }
+
+  // ── Notifications ────────────────────────────────────────────────────────────
+
+  function showNotifPrompt() {
+    const card = $("[data-ag-notif-card]");
+    if (!card) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted" || Notification.permission === "denied") return;
+    try {
+      if (window.localStorage.getItem(NOTIF_KEY) === "dismissed") return;
+    } catch (error) {
+      return;
+    }
+    card.hidden = false;
+  }
+
+  function nextNotificationTimestamp() {
+    const tz = state.theme?.timezone || "Europe/Zurich";
+    const timeStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false
+    }).format(new Date());
+    const [h, m] = timeStr.split(":").map(Number);
+    const minutesSinceMidnight = h * 60 + m;
+    const targetMinutes = 8 * 60;
+    const minutesUntil = minutesSinceMidnight < targetMinutes
+      ? targetMinutes - minutesSinceMidnight
+      : 24 * 60 - minutesSinceMidnight + targetMinutes;
+    return Date.now() + minutesUntil * 60 * 1000;
+  }
+
+  async function scheduleNotification() {
+    if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const name = displayNameFromToken();
+      reg.active?.postMessage({
+        type: "SCHEDULE_NOTIFICATION",
+        targetTime: nextNotificationTimestamp(),
+        title: `${name}s Kapsel wartet 🎲`,
+        body: "Heute noch keine Kapsel gezogen — zieh jetzt!"
+      });
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  async function tryPeriodicSync() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (!("periodicSync" in reg)) return;
+      await reg.periodicSync.register("ag-daily-reminder", {
+        minInterval: 20 * 60 * 60 * 1000
+      });
+    } catch (error) {
+      /* Periodic Background Sync not supported — ignore */
+    }
+  }
+
+  async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const swUrl = urlFor("sw.js");
+      if (new URL(swUrl).origin !== window.location.origin) return;
+      await navigator.serviceWorker.register(swUrl, {
+        scope: new URL("./", swUrl).pathname
+      });
+      if (Notification.permission === "granted") {
+        await scheduleNotification();
+        await tryPeriodicSync();
+      }
+    } catch (error) {
+      /* SW not supported or cross-origin — silent fail */
+    }
+  }
+
+  async function enableNotifications() {
+    const notifCard = $("[data-ag-notif-card]");
+    if (!("Notification" in window)) {
+      if (notifCard) notifCard.hidden = true;
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (notifCard) notifCard.hidden = true;
+    if (permission !== "granted") {
+      try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
+      return;
+    }
+    try { window.localStorage.setItem(NOTIF_KEY, "granted"); } catch (error) { /* ignore */ }
+    await registerServiceWorker();
   }
 
   function setActiveTab(tab) {

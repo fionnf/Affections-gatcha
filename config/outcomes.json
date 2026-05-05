@@ -49,6 +49,26 @@
         {
           "title": "Gedanken-Ping",
           "message": "Du musst jetzt acht Sekunden an Fionn denken. Die Maschine behauptet, sie könne das überprüfen."
+        },
+        {
+          "title": "Tagesfoto-Test",
+          "message": "Was wäre heute dein Profilbild? Nur ein Gedankenexperiment. Antwort an Fionn optional aber erwünscht."
+        },
+        {
+          "title": "Stimmungskompass",
+          "message": "Wohin zeigt heute dein innerer Kompass: Ruhe, Aufbruch, Hunger oder Ablenkung? Eines davon ist richtig. Vielleicht alle."
+        },
+        {
+          "title": "Mini-Beichte",
+          "message": "Nenne eine sehr harmlose Sache, die du heute aufgeschoben hast. Ehrlichkeit gilt als vollständige Erledigung."
+        },
+        {
+          "title": "Akku-Stand",
+          "message": "Wie ist heute dein Energielevel, auf einer Skala von Kissen bis Berggipfel? Aufrunden verboten."
+        },
+        {
+          "title": "Kleiner Höhepunkt",
+          "message": "Was war heute die beste Kleinigkeit? Kaffeetemperatur, kurze Stille und warme Duschen zählen vollständig."
         }
       ]
     },
@@ -133,6 +153,26 @@
         {
           "title": "Formular 7B",
           "message": "Bitte reiche eine schriftliche Begründung ein, warum du heute Aufmerksamkeit verdient hast. Skizzen erlaubt."
+        },
+        {
+          "title": "Klang-Steuer",
+          "message": "Du musst Fionn einen Song schicken, der dich heute beschreibt. Peinlichkeit ist kein Ausnahmetatbestand."
+        },
+        {
+          "title": "Gegenfrage-Pflicht",
+          "message": "Du musst Fionn eine Frage stellen. Sie darf unverschämt neugierig sein. Höflichkeit ist optional."
+        },
+        {
+          "title": "Vorhersage-Abgabe",
+          "message": "Sage eine kleine Sache voraus, die diese Woche noch passiert. Die Maschine überprüft nichts, erinnert sich aber an alles."
+        },
+        {
+          "title": "Tier-Charakterzeugnis",
+          "message": "Erkläre dich selbst als Tier. Begründung ist Pflicht. Schönfärberei wird notiert und vorgelesen."
+        },
+        {
+          "title": "Sinnlose Bestenliste",
+          "message": "Erstelle eine Top-3 von etwas komplett Sinnlosem und schick sie Fionn. Die Maschine akzeptiert keine Einwände."
         }
       ]
     },
