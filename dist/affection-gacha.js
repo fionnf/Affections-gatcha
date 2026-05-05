@@ -378,6 +378,40 @@
         </div>
 
         <div class="ag-content">
+          <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Bärlauch-Modus</span>
+              <button class="ag-secondary" type="button" id="ag-baerlauch-close">Schließen</button>
+            </div>
+
+            <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
+            <p class="ag-mini-copy" id="ag-baerlauch-instruction">
+              Sammle nur die guten grünen Blätter – aber nicht toten Lauch oder Maiglöckchen, die giftig sind.
+            </p>
+            <p class="ag-mini-level" id="ag-baerlauch-level">Level 1</p>
+
+            <div class="ag-forage-wrap">
+              <div class="ag-forage-timer" id="ag-baerlauch-timer">8.0</div>
+              <div class="ag-forage-field" id="ag-baerlauch-field">
+                <div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>
+              </div>
+            </div>
+
+            <div class="ag-baerlauch-reward" id="ag-baerlauch-reward" hidden>
+              <div class="ag-baerlauch-photo" id="ag-baerlauch-photo"></div>
+              <p class="ag-baerlauch-text" id="ag-baerlauch-text"></p>
+            </div>
+
+            <div class="ag-baerlauch-actions" id="ag-baerlauch-actions" hidden>
+              <button class="ag-secondary" type="button" id="ag-baerlauch-next">
+                Nächstes Level
+              </button>
+            </div>
+
+            <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
+
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -479,40 +513,6 @@
               <ol class="ag-history" data-ag-lieblinge></ol>
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
-          </section>
-
-          <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Bärlauch-Modus</span>
-              <button class="ag-secondary" type="button" id="ag-baerlauch-close">Schließen</button>
-            </div>
-          
-            <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
-            <p class="ag-mini-copy" id="ag-baerlauch-instruction">
-              Sammle nur die guten grünen Blätter – aber nicht toten Lauch oder Maiglöckchen, die giftig sind.
-            </p>
-            <p class="ag-mini-level" id="ag-baerlauch-level">Level 1</p>
-          
-            <div class="ag-forage-wrap">
-              <div class="ag-forage-timer" id="ag-baerlauch-timer">8.0</div>
-              <div class="ag-forage-field" id="ag-baerlauch-field">
-                <div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>
-              </div>
-            </div>
-          
-            <div class="ag-baerlauch-reward" id="ag-baerlauch-reward" hidden>
-              <div class="ag-baerlauch-photo" id="ag-baerlauch-photo"></div>
-              <p class="ag-baerlauch-text" id="ag-baerlauch-text"></p>
-            </div>
-            
-            <div class="ag-baerlauch-actions" id="ag-baerlauch-actions" hidden>
-              <button class="ag-secondary" type="button" id="ag-baerlauch-next">
-                Nächstes Level
-              </button>
-            </div>
-            
-            <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
-
           </section>
         </div>
       </div>
