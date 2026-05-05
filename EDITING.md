@@ -291,6 +291,36 @@ has been noted — without any promise that it will be granted.  The stored
 wish is kept in `localStorage` under `affektions-gacha:wish:v1` and resets
 automatically each new week.
 
+### Forwarding wishes to a Google Sheet (no Mail/WhatsApp)
+
+Submissions can be silently forwarded to a Google Sheet via a Google Apps
+Script web app. The target sheet is
+[Wunschkapsel-Inbox](https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit)
+— worksheet `Wünsche`, headers `Timestamp | Token | Wish | Page URL | User Agent`.
+
+One-time setup:
+
+1. Open [script.google.com](https://script.google.com) → **New project**.
+2. Replace `Code.gs` with the contents of
+   `scripts/google-apps-script-wish-inbox.js`.
+3. **Deploy → New deployment → Web app**:
+   - Execute as: *Me*
+   - Who has access: *Anyone*
+4. Copy the `…/exec` URL Google gives you.
+5. Edit `config/wish-inbox.json`:
+   ```json
+   {
+     "enabled": true,
+     "endpointUrl": "https://script.google.com/macros/s/.../exec"
+   }
+   ```
+6. Commit + push.
+
+To disable remote forwarding, set `enabled` to `false` or clear `endpointUrl`.
+The local confirmation is always shown regardless of whether the network
+request succeeds — a failed forward is retried automatically the next time
+the page is opened in the same week.
+
 ## Tägliche Erinnerung (push notifications)
 
 After the very first capsule pull the widget offers to schedule a

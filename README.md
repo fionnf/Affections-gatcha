@@ -21,6 +21,7 @@ A daily capsule-pull web app for Lennart, embedded via Webflow + GitHub Pages. H
 - [Streak bonus](#streak-bonus)
 - [History tab](#history-tab)
 - [Sending results](#sending-results)
+- [Wunschkapsel inbox (Google Sheet)](#wunschkapsel-inbox-google-sheet)
 - [GitHub Actions](#github-actions)
 - [3D print notes](#3d-print-notes)
 
@@ -37,11 +38,13 @@ config/
   photos.json             Photo list and captions
   special-days.json       Special days with guaranteed outcomes and optional color overrides
   album-source.json       Source config for auto-sync from iCloud / Google Photos
+  wish-inbox.json         Endpoint config for forwarding Wunschkapsel submissions to a Google Sheet
 scripts/
-  validate-gacha-config.js  Checks JSON validity and weight totals
-  simulate-odds.js          Simulates many days to verify statistics
-  build-photo-manifest.js   Builds photos.json from an exported Apple Photos album
-  sync-shared-album.js      Reads album-source.json and writes photos.json from a public album
+  validate-gacha-config.js          Checks JSON validity and weight totals
+  simulate-odds.js                  Simulates many days to verify statistics
+  build-photo-manifest.js           Builds photos.json from an exported Apple Photos album
+  sync-shared-album.js              Reads album-source.json and writes photos.json from a public album
+  google-apps-script-wish-inbox.js  Apps Script source for the Wunschkapsel inbox web app
 webflow-loader.html         Tiny embed code to paste into Webflow
 webflow-embed.html          Older self-contained variant (still works)
 media-preview.html          Preview page for synced photos and videos
@@ -282,6 +285,35 @@ Or WhatsApp:
 When the pull is `rare` (Date-Credit) or `jackpot`, an **Als Bild speichern** button appears below the result card. Clicking it renders the result onto a canvas and downloads a PNG — useful to keep the credit.
 
 ---
+
+## Wunschkapsel inbox (Google Sheet)
+
+Wunschkapsel submissions are stored locally in `localStorage`. Optionally,
+they are silently POSTed to a Google Apps Script web app that appends a row to
+this Google Sheet:
+
+[Wunschkapsel-Inbox](https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit)
+(worksheet `Wünsche`, headers `Timestamp | Token | Wish | Page URL | User Agent`).
+
+Setup:
+
+1. Open [script.google.com](https://script.google.com) and create a new project.
+2. Paste the contents of [`scripts/google-apps-script-wish-inbox.js`](scripts/google-apps-script-wish-inbox.js) into `Code.gs`.
+3. **Deploy → New deployment → Web app**:
+   - Execute as: *Me*
+   - Who has access: *Anyone*
+4. Copy the `…/exec` URL.
+5. Paste it into `config/wish-inbox.json` → `endpointUrl`. Commit + push.
+
+Behaviour:
+
+- Submission is saved locally first; the local confirmation is shown immediately.
+- The POST runs in the background. The "done" card meta line shows
+  *„weitergeleitet"* on success, *„versucht, es weiterzuleiten…"* while in flight,
+  and *„Weiterleitung hat nicht geklappt"* on failure. A failed send is retried
+  the next time the page is opened that same week.
+- If `endpointUrl` is empty or `enabled` is `false`, no network request is made
+  and the original local-only message is shown.
 
 ## GitHub Actions
 

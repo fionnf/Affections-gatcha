@@ -154,16 +154,18 @@
     injectStyles();
     renderShell();
     try {
-      const [theme, outcomes, photos, specialDays] = await Promise.all([
+      const [theme, outcomes, photos, specialDays, wishInbox] = await Promise.all([
         fetchJson("config/theme.json"),
         fetchJson("config/outcomes.json"),
         fetchJson("config/photos.json", defaultPhotos),
-        fetchJson("config/special-days.json", { days: [] })
+        fetchJson("config/special-days.json", { days: [] }),
+        fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" })
       ]);
       state.theme = theme;
       state.outcomes = outcomes;
       state.photos = normalizePhotos(photos);
       state.specialDays = specialDays;
+      state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
@@ -171,6 +173,7 @@
       renderWunschkapsel();
       bindEvents();
       registerServiceWorker();
+      try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
     } catch (error) {
       renderError(error);
     }
@@ -1653,6 +1656,20 @@
     }
   }
 
+  function wishMetaText(remoteStatus) {
+    const baseline = "Die Maschine hat es notiert. Ob etwas passiert, bleibt offen.";
+    if (remoteStatus === "sent") {
+      return "Die Maschine hat es notiert und an Fionn weitergeleitet.";
+    }
+    if (remoteStatus === "pending") {
+      return "Die Maschine hat es notiert. Sie versucht, es weiterzuleiten…";
+    }
+    if (remoteStatus === "failed") {
+      return "Die Maschine hat es notiert. Die Weiterleitung hat nicht geklappt – beim nächsten Öffnen wird es erneut versucht.";
+    }
+    return baseline;
+  }
+
   function renderWunschkapsel() {
     const idle = $("[data-ag-wish-idle]");
     const form = $("[data-ag-wish-form]");
@@ -1666,12 +1683,77 @@
       done.hidden = false;
       $("[data-ag-wish-done-title]").textContent = "✨ Wunsch eingereicht";
       $("[data-ag-wish-done-note]").textContent = `„${wish.text}"`;
-      $("[data-ag-wish-done-meta]").textContent = "Die Maschine hat es notiert. Ob etwas passiert, bleibt offen.";
+      $("[data-ag-wish-done-meta]").textContent = wishMetaText(wish.remoteStatus);
     } else {
       idle.hidden = false;
       form.hidden = true;
       done.hidden = true;
     }
+  }
+
+  function sendWishToInbox(wish) {
+    const config = state.wishInbox;
+    if (!config || !config.enabled) return;
+    const endpoint = typeof config.endpointUrl === "string" ? config.endpointUrl.trim() : "";
+    if (!endpoint) return;
+
+    const payload = {
+      timestamp: new Date(wish.submittedAt || Date.now()).toISOString(),
+      token: getToken(),
+      wish: wish.text,
+      pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
+      userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
+    };
+
+    const body = JSON.stringify(payload);
+    const setStatus = (status) => {
+      const stored = readWish();
+      if (!stored || stored.week !== wish.week) return;
+      writeWish({ ...stored, remoteStatus: status, remoteUpdatedAt: Date.now() });
+      renderWunschkapsel();
+    };
+
+    setStatus("pending");
+
+    fetch(endpoint, {
+      method: "POST",
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body
+    })
+      .then((response) => {
+        if (response && response.ok) {
+          setStatus("sent");
+        } else {
+          setStatus("failed");
+        }
+      })
+      .catch(() => {
+        // CORS or network error — try a no-cors fallback so the row still arrives.
+        try {
+          fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors",
+            credentials: "omit",
+            cache: "no-store",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body
+          })
+            .then(() => setStatus("sent"))
+            .catch(() => setStatus("failed"));
+        } catch (_error) {
+          setStatus("failed");
+        }
+      });
+  }
+
+  function retryPendingWishSend() {
+    const wish = readWish();
+    if (!wish || wish.week !== currentWeekKey()) return;
+    if (wish.remoteStatus === "sent") return;
+    sendWishToInbox(wish);
   }
 
   // ── Streak milestones ────────────────────────────────────────────────────────
@@ -1911,8 +1993,10 @@
         const text = (input?.value || "").trim();
         if (!text) return;
         haptic([20, 20, 40]);
-        writeWish({ week: currentWeekKey(), text, submittedAt: Date.now() });
+        const entry = { week: currentWeekKey(), text, submittedAt: Date.now(), remoteStatus: "idle" };
+        writeWish(entry);
         renderWunschkapsel();
+        try { sendWishToInbox(entry); } catch (_error) { /* never block local confirmation */ }
       });
     }
 

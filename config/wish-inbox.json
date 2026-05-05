@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "endpointUrl": "",
+  "spreadsheetId": "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4",
+  "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit",
+  "worksheet": "Wünsche",
+  "comment": "Wunschkapsel inbox. Paste the deployed Google Apps Script web-app URL into endpointUrl. The Apps Script must accept POSTed JSON {timestamp, token, wish, pageUrl, userAgent} and append a row to the worksheet 'Wünsche' in the linked spreadsheet. Headers expected: Timestamp, Token, Wish, Page URL, User Agent. Set enabled=false to disable remote forwarding entirely. Local confirmation always shows regardless of remote success."
+}
