@@ -1729,16 +1729,17 @@
   // ── Notifications ────────────────────────────────────────────────────────────
 
   function showNotifPrompt() {
-    const card = $("[data-ag-notif-card]");
+    const card = document.querySelector('[data-ag-notif-card]');
     if (!card) return;
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted" || Notification.permission === "denied") return;
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+  
     try {
-      if (window.localStorage.getItem(NOTIF_KEY) === "dismissed") return;
-    } catch (error) {
-      return;
-    }
+      if (window.localStorage.getItem(NOTIFKEY) === 'dismissed') return;
+    } catch {}
+  
     card.hidden = false;
+    card.removeAttribute('hidden');
   }
 
   function nextNotificationTimestamp() {
