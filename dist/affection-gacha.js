@@ -160,7 +160,9 @@
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
       renderOdds();
+      renderWunschkapsel();
       bindEvents();
+      registerServiceWorker();
     } catch (error) {
       renderError(error);
     }
@@ -1129,8 +1131,16 @@
       buttonText.textContent = state.theme.brand.buttonShown;
       state.revealed = true;
       recordHistoryEntry(state.todaysPull);
+      const streak = computeStreak();
       renderStreak();
+      renderMilestoneBanner(streak);
+      if (MILESTONE_MESSAGES[streak]) {
+        haptic([30, 20, 30, 20, 60]);
+      } else {
+        haptic([20, 20, 40]);
+      }
       if (state.activeTab === "history") renderHistory();
+      showNotifPrompt();
     }, state.theme.revealDelayMs || 3200);
   }
 
@@ -1499,10 +1509,21 @@
     if (tab === "lieblinge") renderLieblinge();
   }
 
+  // ── Haptic feedback ─────────────────────────────────────────────────────────
+
+  function haptic(pattern) {
+    if (!navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch (error) { /* ignore */ }
+  }
+
   function bindEvents() {
-    $("[data-ag-draw]").addEventListener("click", reveal);
+    $("[data-ag-draw]").addEventListener("click", () => {
+      haptic(12);
+      reveal();
+    });
     $("[data-ag-copy]").addEventListener("click", async () => {
       if (!state.todaysPull) return;
+      haptic(8);
       const text = messageText(state.todaysPull);
       try {
         await navigator.clipboard.writeText(text);
@@ -1516,14 +1537,68 @@
     });
     $("[data-ag-save-img]").addEventListener("click", () => {
       if (!state.todaysPull) return;
+      haptic(8);
       downloadResultAsImage(state.todaysPull);
     });
     $("[data-ag-star]").addEventListener("click", () => {
+      haptic(8);
       toggleFavorite(state.todaysPull);
     });
     mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
-      node.addEventListener("click", () => setActiveTab(node.dataset.agTab));
+      node.addEventListener("click", () => {
+        haptic(6);
+        setActiveTab(node.dataset.agTab);
+      });
     });
+
+    // Wunschkapsel
+    const wishOpen = $("[data-ag-wish-open]");
+    const wishCancel = $("[data-ag-wish-cancel]");
+    const wishSubmit = $("[data-ag-wish-submit]");
+    if (wishOpen) {
+      wishOpen.addEventListener("click", () => {
+        haptic(8);
+        $("[data-ag-wish-idle]").hidden = true;
+        $("[data-ag-wish-form]").hidden = false;
+        const input = $("[data-ag-wish-input]");
+        if (input) window.setTimeout(() => input.focus(), 60);
+      });
+    }
+    if (wishCancel) {
+      wishCancel.addEventListener("click", () => {
+        haptic(6);
+        $("[data-ag-wish-form]").hidden = true;
+        $("[data-ag-wish-idle]").hidden = false;
+      });
+    }
+    if (wishSubmit) {
+      wishSubmit.addEventListener("click", () => {
+        const input = $("[data-ag-wish-input]");
+        const text = (input?.value || "").trim();
+        if (!text) return;
+        haptic([20, 20, 40]);
+        writeWish({ week: currentWeekKey(), text, submittedAt: Date.now() });
+        renderWunschkapsel();
+      });
+    }
+
+    // Notification prompt
+    const notifEnable = $("[data-ag-notif-enable]");
+    const notifDismiss = $("[data-ag-notif-dismiss]");
+    if (notifEnable) {
+      notifEnable.addEventListener("click", () => {
+        haptic(10);
+        enableNotifications();
+      });
+    }
+    if (notifDismiss) {
+      notifDismiss.addEventListener("click", () => {
+        haptic(6);
+        try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
+        const card = $("[data-ag-notif-card]");
+        if (card) card.hidden = true;
+      });
+    }
   }
 
   function drawRoundRect(ctx, x, y, w, h, r) {
@@ -2131,6 +2206,48 @@
         .ag-widget *,.ag-widget *:before,.ag-widget *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
         .ag-machine-capsule,.ag-mach-glow,.ag-mach-orbit,.ag-orbit span,.ag-shimmer,.ag-road-dash,.ag-firefly,.ag-sun,.ag-button-orb,.ag-emoji{animation:none!important}
       }
+
+      /* ── Milestone banner ── */
+      .ag-milestone{
+        display:flex;align-items:center;gap:10px;
+        padding:12px 16px;border-radius:var(--ag-radius-md);
+        background:linear-gradient(135deg,rgba(185,120,46,.14),rgba(47,122,79,.12));
+        border:1px solid rgba(185,120,46,.3);
+        margin-bottom:14px;
+        animation:ag-enter 500ms var(--ag-ease);
+      }
+      .ag-milestone[data-ag-milestone]:not([hidden]){display:flex}
+      .ag-milestone span{font-size:.95rem;font-weight:700;color:var(--ag-primary-dark);line-height:1.4}
+      @media (prefers-color-scheme:dark){
+        .ag-milestone{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
+        .ag-milestone span{color:#d4c07a}
+      }
+
+      /* ── Wunschkapsel card ── */
+      .ag-wish-card{}
+      .ag-wish-label{margin:0 0 6px;font-weight:800;font-size:1rem;color:var(--ag-text);letter-spacing:.01em}
+      .ag-wish-note{margin:0 0 14px;color:var(--ag-muted);font-size:.92rem;line-height:1.55}
+      .ag-wish-meta{margin:6px 0 0;color:var(--ag-muted);font-size:.82rem;font-style:italic}
+      .ag-wish-input{
+        display:block;width:100%;padding:12px 14px;
+        border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
+        background:var(--ag-surface-2);color:var(--ag-text);
+        font-family:inherit;font-size:.95rem;line-height:1.5;resize:vertical;
+        transition:border-color 150ms var(--ag-ease);outline:none;
+        margin-bottom:12px;
+      }
+      .ag-wish-input:focus{border-color:var(--ag-primary)}
+      @media (prefers-color-scheme:dark){
+        .ag-wish-input{background:rgba(8,28,18,.6);border-color:rgba(255,255,255,.12)}
+        .ag-wish-input:focus{border-color:var(--ag-primary)}
+      }
+      .ag-wish-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+      /* ── Notification prompt card ── */
+      .ag-notif-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+      .ag-notif-card:not([hidden]){display:flex}
+      .ag-notif-text{margin:0;font-size:.93rem;color:var(--ag-text);flex:1;min-width:0;line-height:1.5}
+      .ag-notif-actions{display:flex;gap:8px;flex-shrink:0}
     `;
     document.head.appendChild(style);
   }

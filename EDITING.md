@@ -270,3 +270,60 @@ and the draw button becomes full-width.
 7. The Webflow page loads the updated JSON automatically.
 
 No Webflow update is needed unless you change the loader URL or app script.
+
+---
+
+## Streak milestones
+
+The widget tracks consecutive daily pulls per token and shows a one-time
+congratulation banner inside the result card at 7, 14, 21, and 30 days.
+The banner is shown only once per milestone per token (stored in
+`localStorage` under the key `affektions-gacha:milestones:v1`).  At
+milestone streaks the reveal also produces a slightly longer haptic
+pattern.
+
+## Wunschkapsel
+
+Once per ISO calendar week, a **Wunschkapsel** card appears below the
+rules accordion. Lennart can type a short wish (up to 280 characters) and
+submit it. The machine stores it locally and shows a confirmation that it
+has been noted — without any promise that it will be granted.  The stored
+wish is kept in `localStorage` under `affektions-gacha:wish:v1` and resets
+automatically each new week.
+
+## Tägliche Erinnerung (push notifications)
+
+After the very first capsule pull the widget offers to schedule a
+daily reminder at **08:00 Uhr** (Zurich time). Accepting triggers the
+browser's notification permission dialog. If the user grants permission,
+a service worker (`sw.js`) is registered and the page posts a
+`SCHEDULE_NOTIFICATION` message with the next 08:00 timestamp. The SW
+uses a `setTimeout` to fire the notification when the browser is open, or
+a Periodic Background Sync tag (`ag-daily-reminder`) on Chrome when the
+browser is closed. Notifications are **silent** (no sound) and include
+only haptic feedback on supported devices. The banner is not shown if
+the user has already granted or denied permissions, or dismissed it once.
+
+## Haptic feedback
+
+All interactive elements use the
+[Vibration API](https://developer.mozilla.org/en-US/docs/Web/API/Vibrator_API)
+for subtle tactile responses. No audio is used. Supported on Android/Chrome;
+iOS and desktop silently ignore the calls.
+
+| Interaction | Pattern |
+|---|---|
+| Draw button press | 12 ms |
+| Result reveal | `[20, 20, 40]` ms |
+| Streak milestone reveal | `[30, 20, 30, 20, 60]` ms |
+| Wish submit | `[20, 20, 40]` ms |
+| All other buttons | 6–10 ms |
+
+## PWA / Add to Home Screen
+
+`manifest.json` at the repo root makes the site installable as a
+Progressive Web App. Place 192 × 192 and 512 × 512 PNG icons at
+`media/icon-192.png` and `media/icon-512.png` to complete the manifest.
+The `index.html` already links the manifest and sets the theme-color meta
+tag to `#1a3a2c`.
+
