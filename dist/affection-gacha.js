@@ -882,7 +882,7 @@
     let mediaEl;
     if (photo.type === "video") {
       mediaEl = document.createElement("video");
-      mediaEl.src = photo.url;
+      mediaEl.src = safeUrl(photo.url);
       mediaEl.controls = true;
       mediaEl.muted = true;
       mediaEl.playsInline = true;
@@ -891,7 +891,7 @@
       mediaEl.setAttribute("aria-label", altText);
     } else {
       mediaEl = document.createElement("img");
-      mediaEl.src = photo.url;
+      mediaEl.src = safeUrl(photo.url);
       mediaEl.alt = altText;
       mediaEl.loading = "lazy";
       mediaEl.decoding = "async";
@@ -1223,7 +1223,7 @@
         thumb.appendChild(label);
       } else {
         const img = document.createElement("img");
-        img.src = entry.photo.url;
+        img.src = safeUrl(entry.photo.url);
         img.alt = entry.photo.alt || "Foto-Drop";
         img.loading = "lazy";
         img.decoding = "async";
@@ -1741,6 +1741,17 @@
       '"': "&quot;",
       "'": "&#039;"
     }[character]));
+  }
+
+  /** Validate a URL is http(s) before assigning to src/href. Returns "" for anything else. */
+  function safeUrl(url) {
+    if (typeof url !== "string") return "";
+    try {
+      const parsed = new URL(url, window.location.href);
+      return (parsed.protocol === "https:" || parsed.protocol === "http:") ? parsed.href : "";
+    } catch (error) {
+      return "";
+    }
   }
 
   function injectStyles() {

@@ -32,8 +32,15 @@ self.addEventListener("message", (event) => {
 self.addEventListener("periodicsync", (event) => {
   if (event.tag !== "ag-daily-reminder") return;
   event.waitUntil((async () => {
-    const h = new Date().getHours();
-    if (h >= 7 && h < 9) {
+    // Check current hour in Zurich time so the guard is timezone-aware.
+    const zurichHour = Number(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "Europe/Zurich",
+        hour: "numeric",
+        hour12: false
+      }).format(new Date())
+    );
+    if (zurichHour >= 7 && zurichHour < 9) {
       await fireNotification(
         "Kapsel des Tages 🎲",
         "Die tägliche Kapsel wartet — heute noch nicht gezogen?"
