@@ -1,6 +1,33 @@
 {
   "days": [
     {
+      "date": "05-22",
+      "label": "Crazy Trip ✈️",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Crazy-Trip-Tag 🚀",
+          "message": "Heute startet unsere Reise. Ab 17:30 darf das Paket geöffnet weden."
+        }
+      ],
+      "colors": {
+        "background": "#f5f8ff",
+        "surface": "#eaf0ff",
+        "surfaceAlt": "#dbe6ff",
+        "primary": "#3b5bdb",
+        "primaryDark": "#2f4bb5",
+        "gold": "#7c9cff"
+      },
+      "darkColors": {
+        "background": "#0f1220",
+        "surface": "#171b30",
+        "surfaceAlt": "#222845",
+        "primary": "#7c9cff",
+        "primaryDark": "#9bb2ff",
+        "gold": "#9bb2ff"
+      }
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
