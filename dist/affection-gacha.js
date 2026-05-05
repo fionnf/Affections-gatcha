@@ -423,7 +423,7 @@
               <div class="ag-hug-row">
                 <div class="ag-hug-text">
                   <p class="ag-wish-label">Notfall-Umarmung</p>
-                  <p class="ag-wish-note">Ein stiller Stups an Fionn, wenn dir gerade nach einer Umarmung ist – ohne App, ohne Tippen.</p>
+                  <p class="ag-wish-note">Ein Stups an Fionn, wenn dir gerade nach einer Umarmung ist.</p>
                 </div>
                 <button class="ag-hug-button" type="button" data-ag-hug-send aria-label="Notfall-Umarmung an Fionn senden">
                   <span class="ag-hug-emoji" aria-hidden="true">🫂</span>
