@@ -315,6 +315,21 @@ Behaviour:
 - If `endpointUrl` is empty or `enabled` is `false`, no network request is made
   and the original local-only message is shown.
 
+### Notfall-Umarmung (emergency hug → email)
+
+The widget also has a small **Notfall-Umarmung** button that lets Lennart send
+Fionn a silent ping without opening Mail or WhatsApp. It POSTs to the same
+endpoint with `type: "hug"`. The Apps Script logs the row (prefixed with
+`[hug]` in the Wish column) **and** sends an email to
+`fionn@fionnferreira.com` via `MailApp`.
+
+Important: after editing `scripts/google-apps-script-wish-inbox.js`, the
+Apps Script must be **redeployed** (Deploy → Manage deployments → ✏️ →
+Version: New version → Deploy). The `/exec` URL stays the same. The first
+time a hug is sent, Google will pop a one-time authorization dialog asking
+the script for permission to *send email as you* — accept it. This is why
+"Execute as: Me" is required at deployment.
+
 ## GitHub Actions
 
 | Workflow | Trigger | What it does |

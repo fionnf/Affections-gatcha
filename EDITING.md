@@ -321,6 +321,28 @@ The local confirmation is always shown regardless of whether the network
 request succeeds — a failed forward is retried automatically the next time
 the page is opened in the same week.
 
+## Notfall-Umarmung
+
+A small **Notfall-Umarmung** button lives on the main panel and is always
+available (no weekly limit). One tap silently POSTs to the same Google
+Apps Script endpoint as the Wunschkapsel, but with `type: "hug"`. The
+script then:
+
+1. logs the ping in the `Wünsche` worksheet (prefixed with `[hug]` in the
+   Wish column, so the existing 5-column layout still works), and
+2. sends a short German email to `fionn@fionnferreira.com` using
+   `MailApp.sendEmail`.
+
+Lennart never has to open Mail or WhatsApp — the email is sent
+server-side from Fionn's own Apps Script project. Local UI feedback:
+`Fionn wurde angestupst 🫂` on success, a soft retry hint on failure.
+
+> **After editing `scripts/google-apps-script-wish-inbox.js` you must
+> redeploy the Apps Script** (Deploy → Manage deployments → ✏️ → Version:
+> *New version* → Deploy). The `/exec` URL stays the same. The first
+> hug will trigger a one-time Google authorization dialog asking for
+> permission to *send email as you* — accept it.
+
 ## Tägliche Erinnerung (push notifications)
 
 After the very first capsule pull the widget offers to schedule a

@@ -419,6 +419,20 @@
               <ul data-ag-odds></ul>
             </details>
 
+            <div class="ag-card ag-hug-card" data-ag-hug-card>
+              <div class="ag-hug-row">
+                <div class="ag-hug-text">
+                  <p class="ag-wish-label">Notfall-Umarmung</p>
+                  <p class="ag-wish-note">Ein stiller Stups an Fionn, wenn dir gerade nach einer Umarmung ist – ohne App, ohne Tippen.</p>
+                </div>
+                <button class="ag-hug-button" type="button" data-ag-hug-send aria-label="Notfall-Umarmung an Fionn senden">
+                  <span class="ag-hug-emoji" aria-hidden="true">🫂</span>
+                  <span class="ag-hug-label">Umarmung senden</span>
+                </button>
+              </div>
+              <p class="ag-hug-status" data-ag-hug-status hidden></p>
+            </div>
+
             <div class="ag-card ag-wish-card" data-ag-wish-card>
               <div data-ag-wish-idle>
                 <p class="ag-wish-label">Wunschkapsel</p>
@@ -1756,6 +1770,102 @@
     sendWishToInbox(wish);
   }
 
+  // ── Notfall-Umarmung ────────────────────────────────────────────────────────
+
+  function setHugStatus(text, state) {
+    const el = $("[data-ag-hug-status]");
+    if (!el) return;
+    if (!text) {
+      el.hidden = true;
+      el.textContent = "";
+      delete el.dataset.agHugState;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = text;
+    if (state) el.dataset.agHugState = state;
+    else delete el.dataset.agHugState;
+  }
+
+  function sendHugToInbox() {
+    const config = state.wishInbox;
+    const button = $("[data-ag-hug-send]");
+    const message = "🫂 Notfall-Umarmung gebraucht";
+    const payload = {
+      timestamp: new Date().toISOString(),
+      token: getToken(),
+      type: "hug",
+      event: "hug",
+      wish: message,
+      message,
+      pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
+      userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
+    };
+
+    if (!config || !config.enabled) {
+      setHugStatus("Fionn wurde angestupst 🫂 (offline notiert)", "ok");
+      return;
+    }
+    const endpoint = typeof config.endpointUrl === "string" ? config.endpointUrl.trim() : "";
+    if (!endpoint) {
+      setHugStatus("Fionn wurde angestupst 🫂 (offline notiert)", "ok");
+      return;
+    }
+
+    if (button) button.disabled = true;
+    setHugStatus("Stups wird gesendet…", "pending");
+
+    const body = JSON.stringify(payload);
+    const onSuccess = () => {
+      setHugStatus("Fionn wurde angestupst 🫂", "ok");
+      if (button) {
+        window.setTimeout(() => { button.disabled = false; }, 4000);
+      }
+    };
+    const onFailure = () => {
+      setHugStatus("Konnte gerade nicht gesendet werden – bitte gleich nochmal.", "error");
+      if (button) button.disabled = false;
+    };
+
+    fetch(endpoint, {
+      method: "POST",
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body
+    })
+      .then((response) => {
+        if (response && response.ok) {
+          onSuccess();
+        } else {
+          // Apps Script sometimes returns opaque/CORS-stripped responses; try no-cors fallback.
+          fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors",
+            credentials: "omit",
+            cache: "no-store",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body
+          }).then(onSuccess).catch(onFailure);
+        }
+      })
+      .catch(() => {
+        try {
+          fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors",
+            credentials: "omit",
+            cache: "no-store",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body
+          }).then(onSuccess).catch(onFailure);
+        } catch (_error) {
+          onFailure();
+        }
+      });
+  }
+
   // ── Streak milestones ────────────────────────────────────────────────────────
 
   const MILESTONE_MESSAGES = {
@@ -1966,6 +2076,15 @@
         setActiveTab(node.dataset.agTab);
       });
     });
+
+    // Notfall-Umarmung
+    const hugSend = $("[data-ag-hug-send]");
+    if (hugSend) {
+      hugSend.addEventListener("click", () => {
+        haptic([20, 30, 20]);
+        try { sendHugToInbox(); } catch (_error) { /* never block UI */ }
+      });
+    }
 
     // Wunschkapsel
     const wishOpen = $("[data-ag-wish-open]");
@@ -2794,6 +2913,38 @@
       @media (prefers-color-scheme:dark){
         .ag-milestone{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
         .ag-milestone span{color:#d4c07a}
+      }
+
+      /* ── Notfall-Umarmung card ── */
+      .ag-hug-card{}
+      .ag-hug-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+      .ag-hug-text{flex:1 1 200px;min-width:0}
+      .ag-hug-button{
+        display:inline-flex;align-items:center;gap:8px;
+        padding:12px 16px;border-radius:999px;
+        border:1px solid var(--ag-border);
+        background:linear-gradient(135deg,rgba(232,164,164,.22),rgba(185,120,46,.18));
+        color:var(--ag-text);font-weight:700;font-size:.95rem;font-family:inherit;
+        cursor:pointer;transition:transform 120ms var(--ag-ease),box-shadow 150ms var(--ag-ease),background 150ms var(--ag-ease);
+        box-shadow:0 1px 0 rgba(0,0,0,.04);
+        flex-shrink:0;white-space:nowrap;
+      }
+      .ag-hug-button:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(232,164,164,.25)}
+      .ag-hug-button:active{transform:translateY(0)}
+      .ag-hug-button:disabled{opacity:.6;cursor:default;transform:none;box-shadow:none}
+      .ag-hug-emoji{font-size:1.15rem;line-height:1}
+      @media (prefers-color-scheme:dark){
+        .ag-hug-button{background:linear-gradient(135deg,rgba(232,164,164,.18),rgba(185,120,46,.22));border-color:rgba(255,255,255,.14)}
+      }
+      @media (max-width:380px){
+        .ag-hug-row{flex-direction:column;align-items:stretch}
+        .ag-hug-button{justify-content:center;width:100%}
+      }
+      .ag-hug-status{margin:10px 0 0;color:var(--ag-muted);font-size:.88rem;line-height:1.5}
+      .ag-hug-status[data-ag-hug-state="ok"]{color:var(--ag-text)}
+      .ag-hug-status[data-ag-hug-state="error"]{color:#a83f3f}
+      @media (prefers-color-scheme:dark){
+        .ag-hug-status[data-ag-hug-state="error"]{color:#e8a4a4}
       }
 
       /* ── Wunschkapsel card ── */
