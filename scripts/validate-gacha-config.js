@@ -67,13 +67,7 @@ if (Array.isArray(outcomes.categories)) {
         assert(typeof outcome.title === "string" && outcome.title.trim(), `Outcome ${category.id}[${index}] needs a title.`);
         assert(typeof outcome.message === "string" && outcome.message.trim(), `Outcome ${category.id}[${index}] needs a message.`);
         if (outcome.link !== undefined) {
-          const isValidLink = typeof outcome.link === "string" && (() => {
-            try {
-              const u = new URL(outcome.link);
-              return u.protocol === "https:" || u.protocol === "http:";
-            } catch { return false; }
-          })();
-          assert(isValidLink, `Outcome ${category.id}[${index}].link must be a valid http(s) URL when present.`);
+          assert(typeof outcome.link === "string" && isValidHttpUrl(outcome.link), `Outcome ${category.id}[${index}].link must be a valid http(s) URL when present.`);
         }
         if (typeof outcome.message === "string" && outcome.message.length > 260) {
           addWarning(`Outcome ${category.id}[${index}] is long (${outcome.message.length} chars). Consider shortening for phone screens.`);
@@ -182,6 +176,13 @@ if (errors.length) {
 }
 
 console.log("\nConfig validation passed.");
+
+function isValidHttpUrl(s) {
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch { return false; }
+}
 
 function readJson(fileName) {
   const filePath = path.join(configDir, fileName);
