@@ -174,26 +174,26 @@ the Google sync is best-effort scraping, not a stable API. For reliability,
 prefer iCloud public shared albums. Don't put content in the album that you
 wouldn't want public.
 
-**Videos & Google Photos:** the Google sync now reads the album's structured
+**Videos & Google Photos:** the Google sync reads the album's structured
 data and tags each item as `"image"` or `"video"`. Videos use a
 `googleusercontent.com/...=dv` URL that 302-redirects to a playable MP4 stream.
 This works today, but is best-effort — Google does not promise the `=dv`
-endpoint will keep working, and any item where `=dv` cannot be resolved is
-skipped (with a warning) rather than being silently exported as a static image
-thumbnail. Regular photos use the highest-quality `=s2048` URL so they don't
-get downgraded to a tiny thumbnail. If videos are important to you, an
-iCloud public shared album is the more reliable source.
+endpoint will keep working. The `=dv` URL is always probed before committing
+the item as a video; if the probe fails, the item falls back to a still image
+(`=s2048`) rather than being silently dropped. Regular photos use the
+highest-quality `=s2048` URL. If videos are important to you, an iCloud public
+shared album is the more reliable source.
 
 **Live Photos / motion photos & the 20 s threshold:** iPhone Live Photos and
 short motion frames are flagged in Google's structured data with the same
 media-type marker as real videos (`14`). Treating them as video produces
 broken playback because the bundled clip is only 1–3 seconds long and `=dv`
-often returns just the still frame. The sync therefore requires *both* a
-clear video marker *and* `durationMs >= videoMinDurationMs` before emitting
-an item as `"type": "video"`. Anything below that threshold — or with no
-duration at all — is exported as the still image (`=s2048` URL,
-`"type": "image"`). The same rule is applied to the iCloud sync. Better a
-clean still than a janky short clip.
+often returns just the still frame. The sync therefore requires *either* a
+known duration `>= videoMinDurationMs` *or* a successful `=dv` probe before
+emitting an item as `"type": "video"`. Items below the duration threshold are
+exported as still images. When duration metadata is absent the `=dv` URL is
+probed — if it resolves the item is emitted as video, otherwise it falls back
+to the still image. The same duration rule is applied to the iCloud sync.
 
 The default threshold is **20 000 ms (20 s)** — a pragmatic cutoff that
 filters out Live Photos and tiny boomerangs without dropping intentional
@@ -218,9 +218,12 @@ clips. The sync logs each downgrade so you can see what was filtered:
   were exported as still images` — items the marker said were video but
   whose duration was below `videoMinDurationMs`. Lower the threshold to
   include them.
+- `X video-marker item(s) had no readable duration and =dv did not resolve
+  — imported as still images` — duration metadata was missing and the
+  `=dv` probe failed; the item is kept as a still rather than dropped.
 - `X ambiguous video item(s) skipped because no playable stream URL
-  resolved` — Google `=dv` did not return a video; the item is dropped
-  rather than re-exported as a thumbnail.
+  resolved` — Google `=dv` did not return a video for an item with known
+  duration; the item is dropped rather than re-exported as a thumbnail.
 
 `npm run validate` flags video entries whose URL still looks like an image
 thumbnail, and warns when a Google-sourced album has zero videos (which can
