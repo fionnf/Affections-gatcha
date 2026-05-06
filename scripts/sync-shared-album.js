@@ -39,14 +39,16 @@ async function main() {
   }
 
   const provider = detectProvider(config.provider, url);
+  const videoMinDurationMs = resolveVideoMinDurationMs(config.videoMinDurationMs);
   console.log(`Syncing shared album using provider: ${provider}`);
   console.log(`Source URL: ${url}`);
+  console.log(`Video minimum duration: ${videoMinDurationMs}ms (items shorter than this are imported as still images).`);
 
   let photos;
   if (provider === "icloud") {
-    photos = await syncICloud(url);
+    photos = await syncICloud(url, { videoMinDurationMs });
   } else if (provider === "google") {
-    photos = await syncGooglePhotos(url);
+    photos = await syncGooglePhotos(url, { videoMinDurationMs });
   } else {
     fail(`Unknown provider: ${provider}. Use "icloud", "google", or "auto".`);
   }
@@ -71,6 +73,29 @@ async function main() {
 
   fs.writeFileSync(outputPath, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`Wrote ${outputRel} with ${photos.length} media item(s).`);
+}
+
+// Default minimum duration before an item is treated as a real video. Apple/
+// Google's "Live Photo" / "motion photo" feature attaches a 1.5–3s clip to a
+// still image; those clips are flagged in shared-album metadata the same way
+// real videos are, but exporting them as `"type": "video"` produces broken
+// playback (the =dv URL often returns just the still frame, or a janky 2s
+// clip). Real captured videos are typically much longer, so requiring
+// duration >= 20s is a pragmatic cutoff that filters Live Photos out without
+// dropping intentional clips. Override per-album by setting
+// `videoMinDurationMs` in `config/album-source.json`.
+const DEFAULT_VIDEO_MIN_DURATION_MS = 20000;
+
+function resolveVideoMinDurationMs(value) {
+  if (value === undefined || value === null) return DEFAULT_VIDEO_MIN_DURATION_MS;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    console.warn(
+      `config/album-source.json: ignoring invalid videoMinDurationMs=${JSON.stringify(value)}; falling back to ${DEFAULT_VIDEO_MIN_DURATION_MS}ms.`
+    );
+    return DEFAULT_VIDEO_MIN_DURATION_MS;
+  }
+  return Math.round(n);
 }
 
 function detectProvider(provider, url) {
@@ -119,7 +144,8 @@ async function icloudPost(host, token, endpoint, body) {
   return { response, redirectHost };
 }
 
-async function syncICloud(url) {
+async function syncICloud(url, options = {}) {
+  const videoMinDurationMs = options.videoMinDurationMs || DEFAULT_VIDEO_MIN_DURATION_MS;
   const token = extractICloudToken(url);
   let host = `p${icloudPartition(token)}-sharedstreams.icloud.com`;
 
@@ -154,12 +180,27 @@ async function syncICloud(url) {
   }
 
   const photos = [];
+  let livePhotoCount = 0;
   let index = 0;
   for (const photo of stream.photos || []) {
     index += 1;
-    const isVideo =
+    const markerSaysVideo =
       Boolean(photo.mediaAssetType && /video/i.test(photo.mediaAssetType)) ||
       hasVideoDerivative(photo.derivatives);
+    const durationMs = extractICloudDurationMs(photo);
+    const longEnough =
+      typeof durationMs === "number" && durationMs >= videoMinDurationMs;
+    // Apple Live Photos report a video derivative AND a short duration. Only
+    // emit `"type": "video"` when both the marker and the duration agree —
+    // anything ambiguous is exported as a still so the bundled image renders
+    // correctly instead of a broken short clip.
+    const isVideo = markerSaysVideo && longEnough;
+    if (markerSaysVideo && !isVideo) {
+      livePhotoCount += 1;
+      console.log(
+        `iCloud: item ${index} flagged as video but duration=${durationMs ?? "unknown"}ms < ${videoMinDurationMs}ms — exporting as still image (likely Live Photo).`
+      );
+    }
     const chosen = pickBestDerivative(photo.derivatives, isVideo);
     if (!chosen || !chosen.checksum) continue;
     const mediaUrl = buildItemUrl(chosen.checksum);
@@ -174,7 +215,38 @@ async function syncICloud(url) {
   if (!photos.length) {
     fail("iCloud album was readable but no resolvable media URLs were produced.");
   }
+  if (livePhotoCount) {
+    console.log(
+      `iCloud: ${livePhotoCount} short-clip item(s) downgraded to still image (threshold: duration>=${videoMinDurationMs}ms).`
+    );
+  }
   return photos;
+}
+
+function extractICloudDurationMs(photo) {
+  if (!photo) return null;
+  const candidates = [
+    photo.mediaAssetDurationInMilliseconds,
+    photo.mediaAssetDurationMs,
+    photo.durationMs,
+    typeof photo.mediaAssetDuration === "number" ? photo.mediaAssetDuration * 1000 : null,
+    typeof photo.duration === "number" ? photo.duration * 1000 : null
+  ];
+  for (const v of candidates) {
+    if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
+    if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) return Number(v);
+  }
+  if (photo.derivatives) {
+    for (const key of Object.keys(photo.derivatives)) {
+      const d = photo.derivatives[key];
+      if (!d) continue;
+      const dur = d.duration ?? d.durationInMilliseconds ?? d.durationMs;
+      if (typeof dur === "number" && Number.isFinite(dur) && dur > 0) {
+        return dur > 1000 ? dur : dur * 1000;
+      }
+    }
+  }
+  return null;
 }
 
 function hasVideoDerivative(derivatives) {
@@ -209,7 +281,8 @@ function sizeOf(d) {
 
 /* ---------- Google Photos (best-effort) ---------- */
 
-async function syncGooglePhotos(url) {
+async function syncGooglePhotos(url, options = {}) {
+  const videoMinDurationMs = options.videoMinDurationMs || DEFAULT_VIDEO_MIN_DURATION_MS;
   console.warn(
     "Google Photos sync is best-effort scraping. Google does not provide a stable public API for shared albums; this may break."
   );
@@ -236,7 +309,7 @@ async function syncGooglePhotos(url) {
   // and optional duration. Parsing this gives us reliable image vs. video
   // detection and preserves album order. URL-pattern fallback is used only if
   // the structured payload is missing or unparseable.
-  const items = parseGooglePhotosItems(html);
+  const items = parseGooglePhotosItems(html, videoMinDurationMs);
   if (items && items.length) {
     const photos = await buildGooglePhotosFromItems(items);
     if (photos.length) {
@@ -294,15 +367,15 @@ async function syncGooglePhotos(url) {
 // poorly). We only trust an item as a real video when both:
 //   1) the structured marker reads as video (14 — other non-1 markers tend
 //      to be motion/live photos), AND
-//   2) duration is at least LIVE_PHOTO_MAX_MS (real captured videos are
-//      typically multiple seconds; Live Photos are ~1.5–3s clips bundled
-//      with a still).
+//   2) duration is at least the configured `videoMinDurationMs`
+//      (default DEFAULT_VIDEO_MIN_DURATION_MS = 20s). Real captured videos
+//      are typically much longer; Live Photos are ~1.5–3s clips bundled
+//      with a still.
 // Anything ambiguous is downgraded to image so the still frame renders
 // correctly instead of a janky short clip.
 const VIDEO_TYPE_MARKER = 14;
-const LIVE_PHOTO_MAX_MS = 4000;
 
-function parseGooglePhotosItems(html) {
+function parseGooglePhotosItems(html, videoMinDurationMs = DEFAULT_VIDEO_MIN_DURATION_MS) {
   // The ds:1 init-data block contains an array of media items. Each item is
   // shaped roughly:
   //   [ id, [url, w, h, ..., [null, null, mediaTypeMarker], [fileSize], ...], timestamp, ..., { "146008172": [null, durationMs] } ]
@@ -347,11 +420,18 @@ function parseGooglePhotosItems(html) {
       if (Array.isArray(dur) && typeof dur[1] === "number") durationMs = dur[1];
     }
     const markerSaysVideo = typeMarker === VIDEO_TYPE_MARKER;
-    const longEnough = typeof durationMs === "number" && durationMs >= LIVE_PHOTO_MAX_MS;
+    const longEnough = typeof durationMs === "number" && durationMs >= videoMinDurationMs;
     const isVideo = markerSaysVideo && longEnough;
     const isLivePhoto =
       typeMarker !== null && typeMarker !== 1 && !isVideo;
-    out.push({ baseUrl, isVideo, isLivePhoto, typeMarker, durationMs });
+    out.push({
+      baseUrl,
+      isVideo,
+      isLivePhoto,
+      typeMarker,
+      durationMs,
+      videoMinDurationMs
+    });
   }
   return out;
 }
@@ -360,6 +440,9 @@ async function buildGooglePhotosFromItems(items) {
   const photos = [];
   let livePhotoCount = 0;
   let skippedVideoCount = 0;
+  let downgradedShortCount = 0;
+  const threshold =
+    items[0] && items[0].videoMinDurationMs ? items[0].videoMinDurationMs : DEFAULT_VIDEO_MIN_DURATION_MS;
   let index = 0;
   for (const item of items) {
     index += 1;
@@ -381,7 +464,15 @@ async function buildGooglePhotosFromItems(items) {
       );
       continue;
     }
-    if (item.isLivePhoto) {
+    if (item.typeMarker === VIDEO_TYPE_MARKER) {
+      // Marker said video but duration was below threshold: it was downgraded
+      // to image. Track separately from Live Photos so the user knows whether
+      // they need to bump videoMinDurationMs.
+      downgradedShortCount += 1;
+      console.log(
+        `Google Photos: item ${index} marked as video but duration=${item.durationMs ?? "unknown"}ms < ${threshold}ms — exporting still image instead. Adjust 'videoMinDurationMs' in config/album-source.json if this is a real short clip.`
+      );
+    } else if (item.isLivePhoto) {
       livePhotoCount += 1;
       console.log(
         `Google Photos: item ${index} is a Live Photo / motion frame (marker=${item.typeMarker}, duration=${item.durationMs}ms) — exporting still image only.`
@@ -395,7 +486,12 @@ async function buildGooglePhotosFromItems(items) {
   }
   if (livePhotoCount) {
     console.log(
-      `Google Photos: ${livePhotoCount} Live Photo(s) emitted as still images (threshold: video marker=14 AND duration>=${LIVE_PHOTO_MAX_MS}ms).`
+      `Google Photos: ${livePhotoCount} Live Photo(s) emitted as still images (threshold: video marker=14 AND duration>=${threshold}ms).`
+    );
+  }
+  if (downgradedShortCount) {
+    console.warn(
+      `Google Photos: ${downgradedShortCount} item(s) flagged as video were below the ${threshold}ms duration threshold and were exported as still images. Set 'videoMinDurationMs' in config/album-source.json to lower the cutoff.`
     );
   }
   if (skippedVideoCount) {

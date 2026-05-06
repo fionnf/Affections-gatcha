@@ -180,21 +180,51 @@ data and tags each item as `"image"` or `"video"`. Videos use a
 This works today, but is best-effort — Google does not promise the `=dv`
 endpoint will keep working, and any item where `=dv` cannot be resolved is
 skipped (with a warning) rather than being silently exported as a static image
-thumbnail. If videos are important to you, an iCloud public shared album is
-the more reliable source.
+thumbnail. Regular photos use the highest-quality `=s2048` URL so they don't
+get downgraded to a tiny thumbnail. If videos are important to you, an
+iCloud public shared album is the more reliable source.
 
-**Live Photos / motion photos:** iPhone Live Photos and short motion frames
-are flagged in Google's structured data with the same media-type marker as
-real videos (`14`). Treating them as video produces broken playback because
-the bundled clip is only 1–3 seconds long and `=dv` often returns just the
-still frame. The sync therefore requires *both* `marker == 14` *and*
-`durationMs >= LIVE_PHOTO_MAX_MS` (default 4000 ms, defined in
-`scripts/sync-shared-album.js`) before emitting an item as
-`"type": "video"`. Anything below that threshold — or with no duration at
-all — is exported as the still image (`=s2048` URL, `"type": "image"`).
-The sync logs each Live-Photo downgrade and prints a summary
-(`X Live Photo(s) emitted as still images`). Better a clean still than a
-janky short clip.
+**Live Photos / motion photos & the 20 s threshold:** iPhone Live Photos and
+short motion frames are flagged in Google's structured data with the same
+media-type marker as real videos (`14`). Treating them as video produces
+broken playback because the bundled clip is only 1–3 seconds long and `=dv`
+often returns just the still frame. The sync therefore requires *both* a
+clear video marker *and* `durationMs >= videoMinDurationMs` before emitting
+an item as `"type": "video"`. Anything below that threshold — or with no
+duration at all — is exported as the still image (`=s2048` URL,
+`"type": "image"`). The same rule is applied to the iCloud sync. Better a
+clean still than a janky short clip.
+
+The default threshold is **20 000 ms (20 s)** — a pragmatic cutoff that
+filters out Live Photos and tiny boomerangs without dropping intentional
+clips. To change it, set `videoMinDurationMs` in
+`config/album-source.json`:
+
+```json
+{
+  "enabled": true,
+  "provider": "google",
+  "url": "https://photos.app.goo.gl/...",
+  "videoMinDurationMs": 20000
+}
+```
+
+Set it to e.g. `5000` if your album really does contain meaningful 5–20 s
+clips. The sync logs each downgrade so you can see what was filtered:
+
+- `X Live Photo(s) emitted as still images` — short clips imported as
+  stills.
+- `X item(s) flagged as video were below the Yms duration threshold and
+  were exported as still images` — items the marker said were video but
+  whose duration was below `videoMinDurationMs`. Lower the threshold to
+  include them.
+- `X ambiguous video item(s) skipped because no playable stream URL
+  resolved` — Google `=dv` did not return a video; the item is dropped
+  rather than re-exported as a thumbnail.
+
+`npm run validate` flags video entries whose URL still looks like an image
+thumbnail, and warns when a Google-sourced album has zero videos (which can
+mean either there are none, or every clip was below `videoMinDurationMs`).
 
 ## Preview page for photos and videos
 

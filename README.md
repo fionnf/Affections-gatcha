@@ -223,7 +223,7 @@ The workflow also runs on a daily cron (`17 4 * * *` UTC) and commits only `conf
 
 **Privacy note:** Public shared albums are visible to anyone with the link. Don't put content in the album you wouldn't want public. For reliability, iCloud public albums are preferable over Google Photos (which is best-effort scraping with no stable API).
 
-**Live Photos:** The Google sync requires both the video marker *and* a duration ≥ 4 000 ms before emitting `"type": "video"`. Shorter clips (Live Photos, motion frames) are safely downgraded to still images.
+**Live Photos & videos:** Both the iCloud and Google syncs require a clear video marker *and* a duration ≥ `videoMinDurationMs` (default **20 000 ms / 20 s**) before emitting `"type": "video"`. Shorter clips — Apple Live Photos, Google motion photos, 1–3 s "boomerangs" — are safely imported as still images instead, because their playable URLs (e.g. Google's `=dv`) often resolve to a broken short clip or just the still frame. To accept shorter videos, lower `videoMinDurationMs` in `config/album-source.json`. Imported videos use playable URLs (Google `=dv` redirected to a real video stream, or the iCloud video derivative); regular photos use the highest-quality available image derivative (Google `=s2048`, iCloud's largest derivative). If a Google video's `=dv` URL cannot be resolved, that item is **skipped** rather than silently re-exported as a thumbnail. For reliable video, prefer iCloud public shared albums.
 
 ---
 
