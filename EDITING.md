@@ -34,7 +34,24 @@ Each category has:
 - `label`: what appears on the capsule result
 - `weight`: probability weight
 - `tone`: visual tone
-- `outcomes`: title/message pairs
+- `outcomes`: title/message pairs, each outcome optionally has a `link` field
+
+### Outcome `link` field
+
+Any outcome can have an optional `link` URL:
+
+```json
+{
+  "title": "DJ Fionn Set",
+  "message": "Eine Playlist für dein Training.",
+  "link": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+}
+```
+
+- **Spotify links** (`open.spotify.com`) are rendered as an embedded player directly inside the capsule result — tracks appear as a compact 80px strip, playlists and albums as a 152px card.
+- **All other URLs** appear as a "🔗 Link öffnen" button that opens in a new tab.
+- The link is also included in the text that appears when sharing the result.
+- History and Favourites views show a small link button for entries that have one.
 
 The weights currently add to 1000, so:
 

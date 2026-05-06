@@ -435,6 +435,7 @@
               </div>
               <h2 data-ag-title></h2>
               <p data-ag-message></p>
+              <div class="ag-link-embed" data-ag-link-wrap hidden></div>
               <figure class="ag-photo" data-ag-photo-wrap hidden>
                 <div class="ag-media-stage" data-ag-photo-media></div>
                 <figcaption data-ag-photo-caption hidden></figcaption>
@@ -1198,11 +1199,61 @@
       `${emoji} ${displayNameFromToken()}s ${state.theme.brand.machineName}: ${pull.category.label}`,
       pull.outcome.title,
       pull.outcome.message,
+      pull.outcome.link ? `🔗 ${pull.outcome.link}` : "",
       pull.photo ? `📸 ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
       `Tag: ${pull.day}`
     ]
       .filter(Boolean)
       .join("\n");
+  }
+
+  /** Convert a Spotify share URL to its embed URL, or return null if not Spotify. */
+  function buildSpotifyEmbed(url) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname !== "open.spotify.com") return null;
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts.length < 2) return null;
+      const type = parts[0];
+      const id = parts[1];
+      const validTypes = ["track", "album", "playlist", "artist", "episode", "show"];
+      if (!validTypes.includes(type)) return null;
+      const iframe = document.createElement("iframe");
+      iframe.src = `https://open.spotify.com/embed/${type}/${id}`;
+      iframe.width = "100%";
+      iframe.height = (type === "track" || type === "episode") ? "80" : "152";
+      iframe.setAttribute("frameborder", "0");
+      iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+      iframe.loading = "lazy";
+      iframe.setAttribute("allowtransparency", "true");
+      iframe.setAttribute("title", "Spotify player");
+      iframe.className = "ag-spotify-iframe";
+      return iframe;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Build a generic styled link element for non-Spotify URLs. */
+  function buildGenericLink(url) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.rel = "noopener noreferrer";
+    a.target = "_blank";
+    a.className = "ag-outcome-link ag-secondary";
+    a.textContent = "🔗 Link öffnen";
+    return a;
+  }
+
+  /** Render a link (Spotify embed or generic button) into a container. */
+  function renderLinkInto(container, link) {
+    container.innerHTML = "";
+    if (!link) { container.hidden = true; return; }
+    const safe = safeUrl(link);
+    if (!safe) { container.hidden = true; return; }
+    const spotifyEl = buildSpotifyEmbed(safe);
+    container.appendChild(spotifyEl || buildGenericLink(safe));
+    container.hidden = false;
   }
 
   function renderMediaInto(container, photo) {
@@ -1260,6 +1311,8 @@
     const photoWrap = $("[data-ag-photo-wrap]");
     const photoMedia = $("[data-ag-photo-media]");
     const photoCaption = $("[data-ag-photo-caption]");
+
+    renderLinkInto($("[data-ag-link-wrap]"), pull.outcome.link || null);
 
     if (pull.photo) {
       renderMediaInto(photoMedia, pull.photo);
@@ -1366,6 +1419,7 @@
         tone: pull.category.tone,
         title: pull.outcome.title,
         message: pull.outcome.message,
+        link: pull.outcome.link || null,
         photo: pull.photo
           ? {
               url: pull.photo.url,
@@ -1401,6 +1455,7 @@
       tone: pull.category.tone,
       title: pull.outcome.title,
       message: pull.outcome.message,
+      link: pull.outcome.link || null,
       photo: pull.photo
         ? {
             url: pull.photo.url,
@@ -1575,6 +1630,10 @@
       text.className = "ag-history-text";
       text.appendChild(title);
       text.appendChild(message);
+      if (entry.link) {
+        const safeLink = safeUrl(entry.link);
+        if (safeLink) text.appendChild(buildGenericLink(safeLink));
+      }
 
       body.appendChild(thumb);
       body.appendChild(text);
@@ -1582,6 +1641,10 @@
     } else {
       li.appendChild(title);
       li.appendChild(message);
+      if (entry.link) {
+        const safeLink = safeUrl(entry.link);
+        if (safeLink) li.appendChild(buildGenericLink(safeLink));
+      }
     }
 
     return li;
@@ -2972,6 +3035,16 @@
       .ag-notif-card:not([hidden]){display:flex}
       .ag-notif-text{margin:0;font-size:.93rem;color:var(--ag-text);flex:1;min-width:0;line-height:1.5}
       .ag-notif-actions{display:flex;gap:8px;flex-shrink:0}
+
+      /* ── Link embed (Spotify / generic) ── */
+      .ag-link-embed{margin:14px 0 0;border-radius:var(--ag-radius-md);overflow:hidden}
+      .ag-spotify-iframe{display:block;width:100%;border:0;border-radius:var(--ag-radius-md)}
+      .ag-outcome-link{
+        display:inline-flex;align-items:center;gap:6px;margin-top:10px;
+        padding:8px 16px;border-radius:999px;
+        text-decoration:none;font-size:.9rem;
+      }
+      .ag-history-item .ag-outcome-link{margin-top:8px;font-size:.84rem;padding:6px 12px;min-height:34px}
     `;
     document.head.appendChild(style);
   }
