@@ -18,8 +18,12 @@ A daily capsule-pull web app for Lennart, embedded via Webflow + GitHub Pages. H
 - [Photo & video drops](#photo--video-drops)
 - [Auto-sync from a shared album](#auto-sync-from-a-shared-album)
 - [Outcome categories & odds](#outcome-categories--odds)
-- [Streak bonus](#streak-bonus)
+- [Outcome links (Spotify & URLs)](#outcome-links-spotify--urls)
+- [Streak bonus & milestones](#streak-bonus--milestones)
 - [History tab](#history-tab)
+- [Lieblinge tab (favourites)](#lieblinge-tab-favourites)
+- [Activity chips (stickers)](#activity-chips-stickers)
+- [Bärlauch game](#bärlauch-game)
 - [Sending results](#sending-results)
 - [Wunschkapsel inbox (Google Sheet)](#wunschkapsel-inbox-google-sheet)
 - [GitHub Actions](#github-actions)
@@ -98,8 +102,8 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 
 | File | What to edit |
 |---|---|
-| `config/outcomes.json` | Response texts, category weights |
-| `config/theme.json` | Colors, name, timing, loading steps |
+| `config/outcomes.json` | Response texts, category weights, optional links |
+| `config/theme.json` | Colors, name, timing, loading steps, activity chips |
 | `config/photos.json` | Photo URLs and captions |
 | `config/special-days.json` | Birthdays, anniversaries, one-off events |
 
@@ -246,7 +250,26 @@ To change odds, edit `weight` values in `config/outcomes.json`. The sum doesn't 
 
 ---
 
-## Streak bonus
+## Outcome links (Spotify & URLs)
+
+Any outcome in `config/outcomes.json` can have an optional `link` field:
+
+```json
+{
+  "title": "DJ Fionn Set",
+  "message": "Eine Playlist für dein Training.",
+  "link": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+}
+```
+
+- **Spotify links** (`open.spotify.com`) render as an embedded player inside the result card — tracks and episodes appear as an 80 px strip, playlists and albums as a 152 px card.
+- **All other URLs** show a "🔗 Link öffnen" button that opens in a new tab.
+- The link is included in the pre-filled **An Fionn schicken** message.
+- The **Verlauf** and **Favoriten** tabs show a compact link button for any entry that has one.
+
+---
+
+## Streak bonus & milestones
 
 A consecutive-day streak (computed from local history) boosts the odds of better outcomes:
 
@@ -256,11 +279,65 @@ A consecutive-day streak (computed from local history) boosts the odds of better
 | 10–19 days 🔥 | +50% jackpot, +30% rare, –40% niete |
 | 20+ days 💎 | +100% jackpot, +50% rare, –60% niete |
 
+At certain milestones a one-time congratulation banner appears inside the result card:
+
+| Streak | Message |
+|---|---|
+| 7 days | 🌿 Sieben Tage am Stück. |
+| 14 days | 🔥 Zwei Wochen am Stück. |
+| 21 days | ✨ Drei Wochen. |
+| 30 days | 💎 Dreißig Tage. |
+
+Each banner is shown only once per milestone per token (stored in `localStorage` under `affektions-gacha:milestones:v1`). Milestone reveals also produce a slightly longer haptic pattern (`[30, 20, 30, 20, 60]` ms instead of the usual `[20, 20, 40]` ms).
+
 ---
 
 ## History tab
 
-The **Verlauf** tab shows capsules that were actually drawn and revealed in this browser — not a backwards deterministic preview. Data lives in `localStorage` under `affektions-gacha:history:v1`, capped at `historyDays` entries (default 14, set in `config/theme.json`). Clearing storage or switching devices resets the visible history; the daily deterministic pull itself is unaffected.
+The **Verlauf** tab shows capsules that were actually drawn and revealed in this browser — not a backwards deterministic preview. Data lives in `localStorage` under `affektions-gacha:history:v1`, capped at `historyDays` entries (default 14, set in `config/theme.json`).
+
+- Only pulls for the current URL token are shown; other tokens' pulls stored on the same device remain separate.
+- The outcome picker uses the same history to avoid repeating outcome titles: within a category, already-seen outcomes are excluded from the draw until all have been shown at least once.
+- Clearing storage or switching devices resets the visible history; the daily deterministic pull itself is unaffected.
+
+---
+
+## Lieblinge tab (favourites)
+
+A third tab (⭐) sits beside **Heute** and **Verlauf**. After any capsule is revealed, a ☆ button appears in the result card — tapping it saves the result to your favourites list. Tap again to remove it.
+
+- Storage: `localStorage` key `affektions-gacha:favourites:v1`.
+- No cap — favourites are kept indefinitely.
+- The Lieblinge list shows the same rich card layout as Verlauf (photo, link button, share action).
+- Reads are wrapped in `try/catch`, so corrupt or missing storage simply shows the empty state.
+
+---
+
+## Activity chips (stickers)
+
+A row of small chips appears above the capsule. They are configured in `config/theme.json` via the `stickers` array:
+
+```json
+"stickers": ["Wald", "Velo", "Stadt", "Bärlauch", "See"]
+```
+
+Any chip whose name contains `"Bärlauch"` (case-insensitive) becomes a clickable button that opens the **Bärlauch game** (see below). All other chips are decorative labels.
+
+To change the chip labels, edit the `stickers` array in `config/theme.json` and commit.
+
+---
+
+## Bärlauch game
+
+A hidden mini-game unlocked by tapping the **Bärlauch** chip. A field of moving emoji fills the panel — good plants (🌿 🌱 🍃 🍀) mixed with bad ones (☠️ 🥀 🌸 🧄 💀 🪦 🌾 🍂). A countdown timer ticks down and the field gradually darkens.
+
+**Goal:** tap every good plant before time runs out, without touching a bad one.
+
+- **Win:** all good plants collected → a random photo from the album appears with a sweet caption, and a **Level N starten** button lets you continue.
+- **Fail (timeout):** the field goes dark — *"Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei."*
+- **Fail (bad plant):** instant end — *"Oops. Ich fürchte, wir haben toten Lauch … gesammelt."*
+
+The game has **10 levels**. Each level increases the number of bad plants, reduces the time limit, and speeds up the animation. The level resets on page reload. The panel sits above the main content cards.
 
 ---
 
