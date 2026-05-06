@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "provider": "icloud",
-  "url": "https://share.icloud.com/photos/0101mVOypd0i8oonyygzxPEuw",
+  "url": "https://www.icloud.com/sharedalbum/#B1yGqkRUi85ROko",
   "output": "config/photos.json",
   "videoMinDurationMs": 20000,
   "notes": "Paste a public iCloud Shared Album URL (https://www.icloud.com/sharedalbum/#TOKEN) or a public Google Photos shared link. Set provider to 'icloud', 'google', or 'auto'. iCloud public shared albums work best; Google Photos scraping is best-effort. videoMinDurationMs (default 20000) is the minimum clip duration in milliseconds before an item is treated as a real video; shorter clips (Apple Live Photos, Google motion photos) are imported as still images because their =dv URLs often return broken or 1–3s clips. Anyone with the link can see these photos — do not put content in public shares that you do not want public."
