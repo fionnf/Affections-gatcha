@@ -201,14 +201,25 @@ async function syncICloud(url, options = {}) {
         `iCloud: item ${index} flagged as video but duration=${durationMs ?? "unknown"}ms < ${videoMinDurationMs}ms — exporting as still image (likely Live Photo).`
       );
     }
-    const chosen = pickBestDerivative(photo.derivatives, isVideo);
+    let chosen = pickBestDerivative(photo.derivatives, isVideo);
+    let emitAsVideo = isVideo;
+    if (!chosen && isVideo) {
+      // No video-typed derivative found even though the item is marked as a video.
+      // Fall back to the best image derivative and downgrade to "image" so we
+      // don't save an image URL as type "video" (which would produce broken playback).
+      console.log(
+        `iCloud: item ${index} marked as video but no video stream derivative found — importing as still image.`
+      );
+      chosen = pickBestDerivative(photo.derivatives, false);
+      emitAsVideo = false;
+    }
     if (!chosen || !chosen.checksum) continue;
     const mediaUrl = buildItemUrl(chosen.checksum);
     if (!mediaUrl) continue;
     photos.push({
       url: mediaUrl,
       alt: `Erinnerung ${index}`,
-      type: isVideo ? "video" : "image"
+      type: emitAsVideo ? "video" : "image"
     });
   }
 
@@ -268,6 +279,9 @@ function pickBestDerivative(derivatives, preferVideo) {
       videos.sort((a, b) => sizeOf(b) - sizeOf(a));
       return videos[0];
     }
+    // No video derivative detectable by mediaType — return null so the caller
+    // does not accidentally save an image derivative URL as type "video".
+    return null;
   }
   entries.sort((a, b) => sizeOf(b) - sizeOf(a));
   return entries[0];
@@ -421,7 +435,11 @@ function parseGooglePhotosItems(html, videoMinDurationMs = DEFAULT_VIDEO_MIN_DUR
     }
     const markerSaysVideo = typeMarker === VIDEO_TYPE_MARKER;
     const longEnough = typeof durationMs === "number" && durationMs >= videoMinDurationMs;
-    const isVideo = markerSaysVideo && longEnough;
+    // When duration is unknown (null) and the marker says video, optimistically
+    // mark as video so canFetchAsVideo can verify the =dv URL is streamable.
+    // This handles cases where the structured-data duration key has changed or
+    // the duration field is absent — the =dv probe is the authoritative check.
+    const isVideo = markerSaysVideo && (longEnough || durationMs === null);
     const isLivePhoto =
       typeMarker !== null && typeMarker !== 1 && !isVideo;
     out.push({
@@ -441,6 +459,7 @@ async function buildGooglePhotosFromItems(items) {
   let livePhotoCount = 0;
   let skippedVideoCount = 0;
   let downgradedShortCount = 0;
+  let unknownDurationFallbackCount = 0;
   const threshold =
     items[0] && items[0].videoMinDurationMs ? items[0].videoMinDurationMs : DEFAULT_VIDEO_MIN_DURATION_MS;
   let index = 0;
@@ -455,6 +474,21 @@ async function buildGooglePhotosFromItems(items) {
           url: videoUrl,
           alt: `Erinnerung ${index}`,
           type: "video"
+        });
+        continue;
+      }
+      if (item.durationMs === null) {
+        // Duration unknown — =dv did not verify, so we cannot confirm this is a
+        // real video (it might be a Live Photo or motion frame). Fall back to the
+        // still image rather than dropping the item entirely.
+        unknownDurationFallbackCount += 1;
+        console.log(
+          `Google Photos: item ${index} has video marker but unknown duration and =dv did not resolve — importing as still image.`
+        );
+        photos.push({
+          url: `${cleaned}=s2048`,
+          alt: `Erinnerung ${index}`,
+          type: "image"
         });
         continue;
       }
@@ -492,6 +526,11 @@ async function buildGooglePhotosFromItems(items) {
   if (downgradedShortCount) {
     console.warn(
       `Google Photos: ${downgradedShortCount} item(s) flagged as video were below the ${threshold}ms duration threshold and were exported as still images. Set 'videoMinDurationMs' in config/album-source.json to lower the cutoff.`
+    );
+  }
+  if (unknownDurationFallbackCount) {
+    console.log(
+      `Google Photos: ${unknownDurationFallbackCount} video-marker item(s) had no readable duration and =dv did not resolve — imported as still images. If these are real videos, consider switching to an iCloud public shared album for reliable video URLs.`
     );
   }
   if (skippedVideoCount) {
