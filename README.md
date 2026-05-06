@@ -18,6 +18,7 @@ A daily capsule-pull web app for Lennart, embedded via Webflow + GitHub Pages. H
 - [Photo & video drops](#photo--video-drops)
 - [Auto-sync from a shared album](#auto-sync-from-a-shared-album)
 - [Outcome categories & odds](#outcome-categories--odds)
+- [Outcome links (Spotify & URLs)](#outcome-links-spotify--urls)
 - [Streak bonus](#streak-bonus)
 - [History tab](#history-tab)
 - [Sending results](#sending-results)
@@ -98,7 +99,7 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 
 | File | What to edit |
 |---|---|
-| `config/outcomes.json` | Response texts, category weights |
+| `config/outcomes.json` | Response texts, category weights, optional links |
 | `config/theme.json` | Colors, name, timing, loading steps |
 | `config/photos.json` | Photo URLs and captions |
 | `config/special-days.json` | Birthdays, anniversaries, one-off events |
@@ -243,6 +244,25 @@ Base weights (total = 1000, so weight ÷ 10 = %):
 | Jackpot | `jackpot` | 50 | 5% |
 
 To change odds, edit `weight` values in `config/outcomes.json`. The sum doesn't have to equal 1000; any integer totals work.
+
+---
+
+## Outcome links (Spotify & URLs)
+
+Any outcome in `config/outcomes.json` can have an optional `link` field:
+
+```json
+{
+  "title": "DJ Fionn Set",
+  "message": "Eine Playlist für dein Training.",
+  "link": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+}
+```
+
+- **Spotify links** (`open.spotify.com`) render as an embedded player inside the result card — tracks and episodes appear as an 80 px strip, playlists and albums as a 152 px card.
+- **All other URLs** show a "🔗 Link öffnen" button that opens in a new tab.
+- The link is included in the pre-filled **An Fionn schicken** message.
+- The **Verlauf** and **Favoriten** tabs show a compact link button for any entry that has one.
 
 ---
 
