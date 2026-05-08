@@ -233,18 +233,18 @@ The workflow also runs on a daily cron (`17 4 * * *` UTC) and commits only `conf
 
 ## Outcome categories & odds
 
-Base weights (total = 1000, so weight ÷ 10 = %):
+Base weights (current total = 1090):
 
 | Category | ID | Weight | Base chance |
 |---|---|---:|---:|
-| Niete | `niete` | 120 | 12% |
-| Gewöhnlich | `common` | 170 | 17% |
-| Mini-Quest | `quest` | 150 | 15% |
-| Ungewöhnlich | `uncommon` | 130 | 13% |
-| Verflucht | `cursed` | 90 | 9% |
-| Selten (Date-Credits) | `rare` | 90 | 9% |
-| Foto-Drop | `photo` | 200 | 20% |
-| Jackpot | `jackpot` | 50 | 5% |
+| Niete | `niete` | 150 | 13.76% |
+| Gewöhnlich | `common` | 180 | 16.51% |
+| Mini-Quest | `quest` | 180 | 16.51% |
+| Ungewöhnlich | `uncommon` | 100 | 9.17% |
+| Verflucht | `cursed` | 90 | 8.26% |
+| Selten (Date-Credits) | `rare` | 90 | 8.26% |
+| Foto-Drop | `photo` | 250 | 22.94% |
+| Jackpot | `jackpot` | 50 | 4.59% |
 
 To change odds, edit `weight` values in `config/outcomes.json`. The sum doesn't have to equal 1000; any integer totals work.
 

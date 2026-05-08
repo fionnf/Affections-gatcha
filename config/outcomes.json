@@ -219,7 +219,7 @@
     {
       "id": "quest",
       "label": "Mini-Quest",
-      "weight": 120,
+      "weight": 180,
       "tone": "quest",
       "outcomes": [
         {
@@ -253,6 +253,50 @@
         {
           "title": "Route wählen",
           "message": "Wähle eine Kategorie für unser nächstes Mini-Date: Kaffee, Spaziergang, Dessert, Aussicht oder Designladen."
+        },
+        {
+          "title": "Ugly-Building-Mission",
+          "message": "Schick mir heute ein Foto vom hässlichsten Gebäude, das du findest. Bonuspunkte für ernsthafte Architekturkritik in einem Satz."
+        },
+        {
+          "title": "Material-Detektiv",
+          "message": "Finde unterwegs ein spannendes Materialdetail (Stein, Holz, Metall, Putz) und schick ein Foto plus 3-Wort-Bewertung."
+        },
+        {
+          "title": "Fenster-Zählung",
+          "message": "Such dir ein Gebäude aus und schätz aus dem Bauch heraus die Anzahl der sichtbaren Fenster. Foto + Schätzung an Fionn."
+        },
+        {
+          "title": "Treppen-Trophäe",
+          "message": "Schick ein Foto von der interessantesten Treppe, die du heute siehst. Schönheit ist optional, Charakter ist Pflicht."
+        },
+        {
+          "title": "Skyline-Schnipsel",
+          "message": "Mach ein kleines Tagesfoto vom Himmel über dir und schick es mit einem einzigen Wort zur Stimmung."
+        },
+        {
+          "title": "Kiosk-Orakel",
+          "message": "Wenn du an einem Kiosk vorbeikommst: Sag mir das kurioseste Getränk oder Snack-Objekt, das du dort siehst."
+        },
+        {
+          "title": "Design oder Desaster",
+          "message": "Finde heute ein Objekt im Alltag (Lampe, Schild, Türgriff, Stuhl) und entscheide: Design-Ikone oder Design-Verbrechen?"
+        },
+        {
+          "title": "Mini-Review",
+          "message": "Schick mir ein Foto von etwas aus deinem Tag und bewerte es wie auf Google Maps: Sterne + ein ultrakurzer Kommentar."
+        },
+        {
+          "title": "Farbfund",
+          "message": "Finde heute eine Farbe, die zu deiner Stimmung passt, und schick mir ein passendes Foto als Beweis."
+        },
+        {
+          "title": "Geräusch-Notiz",
+          "message": "Beschreib mir das markanteste Geräusch deines Tages in maximal fünf Wörtern. Poetisch oder komplett nüchtern ist beides erlaubt."
+        },
+        {
+          "title": "Schilder-Safari",
+          "message": "Finde das seltsamste Schild, das du heute siehst, und schick ein Foto oder den exakten Wortlaut."
         }
       ]
     },
