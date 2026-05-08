@@ -53,11 +53,10 @@ Any outcome can have an optional `link` URL:
 - The link is also included in the text that appears when sharing the result.
 - History and Favourites views show a small link button for entries that have one.
 
-The weights currently add to 1000, so:
+Percent chances are relative to the current total weight. Quick formula:
 
-- `200` = 20%
-- `50` = 5%
-- `10` = 1%
+- `chance = categoryWeight / totalWeight`
+- Example with a total of `1090`: `180` ≈ `16.51%`, `50` ≈ `4.59%`
 
 ## Change photo captions or URLs
 
@@ -428,4 +427,3 @@ Progressive Web App. Place 192 × 192 and 512 × 512 PNG icons at
 `media/icon-192.png` and `media/icon-512.png` to complete the manifest.
 The `index.html` already links the manifest and sets the theme-color meta
 tag to `#1a3a2c`.
-
