@@ -1137,7 +1137,7 @@
         tone: special.tone || "jackpot",
         outcomes: specialOutcomes
       };
-      return { day, token, category, outcome, photo: null };
+      return { day, token, category, outcome, photo: null, unlockTime: special.unlockTime || null };
     }
 
     let category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0);
@@ -1199,7 +1199,12 @@
       `${emoji} ${displayNameFromToken()}s ${state.theme.brand.machineName}: ${pull.category.label}`,
       pull.outcome.title,
       pull.outcome.message,
-      pull.outcome.link ? `🔗 ${pull.outcome.link}` : "",
+      (pull.outcome.link && (!pull.unlockTime || (() => {
+        const [h, m] = pull.unlockTime.split(":").map(Number);
+        const now = new Date();
+        return now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+      })()))
+        ? `🔗 ${pull.outcome.link}` : "",
       pull.photo ? `📸 ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
       `Tag: ${pull.day}`
     ]
@@ -1312,7 +1317,20 @@
     const photoMedia = $("[data-ag-photo-media]");
     const photoCaption = $("[data-ag-photo-caption]");
 
-    renderLinkInto($("[data-ag-link-wrap]"), pull.outcome.link || null);
+    const linkWrap = $("[data-ag-link-wrap]");
+    if (pull.outcome.link && pull.unlockTime) {
+      const [h, m] = pull.unlockTime.split(":").map(Number);
+      const now = new Date();
+      const unlocked = now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+      if (unlocked) {
+        renderLinkInto(linkWrap, pull.outcome.link);
+      } else {
+        linkWrap.innerHTML = `<span class="ag-outcome-link ag-secondary">🔒 Link verfügbar ab ${pull.unlockTime}</span>`;
+        linkWrap.hidden = false;
+      }
+    } else {
+      renderLinkInto(linkWrap, pull.outcome.link || null);
+    }
 
     if (pull.photo) {
       renderMediaInto(photoMedia, pull.photo);
