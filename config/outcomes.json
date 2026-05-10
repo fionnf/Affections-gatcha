@@ -445,7 +445,7 @@
     {
       "id": "rare",
       "label": "Selten",
-      "weight": 90,
+      "weight": 60,
       "tone": "rare",
       "outcomes": [
         {
@@ -514,7 +514,7 @@
     {
       "id": "jackpot",
       "label": "JACKPOT",
-      "weight": 50,
+      "weight": 10,
       "tone": "jackpot",
       "outcomes": [
         {
