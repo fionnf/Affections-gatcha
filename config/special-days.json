@@ -30,6 +30,37 @@
       "unlockTime": "17:30"
     },
     {
+      "date": "05-10",
+      "label": "Laf Schnell!",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "🌟 SSR-Speed-Dämon-Pull! 🌟",
+          "message": "Hey Lennart! An diesem besonderen Tag in München beim Wings for Life World Run, möge dein Lauf mit den night 
+          friends ein legendärer Gacha-Pull sein: epische Speed, Ausdauer-Verlust und alle Kumpels SSR-Rarität (Super Super Rare, die Besten der Besten!) 
+          für maximalen Spaß! Rennt wie die Teufel, lacht euch schlapp und erobert die Strecke aus dem 
+          Olympiapark wie Bosse. Ich vermisse dich total hier in Zürich, aber freue mich fuer dich! 😘🚀"
+        }
+      ],
+      "colors": {
+        "background": "#f5f8ff",
+        "surface": "#eaf0ff",
+        "surfaceAlt": "#dbe6ff",
+        "primary": "#3b5bdb",
+        "primaryDark": "#2f4bb5",
+        "gold": "#7c9cff"
+      },
+      "darkColors": {
+        "background": "#0f1220",
+        "surface": "#171b30",
+        "surfaceAlt": "#222845",
+        "primary": "#7c9cff",
+        "primaryDark": "#9bb2ff",
+        "gold": "#9bb2ff"
+      },
+      "unlockTime": "17:30"
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
