@@ -515,6 +515,9 @@
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
           </section>
+          <div style="text-align:center;padding:12px 0 4px;">
+            <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-secondary" style="font-size:0.85rem;text-decoration:none;opacity:0.75;">💡 Lichtsteuerung</a>
+          </div>
         </div>
       </div>
     `;
