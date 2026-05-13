@@ -515,8 +515,8 @@
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
           </section>
-          <div style="text-align:center;padding:12px 0 4px;">
-            <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-secondary" style="font-size:0.85rem;text-decoration:none;opacity:0.75;">💡 Lichtsteuerung</a>
+          <div class="ag-lighting-link-wrap">
+            <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-secondary ag-lighting-link">💡 Lichtsteuerung</a>
           </div>
         </div>
       </div>
@@ -2870,6 +2870,8 @@
       .ag-secondary:hover{transform:translateY(-1px);border-color:var(--ag-primary);background:rgba(47,122,79,.08)}
       .ag-star.is-starred{color:var(--ag-gold);border-color:var(--ag-gold);background:rgba(185,120,46,.1)}
       .ag-star.is-starred:hover{background:rgba(185,120,46,.18)}
+      .ag-lighting-link-wrap{display:flex;justify-content:center;padding:12px 0 4px}
+      .ag-lighting-link{font-size:.92rem}
 
       .ag-rules{color:var(--ag-text)}
       .ag-rules summary{
