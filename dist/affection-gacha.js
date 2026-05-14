@@ -183,24 +183,36 @@
     } catch (_e) { return false; }
   }
 
-  async function restoreFromSheetsIfEmpty() {
+  async function syncFromSheets() {
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = "Lennart";
-      const hasHistory = readHistory().some((e) => e.token === token);
-      const hasFavs = readFavorites().some((e) => e.token === token);
-      if (hasHistory && hasFavs) return;
       const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
       if (!data.ok) return;
-      if (!hasHistory && Array.isArray(data.history) && data.history.length) {
-        writeHistory(data.history);
+
+      // Merge Sheet history with local history — union by day, Sheet wins on conflict
+      if (Array.isArray(data.history) && data.history.length) {
+        const local = readHistory();
+        const localByDay = new Map(local.map((e) => [e.day, e]));
+        for (const entry of data.history) {
+          localByDay.set(entry.day, entry); // Sheet entry overwrites local
+        }
+        const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
+        writeHistory(merged);
       }
-      if (!hasFavs && Array.isArray(data.favourites) && data.favourites.length) {
-        writeFavorites(data.favourites);
+
+      // Merge favourites — union by day, Sheet wins
+      if (Array.isArray(data.favourites) && data.favourites.length) {
+        const localFavs = readFavorites();
+        const favsByDay = new Map(localFavs.map((e) => [e.day, e]));
+        for (const entry of data.favourites) {
+          favsByDay.set(entry.day, entry);
+        }
+        writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
       }
     } catch (_e) { /* never block startup */ }
   }
@@ -244,7 +256,7 @@
       state.specialDays = specialDays;
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
-      await restoreFromSheetsIfEmpty();
+      await syncFromSheets();
       const wasSeeded = seedStreakOnce();
       if (wasSeeded) backupToSheets();
       applyTheme(theme);
