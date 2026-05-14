@@ -149,6 +149,39 @@
     return response.json();
   }
 
+  function seedStreakOnce() {
+    const SEED_FLAG = "affektions-gacha:streak-seeded:v1";
+    try {
+      if (localStorage.getItem(SEED_FLAG)) return;
+      const token = "Lennart";
+      const history = readHistory();
+      const hasEntries = history.some((e) => e.token === token);
+      if (hasEntries) {
+        localStorage.setItem(SEED_FLAG, "1");
+        return;
+      }
+      const seeded = [];
+      for (let i = 13; i >= 1; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dayKey = d.toISOString().slice(0, 10);
+        seeded.push({
+          day: dayKey,
+          token: token,
+          categoryId: "common",
+          categoryLabel: "Gewöhnlich",
+          tone: "common",
+          title: "(wiederhergestellt)",
+          message: "",
+          link: null,
+          photo: null
+        });
+      }
+      writeHistory(seeded);
+      localStorage.setItem(SEED_FLAG, "1");
+    } catch (_e) { /* never block startup */ }
+  }
+
   async function init() {
     injectFonts();
     injectStyles();
@@ -162,6 +195,7 @@
         fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" })
       ]);
       state.theme = theme;
+      seedStreakOnce();
       state.outcomes = outcomes;
       state.photos = normalizePhotos(photos);
       state.specialDays = specialDays;
@@ -1503,7 +1537,7 @@
       return true;
     });
     merged.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
-    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 14;
+    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 9999;
     writeHistory(merged.slice(0, Math.max(cap, 1)));
   }
 
@@ -1684,7 +1718,7 @@
     list.innerHTML = "";
 
     const token = getToken();
-    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 14;
+    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 9999;
     const entries = readHistory()
       .filter((e) => e.token === token)
       .slice()
