@@ -1295,13 +1295,17 @@
       mediaEl = document.createElement("img");
       mediaEl.src = safeUrl(photo.url);
       mediaEl.alt = altText;
-      mediaEl.loading = "lazy";
-      mediaEl.decoding = "async";
+      mediaEl.loading = "eager";
+      mediaEl.decoding = "auto";
       mediaEl.addEventListener("load", () => {
         const ratio = mediaEl.naturalWidth && mediaEl.naturalHeight
           ? mediaEl.naturalWidth / mediaEl.naturalHeight
           : 1;
         stage.dataset.orientation = ratio < 0.95 ? "portrait" : ratio > 1.15 ? "landscape" : "square";
+      }, { once: true });
+      mediaEl.addEventListener("error", () => {
+        const wrap = mediaEl.closest("[data-ag-photo-wrap]");
+        if (wrap) wrap.hidden = true;
       }, { once: true });
     }
     mediaEl.className = "ag-media-content";
