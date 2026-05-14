@@ -223,17 +223,24 @@
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = "Lennart";
       const history = readHistory();
-      const payload = {
+      const body = JSON.stringify({
         type: "gacha-backup",
         token,
         history,
         favourites: readFavorites(),
         streak: computeStreak()
-      };
-      fetch(cfg.endpointUrl, {
+      });
+      const opts = {
         method: "POST",
-        body: JSON.stringify(payload)
-      }).catch(() => {});
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-store",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body
+      };
+      fetch(cfg.endpointUrl, opts).catch(() => {
+        fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
+      });
     } catch (_e) {}
   }
 
