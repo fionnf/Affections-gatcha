@@ -182,24 +182,67 @@
     } catch (_e) { /* never block startup */ }
   }
 
+  async function restoreFromSheetsIfEmpty() {
+    try {
+      const cfg = state.backup;
+      if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+      const token = "Lennart";
+      const hasHistory = readHistory().some((e) => e.token === token);
+      const hasFavs = readFavorites().some((e) => e.token === token);
+      if (hasHistory && hasFavs) return;
+      const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.ok) return;
+      if (!hasHistory && Array.isArray(data.history) && data.history.length) {
+        writeHistory(data.history);
+      }
+      if (!hasFavs && Array.isArray(data.favourites) && data.favourites.length) {
+        writeFavorites(data.favourites);
+      }
+    } catch (_e) { /* never block startup */ }
+  }
+
+  function backupToSheets() {
+    try {
+      const cfg = state.backup;
+      if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+      const token = "Lennart";
+      const payload = {
+        type: "gacha-backup",
+        token,
+        history: readHistory(),
+        favourites: readFavorites()
+      };
+      fetch(cfg.endpointUrl, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch (_e) {}
+  }
+
   async function init() {
     injectFonts();
     injectStyles();
     renderShell();
     try {
-      const [theme, outcomes, photos, specialDays, wishInbox] = await Promise.all([
+      const [theme, outcomes, photos, specialDays, wishInbox, backup] = await Promise.all([
         fetchJson("config/theme.json"),
         fetchJson("config/outcomes.json"),
         fetchJson("config/photos.json", defaultPhotos),
         fetchJson("config/special-days.json", { days: [] }),
-        fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" })
+        fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
+        fetchJson("config/backup.json", { enabled: false, endpointUrl: "" })
       ]);
       state.theme = theme;
-      seedStreakOnce();
       state.outcomes = outcomes;
       state.photos = normalizePhotos(photos);
       state.specialDays = specialDays;
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
+      state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
+      await restoreFromSheetsIfEmpty();
+      seedStreakOnce();
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
@@ -1539,6 +1582,7 @@
     merged.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
     const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 9999;
     writeHistory(merged.slice(0, Math.max(cap, 1)));
+      backupToSheets();
   }
 
   function reveal() {

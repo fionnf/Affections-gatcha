@@ -1,0 +1,5 @@
+{
+  "enabled": false,
+  "endpointUrl": "",
+  "comment": "Google Sheets backup for Verlauf and Lieblinge. Set enabled=true and paste your deployed Apps Script web-app URL into endpointUrl. See scripts/backup-apps-script.js for the script to deploy. The spreadsheet used is the same as wish-inbox. Deploy as: Execute as Me, Anyone with access."
+}
