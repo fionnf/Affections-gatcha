@@ -458,7 +458,7 @@
               <div class="ag-hug-row">
                 <div class="ag-hug-text">
                   <p class="ag-wish-label">Notfall-Umarmung</p>
-                  <p class="ag-wish-note">Ein Stups an Fionn, wenn dir gerade nach einer Umarmung ist.</p>
+                  <p class="ag-wish-note" style="margin-bottom:0">Ein Stups an Fionn, wenn dir gerade nach einer Umarmung ist.</p>
                 </div>
                 <button class="ag-hug-button" type="button" data-ag-hug-send aria-label="Notfall-Umarmung an Fionn senden">
                   <span class="ag-hug-emoji" aria-hidden="true">🫂</span>
@@ -515,9 +515,12 @@
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
           </section>
-          <div class="ag-lighting-link-wrap">
-            <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-secondary ag-lighting-link">💡 Lichtsteuerung</a>
-          </div>
+          <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
+              <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;">
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>💡 Lichtsteuerung</span>
+              </a>
+            </div>
         </div>
       </div>
     `;
@@ -528,8 +531,7 @@
   }
 
   function getToken() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get(state.theme.tokenParam) || state.theme.brand.displayNameDefault || "Lennart";
+    return state.theme.brand.displayNameDefault || "Lennart";
   }
 
   function displayNameFromToken() {
@@ -2856,11 +2858,11 @@
       }
       .ag-media-content{
         position:relative;z-index:1;
-        max-width:100%;max-height:100%;width:auto;height:auto;
-        object-fit:contain;display:block;
+        width:100%;height:100%;
+        object-fit:cover;display:block;
         border-radius:6px;
       }
-      .ag-media-frame video.ag-media-content{width:100%;height:100%;object-fit:contain;background:transparent}
+      .ag-media-frame video.ag-media-content{width:100%;height:100%;object-fit:contain;background:transparent;border-radius:0}
 
       .ag-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
       .ag-secondary{
