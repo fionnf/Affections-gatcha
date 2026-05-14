@@ -209,11 +209,13 @@
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = "Lennart";
+      const history = readHistory();
       const payload = {
         type: "gacha-backup",
         token,
-        history: readHistory(),
-        favourites: readFavorites()
+        history,
+        favourites: readFavorites(),
+        streak: computeStreak()
       };
       fetch(cfg.endpointUrl, {
         method: "POST",

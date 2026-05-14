@@ -27,7 +27,8 @@ function doGet(e) {
           ok: true,
           history: JSON.parse(values[i][1] || "[]"),
           favourites: JSON.parse(values[i][2] || "[]"),
-          lastUpdated: values[i][3]
+          streak: values[i][3] || 0,
+          lastUpdated: values[i][4]
         });
       }
     }
@@ -53,10 +54,11 @@ function doPost(e) {
     for (let i = 1; i < values.length; i++) {
       if (values[i][0] === token) { rowIndex = i + 1; break; }
     }
+    const streak = typeof data.streak === "number" ? data.streak : 0;
     if (rowIndex === -1) {
-      sheet.appendRow([token, history, favourites, timestamp]);
+      sheet.appendRow([token, history, favourites, streak, timestamp]);
     } else {
-      sheet.getRange(rowIndex, 1, 1, 4).setValues([[token, history, favourites, timestamp]]);
+      sheet.getRange(rowIndex, 1, 1, 5).setValues([[token, history, favourites, streak, timestamp]]);
     }
     return jsonOut_({ ok: true });
   } catch (err) {
@@ -69,7 +71,7 @@ function getOrCreateSheet_() {
   let sheet = ss.getSheetByName(BACKUP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(BACKUP_SHEET_NAME);
-    sheet.appendRow(["Token", "History", "Favourites", "LastUpdated"]);
+    sheet.appendRow(["Token", "History", "Favourites", "Streak", "LastUpdated"]);
     sheet.setFrozenRows(1);
   }
   return sheet;
