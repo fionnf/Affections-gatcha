@@ -516,7 +516,7 @@
             </div>
           </section>
           <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
-              <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;">
+              <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span>💡 Lichtsteuerung</span>
               </a>
