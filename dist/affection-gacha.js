@@ -152,13 +152,13 @@
   function seedStreakOnce() {
     const SEED_FLAG = "affektions-gacha:streak-seeded:v1";
     try {
-      if (localStorage.getItem(SEED_FLAG)) return;
+      if (localStorage.getItem(SEED_FLAG)) return false;
       const token = "Lennart";
       const history = readHistory();
       const hasEntries = history.some((e) => e.token === token);
       if (hasEntries) {
         localStorage.setItem(SEED_FLAG, "1");
-        return;
+        return false;
       }
       const seeded = [];
       for (let i = 13; i >= 1; i--) {
@@ -179,7 +179,8 @@
       }
       writeHistory(seeded);
       localStorage.setItem(SEED_FLAG, "1");
-    } catch (_e) { /* never block startup */ }
+      return true;
+    } catch (_e) { return false; }
   }
 
   async function restoreFromSheetsIfEmpty() {
@@ -244,7 +245,8 @@
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
       await restoreFromSheetsIfEmpty();
-      seedStreakOnce();
+      const wasSeeded = seedStreakOnce();
+      if (wasSeeded) backupToSheets();
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
