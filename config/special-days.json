@@ -58,6 +58,33 @@
       "unlockTime": "17:30"
     },
     {
+      "date": "05-15",
+      "label": "Abendessen 🍽️",
+      "tone": "rare",
+      "outcomes": [
+        {
+          "title": "Fionn lädt zum Abendessen ein 🍽️",
+          "message": "Heute Abend geht's auf Fionns Rechnung. Treffpunkt: Stauffacher, 20:00 Uhr."
+        }
+      ],
+      "colors": {
+        "background": "#fff8f0",
+        "surface": "#fff0e0",
+        "surfaceAlt": "#ffe4c0",
+        "primary": "#c0560a",
+        "primaryDark": "#9a4208",
+        "gold": "#e07020"
+      },
+      "darkColors": {
+        "background": "#1a0f00",
+        "surface": "#261500",
+        "surfaceAlt": "#331c00",
+        "primary": "#e07020",
+        "primaryDark": "#f08030",
+        "gold": "#f08030"
+      }
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
