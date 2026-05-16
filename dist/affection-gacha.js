@@ -1396,26 +1396,43 @@
       mediaEl.setAttribute("playsinline", "");
       mediaEl.setAttribute("preload", "metadata");
       mediaEl.setAttribute("aria-label", altText);
+      mediaEl.className = "ag-media-content";
     } else {
       mediaEl = document.createElement("img");
-      mediaEl.src = safeUrl(photo.url);
       mediaEl.alt = altText;
       mediaEl.loading = "eager";
       mediaEl.decoding = "auto";
+      mediaEl.className = "ag-media-content";
+
       mediaEl.addEventListener("load", () => {
         const ratio = mediaEl.naturalWidth && mediaEl.naturalHeight
-          ? mediaEl.naturalWidth / mediaEl.naturalHeight
-          : 1;
+          ? mediaEl.naturalWidth / mediaEl.naturalHeight : 1;
         stage.dataset.orientation = ratio < 0.95 ? "portrait" : ratio > 1.15 ? "landscape" : "square";
       }, { once: true });
-      mediaEl.addEventListener("error", () => {
-        const wrap = mediaEl.closest("[data-ag-photo-wrap]");
-        if (wrap) wrap.hidden = true;
-      }, { once: true });
-    }
-    mediaEl.className = "ag-media-content";
-    stage.appendChild(mediaEl);
 
+      mediaEl.addEventListener("error", () => {
+        // URL may have expired — refetch photos.json for fresh URLs and retry once
+        fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
+          const freshPhotos = normalizePhotos(fresh);
+          const match = freshPhotos.find((p) => p.alt === photo.alt) || freshPhotos[0];
+          if (match && match.url && match.url !== photo.url) {
+            backdrop.style.backgroundImage = `url("${match.url}")`;
+            mediaEl.src = safeUrl(match.url);
+            state.photos = freshPhotos; // update global pool with fresh URLs
+          } else {
+            const wrap = mediaEl.closest("[data-ag-photo-wrap]");
+            if (wrap) wrap.hidden = true;
+          }
+        }).catch(() => {
+          const wrap = mediaEl.closest("[data-ag-photo-wrap]");
+          if (wrap) wrap.hidden = true;
+        });
+      }, { once: true });
+
+      mediaEl.src = safeUrl(photo.url);
+    }
+
+    stage.appendChild(mediaEl);
     container.appendChild(stage);
   }
 
