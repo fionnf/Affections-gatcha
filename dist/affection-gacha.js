@@ -1756,23 +1756,28 @@
 
       const thumb = document.createElement("div");
       thumb.className = "ag-history-thumb";
-      if (entry.photo.type === "video") {
+      const VIDEO_EXTS_HIST = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
+      const isVideoThumb =
+        entry.photo.type === "video" ||
+        VIDEO_EXTS_HIST.test(entry.photo.url || "");
+      if (isVideoThumb) {
         thumb.classList.add("is-video");
-        const icon = document.createElement("span");
-        icon.className = "ag-history-video-icon";
-        icon.textContent = "▶";
-        icon.setAttribute("aria-hidden", "true");
-        thumb.appendChild(icon);
-        const label = document.createElement("span");
-        label.className = "ag-history-video-label";
-        label.textContent = "Video";
-        thumb.appendChild(label);
+        const vid = document.createElement("video");
+        vid.src = safeUrl(entry.photo.url);
+        vid.muted = true;
+        vid.setAttribute("preload", "none");
+        vid.setAttribute("playsinline", "");
+        vid.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+        thumb.appendChild(vid);
       } else {
         const img = document.createElement("img");
         img.src = safeUrl(entry.photo.url);
         img.alt = entry.photo.alt || "Foto-Drop";
         img.loading = "lazy";
         img.decoding = "async";
+        img.addEventListener("error", function () {
+          thumb.style.opacity = "0.3";
+        });
         thumb.appendChild(img);
       }
 
