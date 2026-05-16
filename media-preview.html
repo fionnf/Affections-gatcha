@@ -357,22 +357,35 @@
           return div.innerHTML;
         }
 
+        const VIDEO_EXTS = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
+
         function normalizePhotos(data) {
-          const list = Array.isArray(data && data.photos) ? data.photos : [];
-          return list.map(function (photo, index) {
-            return {
-              url: photo && photo.url ? String(photo.url) : "",
-              alt:
-                photo && photo.alt
-                  ? String(photo.alt)
-                  : "Eintrag " + (index + 1),
-              caption:
-                photo && typeof photo.caption === "string"
-                  ? photo.caption.trim()
-                  : "",
-              type: photo && photo.type === "video" ? "video" : "image"
-            };
-          });
+          const list = Array.isArray(data)
+            ? data
+            : Array.isArray(data && data.photos)
+            ? data.photos
+            : [];
+          return list
+            .filter(function (p) {
+              return p && p.url && !p.url.includes(PLACEHOLDER_HOST);
+            })
+            .map(function (photo, index) {
+              const url = String(photo.url);
+              const isVideo =
+                photo.type === "video" || VIDEO_EXTS.test(url);
+              return {
+                url: url,
+                alt:
+                  photo.alt
+                    ? String(photo.alt)
+                    : "Eintrag " + (index + 1),
+                caption:
+                  typeof photo.caption === "string"
+                    ? photo.caption.trim()
+                    : "",
+                type: isVideo ? "video" : "image"
+              };
+            });
         }
 
         function buildEmpty(reason) {
