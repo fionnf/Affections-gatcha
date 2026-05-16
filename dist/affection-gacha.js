@@ -282,15 +282,13 @@
   function normalizePhotos(photosConfig) {
     const VIDEO_EXTS = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
     const photos = Array.isArray(photosConfig?.photos) ? photosConfig.photos : [];
-    return photos.map((photo) => {
-      const resolvedUrl = new URL(photo.url, urlFor("config/photos.json")).toString();
-      const isVideo = photo.type === "video" || VIDEO_EXTS.test(resolvedUrl);
-      return {
-        ...photo,
-        type: isVideo ? "video" : "image",
-        url: resolvedUrl
-      };
-    });
+    return photos
+      .map((photo) => {
+        const resolvedUrl = new URL(photo.url, urlFor("config/photos.json")).toString();
+        const isVideo = photo.type === "video" || VIDEO_EXTS.test(resolvedUrl);
+        return { ...photo, type: isVideo ? "video" : "image", url: resolvedUrl };
+      })
+      .filter((photo) => photo.type !== "video");
   }
 
   function injectFonts() {
