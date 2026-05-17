@@ -347,6 +347,54 @@
         {
           "title": "Schilder-Safari",
           "message": "Finde das seltsamste Schild, das du heute siehst, und schick ein Foto oder den exakten Wortlaut."
+        },
+        {
+          "title": "Synchron-Foto",
+          "message": "Heute müssen wir beide unabhängig voneinander ein Foto vom selben Thema schicken: etwas Blaues, eine Treppe, ein Gesicht (nicht von Personen), eine Mahlzeit. Thema ist: etwas Schönes."
+        },
+        {
+          "title": "Fremde grüßen",
+          "message": "Sag heute einer fremden Person etwas Nettes — ein Kompliment, ein Lächeln, ein Hi. Berichte kurz wie es war."
+        },
+        {
+          "title": "Voicemail-Tag",
+          "message": "Schick mir heute eine Sprachnachricht — kein Text. Egal wie kurz, egal worüber. Einfach deine Stimme."
+        },
+        {
+          "title": "Gemeinsamer Soundtrack",
+          "message": "Schick mir einen Song, der heute zu deinem Tag passt. Ich schick dir meinen. Kein Erklären nötig — der Song erklärt sich selbst."
+        },
+        {
+          "title": "Parallel-Spaziergang",
+          "message": "Wir gehen heute beide kurz spazieren — zu unterschiedlichen Zeiten, an unterschiedlichen Orten. Schick ein Foto vom Weg."
+        },
+        {
+          "title": "Fremder fragen",
+          "message": "Frag heute eine fremde Person nach einer Empfehlung — Café, Buch, Film, Weg, egal. Berichte was sie gesagt hat."
+        },
+        {
+          "title": "Tausch-Selfie",
+          "message": "Wir schicken uns heute beide ein Selfie aus dem gleichen Moment unseres Tages: genau nach dem Mittagessen."
+        },
+        {
+          "title": "Unsichtbares entdecken",
+          "message": "Finde heute etwas in deiner Stadt, das du noch nie bewusst wahrgenommen hast. Foto + ein Satz."
+        },
+        {
+          "title": "Voicenote-Runde",
+          "message": "Schick mir eine Voicenote mit deiner ehrlichen Antwort auf: Was war das Beste an dieser Woche bisher?"
+        },
+        {
+          "title": "Foto-Duell",
+          "message": "Wir schicken uns beide bis 20 Uhr ein Foto vom Thema: Licht. Natürlich, künstlich, dramatisch oder langweilig — alles zählt."
+        },
+        {
+          "title": "Hi sagen",
+          "message": "Sag heute einer Person, die du kaum kennst, spontan Hallo. Einem Nachbarn, einer Kassiererin, jemandem im Lift. Kurzer Bericht genügt."
+        },
+        {
+          "title": "Simultanes Kaffeetrinken",
+          "message": "Wir trinken heute beide zur gleichen Zeit einen Kaffee (oder Tee). Schick mir ein Foto wenn du anfängst — ich mach das Gleiche."
         }
       ]
     },
@@ -439,6 +487,30 @@
         {
           "title": "Voicenote",
           "message": "Bitte eine süße Voicenote an Fionn schicken! No cheating!"
+        },
+        {
+          "title": "Pflicht-Voicenote",
+          "message": "Verfluchte Kapsel: Du musst mir heute noch eine Voicenote schicken. Mindestens 20 Sekunden. Thema frei. Keine Ausreden."
+        },
+        {
+          "title": "Fremden-Challenge",
+          "message": "Verfluchte Kapsel: Heute musst du einer fremden Person ein aufrichtiges Kompliment machen. Danach Voicenote an Fionn als Beweis."
+        },
+        {
+          "title": "Gemeinsames Selfie-Schuld",
+          "message": "Beim nächsten Treffen machen wir zusammen ein richtig schlechtes Selfie — kein Filtern, kein zweiter Versuch. Die Maschine besteht darauf."
+        },
+        {
+          "title": "Spontan-Anruf",
+          "message": "Verfluchte Kapsel: Ruf Fionn heute einfach kurz an — kein Grund nötig. Die Maschine findet: das sollte öfter passieren."
+        },
+        {
+          "title": "Foto-Pflicht",
+          "message": "Du schuldest mir heute ein Foto von deinem Mittagessen. Egal wie tragisch es aussieht. Besonders wenn es tragisch aussieht."
+        },
+        {
+          "title": "Geständnis-Voicenote",
+          "message": "Schick mir eine Voicenote mit einer kleinen, harmlosen Beichte aus deiner Woche. Die Maschine schweigt. Meistens."
         }
       ]
     },
