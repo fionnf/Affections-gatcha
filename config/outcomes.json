@@ -439,6 +439,26 @@
         {
           "title": "Voicenote",
           "message": "Bitte eine süße Voicenote an Fionn schicken! No cheating!"
+        },
+        {
+          "title": "Die Maschine fordert: Tagesbericht",
+          "message": "Heute dreht sich die Kapsel um. Schick der Maschine deinen Tag in einem ehrlichen Satz — via Wunschkapsel. Kein Schönen erlaubt."
+        },
+        {
+          "title": "Die Maschine fordert: Bewertung",
+          "message": "Bewerte deinen Tag von 1–10 und schick die Zahl plus einen Grund via Wunschkapsel. Die Maschine notiert es."
+        },
+        {
+          "title": "Die Maschine fordert: Frage",
+          "message": "Schick der Maschine (via Wunschkapsel) eine Frage, die du dir selbst gerade nicht beantworten kannst."
+        },
+        {
+          "title": "Die Maschine fordert: Geständnis",
+          "message": "Die Maschine möchte heute etwas von dir: eine kleine Beichte via Wunschkapsel. Harmlos genug für die Akten."
+        },
+        {
+          "title": "Die Maschine fordert: Vorhersage",
+          "message": "Sag der Maschine via Wunschkapsel voraus, was diese Woche noch passiert. Sie erinnert sich. Immer."
         }
       ]
     },
@@ -488,6 +508,29 @@
         {
           "title": "Date-Credit: Rote Fabrik",
           "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft."
+        }
+      ]
+    },
+    {
+      "id": "collect",
+      "label": "Sammelkapsel",
+      "weight": 60,
+      "tone": "rare",
+      "outcomes": [
+        {
+          "title": "Grüne Kapsel 🌿",
+          "message": "Du sammelst ein 🌿. Bring 5 davon zusammen und Fionn kocht dir ein Abendessen — Gericht nach deiner Wahl.",
+          "token": "🌿"
+        },
+        {
+          "title": "Feuer-Kapsel 🔥",
+          "message": "Du sammelst ein 🔥. Bring 5 davon zusammen und ihr unternehmt ein Wochenend-Abenteuer — Ziel nach deiner Wahl.",
+          "token": "🔥"
+        },
+        {
+          "title": "Stern-Kapsel ⭐",
+          "message": "Du sammelst ein ⭐. Bring 5 davon zusammen und Fionn entscheidet was ihr macht. Überraschung garantiert.",
+          "token": "⭐"
         }
       ]
     },
