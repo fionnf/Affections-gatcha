@@ -6,6 +6,38 @@
 
   const STORAGE_KEY = "affektions-gacha:history:v1";
   const FAVORITES_KEY = "affektions-gacha:favourites:v1";
+  const TOKENS_KEY = "affektions-gacha:tokens:v1";
+  const TOKEN_GOAL = 5;
+  const TOKEN_REWARDS = {
+    "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
+    "🔥": "Wochenend-Abenteuer — Ziel nach deiner Wahl",
+    "⭐": "Fionns Überraschung — er entscheidet"
+  };
+
+  function readTokens() {
+    try {
+      const raw = localStorage.getItem(TOKENS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
+    } catch (_e) { return {}; }
+  }
+
+  function writeTokens(tokens) {
+    try { localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens)); } catch (_e) {}
+  }
+
+  function addToken(token) {
+    const tokens = readTokens();
+    tokens[token] = (tokens[token] || 0) + 1;
+    writeTokens(tokens);
+    return tokens[token];
+  }
+
+  function resetToken(token) {
+    const tokens = readTokens();
+    tokens[token] = 0;
+    writeTokens(tokens);
+  }
   const WISH_KEY = "affektions-gacha:wish:v1";
   const MILESTONE_KEY = "affektions-gacha:milestones:v1";
   const NOTIF_KEY = "affektions-gacha:notif:v1";
@@ -228,7 +260,8 @@
         token,
         history,
         favourites: readFavorites(),
-        streak: computeStreak()
+        streak: computeStreak(),
+        tokens: readTokens()
       });
       const opts = {
         method: "POST",
@@ -539,6 +572,7 @@
               <h2 data-ag-title></h2>
               <p data-ag-message></p>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
+              <div data-ag-token-wrap hidden></div>
               <figure class="ag-photo" data-ag-photo-wrap hidden>
                 <div class="ag-media-stage" data-ag-photo-media></div>
                 <figcaption data-ag-photo-caption hidden></figcaption>
@@ -1276,7 +1310,7 @@
         ? state.photos[seededIndex(`${baseSeed}|photo`, state.photos.length)]
         : null;
 
-    return { day, token, category, outcome, photo };
+    return { day, token, category, outcome, photo, collectToken: outcome.token || null };
   }
 
   function buildPull() {
@@ -1367,6 +1401,49 @@
     const spotifyEl = buildSpotifyEmbed(safe);
     container.appendChild(spotifyEl || buildGenericLink(safe));
     container.hidden = false;
+  }
+
+  function renderTokenInto(container, pull) {
+    container.innerHTML = "";
+    if (!pull.collectToken) { container.hidden = true; return; }
+    const t = pull.collectToken;
+    const count = addToken(t);
+    const reward = TOKEN_REWARDS[t] || "";
+    const redeemed = count >= TOKEN_GOAL;
+
+    if (redeemed) {
+      // Show redemption screen
+      container.innerHTML = `
+        <div style="text-align:center;padding:16px 0;animation:ag-pop 400ms var(--ag-ease) both">
+          <div style="font-size:2.5rem;margin-bottom:8px">${t.repeat(TOKEN_GOAL)}</div>
+          <p style="font-weight:700;font-size:1.1rem;margin-bottom:4px">5 erreicht — einlösbar!</p>
+          <p style="opacity:0.8;font-size:0.9rem;margin-bottom:12px">${reward}</p>
+          <button class="ag-button" type="button" id="ag-token-redeem">
+            <span class="ag-button-orb" aria-hidden="true"></span>
+            <span>Einlösen</span>
+          </button>
+        </div>`;
+      container.hidden = false;
+      container.querySelector("#ag-token-redeem").addEventListener("click", () => {
+        resetToken(t);
+        container.innerHTML = `<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>`;
+        // Also fire it as a wish so Fionn gets notified
+        if (state.wishInbox && state.wishInbox.enabled) {
+          const body = JSON.stringify({ timestamp: new Date().toISOString(), token: "Lennart", wish: `🎁 Sammelkapsel eingelöst: ${t} × ${TOKEN_GOAL} — ${reward}`, pageUrl: location.href, userAgent: navigator.userAgent });
+          fetch(state.wishInbox.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
+        }
+      });
+    } else {
+      // Show progress
+      const remaining = TOKEN_GOAL - count;
+      const filled = "🟢".repeat ? t.repeat(count) + "⬜".repeat(TOKEN_GOAL - count) : "";
+      container.innerHTML = `
+        <div style="text-align:center;padding:12px 0">
+          <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px">${t.repeat(count)}${"⬜".repeat(TOKEN_GOAL - count)}</div>
+          <p style="opacity:0.7;font-size:0.85rem">${remaining} × ${t} bis: <em>${reward}</em></p>
+        </div>`;
+      container.hidden = false;
+    }
   }
 
   function renderMediaInto(container, photo) {
@@ -1460,6 +1537,8 @@
     } else {
       renderLinkInto(linkWrap, pull.outcome.link || null);
     }
+
+    renderTokenInto($("[data-ag-token-wrap]"), pull);
 
     if (pull.photo) {
       renderMediaInto(photoMedia, pull.photo);
