@@ -185,7 +185,7 @@
     const SEED_FLAG = "affektions-gacha:streak-seeded:v1";
     try {
       if (localStorage.getItem(SEED_FLAG)) return false;
-      const token = "Lennart";
+      const token = getToken();
       const history = readHistory();
       const hasEntries = history.some((e) => e.token === token);
       if (hasEntries) {
@@ -219,7 +219,7 @@
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = "Lennart";
+      const token = getToken();
       const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
       const res = await fetch(url);
       if (!res.ok) return;
@@ -246,6 +246,17 @@
         }
         writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
       }
+
+      // Restore token collection progress from Sheets
+      if (data.tokens && typeof data.tokens === "object") {
+        const localTokens = readTokens();
+        for (const [tok, count] of Object.entries(data.tokens)) {
+          if (typeof count === "number") {
+            localTokens[tok] = Math.max(localTokens[tok] || 0, count);
+          }
+        }
+        writeTokens(localTokens);
+      }
     } catch (_e) { /* never block startup */ }
   }
 
@@ -253,7 +264,7 @@
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = "Lennart";
+      const token = getToken();
       const history = readHistory();
       const body = JSON.stringify({
         type: "gacha-backup",
@@ -296,9 +307,9 @@
       state.specialDays = specialDays;
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
-      await syncFromSheets();
-      const wasSeeded = seedStreakOnce();
-      if (wasSeeded) backupToSheets();
+      await syncFromSheets();          // pull Sheet data first — may populate history
+      const wasSeeded = seedStreakOnce(); // seed only if still empty after sync
+      if (wasSeeded) backupToSheets(); // push seeded data back to Sheet immediately
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
@@ -321,7 +332,7 @@
         const isVideo = photo.type === "video" || VIDEO_EXTS.test(resolvedUrl);
         return { ...photo, type: isVideo ? "video" : "image", url: resolvedUrl };
       })
-      .filter((photo) => photo.type !== "video");
+      .filter((photo) => photo.type !== "video"); // videos excluded until player rendering is stable
   }
 
   function injectFonts() {
