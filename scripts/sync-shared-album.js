@@ -106,7 +106,6 @@ function detectProvider(provider, url) {
   fail(
     `Could not auto-detect provider from URL. Set "provider" to "icloud" or "google" in config/album-source.json.`
   );
-  return "icloud";
 }
 
 /* ---------- iCloud ---------- */

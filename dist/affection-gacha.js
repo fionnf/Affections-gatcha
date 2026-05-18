@@ -321,7 +321,7 @@
         const isVideo = photo.type === "video" || VIDEO_EXTS.test(resolvedUrl);
         return { ...photo, type: isVideo ? "video" : "image", url: resolvedUrl };
       })
-      .filter((photo) => photo.type !== "video");
+      .filter((photo) => photo.url);
   }
 
   function injectFonts() {
@@ -1220,6 +1220,17 @@
     return `${get("year")}-${get("month")}-${get("day")}`;
   }
 
+  function hmInTimezone(timezone) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).formatToParts(new Date());
+    const get = (type) => Number(parts.find((p) => p.type === type).value);
+    return { h: get("hour"), m: get("minute") };
+  }
+
   function hashStringToUint32(input) {
     let hash = 2166136261;
     for (let index = 0; index < input.length; index += 1) {
@@ -1343,8 +1354,8 @@
       pull.outcome.message,
       (pull.outcome.link && (!pull.unlockTime || (() => {
         const [h, m] = pull.unlockTime.split(":").map(Number);
-        const now = new Date();
-        return now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+        const now = hmInTimezone(state.theme?.timezone || "UTC");
+        return now.h > h || (now.h === h && now.m >= m);
       })()))
         ? `🔗 ${pull.outcome.link}` : "",
       pull.photo ? `📸 ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
@@ -1526,12 +1537,16 @@
     const linkWrap = $("[data-ag-link-wrap]");
     if (pull.outcome.link && pull.unlockTime) {
       const [h, m] = pull.unlockTime.split(":").map(Number);
-      const now = new Date();
-      const unlocked = now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+      const now = hmInTimezone(state.theme?.timezone || "UTC");
+      const unlocked = now.h > h || (now.h === h && now.m >= m);
       if (unlocked) {
         renderLinkInto(linkWrap, pull.outcome.link);
       } else {
-        linkWrap.innerHTML = `<span class="ag-outcome-link ag-secondary">🔒 Link verfügbar ab ${pull.unlockTime}</span>`;
+        const lockSpan = document.createElement("span");
+        lockSpan.className = "ag-outcome-link ag-secondary";
+        lockSpan.textContent = `🔒 Link verfügbar ab ${pull.unlockTime}`;
+        linkWrap.innerHTML = "";
+        linkWrap.appendChild(lockSpan);
         linkWrap.hidden = false;
       }
     } else {
