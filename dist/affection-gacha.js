@@ -192,11 +192,11 @@
         localStorage.setItem(SEED_FLAG, "1");
         return false;
       }
+      const tz = state.theme?.timezone || "UTC";
       const seeded = [];
       for (let i = 13; i >= 1; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dayKey = d.toISOString().slice(0, 10);
+        const d = new Date(Date.now() - i * 86400000);
+        const dayKey = dateKeyInTimezone(tz, d);
         seeded.push({
           day: dayKey,
           token: token,
@@ -2082,7 +2082,7 @@
 
   // ── Notfall-Umarmung ────────────────────────────────────────────────────────
 
-  function setHugStatus(text, state) {
+  function setHugStatus(text, hugState) {
     const el = $("[data-ag-hug-status]");
     if (!el) return;
     if (!text) {
@@ -2093,7 +2093,7 @@
     }
     el.hidden = false;
     el.textContent = text;
-    if (state) el.dataset.agHugState = state;
+    if (hugState) el.dataset.agHugState = hugState;
     else delete el.dataset.agHugState;
   }
 
@@ -2149,18 +2149,11 @@
         if (response && response.ok) {
           onSuccess();
         } else {
-          // Apps Script sometimes returns opaque/CORS-stripped responses; try no-cors fallback.
-          fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            credentials: "omit",
-            cache: "no-store",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body
-          }).then(onSuccess).catch(onFailure);
+          onFailure();
         }
       })
       .catch(() => {
+        // Network/CORS error — retry with no-cors so the ping still arrives.
         try {
           fetch(endpoint, {
             method: "POST",
@@ -2237,7 +2230,7 @@
     if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
   
     try {
-      if (window.localStorage.getItem(NOTIFKEY) === 'dismissed') return;
+      if (window.localStorage.getItem(NOTIF_KEY) === 'dismissed') return;
     } catch {}
   
     card.hidden = false;
