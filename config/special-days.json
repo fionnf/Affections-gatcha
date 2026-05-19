@@ -112,6 +112,33 @@
       }
     },
     {
+      "date": "05-24",
+      "label": "Geheimer Strand 🏖️",
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Deine Mission: geheimer Strand 🗺️",
+          "message": "Heute gibt es eine Aufgabe. Kein Touristen-Strand, kein erster Google-Treffer — du findest einen geheimen Strand. Frag Locals, geh zu Fuß, bieg irgendwo ab wo kein Schild steht.\n\nUnd wenn du ihn gefunden hast: küss mich da. Das ist Pflicht. 💋\n\nKein Strand, kein Kuss. Kein Kuss, kein Erfolg. So einfach ist das."
+        }
+      ],
+      "colors": {
+        "background": "#f0fbff",
+        "surface": "#e0f5ff",
+        "surfaceAlt": "#c5eaff",
+        "primary": "#0a7ea4",
+        "primaryDark": "#085f7a",
+        "gold": "#20a8d8"
+      },
+      "darkColors": {
+        "background": "#020d14",
+        "surface": "#07161f",
+        "surfaceAlt": "#0d2130",
+        "primary": "#20a8d8",
+        "primaryDark": "#3bbfe8",
+        "gold": "#3bbfe8"
+      }
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
