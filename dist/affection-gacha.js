@@ -219,7 +219,7 @@
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = "Lennart";
+      const token = getToken();
       const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
       const res = await fetch(url);
       if (!res.ok) return;
@@ -253,7 +253,7 @@
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = "Lennart";
+      const token = getToken();
       const history = readHistory();
       const body = JSON.stringify({
         type: "gacha-backup",
