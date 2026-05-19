@@ -85,6 +85,33 @@
       }
     },
     {
+      "date": "05-23",
+      "label": "Stadtentdeckung 🏙️",
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Neue Stadt, neue Energie 🗺️",
+          "message": "Heute erkunden wir eine neue Stadt — Augen auf, Schuhe fest. Und für den Nachmittag: Energie sparen nicht vergessen, denn heute Abend wird getanzt. 🕺"
+        }
+      ],
+      "colors": {
+        "background": "#f0f7ff",
+        "surface": "#e2f0ff",
+        "surfaceAlt": "#cce3ff",
+        "primary": "#1a6fc4",
+        "primaryDark": "#145999",
+        "gold": "#3d9be0"
+      },
+      "darkColors": {
+        "background": "#080f1a",
+        "surface": "#0f1926",
+        "surfaceAlt": "#162333",
+        "primary": "#3d9be0",
+        "primaryDark": "#5db0f0",
+        "gold": "#5db0f0"
+      }
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
