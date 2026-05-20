@@ -221,7 +221,7 @@
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = "Lennart";
       const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (!data.ok) return;
@@ -245,6 +245,16 @@
           favsByDay.set(entry.day, entry);
         }
         writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
+      }
+
+      // Restore reward tokens — Sheet wins over local (Sheet has the union across devices)
+      if (data.tokens && typeof data.tokens === "object") {
+        const localTokens = readTokens();
+        const merged = { ...localTokens };
+        for (const [key, val] of Object.entries(data.tokens)) {
+          if (typeof val === "number") merged[key] = Math.max(merged[key] || 0, val);
+        }
+        writeTokens(merged);
       }
     } catch (_e) { /* never block startup */ }
   }
