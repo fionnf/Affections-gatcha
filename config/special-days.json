@@ -3,11 +3,11 @@
     {
       "date": "05-21",
       "label": "Packliste 🧳",
-      "tone": "warm",
+      "tone": "quest",
       "outcomes": [
         {
-          "title": "Packliste für morgen 🧳",
-          "message": "Ab 17:30 darfst du öffnen — die Packliste für unsere Reise wartet auf dich. Morgen geht's los!"
+          "title": "Deine Aufgabe: ein Brief 💌",
+          "message": "Ich kann es kaum erwarten. Den Rest findest du auf der Liste die ich dir gegeben habe — aber eins noch: deine HiFi-Ohrstöpsel. Vertrau mir.\n\nUnd eine Aufgabe von der Maschine: Schreib mir einen kurzen Brief auf Papier. Nicht lang, nicht perfekt — einfach was du gerade denkst. Bring ihn mit. Ich lese ihn wenn wir uns sehen. Bis bald. 🐚"
         }
       ],
     },
