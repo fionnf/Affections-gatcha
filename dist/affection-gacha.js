@@ -563,7 +563,7 @@
             <div class="ag-gesprach-card" id="ag-gesprach-question"></div>
             <div class="ag-gesprach-actions">
               <button class="ag-secondary" type="button" id="ag-gesprach-next">Neue Frage</button>
-              <button class="ag-primary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen 💚</button>
+              <button class="ag-secondary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen</button>
             </div>
           </section>
 
@@ -3064,17 +3064,6 @@
         display: flex;
         gap: .75rem;
         flex-wrap: wrap;
-      }
-
-      .ag-gesprach-actions .ag-primary {
-        background: #25d366;
-        border-color: #25d366;
-        color: #fff;
-      }
-
-      .ag-gesprach-actions .ag-primary:hover {
-        background: #1ebe5d;
-        border-color: #1ebe5d;
       }
 
       @keyframes agDrift {
