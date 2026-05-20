@@ -1724,11 +1724,9 @@
       return true;
     });
     merged.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
-    // Storage cap: keep enough history for streak (90 days minimum), independent of
-    // the display cap (historyDays) which only controls the History tab view.
-    const displayCap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 90;
-    const storageCap = Math.max(displayCap, 90);
-    writeHistory(merged.slice(0, storageCap));
+    // historyDays only controls the History tab display — storage is unlimited so
+    // the streak can grow without any ceiling.
+    writeHistory(merged);
     backupToSheets();
   }
 
