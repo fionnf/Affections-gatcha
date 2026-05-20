@@ -1919,15 +1919,12 @@
     list.innerHTML = "";
 
     const token = getToken();
-    const cap = Number.isInteger(state.theme.historyDays) ? Math.max(1, state.theme.historyDays) : 9999;
     const entries = readHistory()
       .filter((e) => e.token === token)
       .slice()
-      .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0))
-      .slice(0, cap);
+      .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
 
-    note.textContent =
-      `Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst. Bis zu ${cap} Tage.`;
+    note.textContent = "Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst.";
 
     if (!entries.length) {
       empty.hidden = false;
