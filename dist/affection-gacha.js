@@ -247,14 +247,9 @@
         writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
       }
 
-      // Restore reward tokens — Sheet wins over local (Sheet has the union across devices)
+      // Restore reward tokens — sheet wins so redemptions propagate across devices
       if (data.tokens && typeof data.tokens === "object") {
-        const localTokens = readTokens();
-        const merged = { ...localTokens };
-        for (const [key, val] of Object.entries(data.tokens)) {
-          if (typeof val === "number") merged[key] = Math.max(merged[key] || 0, val);
-        }
-        writeTokens(merged);
+        writeTokens(data.tokens);
       }
     } catch (_e) { /* never block startup */ }
   }
@@ -1428,7 +1423,7 @@
     container.innerHTML = "";
     if (!pull.collectToken) { container.hidden = true; return; }
     const t = pull.collectToken;
-    const count = addToken(t);
+    const count = readTokens()[t] || 0;
     const reward = TOKEN_REWARDS[t] || "";
     const redeemed = count >= TOKEN_GOAL;
 
@@ -1447,6 +1442,7 @@
       container.hidden = false;
       container.querySelector("#ag-token-redeem").addEventListener("click", () => {
         resetToken(t);
+        backupToSheets(); // persist the reset so other devices don't un-redeem it
         container.innerHTML = `<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>`;
         // Also fire it as a wish so Fionn gets notified
         if (state.wishInbox && state.wishInbox.enabled) {
@@ -1683,6 +1679,7 @@
       });
     }
     writeFavorites(favs);
+    backupToSheets();
     updateStarButton();
     if (state.activeTab === "lieblinge") renderLieblinge();
   }
@@ -1772,6 +1769,13 @@
       emojiSpans.forEach((span, i) => {
         span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
       });
+      // Add reward token once — guard prevents double-increment on re-reveal
+      if (state.todaysPull.collectToken) {
+        const alreadyRecorded = readHistory().some(
+          (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
+        );
+        if (!alreadyRecorded) addToken(state.todaysPull.collectToken);
+      }
       renderPull(state.todaysPull);
       mount.classList.remove("is-revealing");
       mount.classList.add("is-revealed");
