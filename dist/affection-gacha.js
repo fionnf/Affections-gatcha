@@ -251,6 +251,52 @@
       if (data.tokens && typeof data.tokens === "object") {
         writeTokens(data.tokens);
       }
+
+      // If history in the sheet was previously truncated, the computed streak will be
+      // lower than the stored streak value. Backfill synthetic entries to recover it.
+      const sheetStreak = typeof data.streak === "number" ? data.streak : 0;
+      if (sheetStreak > 0) {
+        const tz = state.theme?.timezone || "UTC";
+        const today = dateKeyInTimezone(tz);
+        const computedStreak = computeStreak();
+        if (sheetStreak > computedStreak) {
+          const gap = sheetStreak - computedStreak;
+          const backfillHistory = readHistory();
+          const pulledDays = new Set(backfillHistory.map((e) => e.day));
+          // Walk back to find the first missing day after the current streak tail
+          const [y, m, d] = today.split("-").map(Number);
+          let cur = new Date(Date.UTC(y, m - 1, d));
+          // Skip days that are already covered by the computed streak
+          for (let i = 0; i < computedStreak; i++) {
+            cur.setUTCDate(cur.getUTCDate() - 1);
+          }
+          // If today hasn't been pulled yet, the streak tail is one day further back
+          if (!pulledDays.has(today)) cur.setUTCDate(cur.getUTCDate() - 1);
+          const synthetic = [];
+          for (let i = 0; i < gap; i++) {
+            const dayKey = cur.toISOString().slice(0, 10);
+            if (!pulledDays.has(dayKey)) {
+              synthetic.push({
+                day: dayKey,
+                token: "Lennart",
+                categoryId: "common",
+                categoryLabel: "Gewöhnlich",
+                tone: "common",
+                title: "(wiederhergestellt)",
+                message: "",
+                link: null,
+                photo: null
+              });
+            }
+            cur.setUTCDate(cur.getUTCDate() - 1);
+          }
+          if (synthetic.length > 0) {
+            const combined = [...backfillHistory, ...synthetic];
+            combined.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+            writeHistory(combined);
+          }
+        }
+      }
     } catch (_e) { /* never block startup */ }
   }
 
@@ -563,7 +609,7 @@
             <div class="ag-gesprach-card" id="ag-gesprach-question"></div>
             <div class="ag-gesprach-actions">
               <button class="ag-secondary" type="button" id="ag-gesprach-next">Neue Frage</button>
-              <button class="ag-primary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen 💚</button>
+              <button class="ag-secondary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen</button>
             </div>
           </section>
 
@@ -3064,17 +3110,6 @@
         display: flex;
         gap: .75rem;
         flex-wrap: wrap;
-      }
-
-      .ag-gesprach-actions .ag-primary {
-        background: #25d366;
-        border-color: #25d366;
-        color: #fff;
-      }
-
-      .ag-gesprach-actions .ag-primary:hover {
-        background: #1ebe5d;
-        border-color: #1ebe5d;
       }
 
       @keyframes agDrift {
