@@ -106,7 +106,6 @@ function detectProvider(provider, url) {
   fail(
     `Could not auto-detect provider from URL. Set "provider" to "icloud" or "google" in config/album-source.json.`
   );
-  return "icloud";
 }
 
 /* ---------- iCloud ---------- */
@@ -117,7 +116,6 @@ function extractICloudToken(url) {
   const tail = url.replace(/\/$/, "").split("/").pop();
   if (tail && /^[A-Za-z0-9]+$/.test(tail)) return tail;
   fail(`Could not extract iCloud share token from URL: ${url}`);
-  return "";
 }
 
 function icloudPartition(token) {
@@ -573,7 +571,6 @@ function readJson(filePath) {
   } catch (error) {
     fail(`Could not read ${filePath}: ${error.message}`);
   }
-  return null;
 }
 
 function fail(message) {

@@ -85,6 +85,60 @@
       }
     },
     {
+      "date": "05-23",
+      "label": "Stadtentdeckung 🏙️",
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Lissabon auf Film 🎞️",
+          "message": "Heute gibt es eine Aufgabe: 10 Filmfotos in Lissabon. Kein Löschen, kein Nachschauen — einmal drücken, weitergehen.\n\n📋 Die Liste:\n1. Fionn, von hinten, irgendwo mit Aussicht\n2. Eine Straßenbahn in Bewegung, nah\n3. Ihr zwei zusammen — Selbstauslöser oder Fremde fragen\n4. Kacheln (Azulejos) in extremer Nahaufnahme\n5. Ein Schatten von dir auf dem Boden\n6. Jemand der irgendwo sitzt und nichts tut\n7. Fionn lacht — echter Moment, nicht gestellt\n8. Blick durch eine Tür oder ein Fenster nach draußen\n9. Deine Schuhe auf Lissaboner Pflaster\n10. Das letzte Licht des Nachmittags — irgendwas, irgendwo\n\nAlle 10 oder es zählt nicht. 🎞️"
+        }
+      ],
+      "colors": {
+        "background": "#f0f7ff",
+        "surface": "#e2f0ff",
+        "surfaceAlt": "#cce3ff",
+        "primary": "#1a6fc4",
+        "primaryDark": "#145999",
+        "gold": "#3d9be0"
+      },
+      "darkColors": {
+        "background": "#080f1a",
+        "surface": "#0f1926",
+        "surfaceAlt": "#162333",
+        "primary": "#3d9be0",
+        "primaryDark": "#5db0f0",
+        "gold": "#5db0f0"
+      }
+    },
+    {
+      "date": "05-24",
+      "label": "Geheimer Strand 🏖️",
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Deine Mission: geheimer Strand 🗺️",
+          "message": "Heute gibt es eine Aufgabe. Kein Touristen-Strand, kein erster Google-Treffer — du findest einen geheimen Strand. Frag Locals, geh zu Fuß, bieg irgendwo ab wo kein Schild steht.\n\nUnd wenn du ihn gefunden hast: küss mich da. Das ist Pflicht. 💋\n\nKein Strand, kein Kuss. Kein Kuss, kein Erfolg. So einfach ist das."
+        }
+      ],
+      "colors": {
+        "background": "#f0fbff",
+        "surface": "#e0f5ff",
+        "surfaceAlt": "#c5eaff",
+        "primary": "#0a7ea4",
+        "primaryDark": "#085f7a",
+        "gold": "#20a8d8"
+      },
+      "darkColors": {
+        "background": "#020d14",
+        "surface": "#07161f",
+        "surfaceAlt": "#0d2130",
+        "primary": "#20a8d8",
+        "primaryDark": "#3bbfe8",
+        "gold": "#3bbfe8"
+      }
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
