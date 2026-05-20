@@ -1,6 +1,18 @@
 {
   "days": [
     {
+      "date": "05-21",
+      "label": "Packliste 🧳",
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Packliste für morgen 🧳",
+          "message": "Ab 17:30 darfst du öffnen — die Packliste für unsere Reise wartet auf dich. Morgen geht's los!"
+        }
+      ],
+      "unlockTime": "17:30"
+    },
+    {
       "date": "05-22",
       "label": "Crazy Trip ✈️",
       "tone": "jackpot",
