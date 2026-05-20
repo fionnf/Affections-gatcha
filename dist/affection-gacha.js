@@ -568,7 +568,7 @@
           <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Bärlauch-Modus</span>
-              <button class="ag-secondary" type="button" id="ag-baerlauch-close">Schließen</button>
+              <button class="ag-secondary" type="button" id="ag-baerlauch-close">✕</button>
             </div>
 
             <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
@@ -602,7 +602,7 @@
           <section class="ag-card ag-mini-panel" id="ag-gesprach-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Gespräch</span>
-              <button class="ag-secondary" type="button" id="ag-gesprach-close">Schließen</button>
+              <button class="ag-secondary" type="button" id="ag-gesprach-close">✕</button>
             </div>
             <h2 class="ag-mini-title">Offene Fragen 💬</h2>
             <p class="ag-mini-copy" id="ag-gesprach-copy">Eine Frage für euch beide.</p>
@@ -1586,7 +1586,7 @@
       const filled = "🟢".repeat ? t.repeat(count) + "⬜".repeat(TOKEN_GOAL - count) : "";
       container.innerHTML = `
         <div style="text-align:center;padding:12px 0">
-          <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px">${t.repeat(count)}${"⬜".repeat(TOKEN_GOAL - count)}</div>
+          <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px;word-break:break-all;max-width:100%">${t.repeat(count)}${"⬜".repeat(TOKEN_GOAL - count)}</div>
           <p style="opacity:0.7;font-size:0.85rem">${remaining} × ${t} bis: <em>${reward}</em></p>
         </div>`;
       container.hidden = false;
@@ -1679,8 +1679,8 @@
         renderLinkInto(linkWrap, pull.outcome.link);
       } else {
         const lockSpan = document.createElement("span");
-        lockSpan.className = "ag-outcome-link ag-secondary";
-        lockSpan.textContent = `🔒 Link verfügbar ab ${pull.unlockTime}`;
+        lockSpan.className = "ag-outcome-link-locked";
+        lockSpan.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
         linkWrap.innerHTML = "";
         linkWrap.appendChild(lockSpan);
         linkWrap.hidden = false;
@@ -3104,6 +3104,8 @@
         font-style: italic;
         color: var(--ag-text);
         min-height: 4rem;
+        overflow-wrap: break-word;
+        word-break: break-word;
       }
 
       .ag-gesprach-actions {
@@ -3224,7 +3226,7 @@
         background:var(--ag-surface-2);color:var(--ag-primary-dark);
         font-size:.78rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
       }
-      .ag-result h2{margin:0 0 8px;font-family:"Boska",Georgia,serif;font-size:clamp(1.3rem,1rem + 1vw,1.8rem);line-height:1.15;letter-spacing:-.015em}
+      .ag-result h2{margin:0 0 8px;font-family:"Boska",Georgia,serif;font-size:clamp(1.3rem,1rem + 1vw,1.8rem);line-height:1.15;letter-spacing:-.015em;overflow-wrap:break-word;word-break:break-word}
       .ag-result p{margin:0;color:var(--ag-muted);line-height:1.6}
       .ag-date{color:var(--ag-muted);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
 
@@ -3283,6 +3285,7 @@
       .ag-history-empty{
         margin:8px 0 0;padding:16px;border:1px dashed var(--ag-border);border-radius:var(--ag-radius-md);
         color:var(--ag-muted);font-size:.95rem;line-height:1.55;background:var(--ag-surface-2);
+        overflow-wrap:break-word;word-break:break-word;
       }
       .ag-history-item{
         padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
@@ -3458,6 +3461,11 @@
         text-decoration:none;font-size:.9rem;
       }
       .ag-history-item .ag-outcome-link{margin-top:8px;font-size:.84rem;padding:6px 12px;min-height:34px}
+      .ag-outcome-link-locked{
+        display:inline-block;margin-top:10px;padding:8px 16px;border-radius:999px;
+        font-size:.9rem;color:var(--ag-muted);background:transparent;
+        border:1px dashed var(--ag-border);cursor:default;opacity:.7;
+      }
     `;
     document.head.appendChild(style);
   }
