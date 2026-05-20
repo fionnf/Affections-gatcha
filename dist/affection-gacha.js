@@ -553,6 +553,20 @@
 
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-gesprach-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Gespräch</span>
+              <button class="ag-secondary" type="button" id="ag-gesprach-close">Schließen</button>
+            </div>
+            <h2 class="ag-mini-title">Offene Fragen 💬</h2>
+            <p class="ag-mini-copy" id="ag-gesprach-copy">Eine Frage für euch beide.</p>
+            <div class="ag-gesprach-card" id="ag-gesprach-question"></div>
+            <div class="ag-gesprach-actions">
+              <button class="ag-secondary" type="button" id="ag-gesprach-next">Neue Frage</button>
+              <button class="ag-primary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen 💚</button>
+            </div>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -1031,9 +1045,71 @@
     if (panel) panel.hidden = true;
   }
 
+  const GESPRACH_QUESTIONS = [
+    "Wenn wir ein Restaurant eröffnen würden — was servieren wir, wie heißt es, und wo steht es?",
+    "Was ist eine Sache, die du mit mir noch erleben möchtest, die wir noch nie gemacht haben?",
+    "Welcher Moment aus unserer Zeit zusammen würdest du am liebsten noch einmal erleben?",
+    "Was ist die seltsamste Eigenschaft von mir, die du heimlich magst?",
+    "Wenn wir für ein Jahr irgendwo auf der Welt leben könnten — wo, und was wäre unser Alltag?",
+    "In welchem Moment hast du gemerkt, dass ich dir wirklich wichtig bin?",
+    "Was ist etwas, das du mir noch nie gesagt hast, mir aber vielleicht heute sagen könntest?",
+    "Was macht dich gerade in deinem Leben am stolzesten?",
+    "Was ist eine Eigenschaft von mir, die du bewunderst, die ich selbst wahrscheinlich nicht merke?",
+    "Wann fühlst du dich bei mir am geborgensten?",
+    "Gibt es etwas, das ich öfter machen könnte, das dir gut tun würde?",
+    "Was ist ein Ritual, das du gerne mit mir hätte — etwas nur für uns zwei?",
+    "Wenn du meine Gedanken lesen könntest, was glaubst du, würde ich gerade denken?",
+    "Was ist deine liebste Erinnerung an einen ganz normalen Tag mit mir?",
+    "Was würde die Version von uns in 10 Jahren über uns heute denken?",
+    "Was ist ein Traum, den du dir noch nicht erlaubt hast, laut auszusprechen?",
+    "Wie sieht ein perfekter Tag für dich aus — von morgens bis nachts?",
+    "Was ist etwas, das du von mir gelernt hast?",
+    "Was fehlt dir gerade, und wie könnte ich helfen?",
+    "Was war dein Lieblingsmoment auf unserer Reise nach Lissabon?",
+    "Wenn wir spontan ein Wochenende planen würden — wohin, und warum genau dorthin?",
+    "Was brauchst du gerade von mir, das du dir vielleicht noch nicht getraut hast zu sagen?",
+    "Was ist der Unterschied zwischen dem Lennart von vor einem Jahr und dem heute?",
+    "Wie hat sich das Gefühl für mich für dich in den letzten Monaten verändert?",
+    "Wenn du einen Brief an dich selbst in einem Jahr schreiben würdest — was würde drin stehen?",
+    "Was ist eine kleine Sache, die ich tue, die du magst, ohne dass ich es weiß?",
+    "Welchen meiner Züge findest du am lustigsten?",
+    "Was ist etwas, das du an Zürich vermissen würdest, wenn wir woanders leben würden?",
+    "Wenn ich ein Tier wäre — welches, und warum genau das?",
+    "Was wäre dein perfektes Date mit mir, völlig egal ob realistisch oder nicht?"
+  ];
 
+  let gesprachCurrentIndex = -1;
 
-  
+  function openGesprachPanel() {
+    const panel = $("#ag-gesprach-panel");
+    if (!panel) return;
+    panel.hidden = false;
+    showNextGesprach();
+  }
+
+  function closeGesprachPanel() {
+    const panel = $("#ag-gesprach-panel");
+    if (panel) panel.hidden = true;
+  }
+
+  function showNextGesprach() {
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * GESPRACH_QUESTIONS.length);
+    } while (idx === gesprachCurrentIndex && GESPRACH_QUESTIONS.length > 1);
+    gesprachCurrentIndex = idx;
+    const el = $("#ag-gesprach-question");
+    if (el) el.textContent = GESPRACH_QUESTIONS[idx];
+  }
+
+  function sendGesprachToWhatsApp() {
+    const question = GESPRACH_QUESTIONS[gesprachCurrentIndex] || "";
+    if (!question) return;
+    const template = (state.theme && state.theme.messageTarget) || "https://wa.me/?text={text}";
+    const text = encodeURIComponent("💬 Gespräch-Frage:\n\n" + question + "\n\n(via Affektions-Gacha)");
+    const url = template.replace("{text}", text);
+    window.open(url, "_blank", "noopener");
+  }
 
   // Map a tone to a complementary emoji used in messages sent to Fionn.
   // Falls back to ❤️ if tone is missing/unknown.
@@ -1081,7 +1157,15 @@
         li.setAttribute("aria-label", "Bärlauch öffnen");
         li.classList.add("ag-chip-clickable");
       }
-    
+
+      if (chip.toLowerCase().includes("gespräch") || chip.toLowerCase().includes("gesprach")) {
+        li.id = "ag-btn-gesprach";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Gespräch öffnen");
+        li.classList.add("ag-chip-clickable");
+      }
+
       chips.appendChild(li);
     }
 
@@ -2362,6 +2446,16 @@
         openBaerlauchGame();
       }
     });
+    $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
+    $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
+    $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
+    $("#ag-gesprach-wa")?.addEventListener("click", sendGesprachToWhatsApp);
+    $("#ag-btn-gesprach")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openGesprachPanel();
+      }
+    });
     $("[data-ag-copy]").addEventListener("click", async () => {
       if (!state.todaysPull) return;
       haptic(8);
@@ -2953,6 +3047,36 @@
         max-width: min(92%, 640px);
       }
       
+      .ag-gesprach-card {
+        margin: 1rem 0;
+        padding: 1.25rem 1.4rem;
+        border-radius: 20px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.13);
+        font-size: 1.08rem;
+        line-height: 1.6;
+        font-style: italic;
+        color: var(--ag-text);
+        min-height: 4rem;
+      }
+
+      .ag-gesprach-actions {
+        display: flex;
+        gap: .75rem;
+        flex-wrap: wrap;
+      }
+
+      .ag-gesprach-actions .ag-primary {
+        background: #25d366;
+        border-color: #25d366;
+        color: #fff;
+      }
+
+      .ag-gesprach-actions .ag-primary:hover {
+        background: #1ebe5d;
+        border-color: #1ebe5d;
+      }
+
       @keyframes agDrift {
         from { transform: translate(0px, 0px); }
         to { transform: translate(var(--dx, 60px), var(--dy, -40px)); }
