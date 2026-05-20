@@ -28,7 +28,8 @@ function doGet(e) {
           history: JSON.parse(values[i][1] || "[]"),
           favourites: JSON.parse(values[i][2] || "[]"),
           streak: values[i][3] || 0,
-          lastUpdated: values[i][4]
+          lastUpdated: values[i][4],
+          tokens: JSON.parse(values[i][5] || "{}")
         });
       }
     }
@@ -46,6 +47,7 @@ function doPost(e) {
     const token = data.token || "Lennart";
     const history = JSON.stringify(data.history || []);
     const favourites = JSON.stringify(data.favourites || []);
+    const tokensJson = JSON.stringify(data.tokens || {});
     const timestamp = new Date().toISOString();
 
     const sheet = getOrCreateSheet_();
@@ -56,9 +58,9 @@ function doPost(e) {
     }
     const streak = typeof data.streak === "number" ? data.streak : 0;
     if (rowIndex === -1) {
-      sheet.appendRow([token, history, favourites, streak, timestamp]);
+      sheet.appendRow([token, history, favourites, streak, timestamp, tokensJson]);
     } else {
-      sheet.getRange(rowIndex, 1, 1, 5).setValues([[token, history, favourites, streak, timestamp]]);
+      sheet.getRange(rowIndex, 1, 1, 6).setValues([[token, history, favourites, streak, timestamp, tokensJson]]);
     }
     return jsonOut_({ ok: true });
   } catch (err) {
@@ -71,7 +73,7 @@ function getOrCreateSheet_() {
   let sheet = ss.getSheetByName(BACKUP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(BACKUP_SHEET_NAME);
-    sheet.appendRow(["Token", "History", "Favourites", "Streak", "LastUpdated"]);
+    sheet.appendRow(["Token", "History", "Favourites", "Streak", "LastUpdated", "Tokens"]);
     sheet.setFrozenRows(1);
   }
   return sheet;

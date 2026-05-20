@@ -46,7 +46,7 @@ function pickWeighted(seedText) {
     cursor += category.weight;
     if (roll < cursor) return category;
   }
-  return config.categories[config.categories.length - 1];
+  return outcomes.categories[outcomes.categories.length - 1];
 }
 
 function dateFromOffset(offset) {
