@@ -18,7 +18,7 @@
       "outcomes": [
         {
           "title": "Crazy-Trip-Tag 🚀",
-          "message": "Heute startet unsere Reise. Ab 17:30 darf das Paket geöffnet weden, vor 17:30 kommt da nichts!",
+          "message": "Heute startet unsere Reise. Ab 17:30 darf das Paket geöffnet werden, vor 17:30 kommt da nichts!",
           "link": "https://drive.google.com/drive/folders/1INaT6GZb1ZJVGPQbgJ_ZJbgq6mkAhb7m?usp=sharing"
         }
       ],
@@ -148,6 +148,28 @@
         "primaryDark": "#3bbfe8",
         "gold": "#3bbfe8"
       }
+    },
+    {
+      "date": "05-25",
+      "label": "Kein Plan 🌀",
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Kein Plan 🌀",
+          "message": "Heute gibt die Maschine keine Aufgabe. Macht einfach eins — irgendetwas das ihr noch nicht gemacht habt. Das zählt."
+        }
+      ]
+    },
+    {
+      "date": "05-26",
+      "label": "Letzte Seite 📓",
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Letzte Seite 📓",
+          "message": "Die letzte Seite gehört dir. Schreib, zeichne, kleb rein was auch immer — aber sie muss voll sein bevor wir nach Hause fahren.\n\nUnd dann: eine Seite für das nächste Mal. Wohin? Wann? Du planst, ich komme mit."
+        }
+      ]
     },
     {
       "date": "05-29",
