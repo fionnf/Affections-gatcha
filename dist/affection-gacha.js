@@ -639,7 +639,11 @@
             <h2 class="ag-mini-title" id="ag-quest-title">Foto-Aufgabe 📷</h2>
             <p class="ag-mini-copy" id="ag-quest-copy"></p>
             <div class="ag-quest-challenge" id="ag-quest-challenge"></div>
-            <div class="ag-quest-hint" id="ag-quest-hint" hidden></div>
+            <div class="ag-quest-loading" id="ag-quest-loading" hidden>
+              <div class="ag-quest-spinner"></div>
+              <p class="ag-quest-loading-text">Maschine prüft das Foto…</p>
+            </div>
+            <div class="ag-quest-hint-history" id="ag-quest-hint-history" hidden></div>
             <div class="ag-quest-actions" id="ag-quest-actions">
               <label class="ag-primary ag-quest-upload-label" id="ag-quest-upload-label">
                 📷 Foto aufnehmen
@@ -1354,7 +1358,9 @@
     const challenges = state.quest?.challenges;
     if (!Array.isArray(challenges) || !challenges.length) return null;
     const period = currentQuestPeriod();
-    return challenges[period % challenges.length];
+    const entry = challenges[period % challenges.length];
+    if (typeof entry === "string") return { prompt: entry, solution: "" };
+    return entry;
   }
 
   function readQuestState() {
@@ -1400,17 +1406,19 @@
   }
 
   function renderQuestPanel() {
-    const challenge = currentChallenge();
+    const challengeObj = currentChallenge();
     const qs = readQuestState();
     const challengeEl = $("#ag-quest-challenge");
-    const hintEl      = $("#ag-quest-hint");
+    const historyEl   = $("#ag-quest-hint-history");
+    const loadingEl   = $("#ag-quest-loading");
     const actionsEl   = $("#ag-quest-actions");
     const resultEl    = $("#ag-quest-result");
     const pointsEl    = $("#ag-quest-points");
     const copyEl      = $("#ag-quest-copy");
     const titleEl     = $("#ag-quest-title");
+    const prompt      = challengeObj?.prompt || "";
 
-    if (!challenge) {
+    if (!challengeObj) {
       if (titleEl) titleEl.textContent = "Keine Aufgabe";
       if (copyEl) copyEl.textContent = "Schau später nochmal vorbei.";
       if (challengeEl) challengeEl.textContent = "";
@@ -1418,11 +1426,24 @@
       return;
     }
 
+    if (challengeEl) challengeEl.textContent = prompt;
+    if (loadingEl) loadingEl.hidden = true;
+
+    // Hint history
+    if (historyEl) {
+      if (qs.hints && qs.hints.length > 0) {
+        historyEl.innerHTML = qs.hints.map((h, i) =>
+          `<div class="ag-hint-item"><span class="ag-hint-num">${i + 1}</span><p>${h}</p></div>`
+        ).join("");
+        historyEl.hidden = false;
+      } else {
+        historyEl.hidden = true;
+      }
+    }
+
     if (qs.solved) {
       if (titleEl) titleEl.textContent = "Aufgabe gelöst ✓";
       if (copyEl) copyEl.textContent = "Gut gemacht.";
-      if (challengeEl) challengeEl.textContent = challenge;
-      if (hintEl) hintEl.hidden = true;
       if (actionsEl) actionsEl.hidden = true;
       if (resultEl) { resultEl.textContent = qs.successMessage || ""; resultEl.hidden = false; }
       if (pointsEl) {
@@ -1436,14 +1457,6 @@
     if (copyEl) copyEl.textContent = qs.attempts === 0
       ? "Fotografiere und schick mir das Resultat."
       : `Versuch ${qs.attempts + 1} — du schaffst das.`;
-    if (challengeEl) challengeEl.textContent = challenge;
-
-    if (qs.hints && qs.hints.length > 0) {
-      if (hintEl) { hintEl.textContent = qs.hints[qs.hints.length - 1]; hintEl.hidden = false; }
-    } else {
-      if (hintEl) hintEl.hidden = true;
-    }
-
     if (actionsEl) actionsEl.hidden = false;
     if (resultEl) resultEl.hidden = true;
     if (pointsEl) pointsEl.hidden = true;
@@ -1452,19 +1465,23 @@
   async function handleQuestPhoto(file) {
     if (!file) return;
     const actionsEl  = $("#ag-quest-actions");
+    const loadingEl  = $("#ag-quest-loading");
     const resultEl   = $("#ag-quest-result");
     const pointsEl   = $("#ag-quest-points");
     const copyEl     = $("#ag-quest-copy");
 
     if (actionsEl) actionsEl.hidden = true;
-    if (resultEl) { resultEl.textContent = "…"; resultEl.hidden = false; }
+    if (loadingEl) loadingEl.hidden = false;
+    if (resultEl) resultEl.hidden = true;
 
     const base64 = await fileToBase64(file);
     const qs = readQuestState();
-    const challenge = currentChallenge();
+    const challengeObj = currentChallenge();
+    const challenge = challengeObj?.prompt || "";
+    const solution  = challengeObj?.solution || "";
 
     try {
-      const result = await callQuestProxy(base64, challenge, qs.attempts + 1, qs.hints);
+      const result = await callQuestProxy(base64, challenge, solution, qs.attempts + 1, qs.hints);
       qs.attempts += 1;
 
       if (result.success) {
@@ -1477,17 +1494,20 @@
         backupToSheets();
         if (resultEl) { resultEl.textContent = result.message || "Perfekt."; resultEl.hidden = false; }
         if (pointsEl) { pointsEl.textContent = `+${pts} Punkte · Gesamt: ${total}`; pointsEl.hidden = false; }
+        if (loadingEl) loadingEl.hidden = true;
         if (copyEl) copyEl.textContent = "Aufgabe gelöst ✓";
         if (actionsEl) actionsEl.hidden = true;
         const chip = $("#ag-btn-quest");
         if (chip) chip.classList.remove("ag-chip-quest-active");
         haptic([20, 20, 40, 20, 60]);
       } else {
+        if (loadingEl) loadingEl.hidden = true;
         qs.hints = [...(qs.hints || []), result.hint || "Versuch nochmal."];
         writeQuestState(qs);
         renderQuestPanel();
       }
     } catch (_e) {
+      if (loadingEl) loadingEl.hidden = true;
       if (resultEl) { resultEl.textContent = "Fehler — versuch nochmal."; resultEl.hidden = false; }
       if (actionsEl) actionsEl.hidden = false;
     }
@@ -1502,13 +1522,13 @@
     });
   }
 
-  async function callQuestProxy(base64, challenge, attemptNumber, previousHints) {
+  async function callQuestProxy(base64, challenge, solution, attemptNumber, previousHints) {
     const url = state.quest?.proxyUrl;
     if (!url) throw new Error("no proxy");
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ base64, challenge, attemptNumber, previousHints })
+      body: JSON.stringify({ base64, challenge, solution, attemptNumber, previousHints })
     });
     if (!res.ok) throw new Error("proxy error");
     return res.json();
@@ -3559,16 +3579,47 @@
         color: var(--ag-text);
         overflow-wrap: break-word;
       }
-      .ag-quest-hint {
-        margin: .5rem 0;
-        padding: .75rem 1rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,.04);
-        border-left: 3px solid var(--ag-primary);
-        font-size: .92rem;
-        color: var(--ag-muted);
-        line-height: 1.5;
+      .ag-quest-loading{
+        display:flex;flex-direction:column;align-items:center;gap:.7rem;
+        padding:1.2rem 0;
       }
+      .ag-quest-loading-text{margin:0;font-size:.88rem;color:var(--ag-muted);}
+      .ag-quest-spinner{
+        width:28px;height:28px;border-radius:50%;
+        border:2.5px solid rgba(47,122,79,.2);
+        border-top-color:var(--ag-primary);
+        animation:ag-spin .8s linear infinite;
+      }
+      @keyframes ag-spin{to{transform:rotate(360deg)}}
+
+      .ag-quest-hint-history{
+        margin:.6rem 0 0;
+        display:flex;flex-direction:column;gap:.45rem;
+        max-height:220px;overflow-y:auto;
+      }
+      .ag-hint-item{
+        display:flex;align-items:flex-start;gap:.6rem;
+        padding:.6rem .8rem;
+        border-radius:12px;
+        background:rgba(255,255,255,.04);
+        border-left:2px solid var(--ag-primary);
+      }
+      .ag-hint-item:last-child{
+        background:rgba(47,122,79,.08);
+        border-left-color:var(--ag-primary);
+      }
+      .ag-hint-num{
+        flex-shrink:0;width:18px;height:18px;border-radius:50%;
+        background:var(--ag-primary);color:#fff;
+        font-size:.7rem;font-weight:700;
+        display:flex;align-items:center;justify-content:center;
+        margin-top:2px;opacity:.7;
+      }
+      .ag-hint-item:last-child .ag-hint-num{opacity:1;}
+      .ag-hint-item p{
+        margin:0;font-size:.88rem;color:var(--ag-muted);line-height:1.5;
+      }
+      .ag-hint-item:last-child p{color:var(--ag-text);}
       .ag-quest-actions {
         margin-top: 1rem;
       }
