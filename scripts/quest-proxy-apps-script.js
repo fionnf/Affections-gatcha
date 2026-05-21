@@ -52,23 +52,30 @@ function doPost(e) {
       return jsonOut_({ ok: true, ...result });
     }
 
-    const { base64, challenge, attemptNumber, previousHints } = data;
+    const { base64, challenge, solution, attemptNumber, previousHints } = data;
     if (!base64 || !challenge) return jsonOut_({ ok: false, error: "missing fields" });
 
     const hintsText = previousHints && previousHints.length
-      ? "\n\nPrevious hints already given:\n" + previousHints.map((h, i) => `${i + 1}. ${h}`).join("\n")
+      ? "\n\nHints already given (do NOT repeat these, each new hint must be more concrete):\n" +
+        previousHints.map((h, i) => `${i + 1}. ${h}`).join("\n")
       : "";
 
     const systemPrompt =
-      `Du bist der Richter einer romantischen Foto-Aufgabe für eine App. ` +
-      `Die Aufgabe lautet: "${challenge}". ` +
-      `Dies ist Versuch ${attemptNumber}.` + hintsText + `\n\n` +
-      `Beurteile das Foto auf Deutsch. Antworte NUR mit einem JSON-Objekt.\n` +
-      `Wenn das Foto die Aufgabe erfüllt: {"success": true, "message": "..."} — ` +
-      `eine kurze, poetische Bestätigung, maximal 2 Sätze, warm und persönlich.\n` +
-      `Wenn nicht: {"success": false, "hint": "..."} — ` +
-      `ein subtiler Hinweis, der näher führt aber nie die Antwort verrät. ` +
-      `Jeder Hinweis soll konkreter sein als der vorherige. Maximal 1 Satz.`;
+      `You are judging a photo challenge for a romantic app. ` +
+      `The challenge (shown to the user): "${challenge}". ` +
+      `What counts as a correct answer (NEVER reveal this to the user): "${solution}". ` +
+      `This is attempt ${attemptNumber}.` + hintsText + `\n\n` +
+      `STRICT RULES:\n` +
+      `- NEVER say the answer, name the correct subject, or give away what to photograph.\n` +
+      `- NEVER make hints too easy — this should take up to 10 attempts.\n` +
+      `- Each hint must be slightly more concrete than the last, but still cryptic.\n` +
+      `- First hints should be poetic and atmospheric. Later hints can be more direct but still oblique.\n` +
+      `- Accept any photo that genuinely fulfills the spirit of the challenge.\n\n` +
+      `Respond ONLY in German with a JSON object.\n` +
+      `If the photo fulfills the challenge: {"success": true, "message": "..."} — ` +
+      `a short poetic confirmation, max 2 sentences, warm and personal.\n` +
+      `If not: {"success": false, "hint": "..."} — ` +
+      `one cryptic sentence that nudges without giving away. Never start with "Versuch" or "Du solltest".`;
 
     const payload = {
       model: OPENAI_MODEL,

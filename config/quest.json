@@ -5,20 +5,125 @@
   "pushTitle": "Neue Foto-Aufgabe",
   "pushBody": "Die Maschine hat eine neue Aufgabe für dich.",
   "challenges": [
-    "Fotografiere etwas das auf jemanden wartet.",
-    "Finde etwas das gleichzeitig schön und kaputt ist.",
-    "Fotografiere einen Schatten der interessanter ist als das was ihn wirft.",
-    "Finde etwas das einmal wichtig war und jetzt vergessen wird.",
-    "Fotografiere etwas das nur von genau diesem Winkel Sinn ergibt.",
-    "Finde etwas das zwei komplett verschiedene Dinge unbemerkt verbindet.",
-    "Fotografiere einen Moment kurz bevor er endet.",
-    "Finde etwas Lebendiges das völlig still ist.",
-    "Fotografiere etwas das an Fionn erinnert ohne dass eine Person drauf ist.",
-    "Finde etwas das aus einer anderen Zeit stammt.",
-    "Fotografiere etwas das normalerweise niemand fotografiert.",
-    "Finde etwas das Geduld beweist.",
-    "Fotografiere Licht das eigentlich nicht da sein sollte.",
-    "Finde etwas das sich verabschiedet ohne es zu wissen.",
-    "Fotografiere etwas das du mit geschlossenen Augen erkennen würdest."
+    {
+      "prompt": "Fotografiere etwas das auf jemanden wartet.",
+      "solution": "Any object or scene suggesting expectation: an empty chair at a set table, a phone face-down, a door left ajar, an untouched drink, a leash without a dog, an open book placed face-down, a reserved parking spot, a wrapped gift, an empty bed with an indentation."
+    },
+    {
+      "prompt": "Finde etwas das gleichzeitig schön und kaputt ist.",
+      "solution": "Something both aesthetically compelling and visibly damaged: cracked mosaic tile, faded colorful mural, rusty ornamental ironwork, torn vintage poster, wilting flower still in bloom, broken window with light streaming through, peeling paint revealing layers of color, weathered but ornate door."
+    },
+    {
+      "prompt": "Fotografiere einen Schatten der interessanter ist als das was ihn wirft.",
+      "solution": "A shadow more visually complex or beautiful than its source: shadow of a bike wheel forming a mandala, shadow of a chain-link fence creating diamond patterns, shadow of bare branches forming lace on a wall, shadow of a mundane object creating an unexpected silhouette."
+    },
+    {
+      "prompt": "Finde etwas das einmal wichtig war und jetzt vergessen wird.",
+      "solution": "An abandoned or neglected object that was once valued: old payphone, unused bulletin board, faded advertisement, empty picture frame still hanging, dusty trophy, abandoned playground equipment, overgrown garden path, disused post box."
+    },
+    {
+      "prompt": "Fotografiere eine Linie die niemand gezogen hat.",
+      "solution": "A naturally occurring or accidental line: the horizon, the edge of a shadow, a crack in pavement, a shoreline, a treeline against the sky, a fold in fabric, a trail worn by many feet, a waterline on a wall, light under a closed door, a contrail in the sky."
+    },
+    {
+      "prompt": "Finde etwas das zwei komplett verschiedene Welten unbemerkt verbindet.",
+      "solution": "A threshold or connector between two contrasting spaces: a doorway between two very different rooms, a fence line separating two environments, a shoreline where water meets land, a tree root connecting two sections of pavement, a bridge between two neighborhoods."
+    },
+    {
+      "prompt": "Fotografiere einen Moment kurz bevor er endet.",
+      "solution": "Something at the point of finishing or changing: the last bite of food on a plate, a nearly empty glass, a candle almost burned out, the sun just touching the horizon, a person mid-stride about to leave frame, a falling leaf mid-air, a wave about to break."
+    },
+    {
+      "prompt": "Finde etwas Lebendiges das völlig still ist.",
+      "solution": "A living organism in complete stillness: a sleeping cat or dog, a person motionless and absorbed in thought, a tree on a windless day, a bird perched without moving, a lizard basking in sun, a bee landed on a flower, a child completely absorbed in reading."
+    },
+    {
+      "prompt": "Fotografiere etwas das normalerweise niemand fotografiert.",
+      "solution": "A mundane or overlooked subject almost never photographed intentionally: the underside of a table, the back of a sign, the ground directly below the photographer's feet, a light switch, a drain or grate, the inside of a bag, a gap between buildings, utility infrastructure like pipes or cables."
+    },
+    {
+      "prompt": "Finde etwas das Geduld beweist.",
+      "solution": "Visible evidence of patience or long effort: a very old tree, a spider's complete web, handmade embroidery or craft, a very long queue, a large jigsaw puzzle in progress, a well-worn path created over years, visible geological layers in rock, a bonsai tree."
+    },
+    {
+      "prompt": "Fotografiere Licht das eigentlich nicht da sein sollte.",
+      "solution": "Light in an unexpected place: a light leak creating color streaks, lens flare forming patterns, a shaft of light through an unlikely gap, a reflection creating light in an expected shadow, neon signs reflected in a puddle, sunrise light hitting an unusual spot, light under a closed door."
+    },
+    {
+      "prompt": "Finde etwas das sich verabschiedet ohne es zu wissen.",
+      "solution": "Something in its final phase without awareness: the last leaves on an autumn branch, a nearly finished candle, a shop closing its shutter, an old building being renovated, a flower past its peak, the last customer leaving a café, fading daylight on a wall."
+    },
+    {
+      "prompt": "Fotografiere etwas das du mit geschlossenen Augen erkennen würdest.",
+      "solution": "Something identifiable by touch, texture or smell rather than sight: rough tree bark, cobblestones, a musical instrument, fresh bread or food, a rain-wet surface, something with a highly distinctive texture known by feel alone."
+    },
+    {
+      "prompt": "Finde etwas das größer wirkt als es ist.",
+      "solution": "Forced perspective or something appearing larger than reality: a low angle shot of a small object making it monumental, a close-up of a tiny texture filling the frame, a reflection in a water drop containing a whole scene, a miniature model photographed to look real."
+    },
+    {
+      "prompt": "Fotografiere etwas das zwei Menschen gleichzeitig gehört.",
+      "solution": "Something visibly shared between two people: a shared meal, a bench for two, a doorway between two properties, a handshake, a joint project by two people, two mugs or toothbrushes side by side, a double bed, paired items, a shared umbrella."
+    },
+    {
+      "prompt": "Finde etwas das ohne Worte kommuniziert.",
+      "solution": "Non-verbal communication: a hand gesture, a traffic sign, body language conveying an emotion, a facial expression without text, musical notation, a color-coded system, an arrow or directional indicator, a map or diagram conveying meaning without words."
+    },
+    {
+      "prompt": "Fotografiere eine Grenze die man nicht sehen kann.",
+      "solution": "An invisible or implied boundary: people keeping physical distance from each other, the property line between two very different gardens, an unmarked transition between two different surfaces, the high-water mark on a wall, where a distinct shadow begins."
+    },
+    {
+      "prompt": "Finde etwas das sich langsam verändert.",
+      "solution": "Evidence of slow transformation: rust on metal, ivy or moss creeping across a surface, a building under gradual construction, erosion marks on stone or pavement, a tree growing around an obstacle, tide marks at different heights on a wall, patina on copper or bronze."
+    },
+    {
+      "prompt": "Fotografiere etwas das Mut gebraucht hat.",
+      "solution": "Physical evidence of courage: a very high structure from below, extreme sport equipment, a 'grand opening' sign on a new shop, an imperfect handmade first attempt at something, bold statement art or graffiti, a difficult climbing route marked, a new business sign."
+    },
+    {
+      "prompt": "Finde etwas das nur im Weg steht.",
+      "solution": "Something that exists purely as an obstruction: a traffic cone placed randomly, a barrier across a path, a locked gate blocking obvious passage, scaffolding covering a view, a parked car completely blocking a sidewalk, a puddle blocking the only path."
+    },
+    {
+      "prompt": "Fotografiere etwas das älter ist als jeder Mensch den du kennst.",
+      "solution": "Something verifiably very old: an ancient tree with age marks or a plaque, old stone architecture showing centuries of wear, a geological rock formation, an antique with a date, very old cobblestones showing deep wear, a centuries-old building detail."
+    },
+    {
+      "prompt": "Finde etwas das jemanden einmal glücklich gemacht hat.",
+      "solution": "Evidence of joy or care: a child's drawing proudly displayed, a well-worn path to something beloved, a trophy or ribbon in a window, a well-loved old toy, a garden planted with obvious effort, a celebratory message still displayed, something maintained with obvious affection."
+    },
+    {
+      "prompt": "Fotografiere etwas das zur falschen Zeit am falschen Ort ist.",
+      "solution": "Something anachronistic or out of place: a plant growing through concrete, a formal item in a casual setting, a vintage object in a modern context, urban wildlife in a city, a child's toy in an industrial setting, nature reclaiming a built structure, a winter decoration in summer."
+    },
+    {
+      "prompt": "Finde etwas das eine Entscheidung zeigt.",
+      "solution": "Visible evidence of a choice: a fork in a path, a menu with items marked, a crossroads, two different doors side by side, items arranged as options, a dial or selector between options, a sign saying 'choose' or 'or', a coin on a surface."
+    },
+    {
+      "prompt": "Fotografiere etwas das weicher ist als es aussieht.",
+      "solution": "Something appearing hard but actually soft: moss on rough stone, clouds reflected in hard glass, velvet draped to look solid, a dog with wiry-looking fur, worn-smooth pebbles comfortable to touch, snow covering angular architecture, inner lining of something with a hard exterior."
+    },
+    {
+      "prompt": "Finde etwas das einmal jemandem gefehlt hat.",
+      "solution": "Something lost, searched for or missed: a lost-and-found box or notice, a 'have you seen' poster, an item that clearly belongs to a set but is alone (a single glove, one shoe), an empty hook where something should hang, a gap on a shelf where something was removed."
+    },
+    {
+      "prompt": "Fotografiere etwas das die Zeit vergisst.",
+      "solution": "Something that seems unchanged by the passage of time: a very old clock still working, a traditional craft practiced exactly as always, an unchanged shop front in a modernized street, a natural landmark untouched by development around it, a child doing something timeless."
+    },
+    {
+      "prompt": "Finde etwas das erst aus der Nähe schön ist.",
+      "solution": "Something revealing beauty only when examined closely: texture of bark or stone looking rough but intricate close up, a spider web only visible in certain light, detail in old tile or mosaic work, micro-patterns in fallen leaves or petals, lichen on rock forming miniature landscapes."
+    },
+    {
+      "prompt": "Fotografiere etwas das jemand gemacht hat ohne zu wissen dass es Kunst ist.",
+      "solution": "Unintentional beauty: a perfectly arranged pile of construction materials, a beautiful pattern of tire tracks or footprints, weathering creating an abstract painting effect on a wall, a shadow forming a perfect composition, a pile of discarded objects forming an accidental still life."
+    },
+    {
+      "prompt": "Finde etwas das mehr als eine Bedeutung hat.",
+      "solution": "Something genuinely ambiguous or with dual meaning: a symbol that reads differently depending on context, a shape that looks like two different things depending on perspective, an object serving two completely different functions, a sign interpretable in two opposite ways, a shadow creating a second meaning to its source object."
+    }
   ]
 }
