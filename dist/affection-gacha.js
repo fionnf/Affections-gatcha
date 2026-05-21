@@ -762,6 +762,21 @@
             </div>
         </div>
       </div>
+
+      <div class="ag-letter-overlay" id="ag-letter-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="ag-letter-title">
+        <div class="ag-letter-card">
+          <button class="ag-letter-close" type="button" id="ag-letter-close" aria-label="Schließen">✕</button>
+          <p class="ag-letter-eyebrow">🍀 Nur für dich</p>
+          <h2 class="ag-letter-title" id="ag-letter-title">Du hast es gefunden.</h2>
+          <div class="ag-letter-body">
+            <p>Ich hab das hier versteckt, weil ich dir was sagen wollte — ohne dass es eine Aufgabe ist oder ein Preis oder eine Kapsel.</p>
+            <p>Einfach nur: Du bist mein Lieblingsmensch. Jeden Tag ein bisschen mehr als am Tag davor.</p>
+            <p>Du weißt nicht wie oft ich an dich gedacht habe als ich diese Maschine gebaut habe. Jede Frage, jede Aufgabe, jeder kleine Witz — alles für dich. Alles wegen dir.</p>
+            <p>Pass auf dich auf.</p>
+            <p class="ag-letter-sign">— Fionn 🍀</p>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -1186,6 +1201,21 @@
     gesprachCurrentIndex = idx;
     const el = $("#ag-gesprach-question");
     if (el) el.textContent = GESPRACH_QUESTIONS[idx];
+  }
+
+  // ── Hidden letter Easter egg ─────────────────────────────────────────────────
+
+  function openLetter() {
+    const overlay = $("#ag-letter-overlay");
+    if (!overlay) return;
+    overlay.hidden = false;
+    overlay.focus();
+    haptic([20, 60, 20]);
+  }
+
+  function closeLetter() {
+    const overlay = $("#ag-letter-overlay");
+    if (overlay) overlay.hidden = true;
   }
 
   function sendGesprachToWhatsApp() {
@@ -2723,6 +2753,25 @@
   }
 
   function bindEvents() {
+    // Hold draw button 3 s to reveal hidden letter
+    let letterHoldTimer = null;
+    const drawBtn = $("[data-ag-draw]");
+    drawBtn.addEventListener("pointerdown", () => {
+      letterHoldTimer = setTimeout(openLetter, 3000);
+    });
+    drawBtn.addEventListener("pointerup", () => clearTimeout(letterHoldTimer));
+    drawBtn.addEventListener("pointerleave", () => clearTimeout(letterHoldTimer));
+    drawBtn.addEventListener("pointercancel", () => clearTimeout(letterHoldTimer));
+
+    // Tap title 5 times to reveal hidden letter
+    let titleTapCount = 0, titleTapTimer = null;
+    $("[data-ag-main-title]").addEventListener("click", () => {
+      titleTapCount++;
+      clearTimeout(titleTapTimer);
+      if (titleTapCount >= 5) { titleTapCount = 0; openLetter(); return; }
+      titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 1800);
+    });
+
     $("[data-ag-draw]").addEventListener("click", () => {
       haptic(12);
       reveal();
@@ -2737,6 +2786,12 @@
       }
     });
     $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
+    $("#ag-letter-close")?.addEventListener("click", closeLetter);
+    $("#ag-letter-overlay")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeLetter();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLetter(); });
+
     $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
     $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
     $("#ag-gesprach-wa")?.addEventListener("click", sendGesprachToWhatsApp);
@@ -3795,6 +3850,59 @@
         font-size:.9rem;color:var(--ag-muted);background:transparent;
         border:1px dashed var(--ag-border);cursor:default;opacity:.7;
       }
+
+      .ag-letter-overlay{
+        position:fixed;inset:0;z-index:9999;
+        display:flex;align-items:center;justify-content:center;
+        padding:24px;
+        background:rgba(8,20,12,.72);
+        backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        animation:ag-letter-fade-in 400ms var(--ag-ease) both;
+      }
+      .ag-letter-overlay[hidden]{display:none}
+      @keyframes ag-letter-fade-in{from{opacity:0}to{opacity:1}}
+
+      .ag-letter-card{
+        position:relative;
+        max-width:400px;width:100%;
+        background:linear-gradient(160deg,#fffdf6,#f7f3e8);
+        border:1px solid rgba(185,120,46,.22);
+        border-radius:var(--ag-radius-lg);
+        padding:clamp(24px,5vw,40px);
+        box-shadow:0 24px 64px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.7) inset;
+        animation:ag-letter-rise 420ms var(--ag-ease) both;
+        color:#1a2018;
+      }
+      @keyframes ag-letter-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+      @media(prefers-color-scheme:dark){
+        .ag-letter-card{
+          background:linear-gradient(160deg,#1c2a1e,#121e16);
+          border-color:rgba(225,167,80,.18);
+          color:var(--ag-text);
+          box-shadow:0 24px 64px rgba(0,0,0,.6);
+        }
+      }
+
+      .ag-letter-close{
+        position:absolute;top:14px;right:14px;
+        background:none;border:none;cursor:pointer;
+        font-size:1.1rem;color:var(--ag-muted);padding:4px 8px;
+        border-radius:6px;line-height:1;
+      }
+      .ag-letter-close:hover{color:var(--ag-text)}
+
+      .ag-letter-eyebrow{
+        margin:0 0 .5rem;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;
+        color:var(--ag-gold);font-weight:700;
+      }
+      .ag-letter-title{
+        margin:0 0 1.25rem;font-size:1.35rem;font-weight:800;line-height:1.2;
+      }
+      .ag-letter-body p{
+        margin:0 0 .9rem;line-height:1.65;font-size:1rem;
+      }
+      .ag-letter-body p:last-child{margin-bottom:0}
+      .ag-letter-sign{font-style:italic;font-weight:600;color:var(--ag-primary)!important;}
     `;
     document.head.appendChild(style);
   }
