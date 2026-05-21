@@ -137,6 +137,7 @@
     outcomes: null,
     photos: null,
     specialDays: null,
+    quest: null,
     todaysPull: null,
     activeTab: "today",
     revealed: false,
@@ -252,6 +253,11 @@
         writeTokens(data.tokens);
       }
 
+      // Restore quest points — take the higher of local and sheet
+      if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
+        try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
+      }
+
       // If history in the sheet was previously truncated, the computed streak will be
       // lower than the stored streak value. Backfill synthetic entries to recover it.
       const sheetStreak = typeof data.streak === "number" ? data.streak : 0;
@@ -306,13 +312,23 @@
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = "Lennart";
       const history = readHistory();
+      const qs = readQuestState();
+      const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
+        challenge: currentChallenge(),
+        attempts: qs.attempts,
+        points: qs.pointsEarned,
+        period: qs.period
+      } : undefined;
+      if (questLog) { qs._logged = true; writeQuestState(qs); }
       const body = JSON.stringify({
         type: "gacha-backup",
         token,
         history,
         favourites: readFavorites(),
         streak: computeStreak(),
-        tokens: readTokens()
+        tokens: readTokens(),
+        questPoints: readQuestPoints(),
+        ...(questLog ? { questLog } : {})
       });
       const opts = {
         method: "POST",
@@ -333,13 +349,14 @@
     injectStyles();
     renderShell();
     try {
-      const [theme, outcomes, photos, specialDays, wishInbox, backup] = await Promise.all([
+      const [theme, outcomes, photos, specialDays, wishInbox, backup, quest] = await Promise.all([
         fetchJson("config/theme.json"),
         fetchJson("config/outcomes.json"),
         fetchJson("config/photos.json", defaultPhotos),
         fetchJson("config/special-days.json", { days: [] }),
         fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
-        fetchJson("config/backup.json", { enabled: false, endpointUrl: "" })
+        fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
+        fetchJson("config/quest.json", { enabled: false })
       ]);
       state.theme = theme;
       state.outcomes = outcomes;
@@ -347,6 +364,7 @@
       state.specialDays = specialDays;
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
+      state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
       await syncFromSheets();
       const wasSeeded = seedStreakOnce();
       if (wasSeeded) backupToSheets();
@@ -613,6 +631,25 @@
             </div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-quest-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge" id="ag-quest-badge">Quest</span>
+              <button class="ag-secondary" type="button" id="ag-quest-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title" id="ag-quest-title">Foto-Aufgabe 📷</h2>
+            <p class="ag-mini-copy" id="ag-quest-copy"></p>
+            <div class="ag-quest-challenge" id="ag-quest-challenge"></div>
+            <div class="ag-quest-hint" id="ag-quest-hint" hidden></div>
+            <div class="ag-quest-actions" id="ag-quest-actions">
+              <label class="ag-primary ag-quest-upload-label" id="ag-quest-upload-label">
+                📷 Foto aufnehmen
+                <input type="file" accept="image/*" capture="environment" id="ag-quest-file" style="display:none">
+              </label>
+            </div>
+            <div class="ag-quest-result" id="ag-quest-result" hidden></div>
+            <div class="ag-quest-points" id="ag-quest-points" hidden></div>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -725,6 +762,18 @@
             </div>
         </div>
       </div>
+
+      <div class="ag-letter-overlay" id="ag-letter-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="ag-letter-title">
+        <div class="ag-letter-card">
+          <button class="ag-letter-close" type="button" id="ag-letter-close" aria-label="Schließen">✕</button>
+          <img class="ag-letter-photo" id="ag-letter-photo" src="" alt="" hidden>
+          <p class="ag-letter-eyebrow">🍀 Nur für dich</p>
+          <h2 class="ag-letter-title" id="ag-letter-title">Du hast es gefunden.</h2>
+          <div class="ag-letter-body" id="ag-letter-body">
+            <p class="ag-letter-loading">…</p>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -733,6 +782,9 @@
   }
 
   function getToken() {
+    const paramName = state.theme?.tokenParam || "token";
+    const urlToken = new URLSearchParams(window.location.search).get(paramName);
+    if (urlToken && urlToken.trim()) return urlToken.trim();
     return state.theme.brand.displayNameDefault || "Lennart";
   }
 
@@ -1148,13 +1200,318 @@
     if (el) el.textContent = GESPRACH_QUESTIONS[idx];
   }
 
+  // ── Hidden letter Easter egg ─────────────────────────────────────────────────
+
+  const LETTER_FALLBACKS = [
+    ["Du bist mein Lieblingsmensch.", "Jeden Tag ein bisschen mehr als am Tag davor.", "Pass auf dich auf."],
+    ["Manchmal mach ich was und denke sofort: Das muss ich dir zeigen.", "Ich find es schön, dass wir so sind. Einfach so."],
+    ["Weißt du wie besonders du bist? Nicht weil ich dir das sage — einfach so, grundsätzlich.", "Das wollte ich irgendwo festhalten."],
+    ["Ich hab diese Maschine gebaut weil ich nicht immer weiß wie ich solche Sachen sage.", "Aber hier, wo es niemand sieht: Du machst alles besser."],
+    ["Nicht jeder findet seine Geheimverstecke. Du schon.", "Danke, dass du so bist wie du bist."],
+    ["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.", "Kein Drama, kein Aufwand — einfach sehr gut."],
+    ["Ich bin froh, dass du in meinem Leben bist.", "So einfach ist das."]
+  ];
+
+  function playLetterSound() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      const t = ctx.currentTime;
+
+      // Soft filtered noise whoosh
+      const bufLen = Math.floor(ctx.sampleRate * 0.9);
+      const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const bd = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) bd[i] = Math.random() * 2 - 1;
+      const ns = ctx.createBufferSource();
+      ns.buffer = buf;
+      const nf = ctx.createBiquadFilter();
+      nf.type = "bandpass"; nf.Q.value = 1.2;
+      nf.frequency.setValueAtTime(500, t);
+      nf.frequency.exponentialRampToValueAtTime(2200, t + 0.55);
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0, t);
+      ng.gain.linearRampToValueAtTime(0.055, t + 0.06);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+      ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+      ns.start(t); ns.stop(t + 0.9);
+
+      // Three staggered ascending tones (chord opening)
+      [[290, 640, 0, 1.5, 0.12], [435, 870, 0.07, 1.3, 0.08], [580, 1100, 0.14, 1.1, 0.05]].forEach(([f0, f1, delay, dur, vol]) => {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f0, t + delay);
+        osc.frequency.exponentialRampToValueAtTime(f1, t + delay + dur * 0.55);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(vol, t + delay + 0.09);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(t + delay); osc.stop(t + delay + dur + 0.05);
+      });
+    } catch (_) {}
+  }
+
+  function showLetterLoading(el) {
+    const text = "you didn't see this message coming did you…";
+    const p = document.createElement("p");
+    p.className = "ag-letter-prelude";
+    text.split(" ").forEach((word, i) => {
+      const span = document.createElement("span");
+      span.className = "ag-letter-word";
+      span.textContent = word;
+      span.style.animationDelay = `${320 + i * 155}ms`;
+      p.appendChild(span);
+      p.appendChild(document.createTextNode(" "));
+    });
+    el.innerHTML = "";
+    el.appendChild(p);
+  }
+
+  function revealLetterContent(body, paras) {
+    body.innerHTML = paras.map((p) => `<p>${p}</p>`).join("") +
+      '<p class="ag-letter-sign">— Fionn 🍀</p>';
+    body.style.animation = "none";
+    body.getBoundingClientRect();
+    body.style.animation = "";
+  }
+
+  function openLetter() {
+    const overlay = $("#ag-letter-overlay");
+    if (!overlay) return;
+    overlay.hidden = false;
+    overlay.focus();
+    haptic([20, 60, 20]);
+    playLetterSound();
+
+    const img = $("#ag-letter-photo");
+    if (img && state.photos && state.photos.length) {
+      const photo = state.photos[Math.floor(Math.random() * state.photos.length)];
+      img.src = photo.url;
+      img.hidden = false;
+    }
+
+    renderLetterMessage();
+  }
+
+  async function renderLetterMessage() {
+    const body = $("#ag-letter-body");
+    if (!body) return;
+    showLetterLoading(body);
+
+    const proxyUrl = state.quest?.proxyUrl;
+    if (proxyUrl) {
+      try {
+        const res = await fetch(proxyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ type: "letter" })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.paragraphs && data.paragraphs.length) {
+            revealLetterContent(body, data.paragraphs);
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    const paras = LETTER_FALLBACKS[Math.floor(Math.random() * LETTER_FALLBACKS.length)];
+    revealLetterContent(body, paras);
+  }
+
+  function closeLetter() {
+    const overlay = $("#ag-letter-overlay");
+    if (overlay) overlay.hidden = true;
+  }
+
   function sendGesprachToWhatsApp() {
     const question = GESPRACH_QUESTIONS[gesprachCurrentIndex] || "";
     if (!question) return;
     const template = (state.theme && state.theme.messageTarget) || "https://wa.me/?text={text}";
     const text = encodeURIComponent("💬 Gespräch-Frage:\n\n" + question + "\n\n(via Affektions-Gacha)");
     const url = template.replace("{text}", text);
-    window.open(url, "_blank", "noopener");
+    window.location.href = url;
+  }
+
+  // ── Quest helpers ────────────────────────────────────────────────────────────
+
+  const QUEST_STORAGE_KEY = "affektions-gacha:quest:v1";
+  const QUEST_POINTS_KEY  = "affektions-gacha:quest-points:v1";
+  const QUEST_POINTS_SCHEDULE = [100, 75, 50, 25];
+
+  function currentQuestPeriod() {
+    const tz = state.theme?.timezone || "UTC";
+    const today = dateKeyInTimezone(tz);
+    const [y, m, d] = today.split("-").map(Number);
+    const epochDays = Math.floor(new Date(Date.UTC(y, m - 1, d)).getTime() / 86400000);
+    return Math.floor(epochDays / ((state.quest?.periodDays) || 2));
+  }
+
+  function currentChallenge() {
+    const challenges = state.quest?.challenges;
+    if (!Array.isArray(challenges) || !challenges.length) return null;
+    const period = currentQuestPeriod();
+    return challenges[period % challenges.length];
+  }
+
+  function readQuestState() {
+    try {
+      const raw = localStorage.getItem(QUEST_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const period = currentQuestPeriod();
+      if (parsed.period !== period) return { period, solved: false, attempts: 0, hints: [] };
+      return parsed;
+    } catch (_e) { return { period: currentQuestPeriod(), solved: false, attempts: 0, hints: [] }; }
+  }
+
+  function writeQuestState(qs) {
+    try { localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(qs)); } catch (_e) {}
+  }
+
+  function readQuestPoints() {
+    try { return parseInt(localStorage.getItem(QUEST_POINTS_KEY) || "0", 10); } catch (_e) { return 0; }
+  }
+
+  function addQuestPoints(pts) {
+    try {
+      const total = readQuestPoints() + pts;
+      localStorage.setItem(QUEST_POINTS_KEY, String(total));
+      return total;
+    } catch (_e) { return pts; }
+  }
+
+  function isQuestAvailable() {
+    return !!(state.quest?.enabled && currentChallenge());
+  }
+
+  function openQuestPanel() {
+    const panel = $("#ag-quest-panel");
+    if (!panel) return;
+    panel.hidden = false;
+    renderQuestPanel();
+  }
+
+  function closeQuestPanel() {
+    const panel = $("#ag-quest-panel");
+    if (panel) panel.hidden = true;
+  }
+
+  function renderQuestPanel() {
+    const challenge = currentChallenge();
+    const qs = readQuestState();
+    const challengeEl = $("#ag-quest-challenge");
+    const hintEl      = $("#ag-quest-hint");
+    const actionsEl   = $("#ag-quest-actions");
+    const resultEl    = $("#ag-quest-result");
+    const pointsEl    = $("#ag-quest-points");
+    const copyEl      = $("#ag-quest-copy");
+    const titleEl     = $("#ag-quest-title");
+
+    if (!challenge) {
+      if (titleEl) titleEl.textContent = "Keine Aufgabe";
+      if (copyEl) copyEl.textContent = "Schau später nochmal vorbei.";
+      if (challengeEl) challengeEl.textContent = "";
+      if (actionsEl) actionsEl.hidden = true;
+      return;
+    }
+
+    if (qs.solved) {
+      if (titleEl) titleEl.textContent = "Aufgabe gelöst ✓";
+      if (copyEl) copyEl.textContent = "Gut gemacht.";
+      if (challengeEl) challengeEl.textContent = challenge;
+      if (hintEl) hintEl.hidden = true;
+      if (actionsEl) actionsEl.hidden = true;
+      if (resultEl) { resultEl.textContent = qs.successMessage || ""; resultEl.hidden = false; }
+      if (pointsEl) {
+        pointsEl.textContent = `+${qs.pointsEarned} Punkte · Gesamt: ${readQuestPoints()}`;
+        pointsEl.hidden = false;
+      }
+      return;
+    }
+
+    if (titleEl) titleEl.textContent = "Foto-Aufgabe 📷";
+    if (copyEl) copyEl.textContent = qs.attempts === 0
+      ? "Fotografiere und schick mir das Resultat."
+      : `Versuch ${qs.attempts + 1} — du schaffst das.`;
+    if (challengeEl) challengeEl.textContent = challenge;
+
+    if (qs.hints && qs.hints.length > 0) {
+      if (hintEl) { hintEl.textContent = qs.hints[qs.hints.length - 1]; hintEl.hidden = false; }
+    } else {
+      if (hintEl) hintEl.hidden = true;
+    }
+
+    if (actionsEl) actionsEl.hidden = false;
+    if (resultEl) resultEl.hidden = true;
+    if (pointsEl) pointsEl.hidden = true;
+  }
+
+  async function handleQuestPhoto(file) {
+    if (!file) return;
+    const actionsEl  = $("#ag-quest-actions");
+    const resultEl   = $("#ag-quest-result");
+    const pointsEl   = $("#ag-quest-points");
+    const copyEl     = $("#ag-quest-copy");
+
+    if (actionsEl) actionsEl.hidden = true;
+    if (resultEl) { resultEl.textContent = "…"; resultEl.hidden = false; }
+
+    const base64 = await fileToBase64(file);
+    const qs = readQuestState();
+    const challenge = currentChallenge();
+
+    try {
+      const result = await callQuestProxy(base64, challenge, qs.attempts + 1, qs.hints);
+      qs.attempts += 1;
+
+      if (result.success) {
+        const pts = QUEST_POINTS_SCHEDULE[Math.min(qs.attempts - 1, QUEST_POINTS_SCHEDULE.length - 1)];
+        const total = addQuestPoints(pts);
+        qs.solved = true;
+        qs.pointsEarned = pts;
+        qs.successMessage = result.message || "Perfekt.";
+        writeQuestState(qs);
+        backupToSheets();
+        if (resultEl) { resultEl.textContent = result.message || "Perfekt."; resultEl.hidden = false; }
+        if (pointsEl) { pointsEl.textContent = `+${pts} Punkte · Gesamt: ${total}`; pointsEl.hidden = false; }
+        if (copyEl) copyEl.textContent = "Aufgabe gelöst ✓";
+        if (actionsEl) actionsEl.hidden = true;
+        const chip = $("#ag-btn-quest");
+        if (chip) chip.classList.remove("ag-chip-quest-active");
+        haptic([20, 20, 40, 20, 60]);
+      } else {
+        qs.hints = [...(qs.hints || []), result.hint || "Versuch nochmal."];
+        writeQuestState(qs);
+        renderQuestPanel();
+      }
+    } catch (_e) {
+      if (resultEl) { resultEl.textContent = "Fehler — versuch nochmal."; resultEl.hidden = false; }
+      if (actionsEl) actionsEl.hidden = false;
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function callQuestProxy(base64, challenge, attemptNumber, previousHints) {
+    const url = state.quest?.proxyUrl;
+    if (!url) throw new Error("no proxy");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ base64, challenge, attemptNumber, previousHints })
+    });
+    if (!res.ok) throw new Error("proxy error");
+    return res.json();
   }
 
   // Map a tone to a complementary emoji used in messages sent to Fionn.
@@ -1210,6 +1567,18 @@
         li.setAttribute("role", "button");
         li.setAttribute("aria-label", "Gespräch öffnen");
         li.classList.add("ag-chip-clickable");
+      }
+
+      if (chip.toLowerCase() === "quest") {
+        li.id = "ag-btn-quest";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Quest öffnen");
+        li.classList.add("ag-chip-clickable");
+        if (state.quest?.enabled && isQuestAvailable()) {
+          const qs = readQuestState();
+          if (!qs.solved) li.classList.add("ag-chip-quest-active");
+        }
       }
 
       chips.appendChild(li);
@@ -2405,6 +2774,20 @@
         title: `${name}s Kapsel wartet 🎲`,
         body: "Heute noch keine Kapsel gezogen — zieh jetzt!"
       });
+      // Push quest notification if a new period just started and not yet solved
+      if (state.quest?.enabled && isQuestAvailable()) {
+        const qs = readQuestState();
+        const lastNotifPeriod = (() => { try { return parseInt(localStorage.getItem("affektions-gacha:quest-notif:v1") || "-1", 10); } catch (_e) { return -1; } })();
+        if (!qs.solved && lastNotifPeriod !== currentQuestPeriod()) {
+          try { localStorage.setItem("affektions-gacha:quest-notif:v1", String(currentQuestPeriod())); } catch (_e) {}
+          reg.active?.postMessage({
+            type: "SCHEDULE_NOTIFICATION",
+            targetTime: Date.now() + 500,
+            title: state.quest.pushTitle || "Neue Foto-Aufgabe 📷",
+            body: state.quest.pushBody || "Die Maschine hat eine neue Aufgabe für dich."
+          });
+        }
+      }
     } catch (error) {
       /* ignore */
     }
@@ -2479,6 +2862,25 @@
   }
 
   function bindEvents() {
+    // Hold draw button 3 s to reveal hidden letter
+    let letterHoldTimer = null;
+    const drawBtn = $("[data-ag-draw]");
+    drawBtn.addEventListener("pointerdown", () => {
+      letterHoldTimer = setTimeout(openLetter, 3000);
+    });
+    drawBtn.addEventListener("pointerup", () => clearTimeout(letterHoldTimer));
+    drawBtn.addEventListener("pointerleave", () => clearTimeout(letterHoldTimer));
+    drawBtn.addEventListener("pointercancel", () => clearTimeout(letterHoldTimer));
+
+    // Tap title 5 times to reveal hidden letter
+    let titleTapCount = 0, titleTapTimer = null;
+    $("[data-ag-main-title]").addEventListener("click", () => {
+      titleTapCount++;
+      clearTimeout(titleTapTimer);
+      if (titleTapCount >= 5) { titleTapCount = 0; openLetter(); return; }
+      titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 1800);
+    });
+
     $("[data-ag-draw]").addEventListener("click", () => {
       haptic(12);
       reveal();
@@ -2493,6 +2895,12 @@
       }
     });
     $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
+    $("#ag-letter-close")?.addEventListener("click", closeLetter);
+    $("#ag-letter-overlay")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeLetter();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLetter(); });
+
     $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
     $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
     $("#ag-gesprach-wa")?.addEventListener("click", sendGesprachToWhatsApp);
@@ -2501,6 +2909,18 @@
         event.preventDefault();
         openGesprachPanel();
       }
+    });
+    $("#ag-btn-quest")?.addEventListener("click", openQuestPanel);
+    $("#ag-quest-close")?.addEventListener("click", closeQuestPanel);
+    $("#ag-btn-quest")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openQuestPanel();
+      }
+    });
+    $("#ag-quest-file")?.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleQuestPhoto(file);
     });
     $("[data-ag-copy]").addEventListener("click", async () => {
       if (!state.todaysPull) return;
@@ -3114,6 +3534,79 @@
         flex-wrap: wrap;
       }
 
+      .ag-chip-quest-active {
+        position: relative;
+        box-shadow: 0 0 0 2px var(--ag-primary);
+        font-weight: 600;
+      }
+      .ag-chip-quest-active::after {
+        content: '';
+        position: absolute;
+        top: -3px; right: -3px;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--ag-gold);
+      }
+      .ag-quest-challenge {
+        margin: 1rem 0 .5rem;
+        padding: 1.1rem 1.3rem;
+        border-radius: 18px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.13);
+        font-size: 1.08rem;
+        font-style: italic;
+        line-height: 1.5;
+        color: var(--ag-text);
+        overflow-wrap: break-word;
+      }
+      .ag-quest-hint {
+        margin: .5rem 0;
+        padding: .75rem 1rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,.04);
+        border-left: 3px solid var(--ag-primary);
+        font-size: .92rem;
+        color: var(--ag-muted);
+        line-height: 1.5;
+      }
+      .ag-quest-actions {
+        margin-top: 1rem;
+      }
+      .ag-quest-upload-label {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        cursor: pointer;
+        padding: .65rem 1.4rem;
+        border-radius: 999px;
+        border: 1.5px solid var(--ag-primary);
+        background: transparent;
+        color: var(--ag-primary);
+        font-size: .95rem;
+        font-weight: 600;
+        transition: background .15s, color .15s;
+      }
+      .ag-quest-upload-label:hover {
+        background: var(--ag-primary);
+        color: #fff;
+      }
+      .ag-quest-result {
+        margin-top: .75rem;
+        padding: .9rem 1.1rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,.07);
+        font-size: .97rem;
+        line-height: 1.55;
+        color: var(--ag-text);
+      }
+      .ag-quest-points {
+        margin-top: .5rem;
+        font-size: .85rem;
+        color: var(--ag-gold);
+        font-weight: 600;
+        letter-spacing: .02em;
+      }
+
       @keyframes agDrift {
         from { transform: translate(0px, 0px); }
         to { transform: translate(var(--dx, 60px), var(--dy, -40px)); }
@@ -3466,6 +3959,81 @@
         font-size:.9rem;color:var(--ag-muted);background:transparent;
         border:1px dashed var(--ag-border);cursor:default;opacity:.7;
       }
+
+      .ag-letter-overlay{
+        position:fixed;inset:0;z-index:9999;
+        display:flex;align-items:center;justify-content:center;
+        padding:32px 24px;
+        background:
+          radial-gradient(ellipse 90% 70% at 25% 15%, rgba(47,122,79,.5) 0%, transparent 55%),
+          radial-gradient(ellipse 70% 90% at 80% 80%, rgba(184,120,46,.38) 0%, transparent 50%),
+          radial-gradient(ellipse 60% 60% at 60% 30%, rgba(55,106,131,.3) 0%, transparent 50%),
+          rgba(6,14,9,.88);
+        backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+        animation:ag-letter-fade-in 900ms cubic-bezier(.16,1,.3,1) both;
+      }
+      .ag-letter-overlay[hidden]{display:none}
+      @keyframes ag-letter-fade-in{from{opacity:0}to{opacity:1}}
+
+      .ag-letter-card{
+        position:relative;
+        max-width:420px;width:100%;
+        background:rgba(255,253,246,.03);
+        border:1px solid rgba(255,255,255,.09);
+        border-radius:28px;
+        padding:clamp(28px,5vw,44px);
+        box-shadow:0 0 80px rgba(47,122,79,.14),0 0 160px rgba(184,120,46,.07),inset 0 1px 0 rgba(255,255,255,.06);
+        animation:ag-letter-rise 700ms cubic-bezier(.16,1,.3,1) both;
+        animation-delay:120ms;
+        color:rgba(238,248,236,.95);
+      }
+      @keyframes ag-letter-rise{from{opacity:0;transform:translateY(22px) scale(.98)}to{opacity:1;transform:none}}
+
+      .ag-letter-close{
+        position:absolute;top:16px;right:16px;
+        background:none;border:none;cursor:pointer;
+        font-size:1rem;color:rgba(181,200,178,.5);padding:6px 10px;
+        border-radius:8px;line-height:1;
+      }
+      .ag-letter-close:hover{color:rgba(238,248,236,.9)}
+
+      .ag-letter-photo{
+        display:block;width:100%;height:170px;object-fit:cover;
+        border-radius:18px;margin-bottom:1.2rem;
+        box-shadow:0 8px 32px rgba(0,0,0,.35);
+        animation:ag-letter-rise 800ms cubic-bezier(.16,1,.3,1) both;
+        animation-delay:260ms;
+      }
+
+      .ag-letter-prelude{
+        margin:0;text-align:center;line-height:1.7;
+        font-size:1.05rem;font-style:italic;
+        color:rgba(181,200,178,.7);
+        display:flex;flex-wrap:wrap;justify-content:center;gap:0 .32em;
+        min-height:3.5em;align-items:center;
+      }
+      .ag-letter-word{
+        display:inline-block;opacity:0;filter:blur(7px);transform:translateY(5px);
+        animation:ag-word-appear 700ms cubic-bezier(.16,1,.3,1) forwards;
+      }
+      @keyframes ag-word-appear{to{opacity:1;filter:blur(0);transform:none}}
+
+      .ag-letter-eyebrow{
+        margin:0 0 .45rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;
+        color:rgba(224,167,80,.85);font-weight:700;
+      }
+      .ag-letter-title{
+        margin:0 0 1.1rem;font-size:1.3rem;font-weight:800;line-height:1.2;
+        color:rgba(238,248,236,.97);
+        animation:ag-letter-rise 800ms cubic-bezier(.16,1,.3,1) both;
+        animation-delay:200ms;
+      }
+      .ag-letter-body{animation:ag-letter-rise 700ms cubic-bezier(.16,1,.3,1) both;animation-delay:300ms;}
+      .ag-letter-body p{
+        margin:0 0 .8rem;line-height:1.7;font-size:.98rem;color:rgba(238,248,236,.88);
+      }
+      .ag-letter-body p:last-child{margin-bottom:0}
+      .ag-letter-sign{font-style:italic;font-weight:600;color:rgba(143,207,158,.9)!important;}
     `;
     document.head.appendChild(style);
   }

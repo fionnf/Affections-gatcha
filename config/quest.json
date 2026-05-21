@@ -1,0 +1,24 @@
+{
+  "enabled": true,
+  "proxyUrl": "",
+  "periodDays": 2,
+  "pushTitle": "Neue Foto-Aufgabe",
+  "pushBody": "Die Maschine hat eine neue Aufgabe für dich.",
+  "challenges": [
+    "Fotografiere etwas das auf jemanden wartet.",
+    "Finde etwas das gleichzeitig schön und kaputt ist.",
+    "Fotografiere einen Schatten der interessanter ist als das was ihn wirft.",
+    "Finde etwas das einmal wichtig war und jetzt vergessen wird.",
+    "Fotografiere etwas das nur von genau diesem Winkel Sinn ergibt.",
+    "Finde etwas das zwei komplett verschiedene Dinge unbemerkt verbindet.",
+    "Fotografiere einen Moment kurz bevor er endet.",
+    "Finde etwas Lebendiges das völlig still ist.",
+    "Fotografiere etwas das an Fionn erinnert ohne dass eine Person drauf ist.",
+    "Finde etwas das aus einer anderen Zeit stammt.",
+    "Fotografiere etwas das normalerweise niemand fotografiert.",
+    "Finde etwas das Geduld beweist.",
+    "Fotografiere Licht das eigentlich nicht da sein sollte.",
+    "Finde etwas das sich verabschiedet ohne es zu wissen.",
+    "Fotografiere etwas das du mit geschlossenen Augen erkennen würdest."
+  ]
+}

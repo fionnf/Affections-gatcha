@@ -29,7 +29,8 @@ function doGet(e) {
           favourites: JSON.parse(values[i][2] || "[]"),
           streak: values[i][3] || 0,
           lastUpdated: values[i][4],
-          tokens: JSON.parse(values[i][5] || "{}")
+          tokens: JSON.parse(values[i][5] || "{}"),
+          questPoints: values[i][6] || 0
         });
       }
     }
@@ -48,6 +49,7 @@ function doPost(e) {
     const history = JSON.stringify(data.history || []);
     const favourites = JSON.stringify(data.favourites || []);
     const tokensJson = JSON.stringify(data.tokens || {});
+    const questPoints = typeof data.questPoints === "number" ? data.questPoints : 0;
     const timestamp = new Date().toISOString();
 
     const sheet = getOrCreateSheet_();
@@ -58,10 +60,17 @@ function doPost(e) {
     }
     const streak = typeof data.streak === "number" ? data.streak : 0;
     if (rowIndex === -1) {
-      sheet.appendRow([token, history, favourites, streak, timestamp, tokensJson]);
+      sheet.appendRow([token, history, favourites, streak, timestamp, tokensJson, questPoints]);
     } else {
-      sheet.getRange(rowIndex, 1, 1, 6).setValues([[token, history, favourites, streak, timestamp, tokensJson]]);
+      sheet.getRange(rowIndex, 1, 1, 7).setValues([[token, history, favourites, streak, timestamp, tokensJson, questPoints]]);
     }
+
+    // Also log each quest solve to the Quest sheet
+    if (data.questLog) {
+      const questSheet = getOrCreateQuestSheet_();
+      questSheet.appendRow([timestamp, token, data.questLog.challenge, data.questLog.attempts, data.questLog.points, data.questLog.period]);
+    }
+
     return jsonOut_({ ok: true });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -73,7 +82,18 @@ function getOrCreateSheet_() {
   let sheet = ss.getSheetByName(BACKUP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(BACKUP_SHEET_NAME);
-    sheet.appendRow(["Token", "History", "Favourites", "Streak", "LastUpdated", "Tokens"]);
+    sheet.appendRow(["Token", "History", "Favourites", "Streak", "LastUpdated", "Tokens", "QuestPoints"]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getOrCreateQuestSheet_() {
+  const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+  let sheet = ss.getSheetByName("Quests");
+  if (!sheet) {
+    sheet = ss.insertSheet("Quests");
+    sheet.appendRow(["Timestamp", "Token", "Challenge", "Attempts", "Points", "Period"]);
     sheet.setFrozenRows(1);
   }
   return sheet;
