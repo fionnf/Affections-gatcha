@@ -1203,14 +1203,79 @@
   // ── Hidden letter Easter egg ─────────────────────────────────────────────────
 
   const LETTER_FALLBACKS = [
-    ["Ich hab das hier versteckt, weil ich dir was sagen wollte — ohne Aufgabe, ohne Preis, ohne Kapsel.", "Du bist mein Lieblingsmensch. Jeden Tag ein bisschen mehr als am Tag davor.", "Du weißt nicht wie oft ich an dich gedacht habe als ich das alles gebaut habe. Jede Frage, jede Aufgabe — alles für dich. Alles wegen dir.", "Pass auf dich auf."],
-    ["Manchmal mach ich was und denke sofort: Das muss ich dir zeigen.", "Ich find es schön, dass wir so sind. Einfach so.", "Komm bald."],
-    ["Weißt du eigentlich wie besonders du bist? Nicht weil ich dir das sage — einfach so, grundsätzlich.", "Ich beobachte dich manchmal und denke: Ja. Genau der.", "Das wollte ich dir mal sagen."],
-    ["Ich hab diese Maschine gebaut weil ich nicht immer weiß wie ich solche Sachen sage.", "Aber hier, wo es niemand sieht: Du machst alles ein bisschen besser.", "Das wollte ich irgendwo festhalten."],
-    ["Nicht jeder findet seine Geheimverstecke. Du schon.", "Ich glaub das sagt was über dich aus.", "Danke, dass du so bist wie du bist."],
-    ["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.", "Kein Drama, kein Aufwand — einfach sehr gut.", "Merk dir das."],
-    ["Ich hab viel nachgedacht als ich das geschrieben habe. Was sage ich, wenn er es findet?", "Am Ende ist es das: Ich bin froh, dass du in meinem Leben bist.", "So einfach ist das."]
+    ["Du bist mein Lieblingsmensch.", "Jeden Tag ein bisschen mehr als am Tag davor.", "Pass auf dich auf."],
+    ["Manchmal mach ich was und denke sofort: Das muss ich dir zeigen.", "Ich find es schön, dass wir so sind. Einfach so."],
+    ["Weißt du wie besonders du bist? Nicht weil ich dir das sage — einfach so, grundsätzlich.", "Das wollte ich irgendwo festhalten."],
+    ["Ich hab diese Maschine gebaut weil ich nicht immer weiß wie ich solche Sachen sage.", "Aber hier, wo es niemand sieht: Du machst alles besser."],
+    ["Nicht jeder findet seine Geheimverstecke. Du schon.", "Danke, dass du so bist wie du bist."],
+    ["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.", "Kein Drama, kein Aufwand — einfach sehr gut."],
+    ["Ich bin froh, dass du in meinem Leben bist.", "So einfach ist das."]
   ];
+
+  function playLetterSound() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      const t = ctx.currentTime;
+
+      // Soft filtered noise whoosh
+      const bufLen = Math.floor(ctx.sampleRate * 0.9);
+      const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const bd = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) bd[i] = Math.random() * 2 - 1;
+      const ns = ctx.createBufferSource();
+      ns.buffer = buf;
+      const nf = ctx.createBiquadFilter();
+      nf.type = "bandpass"; nf.Q.value = 1.2;
+      nf.frequency.setValueAtTime(500, t);
+      nf.frequency.exponentialRampToValueAtTime(2200, t + 0.55);
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0, t);
+      ng.gain.linearRampToValueAtTime(0.055, t + 0.06);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+      ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+      ns.start(t); ns.stop(t + 0.9);
+
+      // Three staggered ascending tones (chord opening)
+      [[290, 640, 0, 1.5, 0.12], [435, 870, 0.07, 1.3, 0.08], [580, 1100, 0.14, 1.1, 0.05]].forEach(([f0, f1, delay, dur, vol]) => {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f0, t + delay);
+        osc.frequency.exponentialRampToValueAtTime(f1, t + delay + dur * 0.55);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(vol, t + delay + 0.09);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(t + delay); osc.stop(t + delay + dur + 0.05);
+      });
+    } catch (_) {}
+  }
+
+  function showLetterLoading(el) {
+    const text = "you didn't see this message coming did you…";
+    const p = document.createElement("p");
+    p.className = "ag-letter-prelude";
+    text.split(" ").forEach((word, i) => {
+      const span = document.createElement("span");
+      span.className = "ag-letter-word";
+      span.textContent = word;
+      span.style.animationDelay = `${320 + i * 155}ms`;
+      p.appendChild(span);
+      p.appendChild(document.createTextNode(" "));
+    });
+    el.innerHTML = "";
+    el.appendChild(p);
+  }
+
+  function revealLetterContent(body, paras) {
+    body.innerHTML = paras.map((p) => `<p>${p}</p>`).join("") +
+      '<p class="ag-letter-sign">— Fionn 🍀</p>';
+    body.style.animation = "none";
+    body.getBoundingClientRect();
+    body.style.animation = "";
+  }
 
   function openLetter() {
     const overlay = $("#ag-letter-overlay");
@@ -1218,8 +1283,8 @@
     overlay.hidden = false;
     overlay.focus();
     haptic([20, 60, 20]);
+    playLetterSound();
 
-    // Show a random memory photo
     const img = $("#ag-letter-photo");
     if (img && state.photos && state.photos.length) {
       const photo = state.photos[Math.floor(Math.random() * state.photos.length)];
@@ -1227,14 +1292,13 @@
       img.hidden = false;
     }
 
-    // Generate message
     renderLetterMessage();
   }
 
   async function renderLetterMessage() {
     const body = $("#ag-letter-body");
     if (!body) return;
-    body.innerHTML = '<p class="ag-letter-loading">✦ ✦ ✦</p>';
+    showLetterLoading(body);
 
     const proxyUrl = state.quest?.proxyUrl;
     if (proxyUrl) {
@@ -1247,18 +1311,15 @@
         if (res.ok) {
           const data = await res.json();
           if (data.paragraphs && data.paragraphs.length) {
-            body.innerHTML = data.paragraphs.map((p) => `<p>${p}</p>`).join("") +
-              '<p class="ag-letter-sign">— Fionn 🍀</p>';
+            revealLetterContent(body, data.paragraphs);
             return;
           }
         }
-      } catch (_) { /* fall through to fallback */ }
+      } catch (_) {}
     }
 
-    // Fallback: pick a random pre-written set of paragraphs
     const paras = LETTER_FALLBACKS[Math.floor(Math.random() * LETTER_FALLBACKS.length)];
-    body.innerHTML = paras.map((p) => `<p>${p}</p>`).join("") +
-      '<p class="ag-letter-sign">— Fionn 🍀</p>';
+    revealLetterContent(body, paras);
   }
 
   function closeLetter() {
@@ -3902,66 +3963,77 @@
       .ag-letter-overlay{
         position:fixed;inset:0;z-index:9999;
         display:flex;align-items:center;justify-content:center;
-        padding:24px;
-        background:rgba(8,20,12,.72);
-        backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-        animation:ag-letter-fade-in 400ms var(--ag-ease) both;
+        padding:32px 24px;
+        background:
+          radial-gradient(ellipse 90% 70% at 25% 15%, rgba(47,122,79,.5) 0%, transparent 55%),
+          radial-gradient(ellipse 70% 90% at 80% 80%, rgba(184,120,46,.38) 0%, transparent 50%),
+          radial-gradient(ellipse 60% 60% at 60% 30%, rgba(55,106,131,.3) 0%, transparent 50%),
+          rgba(6,14,9,.88);
+        backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+        animation:ag-letter-fade-in 900ms cubic-bezier(.16,1,.3,1) both;
       }
       .ag-letter-overlay[hidden]{display:none}
       @keyframes ag-letter-fade-in{from{opacity:0}to{opacity:1}}
 
       .ag-letter-card{
         position:relative;
-        max-width:400px;width:100%;
-        background:linear-gradient(160deg,#fffdf6,#f7f3e8);
-        border:1px solid rgba(185,120,46,.22);
-        border-radius:var(--ag-radius-lg);
-        padding:clamp(24px,5vw,40px);
-        box-shadow:0 24px 64px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.7) inset;
-        animation:ag-letter-rise 420ms var(--ag-ease) both;
-        color:#1a2018;
+        max-width:420px;width:100%;
+        background:rgba(255,253,246,.03);
+        border:1px solid rgba(255,255,255,.09);
+        border-radius:28px;
+        padding:clamp(28px,5vw,44px);
+        box-shadow:0 0 80px rgba(47,122,79,.14),0 0 160px rgba(184,120,46,.07),inset 0 1px 0 rgba(255,255,255,.06);
+        animation:ag-letter-rise 700ms cubic-bezier(.16,1,.3,1) both;
+        animation-delay:120ms;
+        color:rgba(238,248,236,.95);
       }
-      @keyframes ag-letter-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-      @media(prefers-color-scheme:dark){
-        .ag-letter-card{
-          background:linear-gradient(160deg,#1c2a1e,#121e16);
-          border-color:rgba(225,167,80,.18);
-          color:var(--ag-text);
-          box-shadow:0 24px 64px rgba(0,0,0,.6);
-        }
-      }
+      @keyframes ag-letter-rise{from{opacity:0;transform:translateY(22px) scale(.98)}to{opacity:1;transform:none}}
 
       .ag-letter-close{
-        position:absolute;top:14px;right:14px;
+        position:absolute;top:16px;right:16px;
         background:none;border:none;cursor:pointer;
-        font-size:1.1rem;color:var(--ag-muted);padding:4px 8px;
-        border-radius:6px;line-height:1;
+        font-size:1rem;color:rgba(181,200,178,.5);padding:6px 10px;
+        border-radius:8px;line-height:1;
       }
-      .ag-letter-close:hover{color:var(--ag-text)}
+      .ag-letter-close:hover{color:rgba(238,248,236,.9)}
 
       .ag-letter-photo{
-        display:block;width:100%;height:180px;object-fit:cover;
-        border-radius:calc(var(--ag-radius-lg) - 6px);
-        margin-bottom:1.1rem;
+        display:block;width:100%;height:170px;object-fit:cover;
+        border-radius:18px;margin-bottom:1.2rem;
+        box-shadow:0 8px 32px rgba(0,0,0,.35);
+        animation:ag-letter-rise 800ms cubic-bezier(.16,1,.3,1) both;
+        animation-delay:260ms;
       }
-      .ag-letter-loading{
-        text-align:center;letter-spacing:.4em;color:var(--ag-muted);
-        animation:ag-letter-dots 1.2s ease-in-out infinite;
+
+      .ag-letter-prelude{
+        margin:0;text-align:center;line-height:1.7;
+        font-size:1.05rem;font-style:italic;
+        color:rgba(181,200,178,.7);
+        display:flex;flex-wrap:wrap;justify-content:center;gap:0 .32em;
+        min-height:3.5em;align-items:center;
       }
-      @keyframes ag-letter-dots{0%,100%{opacity:.3}50%{opacity:1}}
+      .ag-letter-word{
+        display:inline-block;opacity:0;filter:blur(7px);transform:translateY(5px);
+        animation:ag-word-appear 700ms cubic-bezier(.16,1,.3,1) forwards;
+      }
+      @keyframes ag-word-appear{to{opacity:1;filter:blur(0);transform:none}}
 
       .ag-letter-eyebrow{
-        margin:0 0 .5rem;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;
-        color:var(--ag-gold);font-weight:700;
+        margin:0 0 .45rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;
+        color:rgba(224,167,80,.85);font-weight:700;
       }
       .ag-letter-title{
-        margin:0 0 1.25rem;font-size:1.35rem;font-weight:800;line-height:1.2;
+        margin:0 0 1.1rem;font-size:1.3rem;font-weight:800;line-height:1.2;
+        color:rgba(238,248,236,.97);
+        animation:ag-letter-rise 800ms cubic-bezier(.16,1,.3,1) both;
+        animation-delay:200ms;
       }
+      .ag-letter-body{animation:ag-letter-rise 700ms cubic-bezier(.16,1,.3,1) both;animation-delay:300ms;}
       .ag-letter-body p{
-        margin:0 0 .9rem;line-height:1.65;font-size:1rem;
+        margin:0 0 .8rem;line-height:1.7;font-size:.98rem;color:rgba(238,248,236,.88);
       }
       .ag-letter-body p:last-child{margin-bottom:0}
-      .ag-letter-sign{font-style:italic;font-weight:600;color:var(--ag-primary)!important;}
+      .ag-letter-sign{font-style:italic;font-weight:600;color:rgba(143,207,158,.9)!important;}
     `;
     document.head.appendChild(style);
   }
