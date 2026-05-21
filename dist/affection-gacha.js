@@ -1191,7 +1191,7 @@
     const template = (state.theme && state.theme.messageTarget) || "https://wa.me/?text={text}";
     const text = encodeURIComponent("💬 Gespräch-Frage:\n\n" + question + "\n\n(via Affektions-Gacha)");
     const url = template.replace("{text}", text);
-    window.open(url, "_blank", "noopener");
+    window.location.href = url;
   }
 
   // ── Quest helpers ────────────────────────────────────────────────────────────
