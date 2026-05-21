@@ -766,14 +766,11 @@
       <div class="ag-letter-overlay" id="ag-letter-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="ag-letter-title">
         <div class="ag-letter-card">
           <button class="ag-letter-close" type="button" id="ag-letter-close" aria-label="Schließen">✕</button>
+          <img class="ag-letter-photo" id="ag-letter-photo" src="" alt="" hidden>
           <p class="ag-letter-eyebrow">🍀 Nur für dich</p>
           <h2 class="ag-letter-title" id="ag-letter-title">Du hast es gefunden.</h2>
-          <div class="ag-letter-body">
-            <p>Ich hab das hier versteckt, weil ich dir was sagen wollte — ohne dass es eine Aufgabe ist oder ein Preis oder eine Kapsel.</p>
-            <p>Einfach nur: Du bist mein Lieblingsmensch. Jeden Tag ein bisschen mehr als am Tag davor.</p>
-            <p>Du weißt nicht wie oft ich an dich gedacht habe als ich diese Maschine gebaut habe. Jede Frage, jede Aufgabe, jeder kleine Witz — alles für dich. Alles wegen dir.</p>
-            <p>Pass auf dich auf.</p>
-            <p class="ag-letter-sign">— Fionn 🍀</p>
+          <div class="ag-letter-body" id="ag-letter-body">
+            <p class="ag-letter-loading">…</p>
           </div>
         </div>
       </div>
@@ -1205,12 +1202,63 @@
 
   // ── Hidden letter Easter egg ─────────────────────────────────────────────────
 
+  const LETTER_FALLBACKS = [
+    ["Ich hab das hier versteckt, weil ich dir was sagen wollte — ohne Aufgabe, ohne Preis, ohne Kapsel.", "Du bist mein Lieblingsmensch. Jeden Tag ein bisschen mehr als am Tag davor.", "Du weißt nicht wie oft ich an dich gedacht habe als ich das alles gebaut habe. Jede Frage, jede Aufgabe — alles für dich. Alles wegen dir.", "Pass auf dich auf."],
+    ["Manchmal mach ich was und denke sofort: Das muss ich dir zeigen.", "Ich find es schön, dass wir so sind. Einfach so.", "Komm bald."],
+    ["Weißt du eigentlich wie besonders du bist? Nicht weil ich dir das sage — einfach so, grundsätzlich.", "Ich beobachte dich manchmal und denke: Ja. Genau der.", "Das wollte ich dir mal sagen."],
+    ["Ich hab diese Maschine gebaut weil ich nicht immer weiß wie ich solche Sachen sage.", "Aber hier, wo es niemand sieht: Du machst alles ein bisschen besser.", "Das wollte ich irgendwo festhalten."],
+    ["Nicht jeder findet seine Geheimverstecke. Du schon.", "Ich glaub das sagt was über dich aus.", "Danke, dass du so bist wie du bist."],
+    ["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.", "Kein Drama, kein Aufwand — einfach sehr gut.", "Merk dir das."],
+    ["Ich hab viel nachgedacht als ich das geschrieben habe. Was sage ich, wenn er es findet?", "Am Ende ist es das: Ich bin froh, dass du in meinem Leben bist.", "So einfach ist das."]
+  ];
+
   function openLetter() {
     const overlay = $("#ag-letter-overlay");
     if (!overlay) return;
     overlay.hidden = false;
     overlay.focus();
     haptic([20, 60, 20]);
+
+    // Show a random memory photo
+    const img = $("#ag-letter-photo");
+    if (img && state.photos && state.photos.length) {
+      const photo = state.photos[Math.floor(Math.random() * state.photos.length)];
+      img.src = photo.url;
+      img.hidden = false;
+    }
+
+    // Generate message
+    renderLetterMessage();
+  }
+
+  async function renderLetterMessage() {
+    const body = $("#ag-letter-body");
+    if (!body) return;
+    body.innerHTML = '<p class="ag-letter-loading">✦ ✦ ✦</p>';
+
+    const proxyUrl = state.quest?.proxyUrl;
+    if (proxyUrl) {
+      try {
+        const res = await fetch(proxyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ type: "letter" })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.paragraphs && data.paragraphs.length) {
+            body.innerHTML = data.paragraphs.map((p) => `<p>${p}</p>`).join("") +
+              '<p class="ag-letter-sign">— Fionn 🍀</p>';
+            return;
+          }
+        }
+      } catch (_) { /* fall through to fallback */ }
+    }
+
+    // Fallback: pick a random pre-written set of paragraphs
+    const paras = LETTER_FALLBACKS[Math.floor(Math.random() * LETTER_FALLBACKS.length)];
+    body.innerHTML = paras.map((p) => `<p>${p}</p>`).join("") +
+      '<p class="ag-letter-sign">— Fionn 🍀</p>';
   }
 
   function closeLetter() {
@@ -3890,6 +3938,17 @@
         border-radius:6px;line-height:1;
       }
       .ag-letter-close:hover{color:var(--ag-text)}
+
+      .ag-letter-photo{
+        display:block;width:100%;height:180px;object-fit:cover;
+        border-radius:calc(var(--ag-radius-lg) - 6px);
+        margin-bottom:1.1rem;
+      }
+      .ag-letter-loading{
+        text-align:center;letter-spacing:.4em;color:var(--ag-muted);
+        animation:ag-letter-dots 1.2s ease-in-out infinite;
+      }
+      @keyframes ag-letter-dots{0%,100%{opacity:.3}50%{opacity:1}}
 
       .ag-letter-eyebrow{
         margin:0 0 .5rem;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;

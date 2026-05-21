@@ -17,6 +17,41 @@ const OPENAI_MODEL   = "gpt-4o-mini";
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+
+    // Hidden letter: generate a fresh personal note from Fionn to Lennart
+    if (data.type === "letter") {
+      const systemPrompt =
+        `Du bist Fionn, ein irischer Mann der in Zürich lebt und eine romantische Gacha-App für seinen Partner Lennart gebaut hat. ` +
+        `Schreib eine kurze, sehr persönliche Nachricht an Lennart — warm, direkt, ein bisschen verspielt, kein Drama. ` +
+        `Auf Deutsch. Keine "Ich liebe dich" — das haben wir noch nicht gesagt. ` +
+        `Antworte NUR mit einem JSON-Objekt: {"paragraphs": ["...", "...", "..."]} ` +
+        `mit genau 2–3 kurzen Absätzen. Jedes Mal etwas anderes — keine Wiederholungen, keine Floskeln. ` +
+        `Themen: kleine Momente, Dinge die dir an Lennart auffallen, warum du die Maschine gebaut hast, ` +
+        `Erinnerungen (Zürich, Fahrrad fahren, essen gehen, Reisen), wie froh du bist dass es ihn gibt.`;
+
+      const payload = {
+        model: OPENAI_MODEL,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: "Schreib die Nachricht." }],
+        max_tokens: 180,
+        temperature: 1.1,
+        response_format: { type: "json_object" }
+      };
+
+      const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", {
+        method: "post",
+        contentType: "application/json",
+        headers: { Authorization: "Bearer " + OPENAI_API_KEY },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      const json = JSON.parse(response.getContentText());
+      if (json.error) return jsonOut_({ ok: false, error: json.error.message });
+      const content = json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
+      const result = JSON.parse(content || "{}");
+      return jsonOut_({ ok: true, ...result });
+    }
+
     const { base64, challenge, attemptNumber, previousHints } = data;
     if (!base64 || !challenge) return jsonOut_({ ok: false, error: "missing fields" });
 
