@@ -137,6 +137,7 @@
     outcomes: null,
     photos: null,
     specialDays: null,
+    quest: null,
     todaysPull: null,
     activeTab: "today",
     revealed: false,
@@ -252,6 +253,11 @@
         writeTokens(data.tokens);
       }
 
+      // Restore quest points — take the higher of local and sheet
+      if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
+        try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
+      }
+
       // If history in the sheet was previously truncated, the computed streak will be
       // lower than the stored streak value. Backfill synthetic entries to recover it.
       const sheetStreak = typeof data.streak === "number" ? data.streak : 0;
@@ -306,13 +312,23 @@
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = "Lennart";
       const history = readHistory();
+      const qs = readQuestState();
+      const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
+        challenge: currentChallenge(),
+        attempts: qs.attempts,
+        points: qs.pointsEarned,
+        period: qs.period
+      } : undefined;
+      if (questLog) { qs._logged = true; writeQuestState(qs); }
       const body = JSON.stringify({
         type: "gacha-backup",
         token,
         history,
         favourites: readFavorites(),
         streak: computeStreak(),
-        tokens: readTokens()
+        tokens: readTokens(),
+        questPoints: readQuestPoints(),
+        ...(questLog ? { questLog } : {})
       });
       const opts = {
         method: "POST",
@@ -333,13 +349,14 @@
     injectStyles();
     renderShell();
     try {
-      const [theme, outcomes, photos, specialDays, wishInbox, backup] = await Promise.all([
+      const [theme, outcomes, photos, specialDays, wishInbox, backup, quest] = await Promise.all([
         fetchJson("config/theme.json"),
         fetchJson("config/outcomes.json"),
         fetchJson("config/photos.json", defaultPhotos),
         fetchJson("config/special-days.json", { days: [] }),
         fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
-        fetchJson("config/backup.json", { enabled: false, endpointUrl: "" })
+        fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
+        fetchJson("config/quest.json", { enabled: false })
       ]);
       state.theme = theme;
       state.outcomes = outcomes;
@@ -347,6 +364,7 @@
       state.specialDays = specialDays;
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
+      state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
       await syncFromSheets();
       const wasSeeded = seedStreakOnce();
       if (wasSeeded) backupToSheets();
@@ -611,6 +629,25 @@
               <button class="ag-secondary" type="button" id="ag-gesprach-next">Neue Frage</button>
               <button class="ag-secondary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen</button>
             </div>
+          </section>
+
+          <section class="ag-card ag-mini-panel" id="ag-quest-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge" id="ag-quest-badge">Quest</span>
+              <button class="ag-secondary" type="button" id="ag-quest-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title" id="ag-quest-title">Foto-Aufgabe 📷</h2>
+            <p class="ag-mini-copy" id="ag-quest-copy"></p>
+            <div class="ag-quest-challenge" id="ag-quest-challenge"></div>
+            <div class="ag-quest-hint" id="ag-quest-hint" hidden></div>
+            <div class="ag-quest-actions" id="ag-quest-actions">
+              <label class="ag-primary ag-quest-upload-label" id="ag-quest-upload-label">
+                📷 Foto aufnehmen
+                <input type="file" accept="image/*" capture="environment" id="ag-quest-file" style="display:none">
+              </label>
+            </div>
+            <div class="ag-quest-result" id="ag-quest-result" hidden></div>
+            <div class="ag-quest-points" id="ag-quest-points" hidden></div>
           </section>
 
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
@@ -1157,6 +1194,184 @@
     window.open(url, "_blank", "noopener");
   }
 
+  // ── Quest helpers ────────────────────────────────────────────────────────────
+
+  const QUEST_STORAGE_KEY = "affektions-gacha:quest:v1";
+  const QUEST_POINTS_KEY  = "affektions-gacha:quest-points:v1";
+  const QUEST_POINTS_SCHEDULE = [100, 75, 50, 25];
+
+  function currentQuestPeriod() {
+    const tz = state.theme?.timezone || "UTC";
+    const today = dateKeyInTimezone(tz);
+    const [y, m, d] = today.split("-").map(Number);
+    const epochDays = Math.floor(new Date(Date.UTC(y, m - 1, d)).getTime() / 86400000);
+    return Math.floor(epochDays / ((state.quest?.periodDays) || 2));
+  }
+
+  function currentChallenge() {
+    const challenges = state.quest?.challenges;
+    if (!Array.isArray(challenges) || !challenges.length) return null;
+    const period = currentQuestPeriod();
+    return challenges[period % challenges.length];
+  }
+
+  function readQuestState() {
+    try {
+      const raw = localStorage.getItem(QUEST_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const period = currentQuestPeriod();
+      if (parsed.period !== period) return { period, solved: false, attempts: 0, hints: [] };
+      return parsed;
+    } catch (_e) { return { period: currentQuestPeriod(), solved: false, attempts: 0, hints: [] }; }
+  }
+
+  function writeQuestState(qs) {
+    try { localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(qs)); } catch (_e) {}
+  }
+
+  function readQuestPoints() {
+    try { return parseInt(localStorage.getItem(QUEST_POINTS_KEY) || "0", 10); } catch (_e) { return 0; }
+  }
+
+  function addQuestPoints(pts) {
+    try {
+      const total = readQuestPoints() + pts;
+      localStorage.setItem(QUEST_POINTS_KEY, String(total));
+      return total;
+    } catch (_e) { return pts; }
+  }
+
+  function isQuestAvailable() {
+    return !!(state.quest?.enabled && currentChallenge());
+  }
+
+  function openQuestPanel() {
+    const panel = $("#ag-quest-panel");
+    if (!panel) return;
+    panel.hidden = false;
+    renderQuestPanel();
+  }
+
+  function closeQuestPanel() {
+    const panel = $("#ag-quest-panel");
+    if (panel) panel.hidden = true;
+  }
+
+  function renderQuestPanel() {
+    const challenge = currentChallenge();
+    const qs = readQuestState();
+    const challengeEl = $("#ag-quest-challenge");
+    const hintEl      = $("#ag-quest-hint");
+    const actionsEl   = $("#ag-quest-actions");
+    const resultEl    = $("#ag-quest-result");
+    const pointsEl    = $("#ag-quest-points");
+    const copyEl      = $("#ag-quest-copy");
+    const titleEl     = $("#ag-quest-title");
+
+    if (!challenge) {
+      if (titleEl) titleEl.textContent = "Keine Aufgabe";
+      if (copyEl) copyEl.textContent = "Schau später nochmal vorbei.";
+      if (challengeEl) challengeEl.textContent = "";
+      if (actionsEl) actionsEl.hidden = true;
+      return;
+    }
+
+    if (qs.solved) {
+      if (titleEl) titleEl.textContent = "Aufgabe gelöst ✓";
+      if (copyEl) copyEl.textContent = "Gut gemacht.";
+      if (challengeEl) challengeEl.textContent = challenge;
+      if (hintEl) hintEl.hidden = true;
+      if (actionsEl) actionsEl.hidden = true;
+      if (resultEl) { resultEl.textContent = qs.successMessage || ""; resultEl.hidden = false; }
+      if (pointsEl) {
+        pointsEl.textContent = `+${qs.pointsEarned} Punkte · Gesamt: ${readQuestPoints()}`;
+        pointsEl.hidden = false;
+      }
+      return;
+    }
+
+    if (titleEl) titleEl.textContent = "Foto-Aufgabe 📷";
+    if (copyEl) copyEl.textContent = qs.attempts === 0
+      ? "Fotografiere und schick mir das Resultat."
+      : `Versuch ${qs.attempts + 1} — du schaffst das.`;
+    if (challengeEl) challengeEl.textContent = challenge;
+
+    if (qs.hints && qs.hints.length > 0) {
+      if (hintEl) { hintEl.textContent = qs.hints[qs.hints.length - 1]; hintEl.hidden = false; }
+    } else {
+      if (hintEl) hintEl.hidden = true;
+    }
+
+    if (actionsEl) actionsEl.hidden = false;
+    if (resultEl) resultEl.hidden = true;
+    if (pointsEl) pointsEl.hidden = true;
+  }
+
+  async function handleQuestPhoto(file) {
+    if (!file) return;
+    const actionsEl  = $("#ag-quest-actions");
+    const resultEl   = $("#ag-quest-result");
+    const pointsEl   = $("#ag-quest-points");
+    const copyEl     = $("#ag-quest-copy");
+
+    if (actionsEl) actionsEl.hidden = true;
+    if (resultEl) { resultEl.textContent = "…"; resultEl.hidden = false; }
+
+    const base64 = await fileToBase64(file);
+    const qs = readQuestState();
+    const challenge = currentChallenge();
+
+    try {
+      const result = await callQuestProxy(base64, challenge, qs.attempts + 1, qs.hints);
+      qs.attempts += 1;
+
+      if (result.success) {
+        const pts = QUEST_POINTS_SCHEDULE[Math.min(qs.attempts - 1, QUEST_POINTS_SCHEDULE.length - 1)];
+        const total = addQuestPoints(pts);
+        qs.solved = true;
+        qs.pointsEarned = pts;
+        qs.successMessage = result.message || "Perfekt.";
+        writeQuestState(qs);
+        backupToSheets();
+        if (resultEl) { resultEl.textContent = result.message || "Perfekt."; resultEl.hidden = false; }
+        if (pointsEl) { pointsEl.textContent = `+${pts} Punkte · Gesamt: ${total}`; pointsEl.hidden = false; }
+        if (copyEl) copyEl.textContent = "Aufgabe gelöst ✓";
+        if (actionsEl) actionsEl.hidden = true;
+        const chip = $("#ag-btn-quest");
+        if (chip) chip.classList.remove("ag-chip-quest-active");
+        haptic([20, 20, 40, 20, 60]);
+      } else {
+        qs.hints = [...(qs.hints || []), result.hint || "Versuch nochmal."];
+        writeQuestState(qs);
+        renderQuestPanel();
+      }
+    } catch (_e) {
+      if (resultEl) { resultEl.textContent = "Fehler — versuch nochmal."; resultEl.hidden = false; }
+      if (actionsEl) actionsEl.hidden = false;
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function callQuestProxy(base64, challenge, attemptNumber, previousHints) {
+    const url = state.quest?.proxyUrl;
+    if (!url) throw new Error("no proxy");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ base64, challenge, attemptNumber, previousHints })
+    });
+    if (!res.ok) throw new Error("proxy error");
+    return res.json();
+  }
+
   // Map a tone to a complementary emoji used in messages sent to Fionn.
   // Falls back to ❤️ if tone is missing/unknown.
   function emojiForTone(tone) {
@@ -1210,6 +1425,18 @@
         li.setAttribute("role", "button");
         li.setAttribute("aria-label", "Gespräch öffnen");
         li.classList.add("ag-chip-clickable");
+      }
+
+      if (chip.toLowerCase() === "quest") {
+        li.id = "ag-btn-quest";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Quest öffnen");
+        li.classList.add("ag-chip-clickable");
+        if (state.quest?.enabled && isQuestAvailable()) {
+          const qs = readQuestState();
+          if (!qs.solved) li.classList.add("ag-chip-quest-active");
+        }
       }
 
       chips.appendChild(li);
@@ -2405,6 +2632,20 @@
         title: `${name}s Kapsel wartet 🎲`,
         body: "Heute noch keine Kapsel gezogen — zieh jetzt!"
       });
+      // Push quest notification if a new period just started and not yet solved
+      if (state.quest?.enabled && isQuestAvailable()) {
+        const qs = readQuestState();
+        const lastNotifPeriod = (() => { try { return parseInt(localStorage.getItem("affektions-gacha:quest-notif:v1") || "-1", 10); } catch (_e) { return -1; } })();
+        if (!qs.solved && lastNotifPeriod !== currentQuestPeriod()) {
+          try { localStorage.setItem("affektions-gacha:quest-notif:v1", String(currentQuestPeriod())); } catch (_e) {}
+          reg.active?.postMessage({
+            type: "SCHEDULE_NOTIFICATION",
+            targetTime: Date.now() + 500,
+            title: state.quest.pushTitle || "Neue Foto-Aufgabe 📷",
+            body: state.quest.pushBody || "Die Maschine hat eine neue Aufgabe für dich."
+          });
+        }
+      }
     } catch (error) {
       /* ignore */
     }
@@ -2501,6 +2742,18 @@
         event.preventDefault();
         openGesprachPanel();
       }
+    });
+    $("#ag-btn-quest")?.addEventListener("click", openQuestPanel);
+    $("#ag-quest-close")?.addEventListener("click", closeQuestPanel);
+    $("#ag-btn-quest")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openQuestPanel();
+      }
+    });
+    $("#ag-quest-file")?.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleQuestPhoto(file);
     });
     $("[data-ag-copy]").addEventListener("click", async () => {
       if (!state.todaysPull) return;
@@ -3112,6 +3365,79 @@
         display: flex;
         gap: .75rem;
         flex-wrap: wrap;
+      }
+
+      .ag-chip-quest-active {
+        position: relative;
+        box-shadow: 0 0 0 2px var(--ag-primary);
+        font-weight: 600;
+      }
+      .ag-chip-quest-active::after {
+        content: '';
+        position: absolute;
+        top: -3px; right: -3px;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--ag-gold);
+      }
+      .ag-quest-challenge {
+        margin: 1rem 0 .5rem;
+        padding: 1.1rem 1.3rem;
+        border-radius: 18px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.13);
+        font-size: 1.08rem;
+        font-style: italic;
+        line-height: 1.5;
+        color: var(--ag-text);
+        overflow-wrap: break-word;
+      }
+      .ag-quest-hint {
+        margin: .5rem 0;
+        padding: .75rem 1rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,.04);
+        border-left: 3px solid var(--ag-primary);
+        font-size: .92rem;
+        color: var(--ag-muted);
+        line-height: 1.5;
+      }
+      .ag-quest-actions {
+        margin-top: 1rem;
+      }
+      .ag-quest-upload-label {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        cursor: pointer;
+        padding: .65rem 1.4rem;
+        border-radius: 999px;
+        border: 1.5px solid var(--ag-primary);
+        background: transparent;
+        color: var(--ag-primary);
+        font-size: .95rem;
+        font-weight: 600;
+        transition: background .15s, color .15s;
+      }
+      .ag-quest-upload-label:hover {
+        background: var(--ag-primary);
+        color: #fff;
+      }
+      .ag-quest-result {
+        margin-top: .75rem;
+        padding: .9rem 1.1rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,.07);
+        font-size: .97rem;
+        line-height: 1.55;
+        color: var(--ag-text);
+      }
+      .ag-quest-points {
+        margin-top: .5rem;
+        font-size: .85rem;
+        color: var(--ag-gold);
+        font-weight: 600;
+        letter-spacing: .02em;
       }
 
       @keyframes agDrift {
