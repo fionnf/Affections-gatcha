@@ -6,7 +6,8 @@
 
 (function () {
   const STORAGE_KEY = "affektions-gacha:history:v1";
-  const TOKEN = "Lennart";
+  // Auto-detect token the same way the app does: URL ?token= param, else default
+  const TOKEN = new URLSearchParams(window.location.search).get("token") || "Lennart";
 
   const recovered = [
     {
@@ -186,8 +187,9 @@
   let existing = [];
   try { existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch (_) {}
 
-  // Remove any "(wiederhergestellt)" fakes
-  existing = existing.filter(e => e.title !== "(wiederhergestellt)");
+  const today = new Date().toISOString().slice(0, 10);
+  // Remove any "(wiederhergestellt)" fakes and any future entries
+  existing = existing.filter(e => e.title !== "(wiederhergestellt)" && e.day <= today);
 
   const existingDays = new Set(existing.map(e => `${e.day}|${e.token}`));
   const toAdd = recovered.filter(e => !existingDays.has(`${e.day}|${e.token}`));
@@ -197,5 +199,17 @@
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
   console.log(`✅ Restored ${toAdd.length} missing entries. Total: ${merged.length} days.`);
-  console.log("Reload the page to see changes, then the app will auto-backup to Sheets.");
+
+  // Push to Sheets immediately so the reload doesn't overwrite local with stale data.
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbzod1vU7KQEjno6-vq5uGSuWWNsft8o7igqXprYbxlFNHTSN2Vindxc0nWCVrYspjKV5Q/exec";
+  fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ type: "gacha-backup", token: TOKEN, history: merged, favourites: [], streak: 21, tokens: {}, questPoints: 0 })
+  })
+    .then(r => r.json())
+    .then(d => console.log("📊 Sheets backup:", d.ok ? "✅ done" : "❌ " + d.error))
+    .catch(e => console.warn("📊 Sheets backup failed (offline?):", e.message));
+
+  console.log("Now reload the page — history should appear.");
 })();

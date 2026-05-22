@@ -200,9 +200,12 @@
 
       // Merge Sheet history with local history — union by day, Sheet wins on conflict
       if (Array.isArray(data.history) && data.history.length) {
+        const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
         const local = readHistory();
         const localByDay = new Map(local.map((e) => [e.day, e]));
         for (const entry of data.history) {
+          if (entry.title === "(wiederhergestellt)") continue; // skip corrupted sheet entries
+          if (entry.day > today) continue; // never import future entries
           localByDay.set(entry.day, entry); // Sheet entry overwrites local
         }
         const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
@@ -2147,6 +2150,7 @@
       title: pull.outcome.title,
       message: pull.outcome.message,
       link: pull.outcome.link || null,
+      unlockTime: pull.unlockTime || null,
       photo: pull.photo
         ? {
             url: pull.photo.url,
@@ -2274,6 +2278,23 @@
     }
   }
 
+  function buildHistoryLink(entry) {
+    if (!entry.link) return null;
+    if (entry.unlockTime) {
+      const now = new Date();
+      const [h, m] = entry.unlockTime.split(":").map(Number);
+      const unlocked = now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+      if (!unlocked) {
+        const span = document.createElement("span");
+        span.className = "ag-outcome-link-locked";
+        span.textContent = `🔒 Ab ${entry.unlockTime} verfügbar`;
+        return span;
+      }
+    }
+    const safeLink = safeUrl(entry.link);
+    return safeLink ? buildGenericLink(safeLink) : null;
+  }
+
   function renderHistoryItemEl(entry) {
     const li = document.createElement("li");
     li.className = "ag-history-item";
@@ -2336,8 +2357,8 @@
       text.appendChild(title);
       text.appendChild(message);
       if (entry.link) {
-        const safeLink = safeUrl(entry.link);
-        if (safeLink) text.appendChild(buildGenericLink(safeLink));
+        const linkEl = buildHistoryLink(entry);
+        if (linkEl) text.appendChild(linkEl);
       }
 
       body.appendChild(thumb);
@@ -2347,8 +2368,8 @@
       li.appendChild(title);
       li.appendChild(message);
       if (entry.link) {
-        const safeLink = safeUrl(entry.link);
-        if (safeLink) li.appendChild(buildGenericLink(safeLink));
+        const linkEl = buildHistoryLink(entry);
+        if (linkEl) li.appendChild(linkEl);
       }
     }
 
@@ -2362,8 +2383,9 @@
     list.innerHTML = "";
 
     const token = getToken();
+    const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
     const entries = readHistory()
-      .filter((e) => e.token === token)
+      .filter((e) => e.token === token && e.day <= today)
       .slice()
       .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
 
