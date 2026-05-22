@@ -182,40 +182,6 @@
     return response.json();
   }
 
-  function seedStreakOnce() {
-    const SEED_FLAG = "affektions-gacha:streak-seeded:v1";
-    try {
-      if (localStorage.getItem(SEED_FLAG)) return false;
-      const token = "Lennart";
-      const history = readHistory();
-      const hasEntries = history.some((e) => e.token === token);
-      if (hasEntries) {
-        localStorage.setItem(SEED_FLAG, "1");
-        return false;
-      }
-      const tz = state.theme?.timezone || "UTC";
-      const seeded = [];
-      for (let i = 13; i >= 1; i--) {
-        const d = new Date(Date.now() - i * 86400000);
-        const dayKey = dateKeyInTimezone(tz, d);
-        seeded.push({
-          day: dayKey,
-          token: token,
-          categoryId: "common",
-          categoryLabel: "Gewöhnlich",
-          tone: "common",
-          title: "(wiederhergestellt)",
-          message: "",
-          link: null,
-          photo: null
-        });
-      }
-      writeHistory(seeded);
-      localStorage.setItem(SEED_FLAG, "1");
-      return true;
-    } catch (_e) { return false; }
-  }
-
   async function syncFromSheets() {
     try {
       const cfg = state.backup;
@@ -226,6 +192,11 @@
       if (!res.ok) return;
       const data = await res.json();
       if (!data.ok) return;
+
+      // Purge any synthetic placeholder entries created by old code
+      const localRaw = readHistory();
+      const cleaned = localRaw.filter((e) => e.title !== "(wiederhergestellt)");
+      if (cleaned.length !== localRaw.length) writeHistory(cleaned);
 
       // Merge Sheet history with local history — union by day, Sheet wins on conflict
       if (Array.isArray(data.history) && data.history.length) {
@@ -258,51 +229,6 @@
         try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
       }
 
-      // If history in the sheet was previously truncated, the computed streak will be
-      // lower than the stored streak value. Backfill synthetic entries to recover it.
-      const sheetStreak = typeof data.streak === "number" ? data.streak : 0;
-      if (sheetStreak > 0) {
-        const tz = state.theme?.timezone || "UTC";
-        const today = dateKeyInTimezone(tz);
-        const computedStreak = computeStreak();
-        if (sheetStreak > computedStreak) {
-          const gap = sheetStreak - computedStreak;
-          const backfillHistory = readHistory();
-          const pulledDays = new Set(backfillHistory.map((e) => e.day));
-          // Walk back to find the first missing day after the current streak tail
-          const [y, m, d] = today.split("-").map(Number);
-          let cur = new Date(Date.UTC(y, m - 1, d));
-          // Skip days that are already covered by the computed streak
-          for (let i = 0; i < computedStreak; i++) {
-            cur.setUTCDate(cur.getUTCDate() - 1);
-          }
-          // If today hasn't been pulled yet, the streak tail is one day further back
-          if (!pulledDays.has(today)) cur.setUTCDate(cur.getUTCDate() - 1);
-          const synthetic = [];
-          for (let i = 0; i < gap; i++) {
-            const dayKey = cur.toISOString().slice(0, 10);
-            if (!pulledDays.has(dayKey)) {
-              synthetic.push({
-                day: dayKey,
-                token: "Lennart",
-                categoryId: "common",
-                categoryLabel: "Gewöhnlich",
-                tone: "common",
-                title: "(wiederhergestellt)",
-                message: "",
-                link: null,
-                photo: null
-              });
-            }
-            cur.setUTCDate(cur.getUTCDate() - 1);
-          }
-          if (synthetic.length > 0) {
-            const combined = [...backfillHistory, ...synthetic];
-            combined.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
-            writeHistory(combined);
-          }
-        }
-      }
     } catch (_e) { /* never block startup */ }
   }
 
@@ -366,8 +292,6 @@
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
       state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
       await syncFromSheets();
-      const wasSeeded = seedStreakOnce();
-      if (wasSeeded) backupToSheets();
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
