@@ -8,6 +8,8 @@
   const FAVORITES_KEY = "affektions-gacha:favourites:v1";
   const TOKENS_KEY = "affektions-gacha:tokens:v1";
   const STREAK_CACHE_KEY = "affektions-gacha:streak-cache:v1";
+  const CACHE_VERSION_KEY = "affektions-gacha:cache-version:v1";
+  const CACHE_VERSION = "2026-05-22";
   const TOKEN_GOAL = 5;
   const TOKEN_REWARDS = {
     "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
@@ -314,6 +316,14 @@
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
       state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
+      // Wipe stale local storage when cache version bumps — forces fresh load from Sheets
+      try {
+        const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+        if (storedVersion !== CACHE_VERSION) {
+          [STORAGE_KEY, STREAK_CACHE_KEY].forEach(k => localStorage.removeItem(k));
+          localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+        }
+      } catch (_) {}
       await syncFromSheets();
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));

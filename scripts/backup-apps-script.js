@@ -47,12 +47,13 @@ function doGet(e) {
     const histSheet = getOrCreateHistorySheet_(ss);
     const histValues = histSheet.getDataRange().getValues();
     const history = [];
+    function normDay(d) { return String(d || "").slice(0, 10); }
     for (let i = 1; i < histValues.length; i++) {
       const row = histValues[i];
       if (row[0] !== token) continue;
       history.push({
         token:         row[0],
-        day:           row[1],
+        day:           normDay(row[1]),
         categoryId:    row[2],
         categoryLabel: row[3],
         tone:          row[4],
@@ -118,14 +119,17 @@ function doPost(e) {
       const histSheet  = getOrCreateHistorySheet_(ss);
       const histValues = histSheet.getDataRange().getValues();
 
+      // Normalise day to YYYY-MM-DD — old backups stored full ISO timestamps.
+      function normDay(d) { return String(d || "").slice(0, 10); }
+
       // Build index scanning BACKWARDS so the last occurrence of each key wins.
-      // Any earlier occurrence of the same token|day is a duplicate — collect them
-      // for deletion so the sheet stays clean.
+      // Normalise day so "2026-05-21T00:00:00.000Z" and "2026-05-21" collapse to
+      // the same key and the older duplicate gets deleted.
       const existingIndex = {};   // key → 1-based row number to keep
       const duplicateRows = [];   // 1-based row numbers to delete
 
       for (let i = histValues.length - 1; i >= 1; i--) {
-        const key = `${histValues[i][0]}|${histValues[i][1]}`;
+        const key = `${histValues[i][0]}|${normDay(histValues[i][1])}`;
         if (existingIndex[key] !== undefined) {
           duplicateRows.push(i + 1); // earlier occurrence — mark for removal
         } else {
@@ -136,10 +140,11 @@ function doPost(e) {
       // Upsert incoming entries
       for (const entry of data.history) {
         if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
-        const key = `${token}|${entry.day}`;
+        const day = normDay(entry.day);
+        const key = `${token}|${day}`;
         const row = [
           token,
-          entry.day,
+          day,
           entry.categoryId    || "",
           entry.categoryLabel || "",
           entry.tone          || "",
