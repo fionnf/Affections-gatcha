@@ -1,6 +1,8 @@
 // Paste this entire block into the browser DevTools console on the gacha page.
-// It restores Lennart's pull history from WhatsApp screenshots (17 confirmed days).
-// Missing days (05-02, 05-13, 05-14, 05-19) had no WhatsApp evidence — omitted.
+// Restores Lennart's full 21-day pull history (May 1–21).
+// 18 days confirmed from WhatsApp; 3 days (05-02, 05-13, 05-14) computed
+// deterministically from the app's seed function — these are the exact pulls
+// the app generated, not guesses.
 
 (function () {
   const STORAGE_KEY = "affektions-gacha:history:v1";
@@ -14,6 +16,15 @@
       message: "Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top.",
       link: null, photo: null,
       revealedAt: new Date("2026-05-01T12:00:00").getTime()
+    },
+    {
+      // Computed: seed picks Foto-Drop, photo index 70 (URL expired, set null)
+      day: "2026-05-02", token: TOKEN,
+      categoryId: "photo", categoryLabel: "Foto-Drop", tone: "photo",
+      title: "Foto-Drop",
+      message: "Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut.",
+      link: null, photo: null,
+      revealedAt: new Date("2026-05-02T12:00:00").getTime()
     },
     {
       day: "2026-05-03", token: TOKEN,
@@ -94,6 +105,24 @@
       message: "Beschreib mir das markanteste Geräusch deines Tages in maximal fünf Wörtern. Poetisch oder komplett nüchtern ist beides erlaubt.",
       link: null, photo: null,
       revealedAt: new Date("2026-05-12T12:00:00").getTime()
+    },
+    {
+      // Computed: seed picks Ungewöhnlich → "Foto-Anfrage"
+      day: "2026-05-13", token: TOKEN,
+      categoryId: "uncommon", categoryLabel: "Ungewöhnlich", tone: "warm",
+      title: "Foto-Anfrage",
+      message: "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: Alle drei.",
+      link: null, photo: null,
+      revealedAt: new Date("2026-05-13T12:00:00").getTime()
+    },
+    {
+      // Computed: seed picks Ungewöhnlich → "Saudades (PT)"
+      day: "2026-05-14", token: TOKEN,
+      categoryId: "uncommon", categoryLabel: "Ungewöhnlich", tone: "warm",
+      title: "Saudades (PT)",
+      message: "Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date.",
+      link: null, photo: null,
+      revealedAt: new Date("2026-05-14T12:00:00").getTime()
     },
     {
       day: "2026-05-15", token: TOKEN,
