@@ -265,8 +265,8 @@
       if (state.activeTab === "history") renderHistory();
       if (state.activeTab === "lieblinge") renderLieblinge();
 
-      return true;
-    } catch (_e) { return false; }
+      return Array.isArray(data.history) ? data.history.length : 0;
+    } catch (_e) { return -1; }
   }
 
   function backupToSheets() {
@@ -3009,10 +3009,10 @@
       syncBtn.addEventListener("click", async () => {
         syncBtn.textContent = "⏳";
         syncBtn.disabled = true;
-        const ok = await syncFromSheets();
+        const result = await syncFromSheets();
         renderHistory();
-        syncBtn.textContent = ok ? "✓" : "✗";
-        setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 2500);
+        syncBtn.textContent = result < 0 ? "✗" : `✓${result}`;
+        setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 3000);
       });
     }
 
