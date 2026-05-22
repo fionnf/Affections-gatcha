@@ -2214,19 +2214,35 @@
     if (pull.outcome.link && pull.unlockTime) {
       const [h, m] = pull.unlockTime.split(":").map(Number);
       const now = hmInTimezone(state.theme?.timezone || "UTC");
-      const unlockedByTime = now.h > h || (now.h === h && now.m >= m);
       const lpin = pull.outcome.linkPin;
-      const unlockedByPin = lpin && isPinUnlocked("link-" + lpin);
-      if (unlockedByTime || unlockedByPin) {
-        renderLinkInto(linkWrap, pull.outcome.link);
-      } else if (lpin && pull.outcome.linkPinFrom) {
-        const [ph, pm] = pull.outcome.linkPinFrom.split(":").map(Number);
-        const pinAvailable = now.h > ph || (now.h === ph && now.m >= pm);
-        if (pinAvailable) {
-          const gate = buildLinkPinGate(lpin, linkWrap, pull);
-          linkWrap.innerHTML = "";
-          linkWrap.appendChild(gate);
-          linkWrap.hidden = false;
+      if (lpin) {
+        // PIN is required — time alone never unlocks
+        if (isPinUnlocked("link-" + lpin)) {
+          renderLinkInto(linkWrap, pull.outcome.link);
+        } else {
+          const pinAvailable = (() => {
+            if (!pull.outcome.linkPinFrom) return true;
+            const [ph, pm] = pull.outcome.linkPinFrom.split(":").map(Number);
+            return now.h > ph || (now.h === ph && now.m >= pm);
+          })();
+          if (pinAvailable) {
+            const gate = buildLinkPinGate(lpin, linkWrap, pull);
+            linkWrap.innerHTML = "";
+            linkWrap.appendChild(gate);
+            linkWrap.hidden = false;
+          } else {
+            const lockSpan = document.createElement("span");
+            lockSpan.className = "ag-outcome-link-locked";
+            lockSpan.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
+            linkWrap.innerHTML = "";
+            linkWrap.appendChild(lockSpan);
+            linkWrap.hidden = false;
+          }
+        }
+      } else {
+        const unlockedByTime = now.h > h || (now.h === h && now.m >= m);
+        if (unlockedByTime) {
+          renderLinkInto(linkWrap, pull.outcome.link);
         } else {
           const lockSpan = document.createElement("span");
           lockSpan.className = "ag-outcome-link-locked";
@@ -2235,13 +2251,6 @@
           linkWrap.appendChild(lockSpan);
           linkWrap.hidden = false;
         }
-      } else {
-        const lockSpan = document.createElement("span");
-        lockSpan.className = "ag-outcome-link-locked";
-        lockSpan.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
-        linkWrap.innerHTML = "";
-        linkWrap.appendChild(lockSpan);
-        linkWrap.hidden = false;
       }
     } else {
       renderLinkInto(linkWrap, pull.outcome.link || null);
