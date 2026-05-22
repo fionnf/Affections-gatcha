@@ -194,6 +194,28 @@
     return response.json();
   }
 
+  // Normalise any day value the GAS might send.
+  // Handles clean "2026-05-22", ISO timestamps, and the garbled "Sun May 22"
+  // produced when Google Sheets auto-converts date cells and old GAS does
+  // String(dateObj).slice(0,10) — losing the year.
+  function normaliseDay(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // ISO with time component
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+    // "Sun May 22" or "Sun May  1" — GAS Date.toString() truncated to 10 chars
+    const MONTHS = { Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",
+                     Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12" };
+    const m = s.match(/([A-Za-z]{3})\s+(\d{1,2})/);
+    if (m && MONTHS[m[1]]) {
+      const year = new Date().getFullYear();
+      return `${year}-${MONTHS[m[1]]}-${String(m[2]).padStart(2, "0")}`;
+    }
+    return "";
+  }
+
   async function syncFromSheets() {
     try {
       const cfg = state.backup;
@@ -230,11 +252,7 @@
         const localByDay = new Map(local.map((e) => [e.day, e]));
         for (const entry of data.history) {
           if (entry.title === "(wiederhergestellt)") continue;
-          // Normalise day: Sheets can return Date-object strings like "Sat May 22 2026…"
-          const rawDay = String(entry.day || "").trim();
-          const day = /^\d{4}-\d{2}-\d{2}/.test(rawDay)
-            ? rawDay.slice(0, 10)
-            : (() => { try { return new Date(rawDay).toISOString().slice(0, 10); } catch (_) { return ""; } })();
+          const day = normaliseDay(entry.day);
           if (!day || day > today) continue;
           localByDay.set(day, { ...entry, day });
         }
