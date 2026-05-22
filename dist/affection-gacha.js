@@ -2269,9 +2269,9 @@
     const date = new Date(Date.UTC(y, m - 1, d));
     try {
       return new Intl.DateTimeFormat("de-CH", {
-        weekday: "short",
         day: "2-digit",
-        month: "short"
+        month: "short",
+        year: "numeric"
       }).format(date);
     } catch (error) {
       return dayKey;
