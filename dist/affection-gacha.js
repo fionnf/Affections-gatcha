@@ -44,6 +44,60 @@
   const WISH_KEY = "affektions-gacha:wish:v1";
   const MILESTONE_KEY = "affektions-gacha:milestones:v1";
   const NOTIF_KEY = "affektions-gacha:notif:v1";
+  const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
+
+  // ── PIN unlock helpers ──────────────────────────────────────────────────────
+
+  function isPinUnlocked(pin) {
+    try { return localStorage.getItem(PIN_UNLOCK_PREFIX + pin) === "1"; } catch (_) { return false; }
+  }
+  function persistPinUnlock(pin) {
+    try { localStorage.setItem(PIN_UNLOCK_PREFIX + pin, "1"); } catch (_) {}
+  }
+  function buildPinGate(pin, onUnlock) {
+    const wrap = document.createElement("div");
+    wrap.className = "ag-pin-gate";
+    const hint = document.createElement("p");
+    hint.className = "ag-pin-hint";
+    hint.textContent = "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";
+    const row = document.createElement("div");
+    row.className = "ag-pin-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.pattern = "[0-9]*";
+    input.maxLength = 4;
+    input.className = "ag-pin-input";
+    input.placeholder = "_ _ _ _";
+    input.autocomplete = "off";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ag-secondary";
+    btn.textContent = "Öffnen";
+    const err = document.createElement("p");
+    err.className = "ag-pin-err";
+    err.hidden = true;
+    err.textContent = "Falsche Zahl. Noch einmal.";
+    function attempt() {
+      if (input.value.trim() === pin) {
+        persistPinUnlock(pin);
+        onUnlock();
+      } else {
+        err.hidden = false;
+        input.classList.add("ag-pin-shake");
+        input.value = "";
+        setTimeout(() => input.classList.remove("ag-pin-shake"), 450);
+      }
+    }
+    btn.addEventListener("click", attempt);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") attempt(); });
+    row.appendChild(input);
+    row.appendChild(btn);
+    wrap.appendChild(hint);
+    wrap.appendChild(row);
+    wrap.appendChild(err);
+    return wrap;
+  }
 
   // ── Streak helpers ──────────────────────────────────────────────────────────
 
@@ -2083,7 +2137,24 @@
     $("[data-ag-rarity]").textContent = pull.category.label;
     $("[data-ag-date]").textContent = pull.day;
     $("[data-ag-title]").textContent = pull.outcome.title;
-    $("[data-ag-message]").textContent = pull.outcome.message;
+    const msgEl = $("[data-ag-message]");
+    msgEl.textContent = pull.outcome.message;
+    msgEl.hidden = false;
+
+    // Clean up any previous PIN gate
+    const resultEl = $("[data-ag-result]");
+    const oldGate = resultEl ? resultEl.querySelector("[data-ag-pin-gate]") : null;
+    if (oldGate) oldGate.remove();
+
+    if (pull.outcome.pin && !isPinUnlocked(pull.outcome.pin)) {
+      msgEl.hidden = true;
+      const gate = buildPinGate(pull.outcome.pin, () => {
+        gate.remove();
+        msgEl.hidden = false;
+      });
+      gate.setAttribute("data-ag-pin-gate", "");
+      msgEl.parentNode.insertBefore(gate, msgEl.nextSibling);
+    }
 
     const photoWrap = $("[data-ag-photo-wrap]");
     const photoMedia = $("[data-ag-photo-media]");
@@ -4144,6 +4215,15 @@
         font-size:.9rem;color:var(--ag-muted);background:transparent;
         border:1px dashed var(--ag-border);cursor:default;opacity:.7;
       }
+
+      .ag-pin-gate{margin:14px 0 0;padding:14px 16px;border-radius:var(--ag-radius-md);border:1px dashed var(--ag-border);background:rgba(0,0,0,.035)}
+      .ag-pin-hint{margin:0 0 10px;font-size:.88rem;color:var(--ag-muted);line-height:1.45}
+      .ag-pin-row{display:flex;gap:8px;align-items:center}
+      .ag-pin-input{width:88px;padding:8px 10px;border-radius:var(--ag-radius);border:1px solid var(--ag-border);background:var(--ag-surface);color:var(--ag-text);font-size:1.1rem;letter-spacing:.25em;text-align:center;font-family:monospace;outline:none;transition:border-color .15s}
+      .ag-pin-input:focus{border-color:var(--ag-primary)}
+      .ag-pin-err{margin:8px 0 0;font-size:.82rem;color:#c0392b}
+      @keyframes ag-pin-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+      .ag-pin-shake{animation:ag-pin-shake .4s ease}
 
       .ag-letter-overlay{
         position:fixed;inset:0;z-index:9999;
