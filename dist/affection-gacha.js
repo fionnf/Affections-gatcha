@@ -733,9 +733,6 @@
   }
 
   function getToken() {
-    const paramName = state.theme?.tokenParam || "token";
-    const urlToken = new URLSearchParams(window.location.search).get(paramName);
-    if (urlToken && urlToken.trim()) return urlToken.trim();
     return state.theme.brand.displayNameDefault || "Lennart";
   }
 
