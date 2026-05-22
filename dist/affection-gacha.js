@@ -9,7 +9,7 @@
   const TOKENS_KEY = "affektions-gacha:tokens:v1";
   const STREAK_CACHE_KEY = "affektions-gacha:streak-cache:v1";
   const CACHE_VERSION_KEY = "affektions-gacha:cache-version:v1";
-  const CACHE_VERSION = "2026-05-22";
+  const CACHE_VERSION = "2026-05-22-v2";
   const TOKEN_GOAL = 5;
   const TOKEN_REWARDS = {
     "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
@@ -320,7 +320,7 @@
       try {
         const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
         if (storedVersion !== CACHE_VERSION) {
-          [STORAGE_KEY, STREAK_CACHE_KEY].forEach(k => localStorage.removeItem(k));
+          [STORAGE_KEY, FAVORITES_KEY, STREAK_CACHE_KEY].forEach(k => localStorage.removeItem(k));
           localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
         }
       } catch (_) {}
