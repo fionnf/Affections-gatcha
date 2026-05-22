@@ -118,13 +118,22 @@ function doPost(e) {
       const histSheet  = getOrCreateHistorySheet_(ss);
       const histValues = histSheet.getDataRange().getValues();
 
-      // Build index of existing rows: "token|day" → sheet row number (1-based)
-      const existingIndex = {};
-      for (let i = 1; i < histValues.length; i++) {
+      // Build index scanning BACKWARDS so the last occurrence of each key wins.
+      // Any earlier occurrence of the same token|day is a duplicate — collect them
+      // for deletion so the sheet stays clean.
+      const existingIndex = {};   // key → 1-based row number to keep
+      const duplicateRows = [];   // 1-based row numbers to delete
+
+      for (let i = histValues.length - 1; i >= 1; i--) {
         const key = `${histValues[i][0]}|${histValues[i][1]}`;
-        existingIndex[key] = i + 1;
+        if (existingIndex[key] !== undefined) {
+          duplicateRows.push(i + 1); // earlier occurrence — mark for removal
+        } else {
+          existingIndex[key] = i + 1;
+        }
       }
 
+      // Upsert incoming entries
       for (const entry of data.history) {
         if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
         const key = `${token}|${entry.day}`;
@@ -145,8 +154,14 @@ function doPost(e) {
           histSheet.getRange(existingIndex[key], 1, 1, row.length).setValues([row]);
         } else {
           histSheet.appendRow(row);
-          existingIndex[key] = histValues.length + 1; // prevent double-append
+          existingIndex[key] = -1; // sentinel — prevent double-append within this call
         }
+      }
+
+      // Delete duplicate rows from bottom to top so row indices stay valid
+      duplicateRows.sort((a, b) => b - a);
+      for (const rowNum of duplicateRows) {
+        histSheet.deleteRow(rowNum);
       }
     }
 
