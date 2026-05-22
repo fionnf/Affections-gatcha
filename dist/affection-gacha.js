@@ -254,6 +254,10 @@
         writeStreakCache(data.streak);
       }
 
+      // Re-render whichever tab is already open so new data appears without a tab switch
+      if (state.activeTab === "history") renderHistory();
+      if (state.activeTab === "lieblinge") renderLieblinge();
+
     } catch (_e) { /* never block startup */ }
   }
 
@@ -703,7 +707,10 @@
 
           <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
             <div class="ag-card">
-              <p class="ag-history-note" data-ag-history-note></p>
+              <div class="ag-history-header">
+                <p class="ag-history-note" data-ag-history-note></p>
+                <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
+              </div>
               <ol class="ag-history" data-ag-history></ol>
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
             </div>
@@ -2988,6 +2995,23 @@
       haptic(8);
       toggleFavorite(state.todaysPull);
     });
+
+    const syncBtn = $("[data-ag-sync-btn]");
+    if (syncBtn) {
+      syncBtn.addEventListener("click", async () => {
+        syncBtn.textContent = "⏳";
+        syncBtn.disabled = true;
+        try {
+          await syncFromSheets();
+          renderHistory();
+          syncBtn.textContent = "✓";
+        } catch (_) {
+          syncBtn.textContent = "✗";
+        }
+        setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 2000);
+      });
+    }
+
     mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
       node.addEventListener("click", () => {
         haptic(6);
@@ -3850,6 +3874,11 @@
       .ag-rules ul{margin:0;padding-left:18px;columns:2;color:var(--ag-muted);font-size:.94rem}
       .ag-rules li{break-inside:avoid;margin-bottom:4px}
 
+      .ag-history-header{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
+      .ag-history-header .ag-history-note{flex:1;margin:0}
+      .ag-sync-btn{background:none;border:1px solid var(--ag-border);border-radius:6px;padding:3px 8px;font-size:.8rem;cursor:pointer;color:var(--ag-muted);transition:all .15s;flex-shrink:0;line-height:1.6}
+      .ag-sync-btn:hover:not(:disabled){border-color:var(--ag-green);color:var(--ag-green)}
+      .ag-sync-btn:disabled{cursor:default;opacity:.5}
       .ag-history-note{margin:0 0 14px;color:var(--ag-muted);font-size:.92rem;line-height:1.55}
       .ag-history{list-style:none;padding:0;margin:0;display:grid;gap:10px}
       .ag-history-empty{
