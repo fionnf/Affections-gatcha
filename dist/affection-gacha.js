@@ -2443,7 +2443,7 @@
       button.disabled = false;
       buttonText.textContent = state.theme.brand.buttonShown;
       state.revealed = true;
-      recordHistoryEntry(state.todaysPull);
+      if (!getPreviewDay()) recordHistoryEntry(state.todaysPull);
       const streak = computeStreak();
       renderStreak();
       renderMilestoneBanner(streak);
