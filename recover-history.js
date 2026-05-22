@@ -128,6 +128,14 @@
       revealedAt: new Date("2026-05-18T12:00:00").getTime()
     },
     {
+      day: "2026-05-19", token: TOKEN,
+      categoryId: "quest", categoryLabel: "Mini-Quest", tone: "quest",
+      title: "Drei-Wort-Reisebericht",
+      message: "Schick Fionn deinen Tag in genau drei Worten, als wärst du sehr erschöpft in einem Zug.",
+      link: null, photo: null,
+      revealedAt: new Date("2026-05-19T12:00:00").getTime()
+    },
+    {
       day: "2026-05-20", token: TOKEN,
       categoryId: "niete", categoryLabel: "Niete", tone: "quiet",
       title: "Denkmalschutz",
