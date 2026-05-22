@@ -329,6 +329,7 @@
       // Re-render whichever tab is already open so new data appears without a tab switch
       if (state.activeTab === "history") renderHistory();
       if (state.activeTab === "lieblinge") renderLieblinge();
+      renderStreak();
 
       return Array.isArray(data.history) ? data.history.length : 0;
     } catch (_e) { return -1; }
@@ -3070,6 +3071,7 @@
         recoverBtn.disabled = true;
         const added = recoverHistory();
         renderHistory();
+        renderStreak();
         recoverBtn.textContent = added > 0 ? `↺${added}` : "✓";
         setTimeout(() => { recoverBtn.textContent = "↺"; recoverBtn.disabled = false; }, 3000);
       });
