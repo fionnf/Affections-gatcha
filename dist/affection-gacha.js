@@ -7,6 +7,7 @@
   const STORAGE_KEY = "affektions-gacha:history:v1";
   const FAVORITES_KEY = "affektions-gacha:favourites:v1";
   const TOKENS_KEY = "affektions-gacha:tokens:v1";
+  const STREAK_CACHE_KEY = "affektions-gacha:streak-cache:v1";
   const TOKEN_GOAL = 5;
   const TOKEN_REWARDS = {
     "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
@@ -44,7 +45,15 @@
 
   // ── Streak helpers ──────────────────────────────────────────────────────────
 
-  /** Count consecutive days ending at today (or yesterday if today not yet pulled) */
+  function readStreakCache() {
+    try { return parseInt(localStorage.getItem(STREAK_CACHE_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+  }
+  function writeStreakCache(n) {
+    try { localStorage.setItem(STREAK_CACHE_KEY, String(n)); } catch (_) {}
+  }
+
+  /** Count consecutive days ending at today (or yesterday if today not yet pulled).
+   *  Uses the Sheets-synced cache as a floor so the streak never shows lower after a device switch. */
   function computeStreak() {
     const token = getToken();
     const history = readHistory().filter((e) => e.token === token);
@@ -69,7 +78,7 @@
       cur.setUTCDate(cur.getUTCDate() - 1);
       dayKey = cur.toISOString().slice(0, 10);
     }
-    return streak;
+    return Math.max(streak, readStreakCache());
   }
 
   /**
@@ -230,6 +239,11 @@
       // Restore quest points — take the higher of local and sheet
       if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
         try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
+      }
+
+      // Cache the Sheets streak as a floor so it survives history gaps on new devices
+      if (typeof data.streak === "number" && data.streak > computeStreak()) {
+        writeStreakCache(data.streak);
       }
 
     } catch (_e) { /* never block startup */ }
@@ -2174,6 +2188,7 @@
     // historyDays only controls the History tab display — storage is unlimited so
     // the streak can grow without any ceiling.
     writeHistory(merged);
+    writeStreakCache(0); // history is now authoritative; clear the floor cache
     backupToSheets();
   }
 
