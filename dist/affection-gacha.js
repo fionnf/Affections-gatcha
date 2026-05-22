@@ -2128,6 +2128,39 @@
     return readFavorites().some((f) => f.day === pull.day && f.token === pull.token);
   }
 
+  function isFavoriteEntry(entry) {
+    return readFavorites().some((f) => f.day === entry.day && f.token === entry.token);
+  }
+
+  function toggleFavoriteFromEntry(entry, starBtn) {
+    const favs = readFavorites();
+    const idx = favs.findIndex((f) => f.day === entry.day && f.token === entry.token);
+    if (idx >= 0) {
+      favs.splice(idx, 1);
+    } else {
+      favs.unshift({
+        day: entry.day,
+        token: entry.token,
+        categoryId: entry.categoryId,
+        categoryLabel: entry.categoryLabel,
+        tone: entry.tone,
+        title: entry.title,
+        message: entry.message,
+        link: entry.link || null,
+        unlockTime: entry.unlockTime || null,
+        photo: entry.photo || null,
+        starredAt: Date.now()
+      });
+    }
+    writeFavorites(favs);
+    backupToSheets();
+    const starred = isFavoriteEntry(entry);
+    starBtn.textContent = starred ? "★" : "☆";
+    starBtn.classList.toggle("is-starred", starred);
+    starBtn.title = starred ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
+    if (state.activeTab === "lieblinge") renderLieblinge();
+  }
+
   function toggleFavorite(pull) {
     if (!pull) return;
     const favs = readFavorites();
@@ -2340,8 +2373,20 @@
     const badge = document.createElement("span");
     badge.className = "ag-history-badge";
     badge.textContent = entry.categoryLabel || "Kapsel";
+
+    const starBtn = document.createElement("button");
+    starBtn.type = "button";
+    starBtn.className = "ag-history-star" + (isFavoriteEntry(entry) ? " is-starred" : "");
+    starBtn.textContent = isFavoriteEntry(entry) ? "★" : "☆";
+    starBtn.title = isFavoriteEntry(entry) ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
+    starBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      toggleFavoriteFromEntry(entry, starBtn);
+    });
+
     head.appendChild(date);
     head.appendChild(badge);
+    head.appendChild(starBtn);
 
     const title = document.createElement("p");
     title.className = "ag-history-title";
@@ -3784,6 +3829,9 @@
       .ag-secondary:hover{transform:translateY(-1px);border-color:var(--ag-primary);background:rgba(47,122,79,.08)}
       .ag-star.is-starred{color:var(--ag-gold);border-color:var(--ag-gold);background:rgba(185,120,46,.1)}
       .ag-star.is-starred:hover{background:rgba(185,120,46,.18)}
+      .ag-history-star{background:none;border:none;padding:0 0 0 6px;margin-left:auto;font-size:1rem;line-height:1;cursor:pointer;color:var(--ag-muted);transition:color .15s,transform .15s;flex-shrink:0}
+      .ag-history-star:hover{color:var(--ag-gold);transform:scale(1.2)}
+      .ag-history-star.is-starred{color:var(--ag-gold)}
       .ag-lighting-link-wrap{display:flex;justify-content:center;padding:12px 0 4px}
       .ag-lighting-link{font-size:.92rem}
 
