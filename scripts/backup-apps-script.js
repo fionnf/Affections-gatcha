@@ -9,65 +9,150 @@
  * After deploying, copy the web app URL into config/backup.json → endpointUrl
  * and set enabled: true.
  *
- * This script uses the SAME spreadsheet as the wish inbox.
- * It creates a new sheet called "Backup" automatically.
+ * Sheet layout:
+ *   "Backup"  — one row per token, stores metadata (streak, favourites, tokens, questPoints)
+ *   "History" — one row per history entry, never fully overwritten
+ *   "Quests"  — one row per solved quest
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
 const BACKUP_SHEET_NAME = "Backup";
+const HISTORY_SHEET_NAME = "History";
+
+// ── GET: return full backup for a token ─────────────────────────────────────
 
 function doGet(e) {
   try {
     const token = (e.parameter && e.parameter.token) || "Lennart";
-    const sheet = getOrCreateSheet_();
-    const values = sheet.getDataRange().getValues();
-    for (let i = 1; i < values.length; i++) {
-      if (values[i][0] === token) {
-        return jsonOut_({
-          ok: true,
-          history: JSON.parse(values[i][1] || "[]"),
-          favourites: JSON.parse(values[i][2] || "[]"),
-          streak: values[i][3] || 0,
-          lastUpdated: values[i][4],
-          tokens: JSON.parse(values[i][5] || "{}"),
-          questPoints: values[i][6] || 0
-        });
+    const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+
+    // Read metadata from Backup sheet
+    const backupSheet = getOrCreateBackupSheet_(ss);
+    const backupValues = backupSheet.getDataRange().getValues();
+    let meta = null;
+    for (let i = 1; i < backupValues.length; i++) {
+      if (backupValues[i][0] === token) {
+        meta = {
+          favourites: JSON.parse(backupValues[i][1] || "[]"),
+          streak:     backupValues[i][2] || 0,
+          tokens:     JSON.parse(backupValues[i][3] || "{}"),
+          questPoints: backupValues[i][4] || 0,
+          lastUpdated: backupValues[i][5]
+        };
+        break;
       }
     }
-    return jsonOut_({ ok: false, error: "no data" });
+
+    // Read history from per-entry History sheet
+    const histSheet = getOrCreateHistorySheet_(ss);
+    const histValues = histSheet.getDataRange().getValues();
+    const history = [];
+    for (let i = 1; i < histValues.length; i++) {
+      const row = histValues[i];
+      if (row[0] !== token) continue;
+      history.push({
+        token:         row[0],
+        day:           row[1],
+        categoryId:    row[2],
+        categoryLabel: row[3],
+        tone:          row[4],
+        title:         row[5],
+        message:       row[6],
+        link:          row[7] || null,
+        unlockTime:    row[8] || null,
+        photo:         row[9] ? JSON.parse(row[9]) : null,
+        revealedAt:    row[10] || null
+      });
+    }
+
+    if (!meta && !history.length) {
+      return jsonOut_({ ok: false, error: "no data" });
+    }
+
+    return jsonOut_({
+      ok: true,
+      history,
+      favourites:  meta ? meta.favourites  : [],
+      streak:      meta ? meta.streak      : 0,
+      tokens:      meta ? meta.tokens      : {},
+      questPoints: meta ? meta.questPoints : 0,
+      lastUpdated: meta ? meta.lastUpdated : null
+    });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
   }
 }
+
+// ── POST: upsert backup ──────────────────────────────────────────────────────
 
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     if (data.type !== "gacha-backup") return jsonOut_({ ok: false, error: "unknown type" });
 
-    const token = data.token || "Lennart";
-    const history = JSON.stringify(data.history || []);
-    const favourites = JSON.stringify(data.favourites || []);
-    const tokensJson = JSON.stringify(data.tokens || {});
-    const questPoints = typeof data.questPoints === "number" ? data.questPoints : 0;
-    const timestamp = new Date().toISOString();
+    const token      = data.token || "Lennart";
+    const timestamp  = new Date().toISOString();
+    const ss         = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
 
-    const sheet = getOrCreateSheet_();
-    const values = sheet.getDataRange().getValues();
-    let rowIndex = -1;
-    for (let i = 1; i < values.length; i++) {
-      if (values[i][0] === token) { rowIndex = i + 1; break; }
+    // ── Write metadata to Backup sheet ──────────────────────────────────────
+    const backupSheet  = getOrCreateBackupSheet_(ss);
+    const backupValues = backupSheet.getDataRange().getValues();
+    const favourites   = JSON.stringify(data.favourites || []);
+    const tokensJson   = JSON.stringify(data.tokens || {});
+    const questPoints  = typeof data.questPoints === "number" ? data.questPoints : 0;
+    const streak       = typeof data.streak === "number" ? data.streak : 0;
+
+    let metaRow = -1;
+    for (let i = 1; i < backupValues.length; i++) {
+      if (backupValues[i][0] === token) { metaRow = i + 1; break; }
     }
-    const streak = typeof data.streak === "number" ? data.streak : 0;
-    if (rowIndex === -1) {
-      sheet.appendRow([token, history, favourites, streak, timestamp, tokensJson, questPoints]);
+    const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp];
+    if (metaRow === -1) {
+      backupSheet.appendRow(metaRowData);
     } else {
-      sheet.getRange(rowIndex, 1, 1, 7).setValues([[token, history, favourites, streak, timestamp, tokensJson, questPoints]]);
+      backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues([metaRowData]);
     }
 
-    // Also log each quest solve to the Quest sheet
+    // ── Write history entries — one row each, upsert by token+day ───────────
+    if (Array.isArray(data.history) && data.history.length) {
+      const histSheet  = getOrCreateHistorySheet_(ss);
+      const histValues = histSheet.getDataRange().getValues();
+
+      // Build index of existing rows: "token|day" → sheet row number (1-based)
+      const existingIndex = {};
+      for (let i = 1; i < histValues.length; i++) {
+        const key = `${histValues[i][0]}|${histValues[i][1]}`;
+        existingIndex[key] = i + 1;
+      }
+
+      for (const entry of data.history) {
+        if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
+        const key = `${token}|${entry.day}`;
+        const row = [
+          token,
+          entry.day,
+          entry.categoryId    || "",
+          entry.categoryLabel || "",
+          entry.tone          || "",
+          entry.title         || "",
+          entry.message       || "",
+          entry.link          || "",
+          entry.unlockTime    || "",
+          entry.photo ? JSON.stringify(entry.photo) : "",
+          entry.revealedAt    || ""
+        ];
+        if (existingIndex[key]) {
+          histSheet.getRange(existingIndex[key], 1, 1, row.length).setValues([row]);
+        } else {
+          histSheet.appendRow(row);
+          existingIndex[key] = histValues.length + 1; // prevent double-append
+        }
+      }
+    }
+
+    // ── Log quest solves ────────────────────────────────────────────────────
     if (data.questLog) {
-      const questSheet = getOrCreateQuestSheet_();
+      const questSheet = getOrCreateQuestSheet_(ss);
       questSheet.appendRow([timestamp, token, data.questLog.challenge, data.questLog.attempts, data.questLog.points, data.questLog.period]);
     }
 
@@ -77,19 +162,30 @@ function doPost(e) {
   }
 }
 
-function getOrCreateSheet_() {
-  const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+// ── Sheet helpers ────────────────────────────────────────────────────────────
+
+function getOrCreateBackupSheet_(ss) {
   let sheet = ss.getSheetByName(BACKUP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(BACKUP_SHEET_NAME);
-    sheet.appendRow(["Token", "History", "Favourites", "Streak", "LastUpdated", "Tokens", "QuestPoints"]);
+    sheet.appendRow(["Token", "Favourites", "Streak", "Tokens", "QuestPoints", "LastUpdated"]);
     sheet.setFrozenRows(1);
   }
   return sheet;
 }
 
-function getOrCreateQuestSheet_() {
-  const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+function getOrCreateHistorySheet_(ss) {
+  let sheet = ss.getSheetByName(HISTORY_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(HISTORY_SHEET_NAME);
+    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(7, 400); // Message column wider
+  }
+  return sheet;
+}
+
+function getOrCreateQuestSheet_(ss) {
   let sheet = ss.getSheetByName("Quests");
   if (!sheet) {
     sheet = ss.insertSheet("Quests");
