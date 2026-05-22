@@ -196,13 +196,20 @@
   async function syncFromSheets() {
     try {
       const cfg = state.backup;
-      if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+      if (!cfg || !cfg.enabled || !cfg.endpointUrl) return false;
       const token = getToken();
       const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) return;
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 12000);
+      let res;
+      try {
+        res = await fetch(url, { cache: "no-store", signal: controller.signal });
+      } finally {
+        clearTimeout(tid);
+      }
+      if (!res.ok) return false;
       const data = await res.json();
-      if (!data.ok) return;
+      if (!data.ok) return false;
 
       const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
 
@@ -258,7 +265,8 @@
       if (state.activeTab === "history") renderHistory();
       if (state.activeTab === "lieblinge") renderLieblinge();
 
-    } catch (_e) { /* never block startup */ }
+      return true;
+    } catch (_e) { return false; }
   }
 
   function backupToSheets() {
@@ -3001,14 +3009,10 @@
       syncBtn.addEventListener("click", async () => {
         syncBtn.textContent = "⏳";
         syncBtn.disabled = true;
-        try {
-          await syncFromSheets();
-          renderHistory();
-          syncBtn.textContent = "✓";
-        } catch (_) {
-          syncBtn.textContent = "✗";
-        }
-        setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 2000);
+        const ok = await syncFromSheets();
+        renderHistory();
+        syncBtn.textContent = ok ? "✓" : "✗";
+        setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 2500);
       });
     }
 
