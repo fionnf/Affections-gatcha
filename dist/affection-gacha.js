@@ -229,9 +229,14 @@
         const local = readHistory();
         const localByDay = new Map(local.map((e) => [e.day, e]));
         for (const entry of data.history) {
-          if (entry.title === "(wiederhergestellt)") continue; // skip corrupted sheet entries
-          if (entry.day > today) continue; // never import future entries
-          localByDay.set(entry.day, entry); // Sheet entry overwrites local
+          if (entry.title === "(wiederhergestellt)") continue;
+          // Normalise day: Sheets can return Date-object strings like "Sat May 22 2026…"
+          const rawDay = String(entry.day || "").trim();
+          const day = /^\d{4}-\d{2}-\d{2}/.test(rawDay)
+            ? rawDay.slice(0, 10)
+            : (() => { try { return new Date(rawDay).toISOString().slice(0, 10); } catch (_) { return ""; } })();
+          if (!day || day > today) continue;
+          localByDay.set(day, { ...entry, day });
         }
         const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
         writeHistory(merged);

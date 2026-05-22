@@ -47,7 +47,12 @@ function doGet(e) {
     const histSheet = getOrCreateHistorySheet_(ss);
     const histValues = histSheet.getDataRange().getValues();
     const history = [];
-    function normDay(d) { return String(d || "").slice(0, 10); }
+    // Sheets auto-converts date strings to Date objects; use Utilities.formatDate for those.
+    function normDay(d) {
+      if (!d) return "";
+      if (d instanceof Date) return Utilities.formatDate(d, "UTC", "yyyy-MM-dd");
+      return String(d).slice(0, 10);
+    }
     for (let i = 1; i < histValues.length; i++) {
       const row = histValues[i];
       if (row[0] !== token) continue;
@@ -119,7 +124,11 @@ function doPost(e) {
       const histSheet  = getOrCreateHistorySheet_(ss);
       const histValues = histSheet.getDataRange().getValues();
 
-      function normDay(d) { return String(d || "").slice(0, 10); }
+      function normDay(d) {
+        if (!d) return "";
+        if (d instanceof Date) return Utilities.formatDate(d, "UTC", "yyyy-MM-dd");
+        return String(d).slice(0, 10);
+      }
 
       // Delete every existing row belonging to this token (bottom-up to keep indices valid)
       const tokenRows = [];
