@@ -152,6 +152,7 @@
     todaysPull: null,
     activeTab: "today",
     revealed: false,
+    syncedHistory: null,   // in-memory fallback for restricted WebView localStorage
     baerlauch: {
       level: 1,
       locked: false,
@@ -234,6 +235,7 @@
         }
         const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
         writeHistory(merged);
+        state.syncedHistory = merged; // in-memory fallback for WebView localStorage restrictions
       }
 
       // Merge favourites — union by day, Sheet wins; never import future entries
@@ -2088,16 +2090,17 @@
 
   function readHistory() {
     try {
-      if (typeof window === "undefined" || !window.localStorage) return [];
+      if (typeof window === "undefined" || !window.localStorage) return state.syncedHistory || [];
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
+      if (!raw) return state.syncedHistory || [];
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter((entry) =>
+      if (!Array.isArray(parsed)) return state.syncedHistory || [];
+      const entries = parsed.filter((entry) =>
         entry && typeof entry.day === "string" && typeof entry.token === "string"
       );
+      return entries.length ? entries : (state.syncedHistory || []);
     } catch (error) {
-      return [];
+      return state.syncedHistory || [];
     }
   }
 
