@@ -119,7 +119,7 @@ function doPost(e) {
       backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues([metaRowData]);
     }
 
-    // ── Write history entries — delete all rows for this token, reinsert clean ─
+    // ── Write history entries — upsert by day, never delete absent days ────────
     if (Array.isArray(data.history) && data.history.length) {
       const histSheet  = getOrCreateHistorySheet_(ss);
       const histValues = histSheet.getDataRange().getValues();
@@ -130,33 +130,27 @@ function doPost(e) {
         return String(d).slice(0, 10);
       }
 
-      // Delete every existing row belonging to this token (bottom-up to keep indices valid)
-      const tokenRows = [];
-      for (let i = 1; i < histValues.length; i++) {
-        if (histValues[i][0] === token) tokenRows.push(i + 1);
-      }
-      tokenRows.sort((a, b) => b - a);
-      for (const rowNum of tokenRows) {
-        histSheet.deleteRow(rowNum);
+      // Build index of existing rows for this token (scan backwards; keep last, mark dupes)
+      const existingByDay = {};
+      const dupeRows = [];
+      for (let i = histValues.length - 1; i >= 1; i--) {
+        if (histValues[i][0] !== token) continue;
+        const day = normDay(histValues[i][1]);
+        if (!day) continue;
+        if (existingByDay[day] !== undefined) {
+          dupeRows.push(i + 1); // older duplicate — delete
+        } else {
+          existingByDay[day] = i + 1;
+        }
       }
 
-      // Deduplicate incoming entries by day (keep last occurrence per day)
-      const seen = new Map();
+      // Upsert — only touch rows whose day appears in the incoming payload
       for (const entry of data.history) {
         if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
-        const day = normDay(entry.day);
-        seen.set(day, entry); // later entry wins
-      }
-
-      // Append fresh rows sorted oldest-first
-      const sorted = Array.from(seen.values()).sort((a, b) =>
-        normDay(a.day).localeCompare(normDay(b.day))
-      );
-      for (const entry of sorted) {
-        const day = normDay(entry.day);
-        histSheet.appendRow([
-          token,
-          day,
+        const day = String(entry.day || "").slice(0, 10);
+        if (!day) continue;
+        const row = [
+          token, day,
           entry.categoryId    || "",
           entry.categoryLabel || "",
           entry.tone          || "",
@@ -166,7 +160,19 @@ function doPost(e) {
           entry.unlockTime    || "",
           entry.photo ? JSON.stringify(entry.photo) : "",
           entry.revealedAt    || ""
-        ]);
+        ];
+        if (existingByDay[day]) {
+          histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
+        } else {
+          histSheet.appendRow(row);
+          existingByDay[day] = -1; // prevent double-append within this call
+        }
+      }
+
+      // Remove duplicates (bottom-up so row indices stay valid)
+      dupeRows.sort((a, b) => b - a);
+      for (const rowNum of dupeRows) {
+        histSheet.deleteRow(rowNum);
       }
     }
 
