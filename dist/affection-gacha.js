@@ -202,14 +202,20 @@
       const data = await res.json();
       if (!data.ok) return;
 
-      // Purge any synthetic placeholder entries created by old code
+      const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
+
+      // Purge synthetic placeholders and future entries from history
       const localRaw = readHistory();
-      const cleaned = localRaw.filter((e) => e.title !== "(wiederhergestellt)");
+      const cleaned = localRaw.filter((e) => e.title !== "(wiederhergestellt)" && e.day <= today);
       if (cleaned.length !== localRaw.length) writeHistory(cleaned);
+
+      // Purge future entries from favourites
+      const localFavsRaw = readFavorites();
+      const cleanedFavs = localFavsRaw.filter((e) => e.day <= today);
+      if (cleanedFavs.length !== localFavsRaw.length) writeFavorites(cleanedFavs);
 
       // Merge Sheet history with local history — union by day, Sheet wins on conflict
       if (Array.isArray(data.history) && data.history.length) {
-        const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
         const local = readHistory();
         const localByDay = new Map(local.map((e) => [e.day, e]));
         for (const entry of data.history) {
@@ -221,12 +227,12 @@
         writeHistory(merged);
       }
 
-      // Merge favourites — union by day, Sheet wins
+      // Merge favourites — union by day, Sheet wins; never import future entries
       if (Array.isArray(data.favourites) && data.favourites.length) {
         const localFavs = readFavorites();
         const favsByDay = new Map(localFavs.map((e) => [e.day, e]));
         for (const entry of data.favourites) {
-          favsByDay.set(entry.day, entry);
+          if (entry.day <= today) favsByDay.set(entry.day, entry);
         }
         writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
       }
@@ -2089,8 +2095,12 @@
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
+      const today = typeof dateKeyInTimezone === "function"
+        ? dateKeyInTimezone(state.theme?.timezone || "UTC")
+        : new Date().toISOString().slice(0, 10);
       return parsed.filter((entry) =>
         entry && typeof entry.day === "string" && typeof entry.token === "string"
+        && entry.day <= today
       );
     } catch (error) {
       return [];
