@@ -230,6 +230,7 @@
     const merged = [...existing, ...toAdd].sort((a, b) => b.day.localeCompare(a.day));
     writeHistory(merged);
     state.syncedHistory = merged;
+    writeStreakCache(computeStreak());
     backupToSheets();
     return toAdd.length;
   }
@@ -299,6 +300,7 @@
         const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
         writeHistory(merged);
         state.syncedHistory = merged; // in-memory fallback for WebView localStorage restrictions
+        writeStreakCache(computeStreak());
       }
 
       // Merge favourites — union by day, Sheet wins; never import future entries
