@@ -99,6 +99,56 @@
     return wrap;
   }
 
+  function buildLinkPinGate(pin, linkWrap, pull) {
+    const wrap = document.createElement("div");
+    wrap.className = "ag-pin-gate";
+    const lockLine = document.createElement("span");
+    lockLine.className = "ag-outcome-link-locked";
+    lockLine.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
+    const hint = document.createElement("p");
+    hint.className = "ag-pin-hint";
+    hint.style.marginTop = "10px";
+    hint.textContent = "Oder: erste drei Buchstaben deines Ziels 🗺️";
+    const row = document.createElement("div");
+    row.className = "ag-pin-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 3;
+    input.className = "ag-pin-input";
+    input.placeholder = "_ _ _";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ag-secondary";
+    btn.textContent = "Öffnen";
+    const err = document.createElement("p");
+    err.className = "ag-pin-err";
+    err.hidden = true;
+    err.textContent = "Nicht ganz. Versuch nochmal.";
+    function attempt() {
+      if (input.value.trim().toLowerCase() === pin.toLowerCase()) {
+        persistPinUnlock("link-" + pin);
+        wrap.remove();
+        renderLinkInto(linkWrap, pull.outcome.link);
+      } else {
+        err.hidden = false;
+        input.classList.add("ag-pin-shake");
+        input.value = "";
+        setTimeout(() => input.classList.remove("ag-pin-shake"), 450);
+      }
+    }
+    btn.addEventListener("click", attempt);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") attempt(); });
+    row.appendChild(input);
+    row.appendChild(btn);
+    wrap.appendChild(lockLine);
+    wrap.appendChild(hint);
+    wrap.appendChild(row);
+    wrap.appendChild(err);
+    return wrap;
+  }
+
   // ── Streak helpers ──────────────────────────────────────────────────────────
 
   function readStreakCache() {
@@ -2164,9 +2214,27 @@
     if (pull.outcome.link && pull.unlockTime) {
       const [h, m] = pull.unlockTime.split(":").map(Number);
       const now = hmInTimezone(state.theme?.timezone || "UTC");
-      const unlocked = now.h > h || (now.h === h && now.m >= m);
-      if (unlocked) {
+      const unlockedByTime = now.h > h || (now.h === h && now.m >= m);
+      const lpin = pull.outcome.linkPin;
+      const unlockedByPin = lpin && isPinUnlocked("link-" + lpin);
+      if (unlockedByTime || unlockedByPin) {
         renderLinkInto(linkWrap, pull.outcome.link);
+      } else if (lpin && pull.outcome.linkPinFrom) {
+        const [ph, pm] = pull.outcome.linkPinFrom.split(":").map(Number);
+        const pinAvailable = now.h > ph || (now.h === ph && now.m >= pm);
+        if (pinAvailable) {
+          const gate = buildLinkPinGate(lpin, linkWrap, pull);
+          linkWrap.innerHTML = "";
+          linkWrap.appendChild(gate);
+          linkWrap.hidden = false;
+        } else {
+          const lockSpan = document.createElement("span");
+          lockSpan.className = "ag-outcome-link-locked";
+          lockSpan.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
+          linkWrap.innerHTML = "";
+          linkWrap.appendChild(lockSpan);
+          linkWrap.hidden = false;
+        }
       } else {
         const lockSpan = document.createElement("span");
         lockSpan.className = "ag-outcome-link-locked";
