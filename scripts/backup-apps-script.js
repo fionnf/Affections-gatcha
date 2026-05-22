@@ -114,35 +114,38 @@ function doPost(e) {
       backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues([metaRowData]);
     }
 
-    // ── Write history entries — one row each, upsert by token+day ───────────
+    // ── Write history entries — delete all rows for this token, reinsert clean ─
     if (Array.isArray(data.history) && data.history.length) {
       const histSheet  = getOrCreateHistorySheet_(ss);
       const histValues = histSheet.getDataRange().getValues();
 
-      // Normalise day to YYYY-MM-DD — old backups stored full ISO timestamps.
       function normDay(d) { return String(d || "").slice(0, 10); }
 
-      // Build index scanning BACKWARDS so the last occurrence of each key wins.
-      // Normalise day so "2026-05-21T00:00:00.000Z" and "2026-05-21" collapse to
-      // the same key and the older duplicate gets deleted.
-      const existingIndex = {};   // key → 1-based row number to keep
-      const duplicateRows = [];   // 1-based row numbers to delete
-
-      for (let i = histValues.length - 1; i >= 1; i--) {
-        const key = `${histValues[i][0]}|${normDay(histValues[i][1])}`;
-        if (existingIndex[key] !== undefined) {
-          duplicateRows.push(i + 1); // earlier occurrence — mark for removal
-        } else {
-          existingIndex[key] = i + 1;
-        }
+      // Delete every existing row belonging to this token (bottom-up to keep indices valid)
+      const tokenRows = [];
+      for (let i = 1; i < histValues.length; i++) {
+        if (histValues[i][0] === token) tokenRows.push(i + 1);
+      }
+      tokenRows.sort((a, b) => b - a);
+      for (const rowNum of tokenRows) {
+        histSheet.deleteRow(rowNum);
       }
 
-      // Upsert incoming entries
+      // Deduplicate incoming entries by day (keep last occurrence per day)
+      const seen = new Map();
       for (const entry of data.history) {
         if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
         const day = normDay(entry.day);
-        const key = `${token}|${day}`;
-        const row = [
+        seen.set(day, entry); // later entry wins
+      }
+
+      // Append fresh rows sorted oldest-first
+      const sorted = Array.from(seen.values()).sort((a, b) =>
+        normDay(a.day).localeCompare(normDay(b.day))
+      );
+      for (const entry of sorted) {
+        const day = normDay(entry.day);
+        histSheet.appendRow([
           token,
           day,
           entry.categoryId    || "",
@@ -154,19 +157,7 @@ function doPost(e) {
           entry.unlockTime    || "",
           entry.photo ? JSON.stringify(entry.photo) : "",
           entry.revealedAt    || ""
-        ];
-        if (existingIndex[key]) {
-          histSheet.getRange(existingIndex[key], 1, 1, row.length).setValues([row]);
-        } else {
-          histSheet.appendRow(row);
-          existingIndex[key] = -1; // sentinel — prevent double-append within this call
-        }
-      }
-
-      // Delete duplicate rows from bottom to top so row indices stay valid
-      duplicateRows.sort((a, b) => b - a);
-      for (const rowNum of duplicateRows) {
-        histSheet.deleteRow(rowNum);
+        ]);
       }
     }
 
