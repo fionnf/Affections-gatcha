@@ -195,7 +195,7 @@
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = "Lennart";
+      const token = getToken();
       const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) return;
@@ -259,7 +259,7 @@
     try {
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = "Lennart";
+      const token = getToken();
       const history = readHistory();
       const qs = readQuestState();
       const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
@@ -1912,7 +1912,7 @@
         container.innerHTML = `<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>`;
         // Also fire it as a wish so Fionn gets notified
         if (state.wishInbox && state.wishInbox.enabled) {
-          const body = JSON.stringify({ timestamp: new Date().toISOString(), token: "Lennart", wish: `🎁 Sammelkapsel eingelöst: ${t} × ${TOKEN_GOAL} — ${reward}`, pageUrl: location.href, userAgent: navigator.userAgent });
+          const body = JSON.stringify({ timestamp: new Date().toISOString(), token: getToken(), wish: `🎁 Sammelkapsel eingelöst: ${t} × ${TOKEN_GOAL} — ${reward}`, pageUrl: location.href, userAgent: navigator.userAgent });
           fetch(state.wishInbox.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
         }
       });
