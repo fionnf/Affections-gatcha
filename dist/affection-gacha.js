@@ -3162,12 +3162,12 @@
       reveal();
     });
     $("#ag-btn-rave")?.addEventListener("click", () => {
-      window.open("https://rave-board-cmr5u90ok-fionns-projects-f720fb77.vercel.app/", "_blank", "noopener");
+      window.open("https://rave-board.vercel.app/", "_blank", "noopener");
     });
     $("#ag-btn-rave")?.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        window.open("https://rave-board-cmr5u90ok-fionns-projects-f720fb77.vercel.app/", "_blank", "noopener");
+        window.open("https://rave-board.vercel.app/", "_blank", "noopener");
       }
     });
 
