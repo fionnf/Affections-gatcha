@@ -938,7 +938,7 @@
   }
 
   function defaultChips() {
-    return ["Wald", "Velo", "Stadt", "Bärlauch"];
+    return ["Wald", "Velo", "Stadt", "Bärlauch", "Rave 🪩"];
   }
 
   // Always-on emojis (bike + garlic) plus a deterministic selection from the
@@ -1720,6 +1720,14 @@
         li.tabIndex = 0;
         li.setAttribute("role", "button");
         li.setAttribute("aria-label", "Gespräch öffnen");
+        li.classList.add("ag-chip-clickable");
+      }
+
+      if (chip.toLowerCase().includes("rave")) {
+        li.id = "ag-btn-rave";
+        li.tabIndex = 0;
+        li.setAttribute("role", "link");
+        li.setAttribute("aria-label", "Rave Board öffnen");
         li.classList.add("ag-chip-clickable");
       }
 
@@ -3153,6 +3161,16 @@
       haptic(12);
       reveal();
     });
+    $("#ag-btn-rave")?.addEventListener("click", () => {
+      window.open("https://rave-board-cmr5u90ok-fionns-projects-f720fb77.vercel.app/", "_blank", "noopener");
+    });
+    $("#ag-btn-rave")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        window.open("https://rave-board-cmr5u90ok-fionns-projects-f720fb77.vercel.app/", "_blank", "noopener");
+      }
+    });
+
     $("#ag-btn-baerlauch")?.addEventListener("click", openBaerlauchGame);
     $("#ag-baerlauch-close")?.addEventListener("click", closeBaerlauchGame);
     $("#ag-baerlauch-next")?.addEventListener("click", openBaerlauchGame);
