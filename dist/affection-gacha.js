@@ -500,7 +500,6 @@
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
       state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
-      await syncFromSheets();
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
@@ -508,7 +507,9 @@
       renderWunschkapsel();
       bindEvents();
       registerServiceWorker();
+      mount.classList.add("is-ready");
       try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
+      syncFromSheets().catch(() => {});
     } catch (error) {
       renderError(error);
     }
@@ -3485,6 +3486,8 @@
     style.textContent = `
       .ag-widget,.ag-widget *{box-sizing:border-box}
       .ag-widget [hidden]{display:none!important}
+      .ag-widget:not(.is-ready){opacity:0}
+      .ag-widget.is-ready{opacity:1;transition:opacity .18s ease}
       .ag-widget{
         --ag-shadow:0 24px 60px rgba(8,28,18,.32);
         --ag-shadow-soft:0 12px 32px rgba(8,28,18,.18);
