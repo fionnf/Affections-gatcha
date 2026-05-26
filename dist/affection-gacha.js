@@ -3452,6 +3452,7 @@
   }
 
   function renderError(error) {
+    mount.style.opacity = "1";
     mount.innerHTML = `
       <div class="ag-error">
         <h2>Die Maschine klemmt.</h2>
@@ -4403,5 +4404,5 @@
     document.head.appendChild(style);
   }
 
-  init();
+  init().catch((e) => renderError(e));
 })();
