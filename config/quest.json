@@ -6,124 +6,124 @@
   "pushBody": "Die Maschine hat eine neue Aufgabe für dich.",
   "challenges": [
     {
-      "prompt": "Fotografiere etwas das auf jemanden wartet.",
-      "solution": "Any object or scene suggesting expectation: an empty chair at a set table, a phone face-down, a door left ajar, an untouched drink, a leash without a dog, an open book placed face-down, a reserved parking spot, a wrapped gift, an empty bed with an indentation."
+      "prompt": "Fotografiere eine leere Bank oder einen leeren Stuhl mit einer Aussicht dahinter. Die Person fehlt — aber das Bild soll so aussehen als würde gleich jemand kommen.",
+      "solution": "A bench, chair, or seat clearly visible with a backdrop or view behind it. No person sitting in it. The empty seat should feel like the subject of the photo."
     },
     {
-      "prompt": "Finde etwas das gleichzeitig schön und kaputt ist.",
-      "solution": "Something both aesthetically compelling and visibly damaged: cracked mosaic tile, faded colorful mural, rusty ornamental ironwork, torn vintage poster, wilting flower still in bloom, broken window with light streaming through, peeling paint revealing layers of color, weathered but ornate door."
+      "prompt": "Geh so nah an eine strukturierte Oberfläche ran dass nichts anderes mehr im Frame ist — Kacheln, Mauerwerk, Holz, Stoff oder Pflaster. Maximal 10 cm Abstand.",
+      "solution": "An extreme close-up of a surface texture filling the entire frame. No sky, ground, or contextual surroundings visible. Only texture."
     },
     {
-      "prompt": "Fotografiere einen Schatten der interessanter ist als das was ihn wirft.",
-      "solution": "A shadow more visually complex or beautiful than its source: shadow of a bike wheel forming a mandala, shadow of a chain-link fence creating diamond patterns, shadow of bare branches forming lace on a wall, shadow of a mundane object creating an unexpected silhouette."
+      "prompt": "Stell dich mit dem Rücken zur Sonne und fotografiere nur deinen eigenen Schatten auf dem Boden oder einer Wand. Kein Körper im Bild — nur der Schatten.",
+      "solution": "A human shadow cast on floor or wall, clearly recognisable as a person. No body visible in frame — only the shadow itself."
     },
     {
-      "prompt": "Finde etwas das einmal wichtig war und jetzt vergessen wird.",
-      "solution": "An abandoned or neglected object that was once valued: old payphone, unused bulletin board, faded advertisement, empty picture frame still hanging, dusty trophy, abandoned playground equipment, overgrown garden path, disused post box."
+      "prompt": "Finde eine Pfütze, eine Glasfassade oder ein Autofenster und fotografiere die Spiegelung darin. Das Gespiegelte soll mehr Platz im Frame einnehmen als das was es spiegelt.",
+      "solution": "A reflection in a puddle, glass, or window where the reflected content dominates the frame. The real-world source object should be smaller or secondary."
     },
     {
-      "prompt": "Fotografiere eine Linie die niemand gezogen hat.",
-      "solution": "A naturally occurring or accidental line: the horizon, the edge of a shadow, a crack in pavement, a shoreline, a treeline against the sky, a fold in fabric, a trail worn by many feet, a waterline on a wall, light under a closed door, a contrail in the sky."
+      "prompt": "Such eine lange Linie — Straße, Geländer, Mauer — und fotografiere sie so dass sie von einer Ecke diagonal zur gegenüberliegenden Ecke durch das Bild geht.",
+      "solution": "A strong diagonal line crossing the frame from corner to near-opposite corner. The line — road, railing, wall, fence — should be the dominant compositional element."
     },
     {
-      "prompt": "Finde etwas das zwei komplett verschiedene Welten unbemerkt verbindet.",
-      "solution": "A threshold or connector between two contrasting spaces: a doorway between two very different rooms, a fence line separating two environments, a shoreline where water meets land, a tree root connecting two sections of pavement, a bridge between two neighborhoods."
+      "prompt": "Stell dich hinter eine geöffnete Tür und fotografiere was du durch den Türrahmen siehst. Der Rahmen soll links oder rechts im Bild sichtbar sein.",
+      "solution": "A view through a doorway with the door frame visible in the photo. The frame acts as a compositional border around whatever is beyond it."
     },
     {
-      "prompt": "Fotografiere einen Moment kurz bevor er endet.",
-      "solution": "Something at the point of finishing or changing: the last bite of food on a plate, a nearly empty glass, a candle almost burned out, the sun just touching the horizon, a person mid-stride about to leave frame, a falling leaf mid-air, a wave about to break."
+      "prompt": "Fotografiere dein Essen oder dein Getränk von direkt oben bevor du anfängst. Halte das Handy parallel zum Tisch — perfekte Vogelperspektive, kein Tisch drumherum.",
+      "solution": "Food or drink photographed from directly overhead (bird's-eye view). The plate, glass, or bowl fills most of the frame. Clearly taken before eating or drinking."
     },
     {
-      "prompt": "Finde etwas Lebendiges das völlig still ist.",
-      "solution": "A living organism in complete stillness: a sleeping cat or dog, a person motionless and absorbed in thought, a tree on a windless day, a bird perched without moving, a lizard basking in sun, a bee landed on a flower, a child completely absorbed in reading."
+      "prompt": "Finde ein Tier — Taube, Katze, Hund, egal — und geh so weit runter bis du auf seiner Augenhöhe bist. Fotografiere es dann direkt von vorne oder von der Seite.",
+      "solution": "An animal photographed at its own eye level — not from above. The camera should clearly be at the animal's height. Animal should be in focus and facing or side-on to camera."
     },
     {
-      "prompt": "Fotografiere etwas das normalerweise niemand fotografiert.",
-      "solution": "A mundane or overlooked subject almost never photographed intentionally: the underside of a table, the back of a sign, the ground directly below the photographer's feet, a light switch, a drain or grate, the inside of a bag, a gap between buildings, utility infrastructure like pipes or cables."
+      "prompt": "Fotografiere Fionn ohne dass er weiß dass du fotografierst. Er soll mit etwas anderem beschäftigt sein — schauen, lesen, gehen, essen.",
+      "solution": "A person photographed candidly — not looking at the camera, clearly engaged in something else. Mid-action or looking away. Unposed."
     },
     {
-      "prompt": "Finde etwas das Geduld beweist.",
-      "solution": "Visible evidence of patience or long effort: a very old tree, a spider's complete web, handmade embroidery or craft, a very long queue, a large jigsaw puzzle in progress, a well-worn path created over years, visible geological layers in rock, a bonsai tree."
+      "prompt": "Warte auf einer belebten Stelle bis mindestens drei Menschen gleichzeitig in dieselbe Richtung schauen oder gehen — dann fotografiere sofort.",
+      "solution": "At least three people in frame all oriented in the same direction — walking, looking, or waiting. Should appear natural and unposed."
     },
     {
-      "prompt": "Fotografiere Licht das eigentlich nicht da sein sollte.",
-      "solution": "Light in an unexpected place: a light leak creating color streaks, lens flare forming patterns, a shaft of light through an unlikely gap, a reflection creating light in an expected shadow, neon signs reflected in a puddle, sunrise light hitting an unusual spot, light under a closed door."
+      "prompt": "Fotografiere eine Straßenbahn, einen Bus oder ein fahrendes Auto so nah dass die Bewegungsunschärfe deutlich sichtbar ist.",
+      "solution": "A moving vehicle — tram, bus, or car — with visible motion blur. Blur should clearly suggest real speed and movement."
     },
     {
-      "prompt": "Finde etwas das sich verabschiedet ohne es zu wissen.",
-      "solution": "Something in its final phase without awareness: the last leaves on an autumn branch, a nearly finished candle, a shop closing its shutter, an old building being renovated, a flower past its peak, the last customer leaving a café, fading daylight on a wall."
+      "prompt": "Find einen Ort wo starkes Licht eine scharfe Kante zwischen hell und dunkel zieht — auf dem Boden, einer Wand, einem Gesicht — und fotografiere genau diese Linie.",
+      "solution": "A sharp, clearly defined boundary between a bright area and a dark shadow. The light-shadow line should be the main subject of the photo."
     },
     {
-      "prompt": "Fotografiere etwas das du mit geschlossenen Augen erkennen würdest.",
-      "solution": "Something identifiable by touch, texture or smell rather than sight: rough tree bark, cobblestones, a musical instrument, fresh bread or food, a rain-wet surface, something with a highly distinctive texture known by feel alone."
+      "prompt": "Stell dich am Fuß einer langen Treppe oder eines hohen Gebäudes und fotografiere direkt nach oben. Halte das Handy waagerecht über deinen Kopf.",
+      "solution": "A staircase, tower, or tall structure photographed from directly below, looking straight up. Strong upward perspective with converging vertical lines."
     },
     {
-      "prompt": "Finde etwas das größer wirkt als es ist.",
-      "solution": "Forced perspective or something appearing larger than reality: a low angle shot of a small object making it monumental, a close-up of a tiny texture filling the frame, a reflection in a water drop containing a whole scene, a miniature model photographed to look real."
+      "prompt": "Such drei verschiedene Objekte die genau dieselbe Farbe haben — aber komplett unterschiedliche Dinge sind — und bring sie so in den Frame dass alle drei sichtbar sind.",
+      "solution": "Three clearly different objects of the same colour visible together in the frame. Colour match should be obvious. Objects should be different types — not the same thing three times."
     },
     {
-      "prompt": "Fotografiere etwas das zwei Menschen gleichzeitig gehört.",
-      "solution": "Something visibly shared between two people: a shared meal, a bench for two, a doorway between two properties, a handshake, a joint project by two people, two mugs or toothbrushes side by side, a double bed, paired items, a shared umbrella."
+      "prompt": "Finde eine enge Gasse oder einen langen Korridor und stell dich mitten rein. Fotografiere gerade nach vorne so dass die Wände links und rechts parallel durchs Bild gehen.",
+      "solution": "A narrow alley or corridor photographed straight-on from one end. Both walls visible on left and right, creating strong parallel lines leading into the distance."
     },
     {
-      "prompt": "Finde etwas das ohne Worte kommuniziert.",
-      "solution": "Non-verbal communication: a hand gesture, a traffic sign, body language conveying an emotion, a facial expression without text, musical notation, a color-coded system, an arrow or directional indicator, a map or diagram conveying meaning without words."
+      "prompt": "Fotografiere mindestens zwei Menschen die eindeutig warten — Bushaltestelle, Restaurant, Aufzug, Schlange — ohne dass sie posieren oder dich ansehen.",
+      "solution": "Two or more people clearly in a waiting state — queue, stop, entrance. They should appear genuinely waiting, not walking or in active conversation. Unposed."
     },
     {
-      "prompt": "Fotografiere eine Grenze die man nicht sehen kann.",
-      "solution": "An invisible or implied boundary: people keeping physical distance from each other, the property line between two very different gardens, an unmarked transition between two different surfaces, the high-water mark on a wall, where a distinct shadow begins."
+      "prompt": "Stell dich ans Fenster oder in einen Eingang und fotografiere nach draußen. Der Fensterrahmen oder die Türlaibung soll als Rahmen im Bild sichtbar sein.",
+      "solution": "A view from inside looking out through a window or door. The frame of the window or door should be visible in the image, acting as an inner frame."
     },
     {
-      "prompt": "Finde etwas das sich langsam verändert.",
-      "solution": "Evidence of slow transformation: rust on metal, ivy or moss creeping across a surface, a building under gradual construction, erosion marks on stone or pavement, a tree growing around an obstacle, tide marks at different heights on a wall, patina on copper or bronze."
+      "prompt": "Such ein Objekt kleiner als deine Faust — Blüte, Münze, Insekt, Essen — und geh so nah ran bis es den ganzen Frame ausfüllt. Nichts anderes soll sichtbar sein.",
+      "solution": "An extreme close-up of a small object under roughly 10 cm, filling the entire frame. Object should be recognisable but shown at unusual, large scale."
     },
     {
-      "prompt": "Fotografiere etwas das Mut gebraucht hat.",
-      "solution": "Physical evidence of courage: a very high structure from below, extreme sport equipment, a 'grand opening' sign on a new shop, an imperfect handmade first attempt at something, bold statement art or graffiti, a difficult climbing route marked, a new business sign."
+      "prompt": "Leg dein Handy flach auf den Boden und fotografiere direkt nach oben — Menschen, Gebäude, Bäume, Himmel, was auch immer von dort aus zu sehen ist.",
+      "solution": "A photo taken from ground level looking straight up. The perspective should clearly be upward-facing — sky, ceilings, treetops, or building facades visible from below."
     },
     {
-      "prompt": "Finde etwas das nur im Weg steht.",
-      "solution": "Something that exists purely as an obstruction: a traffic cone placed randomly, a barrier across a path, a locked gate blocking obvious passage, scaffolding covering a view, a parked car completely blocking a sidewalk, a puddle blocking the only path."
+      "prompt": "Fotografiere eine Person von hinten die auffällige oder interessante Kleidung trägt. Die Person soll dich nicht ansehen und nicht wissen dass du fotografierst.",
+      "solution": "A person photographed from behind with distinctive or visually interesting clothing. Person is not looking at camera and appears unaware of being photographed."
     },
     {
-      "prompt": "Fotografiere etwas das älter ist als jeder Mensch den du kennst.",
-      "solution": "Something verifiably very old: an ancient tree with age marks or a plaque, old stone architecture showing centuries of wear, a geological rock formation, an antique with a date, very old cobblestones showing deep wear, a centuries-old building detail."
+      "prompt": "Stell etwas sehr Kleines direkt neben etwas sehr Großes und fotografiere beide so dass der Größenunterschied maximal sichtbar ist.",
+      "solution": "A large object and a small object in clear size contrast within the same frame. Both should be sharp and close enough together that the scale difference is dramatic."
     },
     {
-      "prompt": "Finde etwas das jemanden einmal glücklich gemacht hat.",
-      "solution": "Evidence of joy or care: a child's drawing proudly displayed, a well-worn path to something beloved, a trophy or ribbon in a window, a well-loved old toy, a garden planted with obvious effort, a celebratory message still displayed, something maintained with obvious affection."
+      "prompt": "Finde einen Bogen, ein Fenster oder eine Lücke zwischen zwei Dingen und fotografiere hindurch. Das was dahinter zu sehen ist soll das eigentliche Motiv sein.",
+      "solution": "A natural or architectural frame — arch, window opening, gap between objects — with a clear subject visible through it. The frame and the subject beyond it both present."
     },
     {
-      "prompt": "Fotografiere etwas das zur falschen Zeit am falschen Ort ist.",
-      "solution": "Something anachronistic or out of place: a plant growing through concrete, a formal item in a casual setting, a vintage object in a modern context, urban wildlife in a city, a child's toy in an industrial setting, nature reclaiming a built structure, a winter decoration in summer."
+      "prompt": "Fotografiere deine eigenen Schuhe von direkt oben auf einem interessanten Boden — Pflaster, Fliesen, Gras, Sand oder Muster.",
+      "solution": "The photographer's own shoes or feet visible from above, on a textured or interesting surface. Shot from directly overhead. Shoes are the foreground subject."
     },
     {
-      "prompt": "Finde etwas das eine Entscheidung zeigt.",
-      "solution": "Visible evidence of a choice: a fork in a path, a menu with items marked, a crossroads, two different doors side by side, items arranged as options, a dial or selector between options, a sign saying 'choose' or 'or', a coin on a surface."
+      "prompt": "Such zwei Gebäude oder Bäume die nah beieinander stehen und fotografiere den Himmel durch die Lücke dazwischen. Der Himmel soll eingerahmt wirken.",
+      "solution": "Sky or clouds visible through a narrow gap between two buildings or trees. The structures frame the sky like a window. Gap should be clearly narrow relative to the height."
     },
     {
-      "prompt": "Fotografiere etwas das weicher ist als es aussieht.",
-      "solution": "Something appearing hard but actually soft: moss on rough stone, clouds reflected in hard glass, velvet draped to look solid, a dog with wiry-looking fur, worn-smooth pebbles comfortable to touch, snow covering angular architecture, inner lining of something with a hard exterior."
+      "prompt": "Finde eine Tür oder ein Fenster das offen steht und fotografiere es so dass man gleichzeitig den Innenraum und den Außenraum sieht.",
+      "solution": "A door or window in an open position with both indoor and outdoor space simultaneously visible in the frame."
     },
     {
-      "prompt": "Finde etwas das einmal jemandem gefehlt hat.",
-      "solution": "Something lost, searched for or missed: a lost-and-found box or notice, a 'have you seen' poster, an item that clearly belongs to a set but is alone (a single glove, one shoe), an empty hook where something should hang, a gap on a shelf where something was removed."
+      "prompt": "Warte bis du jemanden siehst der etwas trägt das offensichtlich groß, schwer oder unhandlich ist — und fotografiere dann sofort.",
+      "solution": "A person carrying an object that appears large, heavy, or awkward relative to them. The effort or size should be evident from the composition."
     },
     {
-      "prompt": "Fotografiere etwas das die Zeit vergisst.",
-      "solution": "Something that seems unchanged by the passage of time: a very old clock still working, a traditional craft practiced exactly as always, an unchanged shop front in a modernized street, a natural landmark untouched by development around it, a child doing something timeless."
+      "prompt": "Find eine Pfütze oder eine ruhige Wasseroberfläche und geh so nah ran dass das Wasser den ganzen Frame ausfüllt. Das Spiegelbild soll klar erkennbar sein.",
+      "solution": "A water reflection — puddle or still surface — filling most or all of the frame. The reflected image should be clearly identifiable. No dry ground visible around it."
     },
     {
-      "prompt": "Finde etwas das erst aus der Nähe schön ist.",
-      "solution": "Something revealing beauty only when examined closely: texture of bark or stone looking rough but intricate close up, a spider web only visible in certain light, detail in old tile or mosaic work, micro-patterns in fallen leaves or petals, lichen on rock forming miniature landscapes."
+      "prompt": "Fotografiere etwas das für gewöhnlich niemand fotografiert — die Unterseite eines Tisches, das Innere einer Tasche, der Boden direkt unter deinen Füßen, eine Lampe von unten.",
+      "solution": "A subject that is almost never intentionally photographed: underside of furniture, inside of a bag, ground directly underfoot, lamp from below, back of a sign. Perspective or angle should feel clearly unusual."
     },
     {
-      "prompt": "Fotografiere etwas das jemand gemacht hat ohne zu wissen dass es Kunst ist.",
-      "solution": "Unintentional beauty: a perfectly arranged pile of construction materials, a beautiful pattern of tire tracks or footprints, weathering creating an abstract painting effect on a wall, a shadow forming a perfect composition, a pile of discarded objects forming an accidental still life."
+      "prompt": "Such zwei Personen die sich nicht kennen aber genau dasselbe tun — dasselbe Handy, dieselbe Pose, dasselbe Getränk — und fotografiere beide gleichzeitig im Frame.",
+      "solution": "Two people who appear to be strangers doing the same thing simultaneously — same pose, same action, same object. Both visible in the same frame."
     },
     {
-      "prompt": "Finde etwas das mehr als eine Bedeutung hat.",
-      "solution": "Something genuinely ambiguous or with dual meaning: a symbol that reads differently depending on context, a shape that looks like two different things depending on perspective, an object serving two completely different functions, a sign interpretable in two opposite ways, a shadow creating a second meaning to its source object."
+      "prompt": "Mach absichtlich das schlechteste Foto das du kannst — verwackelt, zu dunkel, angeschnitten, alles falsch. Dann schick es trotzdem ab.",
+      "solution": "An intentionally poor photo demonstrating multiple technical failures: motion blur, severe underexposure or overexposure, bad framing, subject cut off. Should be clearly and deliberately bad in several ways at once."
     }
   ]
 }
