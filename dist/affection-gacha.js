@@ -508,6 +508,8 @@
       bindEvents();
       registerServiceWorker();
       mount.classList.add("is-ready");
+      mount.style.transition = "opacity .18s ease";
+      mount.style.opacity = "1";
       try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
       syncFromSheets().catch(() => {});
     } catch (error) {
