@@ -253,6 +253,7 @@
     photos: null,
     specialDays: null,
     quest: null,
+    missions: null,
     todaysPull: null,
     activeTab: "today",
     revealed: false,
@@ -484,14 +485,15 @@
     injectStyles();
     renderShell();
     try {
-      const [theme, outcomes, photos, specialDays, wishInbox, backup, quest] = await Promise.all([
+      const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions] = await Promise.all([
         fetchJson("config/theme.json"),
         fetchJson("config/outcomes.json"),
         fetchJson("config/photos.json", defaultPhotos),
         fetchJson("config/special-days.json", { days: [] }),
         fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
         fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
-        fetchJson("config/quest.json", { enabled: false })
+        fetchJson("config/quest.json", { enabled: false }),
+        fetchJson("config/missions.json", { pairs: [] })
       ]);
       state.theme = theme;
       state.outcomes = outcomes;
@@ -500,6 +502,7 @@
       state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
       state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
       state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
+      state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
@@ -788,6 +791,22 @@
             </div>
             <div class="ag-quest-result" id="ag-quest-result" hidden></div>
             <div class="ag-quest-points" id="ag-quest-points" hidden></div>
+          </section>
+
+          <section class="ag-card ag-mini-panel" id="ag-mission-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Mission</span>
+              <button class="ag-secondary" type="button" id="ag-mission-close">✕</button>
+            </div>
+            <p class="ag-mini-copy">Deine Aufgabe für heute — Fionn hat eine andere.</p>
+            <div class="ag-mission-card" id="ag-mission-text"></div>
+            <div class="ag-mission-actions" id="ag-mission-actions">
+              <button class="ag-button" type="button" id="ag-mission-done">
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>Erledigt ✓</span>
+              </button>
+            </div>
+            <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
           </section>
 
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
@@ -1360,6 +1379,60 @@
     if (panel) panel.hidden = true;
   }
 
+  // ── Mission panel ────────────────────────────────────────────────────────────
+
+  const MISSION_DONE_KEY = "affektions-gacha:mission-done:v1";
+
+  function getMissionPlayer() {
+    try {
+      const p = new URLSearchParams(window.location.search).get("player");
+      return p === "fionn" ? "fionn" : "lennart";
+    } catch (_) { return "lennart"; }
+  }
+
+  function getTodaysMission() {
+    const pairs = state.missions?.pairs;
+    if (!Array.isArray(pairs) || !pairs.length) return null;
+    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
+    const idx = seededIndex(`${state.theme.secret}|mission|${day}`, pairs.length);
+    const pair = pairs[idx];
+    const player = getMissionPlayer();
+    return player === "fionn" ? pair.fionn : pair.lennart;
+  }
+
+  function isMissionDoneToday() {
+    try {
+      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
+      return localStorage.getItem(MISSION_DONE_KEY) === day;
+    } catch (_) { return false; }
+  }
+
+  function markMissionDone() {
+    try {
+      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
+      localStorage.setItem(MISSION_DONE_KEY, day);
+    } catch (_) {}
+  }
+
+  function openMissionPanel() {
+    const panel = $("#ag-mission-panel");
+    if (!panel) return;
+    const textEl = $("#ag-mission-text");
+    const actionsEl = $("#ag-mission-actions");
+    const doneNote = $("#ag-mission-done-note");
+    const mission = getTodaysMission();
+    if (textEl) textEl.textContent = mission || "Heute keine Mission verfügbar.";
+    const done = isMissionDoneToday();
+    if (actionsEl) actionsEl.hidden = done;
+    if (doneNote) doneNote.hidden = !done;
+    panel.hidden = false;
+  }
+
+  function closeMissionPanel() {
+    const panel = $("#ag-mission-panel");
+    if (panel) panel.hidden = true;
+  }
+
   function showNextGesprach() {
     let idx;
     do {
@@ -1716,7 +1789,44 @@
     return map[tone] || "❤️";
   }
 
+  function applyFionnView() {
+    // Minimal view for Fionn — just his daily mission, no pull UI
+    document.title = "Fionns Mission";
+    const frame = mount.querySelector(".ag-frame");
+    if (frame) {
+      frame.innerHTML = "";
+      const header = document.createElement("div");
+      header.className = "ag-fionn-header";
+      header.innerHTML = `<h1 class="ag-fionn-title">Deine Mission heute</h1><p class="ag-fionn-sub">Lennart hat eine andere — ihr erfahrt voneinander was es war wenn ihr redet.</p>`;
+      const card = document.createElement("div");
+      card.className = "ag-mission-card ag-fionn-card";
+      card.textContent = getTodaysMission() || "Heute keine Mission.";
+      const done = document.createElement("button");
+      done.className = "ag-button ag-fionn-done";
+      done.type = "button";
+      done.innerHTML = `<span class="ag-button-orb" aria-hidden="true"></span><span>Erledigt ✓</span>`;
+      const doneNote = document.createElement("p");
+      doneNote.className = "ag-mission-done-note";
+      doneNote.hidden = true;
+      doneNote.textContent = "Gut gemacht. Morgen gibt es eine neue.";
+      if (isMissionDoneToday()) { done.hidden = true; doneNote.hidden = false; }
+      done.addEventListener("click", () => {
+        markMissionDone();
+        done.hidden = true;
+        doneNote.hidden = false;
+      });
+      frame.appendChild(header);
+      frame.appendChild(card);
+      frame.appendChild(done);
+      frame.appendChild(doneNote);
+    }
+  }
+
   function hydrateCopy() {
+    if (getMissionPlayer() === "fionn") {
+      applyFionnView();
+      return;
+    }
     const name = displayNameFromToken();
     $("[data-ag-main-title]").textContent = state.theme.brand.titleTemplate.replace("{name}", name);
     $("[data-ag-kicker]").textContent = `${state.theme.brand.kicker} · ${state.photos.length} Erinnerungen`;
@@ -1773,6 +1883,15 @@
           const qs = readQuestState();
           if (!qs.solved) li.classList.add("ag-chip-quest-active");
         }
+      }
+
+      if (chip.toLowerCase() === "mission") {
+        li.id = "ag-btn-mission";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Mission öffnen");
+        li.classList.add("ag-chip-clickable");
+        if (!isMissionDoneToday()) li.classList.add("ag-chip-mission-active");
       }
 
       chips.appendChild(li);
@@ -3224,6 +3343,17 @@
       }
     });
     $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
+    $("#ag-btn-mission")?.addEventListener("click", openMissionPanel);
+    $("#ag-mission-close")?.addEventListener("click", closeMissionPanel);
+    $("#ag-mission-done")?.addEventListener("click", () => {
+      markMissionDone();
+      const actionsEl = $("#ag-mission-actions");
+      const doneNote = $("#ag-mission-done-note");
+      const chip = $("#ag-btn-mission");
+      if (actionsEl) actionsEl.hidden = true;
+      if (doneNote) doneNote.hidden = false;
+      if (chip) chip.classList.remove("ag-chip-mission-active");
+    });
     $("#ag-letter-close")?.addEventListener("click", closeLetter);
     $("#ag-letter-overlay")?.addEventListener("click", (e) => {
       if (e.target === e.currentTarget) closeLetter();
@@ -3911,6 +4041,42 @@
         border-radius: 50%;
         background: var(--ag-gold);
       }
+      .ag-chip-mission-active {
+        position: relative;
+        box-shadow: 0 0 0 2px var(--ag-gold);
+        font-weight: 600;
+      }
+      .ag-chip-mission-active::after {
+        content: '';
+        position: absolute;
+        top: -3px; right: -3px;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--ag-gold);
+        animation: ag-pulse 1.8s ease-in-out infinite;
+      }
+      .ag-mission-card {
+        margin: 14px 0;
+        padding: 18px 20px;
+        border-radius: var(--ag-radius-md);
+        background: var(--ag-surface);
+        border: 1px solid var(--ag-border);
+        font-size: 1.05rem;
+        line-height: 1.65;
+        color: var(--ag-text);
+      }
+      .ag-mission-actions { margin-top: 14px; }
+      .ag-mission-done-note {
+        margin: 14px 0 0;
+        font-size: .88rem;
+        color: var(--ag-muted);
+        text-align: center;
+      }
+      .ag-fionn-header { padding: 32px 0 8px; text-align: center; }
+      .ag-fionn-title { margin: 0 0 8px; font-family:"Boska",Georgia,serif; font-size: clamp(1.6rem,4vw,2.4rem); }
+      .ag-fionn-sub { margin: 0 0 24px; color: var(--ag-muted); font-size: .92rem; line-height: 1.5; }
+      .ag-fionn-card { font-size: 1.15rem; line-height: 1.7; margin-bottom: 20px; }
+      .ag-fionn-done { width: 100%; justify-content: center; }
       .ag-quest-challenge {
         margin: 1rem 0 .5rem;
         padding: 1.1rem 1.3rem;
