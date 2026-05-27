@@ -1729,9 +1729,7 @@
     const feedbackSentEl = $("#ag-mission-feedback-sent");
     const doneNote = $("#ag-mission-done-note");
     const subtitleEl = panel.querySelector(".ag-mini-copy");
-    const isFionn = getMissionPlayer() === "fionn";
-    const otherName = isFionn ? (displayNameFromToken() || "Lennart") : (state.theme?.brand?.fromName || "Fionn");
-    if (subtitleEl) subtitleEl.textContent = `Deine Aufgabe für heute — ${otherName} hat eine andere.`;
+    if (subtitleEl) subtitleEl.hidden = true;
     const mission = getTodaysMission();
     if (textEl) textEl.textContent = mission || "Heute keine Mission verfügbar.";
     const done = isMissionDoneToday();
