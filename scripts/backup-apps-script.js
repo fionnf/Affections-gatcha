@@ -10,9 +10,11 @@
  * and set enabled: true.
  *
  * Sheet layout:
- *   "Backup"  — one row per token, stores metadata (streak, favourites, tokens, questPoints)
- *   "History" — one row per history entry, never fully overwritten
- *   "Quests"  — one row per solved quest
+ *   "Backup"         — one row per token, stores metadata (streak, favourites, tokens, questPoints)
+ *   "History"        — one row per history entry, never fully overwritten
+ *   "Quests"         — one row per solved quest
+ *   "MissionFeedback"— one row per feedback submission (append-only)
+ *   "BaerlauchScores"— one row per player, stores best level (upsert)
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
@@ -75,14 +77,23 @@ function doGet(e) {
       return jsonOut_({ ok: false, error: "no data" });
     }
 
+    // Read Bärlauch scores
+    const scoreSheet = getOrCreateBaerlauchScoresSheet_(ss);
+    const scoreValues = scoreSheet.getDataRange().getValues();
+    const baerlauchScores = {};
+    for (let i = 1; i < scoreValues.length; i++) {
+      if (scoreValues[i][0]) baerlauchScores[scoreValues[i][0]] = scoreValues[i][1] || 0;
+    }
+
     return jsonOut_({
       ok: true,
       history,
-      favourites:  meta ? meta.favourites  : [],
-      streak:      meta ? meta.streak      : 0,
-      tokens:      meta ? meta.tokens      : {},
-      questPoints: meta ? meta.questPoints : 0,
-      lastUpdated: meta ? meta.lastUpdated : null
+      favourites:    meta ? meta.favourites  : [],
+      streak:        meta ? meta.streak      : 0,
+      tokens:        meta ? meta.tokens      : {},
+      questPoints:   meta ? meta.questPoints : 0,
+      lastUpdated:   meta ? meta.lastUpdated : null,
+      baerlauchScores
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -94,11 +105,47 @@ function doGet(e) {
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+
+    // ── Mission feedback ──────────────────────────────────────────────────────
+    if (data.type === "mission-feedback") {
+      const sheet = getOrCreateMissionFeedbackSheet_(ss);
+      sheet.appendRow([
+        new Date().toISOString(),
+        data.player || "",
+        data.day    || "",
+        data.rating || "",
+        data.comment || "",
+        (data.mission || "").slice(0, 500)
+      ]);
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Bärlauch score ────────────────────────────────────────────────────────
+    if (data.type === "baerlauch-score") {
+      const player = data.player || "";
+      const level  = typeof data.level === "number" ? data.level : 0;
+      const sheet  = getOrCreateBaerlauchScoresSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      let rowIdx = -1;
+      let existing = 0;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === player) { rowIdx = i + 1; existing = values[i][1] || 0; break; }
+      }
+      if (level > existing) {
+        if (rowIdx === -1) {
+          sheet.appendRow([player, level, new Date().toISOString()]);
+        } else {
+          sheet.getRange(rowIdx, 1, 1, 3).setValues([[player, level, new Date().toISOString()]]);
+        }
+      }
+      return jsonOut_({ ok: true });
+    }
+
     if (data.type !== "gacha-backup") return jsonOut_({ ok: false, error: "unknown type" });
 
     const token      = data.token || "Lennart";
     const timestamp  = new Date().toISOString();
-    const ss         = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
 
     // ── Write metadata to Backup sheet ──────────────────────────────────────
     const backupSheet  = getOrCreateBackupSheet_(ss);
@@ -216,6 +263,27 @@ function getOrCreateQuestSheet_(ss) {
   if (!sheet) {
     sheet = ss.insertSheet("Quests");
     sheet.appendRow(["Timestamp", "Token", "Challenge", "Attempts", "Points", "Period"]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getOrCreateMissionFeedbackSheet_(ss) {
+  let sheet = ss.getSheetByName("MissionFeedback");
+  if (!sheet) {
+    sheet = ss.insertSheet("MissionFeedback");
+    sheet.appendRow(["Timestamp", "Player", "Day", "Rating", "Comment", "Mission"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(6, 400);
+  }
+  return sheet;
+}
+
+function getOrCreateBaerlauchScoresSheet_(ss) {
+  let sheet = ss.getSheetByName("BaerlauchScores");
+  if (!sheet) {
+    sheet = ss.insertSheet("BaerlauchScores");
+    sheet.appendRow(["Player", "BestLevel", "LastUpdated"]);
     sheet.setFrozenRows(1);
   }
   return sheet;

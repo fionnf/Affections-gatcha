@@ -45,6 +45,7 @@
   const MILESTONE_KEY = "affektions-gacha:milestones:v1";
   const NOTIF_KEY = "affektions-gacha:notif:v1";
   const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
+  const BAERLAUCH_SCORE_KEY = "affektions-gacha:baerlauch-scores:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -433,6 +434,22 @@
         writeStreakCache(data.streak);
       }
 
+      // Merge Bärlauch scores — remote wins if higher (so other player's score syncs in)
+      if (data.baerlauchScores && typeof data.baerlauchScores === "object") {
+        const localScores = readBaerlauchScores();
+        let changed = false;
+        for (const [player, level] of Object.entries(data.baerlauchScores)) {
+          if (typeof level === "number" && level > (localScores[player] || 0)) {
+            localScores[player] = level;
+            changed = true;
+          }
+        }
+        if (changed) {
+          try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(localScores)); } catch (_) {}
+          updateBaerlauchScoreDisplay();
+        }
+      }
+
       // Re-render whichever tab is already open so new data appears without a tab switch
       if (state.activeTab === "history") renderHistory();
       if (state.activeTab === "lieblinge") renderLieblinge();
@@ -729,6 +746,7 @@
             </div>
 
             <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
+            <div class="ag-baerlauch-scores" id="ag-baerlauch-scores" hidden></div>
             <p class="ag-mini-copy" id="ag-baerlauch-instruction">
               Sammle nur die guten grünen Blätter – aber nicht toten Lauch oder Maiglöckchen, die giftig sind.
             </p>
@@ -805,6 +823,17 @@
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span>Erledigt ✓</span>
               </button>
+            </div>
+            <div class="ag-mission-feedback" id="ag-mission-feedback" hidden>
+              <p class="ag-mission-feedback-label">Wie war's?</p>
+              <div class="ag-mission-rating" id="ag-mission-rating">
+                <button class="ag-mission-rate-btn" type="button" data-rating="fire">🔥</button>
+                <button class="ag-mission-rate-btn" type="button" data-rating="ok">👍</button>
+                <button class="ag-mission-rate-btn" type="button" data-rating="meh">😴</button>
+              </div>
+              <textarea class="ag-mission-comment" id="ag-mission-comment" rows="2" maxlength="200" placeholder="Optional: was hat funktioniert oder nicht?"></textarea>
+              <button class="ag-secondary ag-mission-feedback-send" type="button" id="ag-mission-feedback-send">Feedback senden</button>
+              <p class="ag-mission-feedback-sent" id="ag-mission-feedback-sent" hidden>Danke — die Maschine lernt.</p>
             </div>
             <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
           </section>
@@ -1127,8 +1156,10 @@
 
   
     stopBaerlauchTimer();
-  
+
     state.baerlauch.level += 1;
+    saveBaerlauchScore(getMissionPlayer(), state.baerlauch.level);
+    updateBaerlauchScoreDisplay();
     updateBaerlauchLevelText();
   
     if (success) {
@@ -1206,8 +1237,10 @@
 
   
     if (!panel || !field || !success || !reward || !rewardPhoto || !rewardText) return;
-  
+
     panel.hidden = false;
+    updateBaerlauchScoreDisplay();
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   
     if (state.baerlauch.locked) {
       success.hidden = false;
@@ -1414,18 +1447,114 @@
     } catch (_) {}
   }
 
+  const MISSION_FEEDBACK_KEY = "affektions-gacha:mission-feedback:v1";
+
+  function isFeedbackSentToday() {
+    try {
+      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
+      return localStorage.getItem(MISSION_FEEDBACK_KEY) === day;
+    } catch (_) { return false; }
+  }
+
+  function markFeedbackSent() {
+    try {
+      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
+      localStorage.setItem(MISSION_FEEDBACK_KEY, day);
+    } catch (_) {}
+  }
+
+  async function sendMissionFeedback(rating, comment) {
+    const url = state.backup?.endpointUrl;
+    if (!url) return;
+    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
+    const player = getMissionPlayer();
+    const mission = getTodaysMission();
+    try {
+      await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          type: "mission-feedback",
+          player,
+          day,
+          mission,
+          rating,
+          comment: comment || ""
+        })
+      });
+    } catch (_) {}
+    markFeedbackSent();
+  }
+
+  // ── Bärlauch leaderboard helpers ───────────────────────────────────────────
+
+  function readBaerlauchScores() {
+    try {
+      const raw = localStorage.getItem(BAERLAUCH_SCORE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
+    } catch (_) { return {}; }
+  }
+
+  function saveBaerlauchScore(player, level) {
+    const scores = readBaerlauchScores();
+    if ((scores[player] || 0) < level) {
+      scores[player] = level;
+      try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(scores)); } catch (_) {}
+      const url = state.backup?.endpointUrl;
+      if (url) {
+        fetch(url, {
+          method: "POST",
+          body: JSON.stringify({ type: "baerlauch-score", player, level }),
+          headers: { "Content-Type": "application/json" }
+        }).catch(() => {});
+      }
+    }
+  }
+
+  function updateBaerlauchScoreDisplay() {
+    const el = $("#ag-baerlauch-scores");
+    if (!el) return;
+    const scores = readBaerlauchScores();
+    const player = getMissionPlayer();
+    const myKey = player === "fionn" ? "fionn" : "lennart";
+    const theirKey = myKey === "lennart" ? "fionn" : "lennart";
+    const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
+    const myScore = scores[myKey];
+    const theirScore = scores[theirKey];
+    if (!myScore && !theirScore) { el.hidden = true; return; }
+    el.hidden = false;
+    const parts = [];
+    if (myScore) parts.push(`<span class="ag-score-pill ag-score-mine">Dein Rekord: Level ${myScore}</span>`);
+    if (theirScore) parts.push(`<span class="ag-score-pill ag-score-theirs">${theirName}: Level ${theirScore}</span>`);
+    el.innerHTML = parts.join("");
+  }
+
+  // ── Mission panel ────────────────────────────────────────────────────────────
+
   function openMissionPanel() {
     const panel = $("#ag-mission-panel");
     if (!panel) return;
     const textEl = $("#ag-mission-text");
     const actionsEl = $("#ag-mission-actions");
+    const feedbackEl = $("#ag-mission-feedback");
+    const feedbackSentEl = $("#ag-mission-feedback-sent");
     const doneNote = $("#ag-mission-done-note");
     const mission = getTodaysMission();
     if (textEl) textEl.textContent = mission || "Heute keine Mission verfügbar.";
     const done = isMissionDoneToday();
+    const feedbackSent = isFeedbackSentToday();
     if (actionsEl) actionsEl.hidden = done;
+    if (feedbackEl) {
+      feedbackEl.hidden = !done;
+      // restore inner form elements visibility (in case they were hidden after sending)
+      panel.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
+        .forEach(el => { el.hidden = feedbackSent; });
+    }
+    if (feedbackSentEl) feedbackSentEl.hidden = !feedbackSent;
     if (doneNote) doneNote.hidden = !done;
+    panel.querySelectorAll(".ag-mission-rate-btn").forEach(b => b.classList.remove("is-selected"));
     panel.hidden = false;
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function closeMissionPanel() {
@@ -3344,15 +3473,39 @@
     });
     $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
     $("#ag-btn-mission")?.addEventListener("click", openMissionPanel);
+    $("#ag-btn-mission")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMissionPanel(); }
+    });
     $("#ag-mission-close")?.addEventListener("click", closeMissionPanel);
     $("#ag-mission-done")?.addEventListener("click", () => {
       markMissionDone();
       const actionsEl = $("#ag-mission-actions");
+      const feedbackEl = $("#ag-mission-feedback");
       const doneNote = $("#ag-mission-done-note");
       const chip = $("#ag-btn-mission");
       if (actionsEl) actionsEl.hidden = true;
       if (doneNote) doneNote.hidden = false;
+      if (feedbackEl && !isFeedbackSentToday()) feedbackEl.hidden = false;
       if (chip) chip.classList.remove("ag-chip-mission-active");
+    });
+    $("#ag-mission-panel")?.querySelectorAll(".ag-mission-rate-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        $("#ag-mission-panel")?.querySelectorAll(".ag-mission-rate-btn")
+          .forEach(b => b.classList.remove("is-selected"));
+        btn.classList.add("is-selected");
+      });
+    });
+    $("#ag-mission-feedback-send")?.addEventListener("click", async () => {
+      const panel = $("#ag-mission-panel");
+      const selected = panel?.querySelector(".ag-mission-rate-btn.is-selected");
+      const rating = selected?.dataset.rating || null;
+      const comment = ($("#ag-mission-comment")?.value || "").trim();
+      await sendMissionFeedback(rating, comment);
+      const sentEl = $("#ag-mission-feedback-sent");
+      // hide form inputs, show confirmation (both are inside #ag-mission-feedback)
+      panel?.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
+        .forEach(el => { el.hidden = true; });
+      if (sentEl) sentEl.hidden = false;
     });
     $("#ag-letter-close")?.addEventListener("click", closeLetter);
     $("#ag-letter-overlay")?.addEventListener("click", (e) => {
@@ -4071,6 +4224,84 @@
         font-size: .88rem;
         color: var(--ag-muted);
         text-align: center;
+      }
+      .ag-mission-feedback {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--ag-border);
+      }
+      .ag-mission-feedback-label {
+        margin: 0 0 10px;
+        font-size: .88rem;
+        color: var(--ag-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+      }
+      .ag-mission-rating {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .ag-mission-rate-btn {
+        font-size: 1.6rem;
+        background: none;
+        border: 2px solid var(--ag-border);
+        border-radius: 12px;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition: border-color .15s, transform .15s;
+        line-height: 1;
+      }
+      .ag-mission-rate-btn:hover { transform: scale(1.12); }
+      .ag-mission-rate-btn.is-selected {
+        border-color: var(--ag-gold);
+        background: rgba(185,120,46,.1);
+        transform: scale(1.1);
+      }
+      .ag-mission-comment {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--ag-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: .92rem;
+        background: var(--ag-surface);
+        color: var(--ag-text);
+        resize: none;
+        margin-bottom: 10px;
+        font-family: inherit;
+      }
+      .ag-mission-comment:focus { outline: 2px solid var(--ag-primary); outline-offset: 2px; }
+      .ag-mission-feedback-sent {
+        margin: 8px 0 0;
+        font-size: .88rem;
+        color: var(--ag-primary);
+        text-align: center;
+      }
+      .ag-baerlauch-scores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .ag-score-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 700;
+      }
+      .ag-score-mine {
+        background: rgba(47,122,79,.14);
+        color: var(--ag-primary);
+        border: 1px solid rgba(47,122,79,.3);
+      }
+      .ag-score-theirs {
+        background: rgba(55,106,131,.14);
+        color: var(--ag-blue);
+        border: 1px solid rgba(55,106,131,.3);
       }
       .ag-fionn-header { padding: 32px 0 8px; text-align: center; }
       .ag-fionn-title { margin: 0 0 8px; font-family:"Boska",Georgia,serif; font-size: clamp(1.6rem,4vw,2.4rem); }
