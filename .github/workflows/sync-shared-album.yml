@@ -3,8 +3,8 @@ name: Sync shared album
 on:
   workflow_dispatch:
   schedule:
-    # Every 4 hours at :17 UTC (00:17, 04:17, 08:17, 12:17, 16:17, 20:17).
-    - cron: '17 0,4,8,12,16,20 * * *'
+    # Every 2 hours at :17 UTC — iCloud CDN URLs expire ~3h after generation.
+    - cron: '17 */2 * * *'
 
 permissions:
   contents: write
