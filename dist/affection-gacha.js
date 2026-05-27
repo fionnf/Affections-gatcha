@@ -523,14 +523,16 @@
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
-      renderOdds();
-      renderWunschkapsel();
-      bindEvents();
+      if (getMissionPlayer() !== "fionn") {
+        renderOdds();
+        renderWunschkapsel();
+        bindEvents();
+        try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
+      }
       registerServiceWorker();
       mount.classList.add("is-ready");
       mount.style.transition = "opacity .18s ease";
       mount.style.opacity = "1";
-      try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
       syncFromSheets().catch(() => {});
     } catch (error) {
       renderError(error);
