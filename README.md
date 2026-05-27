@@ -2,9 +2,20 @@
 
 A daily capsule-pull PWA for Lennart and Fionn — served straight from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn gets a parallel view at the same URL with `?player=fionn`.
 
-**Live (Lennart):** `https://fionnf.github.io/Affections-gatcha/`  
-**Live (Fionn):** `https://fionnf.github.io/Affections-gatcha/?player=fionn`  
-**Media preview:** `https://fionnf.github.io/Affections-gatcha/media-preview.html`
+---
+
+## Links
+
+| | |
+|---|---|
+| 🟢 **App (Lennart)** | https://fionnf.github.io/Affections-gatcha/ |
+| 🔵 **App (Fionn)** | https://fionnf.github.io/Affections-gatcha/?player=fionn |
+| 🖼️ **Media preview** | https://fionnf.github.io/Affections-gatcha/media-preview.html |
+| 📊 **Google Sheet** | https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit |
+| 📸 **iCloud shared album** | https://www.icloud.com/sharedalbum/#B1yGqkRUi85ROko |
+| ⚙️ **GAS backup endpoint** | https://script.google.com/macros/s/AKfycbzod1vU7KQEjno6-vq5uGSuWWNsft8o7igqXprYbxlFNHTSN2Vindxc0nWCVrYspjKV5Q/exec |
+| ⚙️ **GAS wish-inbox endpoint** | https://script.google.com/macros/s/AKfycbzV6VKQvFGrA0AB-qp8UfNQuLeE5tFXmezVeEkjIziU7KFVlznz6eCJCoRcNMNG6coVSg/exec |
+| 📦 **GitHub repo** | https://github.com/fionnf/Affections-gatcha |
 
 ---
 
