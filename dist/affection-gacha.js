@@ -918,6 +918,12 @@
           </div>
         </div>
       </div>
+
+      <div class="ag-lightbox" id="ag-lightbox" hidden role="dialog" aria-modal="true" aria-label="Foto-Vollansicht">
+        <button class="ag-lightbox-close" id="ag-lightbox-close" type="button" aria-label="Schließen">✕</button>
+        <img class="ag-lightbox-img" id="ag-lightbox-img" src="" alt="">
+        <p class="ag-lightbox-caption" id="ag-lightbox-caption"></p>
+      </div>
     `;
   }
 
@@ -1316,6 +1322,29 @@
     "Wenn ich ein Tier wäre — welches, und warum genau das?",
     "Was wäre dein perfektes Date mit mir, völlig egal ob realistisch oder nicht?"
   ];
+
+  // ── Photo lightbox ──────────────────────────────────────────────────────────
+
+  function openLightbox(url, caption, isVideo) {
+    const lb = $("#ag-lightbox");
+    const img = $("#ag-lightbox-img");
+    const cap = $("#ag-lightbox-caption");
+    if (!lb || !img) return;
+    const safe = safeUrl(url);
+    if (!safe) return;
+    img.src = safe;
+    img.alt = caption || "";
+    cap.textContent = caption || "";
+    cap.hidden = !caption;
+    lb.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    const lb = $("#ag-lightbox");
+    if (lb) lb.hidden = true;
+    document.body.style.overflow = "";
+  }
 
   let gesprachCurrentIndex = -1;
 
@@ -2653,6 +2682,9 @@
         vid.setAttribute("playsinline", "");
         vid.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
         thumb.appendChild(vid);
+        thumb.style.cursor = "pointer";
+        thumb.title = "Vollansicht";
+        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", true));
       } else {
         const img = document.createElement("img");
         img.src = safeUrl(entry.photo.url);
@@ -2660,9 +2692,17 @@
         img.loading = "lazy";
         img.decoding = "async";
         img.addEventListener("error", function () {
-          thumb.style.opacity = "0.3";
+          thumb.classList.add("is-broken");
+          img.remove();
+          const icon = document.createElement("span");
+          icon.className = "ag-history-thumb-broken";
+          icon.textContent = "📷";
+          thumb.appendChild(icon);
         });
         thumb.appendChild(img);
+        thumb.style.cursor = "pointer";
+        thumb.title = "Vollansicht";
+        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", false));
       }
 
       const text = document.createElement("div");
@@ -3188,7 +3228,13 @@
     $("#ag-letter-overlay")?.addEventListener("click", (e) => {
       if (e.target === e.currentTarget) closeLetter();
     });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLetter(); });
+    $("#ag-lightbox-close")?.addEventListener("click", closeLightbox);
+    $("#ag-lightbox")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeLightbox();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { closeLetter(); closeLightbox(); }
+    });
 
     $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
     $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
@@ -4159,7 +4205,10 @@
         background:var(--ag-surface-2);border:1px solid var(--ag-border);
         display:flex;align-items:center;justify-content:center;position:relative;
       }
-      .ag-history-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+      .ag-history-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .15s}
+      .ag-history-thumb:hover img{opacity:.85}
+      .ag-history-thumb.is-broken{background:var(--ag-surface-2)}
+      .ag-history-thumb-broken{font-size:1.4rem;line-height:1;opacity:.5}
       .ag-history-thumb.is-video{
         background:linear-gradient(135deg, var(--ag-primary), var(--ag-blue));color:#fffdf8;
         flex-direction:column;gap:2px;
@@ -4340,6 +4389,31 @@
       }
       .ag-letter-overlay[hidden]{display:none}
       @keyframes ag-letter-fade-in{from{opacity:0}to{opacity:1}}
+
+      .ag-lightbox{
+        position:fixed;inset:0;z-index:10000;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:rgba(0,0,0,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        padding:16px;animation:ag-letter-fade-in 200ms ease both;
+      }
+      .ag-lightbox[hidden]{display:none}
+      .ag-lightbox-close{
+        position:absolute;top:16px;right:16px;
+        background:rgba(255,255,255,.12);border:none;color:#fff;
+        width:36px;height:36px;border-radius:50%;font-size:1rem;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+        transition:background .15s;
+      }
+      .ag-lightbox-close:hover{background:rgba(255,255,255,.25)}
+      .ag-lightbox-img{
+        max-width:100%;max-height:calc(100vh - 80px);
+        border-radius:12px;object-fit:contain;
+        animation:ag-enter 220ms var(--ag-ease) both;
+      }
+      .ag-lightbox-caption{
+        margin:12px 0 0;color:rgba(255,255,255,.7);font-size:.88rem;
+        text-align:center;max-width:480px;
+      }
 
       .ag-letter-card{
         position:relative;
