@@ -999,8 +999,7 @@
   }
 
   function getToken() {
-    if (getMissionPlayer() === "fionn") return state.theme.brand.fromName || "Fionn";
-    return state.theme.brand.displayNameDefault || "Lennart";
+    return getMissionPlayer() === "fionn" ? "fionn" : "lennart";
   }
 
   function displayNameFromToken() {
