@@ -85,6 +85,19 @@ function doGet(e) {
       if (scoreValues[i][0]) baerlauchScores[scoreValues[i][0]] = scoreValues[i][1] || 0;
     }
 
+    // Read mission log (all players, last 60 entries)
+    const missionLogSheet = getOrCreateMissionLogSheet_(ss);
+    const missionLogValues = missionLogSheet.getDataRange().getValues();
+    const missionLog = [];
+    for (let i = Math.max(1, missionLogValues.length - 60); i < missionLogValues.length; i++) {
+      const row = missionLogValues[i];
+      if (!row[0]) continue;
+      const entry = { day: normDay(row[0]), player: row[1] || "", mission: row[2] || "", doneAt: row[3] || null };
+      if (row[4]) entry.rating = row[4];
+      if (row[5]) entry.comment = row[5];
+      missionLog.push(entry);
+    }
+
     return jsonOut_({
       ok: true,
       history,
@@ -93,7 +106,8 @@ function doGet(e) {
       tokens:        meta ? meta.tokens      : {},
       questPoints:   meta ? meta.questPoints : 0,
       lastUpdated:   meta ? meta.lastUpdated : null,
-      baerlauchScores
+      baerlauchScores,
+      missionLog
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -106,6 +120,25 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+
+    // ── Mission log entry ─────────────────────────────────────────────────────
+    if (data.type === "mission-log") {
+      const sheet = getOrCreateMissionLogSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const dayStr = (data.day || "").slice(0, 10);
+      const player = data.player || "";
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        const d = values[i][0] instanceof Date
+          ? Utilities.formatDate(values[i][0], "UTC", "yyyy-MM-dd")
+          : String(values[i][0]).slice(0, 10);
+        if (d === dayStr && values[i][1] === player) { rowIdx = i + 1; break; }
+      }
+      const row = [dayStr, player, data.mission || "", data.doneAt || "", data.rating || "", data.comment || ""];
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
 
     // ── Mission feedback ──────────────────────────────────────────────────────
     if (data.type === "mission-feedback") {
@@ -264,6 +297,17 @@ function getOrCreateQuestSheet_(ss) {
     sheet = ss.insertSheet("Quests");
     sheet.appendRow(["Timestamp", "Token", "Challenge", "Attempts", "Points", "Period"]);
     sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getOrCreateMissionLogSheet_(ss) {
+  let sheet = ss.getSheetByName("MissionLog");
+  if (!sheet) {
+    sheet = ss.insertSheet("MissionLog");
+    sheet.appendRow(["Day", "Player", "Mission", "DoneAt", "Rating", "Comment"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(3, 500);
   }
   return sheet;
 }

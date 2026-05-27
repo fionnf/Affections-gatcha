@@ -46,6 +46,7 @@
   const NOTIF_KEY = "affektions-gacha:notif:v1";
   const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
   const BAERLAUCH_SCORE_KEY = "affektions-gacha:baerlauch-scores:v1";
+  const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -450,6 +451,23 @@
         }
       }
 
+      // Merge mission log — union by day+player, remote wins to propagate other player's entries
+      if (Array.isArray(data.missionLog) && data.missionLog.length) {
+        const local = readMissionLog();
+        const byKey = new Map(local.map(e => [`${e.day}|${e.player}`, e]));
+        for (const entry of data.missionLog) {
+          if (!entry.day || !entry.player) continue;
+          byKey.set(`${entry.day}|${entry.player}`, entry);
+        }
+        const merged = Array.from(byKey.values()).sort((a, b) => b.day.localeCompare(a.day));
+        writeMissionLog(merged);
+        // re-render open mission panels
+        const panel = $("#ag-mission-panel");
+        if (panel && !panel.hidden) renderMissionLog($("#ag-mission-log"), getMissionPlayer());
+        const fionnLog = document.getElementById("ag-fionn-mission-log");
+        if (fionnLog) renderMissionLog(fionnLog, "fionn");
+      }
+
       // Re-render whichever tab is already open so new data appears without a tab switch
       if (state.activeTab === "history") renderHistory();
       if (state.activeTab === "lieblinge") renderLieblinge();
@@ -838,6 +856,7 @@
               <p class="ag-mission-feedback-sent" id="ag-mission-feedback-sent" hidden>Danke — die Maschine lernt.</p>
             </div>
             <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
+            <div class="ag-mission-log" id="ag-mission-log" hidden></div>
           </section>
 
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
@@ -1446,6 +1465,18 @@
     try {
       const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
       localStorage.setItem(MISSION_DONE_KEY, day);
+      const player = getMissionPlayer();
+      const mission = getTodaysMission();
+      const doneAt = new Date().toISOString();
+      appendMissionLogEntry({ day, player, mission, doneAt });
+      const url = state.backup?.endpointUrl;
+      if (url && mission) {
+        fetch(url, {
+          method: "POST",
+          body: JSON.stringify({ type: "mission-log", player, day, mission, doneAt }),
+          headers: { "Content-Type": "application/json" }
+        }).catch(() => {});
+      }
     } catch (_) {}
   }
 
@@ -1466,25 +1497,102 @@
   }
 
   async function sendMissionFeedback(rating, comment) {
-    const url = state.backup?.endpointUrl;
-    if (!url) return;
     const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
     const player = getMissionPlayer();
     const mission = getTodaysMission();
-    try {
-      await fetch(url, {
-        method: "POST",
-        body: JSON.stringify({
-          type: "mission-feedback",
-          player,
-          day,
-          mission,
-          rating,
-          comment: comment || ""
-        })
-      });
-    } catch (_) {}
+    // update local log entry with rating/comment
+    updateMissionLogEntry(day, player, { rating, comment: comment || "" });
+    const url = state.backup?.endpointUrl;
+    if (url) {
+      try {
+        await fetch(url, {
+          method: "POST",
+          body: JSON.stringify({ type: "mission-feedback", player, day, mission, rating, comment: comment || "" }),
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (_) {}
+    }
     markFeedbackSent();
+  }
+
+  // ── Mission log helpers ────────────────────────────────────────────────────
+
+  function readMissionLog() {
+    try {
+      const raw = localStorage.getItem(MISSION_LOG_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) { return []; }
+  }
+
+  function writeMissionLog(entries) {
+    try { localStorage.setItem(MISSION_LOG_KEY, JSON.stringify(entries)); } catch (_) {}
+  }
+
+  function appendMissionLogEntry(entry) {
+    const log = readMissionLog();
+    const existing = log.findIndex(e => e.day === entry.day && e.player === entry.player);
+    if (existing >= 0) {
+      log[existing] = { ...log[existing], ...entry };
+    } else {
+      log.unshift(entry);
+      if (log.length > 60) log.splice(60);
+    }
+    writeMissionLog(log);
+  }
+
+  function updateMissionLogEntry(day, player, updates) {
+    const log = readMissionLog();
+    const idx = log.findIndex(e => e.day === day && e.player === player);
+    if (idx >= 0) { log[idx] = { ...log[idx], ...updates }; writeMissionLog(log); }
+  }
+
+  function renderMissionLog(containerEl, playerFilter) {
+    if (!containerEl) return;
+    const log = readMissionLog();
+    const tz = state.theme?.timezone || "UTC";
+    const today = dateKeyInTimezone(tz);
+    // group by day, collect both players
+    const byDay = new Map();
+    for (const entry of log) {
+      if (!byDay.has(entry.day)) byDay.set(entry.day, {});
+      byDay.get(entry.day)[entry.player] = entry;
+    }
+    // show last 30 days that have at least one entry
+    const days = Array.from(byDay.keys()).sort((a, b) => b.localeCompare(a)).slice(0, 30);
+    if (!days.length) { containerEl.hidden = true; return; }
+    containerEl.hidden = false;
+    const ratingEmoji = { fire: "🔥", ok: "👍", meh: "😴" };
+    const fmt = (day) => {
+      try {
+        return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz })
+          .format(new Date(day + "T12:00:00Z"));
+      } catch (_) { return day; }
+    };
+    containerEl.innerHTML = `<h3 class="ag-mission-log-title">Verlauf</h3>` +
+      days.map(day => {
+        const entries = byDay.get(day);
+        const lennart = entries.lennart;
+        const fionn = entries.fionn;
+        const isToday = day === today;
+        const rows = [];
+        if (lennart && (playerFilter !== "fionn")) {
+          const done = lennart.doneAt ? `<span class="ag-log-done">✓</span>` : "";
+          const rating = lennart.rating ? `<span class="ag-log-rating">${ratingEmoji[lennart.rating] || ""}</span>` : "";
+          rows.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-lennart">Lennart</span><span class="ag-log-text">${escHtml(lennart.mission || "")}</span>${done}${rating}</div>`);
+        }
+        if (fionn && (playerFilter !== "lennart")) {
+          const done = fionn.doneAt ? `<span class="ag-log-done">✓</span>` : "";
+          const rating = fionn.rating ? `<span class="ag-log-rating">${ratingEmoji[fionn.rating] || ""}</span>` : "";
+          rows.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-fionn">Fionn</span><span class="ag-log-text">${escHtml(fionn.mission || "")}</span>${done}${rating}</div>`);
+        }
+        if (!rows.length) return "";
+        return `<div class="ag-log-day${isToday ? " ag-log-today" : ""}"><span class="ag-log-date">${fmt(day)}</span>${rows.join("")}</div>`;
+      }).filter(Boolean).join("");
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   // ── Bärlauch leaderboard helpers ───────────────────────────────────────────
@@ -1555,6 +1663,7 @@
     if (feedbackSentEl) feedbackSentEl.hidden = !feedbackSent;
     if (doneNote) doneNote.hidden = !done;
     panel.querySelectorAll(".ag-mission-rate-btn").forEach(b => b.classList.remove("is-selected"));
+    renderMissionLog($("#ag-mission-log"), getMissionPlayer());
     panel.hidden = false;
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
@@ -1941,15 +2050,21 @@
       doneNote.hidden = true;
       doneNote.textContent = "Gut gemacht. Morgen gibt es eine neue.";
       if (isMissionDoneToday()) { done.hidden = true; doneNote.hidden = false; }
+      const logDiv = document.createElement("div");
+      logDiv.className = "ag-mission-log";
+      logDiv.id = "ag-fionn-mission-log";
       done.addEventListener("click", () => {
         markMissionDone();
         done.hidden = true;
         doneNote.hidden = false;
+        renderMissionLog(logDiv, "fionn");
       });
       frame.appendChild(header);
       frame.appendChild(card);
       frame.appendChild(done);
       frame.appendChild(doneNote);
+      frame.appendChild(logDiv);
+      renderMissionLog(logDiv, "fionn");
     }
   }
 
@@ -4310,6 +4425,64 @@
       .ag-fionn-sub { margin: 0 0 24px; color: var(--ag-muted); font-size: .92rem; line-height: 1.5; }
       .ag-fionn-card { font-size: 1.15rem; line-height: 1.7; margin-bottom: 20px; }
       .ag-fionn-done { width: 100%; justify-content: center; }
+      .ag-mission-log {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--ag-border);
+      }
+      .ag-mission-log-title {
+        margin: 0 0 12px;
+        font-size: .78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: var(--ag-muted);
+      }
+      .ag-log-day {
+        margin-bottom: 14px;
+      }
+      .ag-log-today .ag-log-date { color: var(--ag-primary); font-weight: 700; }
+      .ag-log-date {
+        display: block;
+        font-size: .78rem;
+        font-weight: 600;
+        color: var(--ag-muted);
+        margin-bottom: 5px;
+        letter-spacing: .03em;
+      }
+      .ag-log-row {
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+        margin-bottom: 5px;
+        font-size: .88rem;
+        line-height: 1.45;
+      }
+      .ag-log-who {
+        flex-shrink: 0;
+        font-size: .72rem;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 999px;
+        letter-spacing: .04em;
+      }
+      .ag-log-lennart {
+        background: rgba(47,122,79,.12);
+        color: var(--ag-primary);
+        border: 1px solid rgba(47,122,79,.25);
+      }
+      .ag-log-fionn {
+        background: rgba(55,106,131,.12);
+        color: var(--ag-blue);
+        border: 1px solid rgba(55,106,131,.25);
+      }
+      .ag-log-text {
+        flex: 1;
+        color: var(--ag-text);
+        opacity: .85;
+      }
+      .ag-log-done { color: var(--ag-primary); font-size: .8rem; flex-shrink: 0; }
+      .ag-log-rating { flex-shrink: 0; font-size: .9rem; }
       .ag-quest-challenge {
         margin: 1rem 0 .5rem;
         padding: 1.1rem 1.3rem;
