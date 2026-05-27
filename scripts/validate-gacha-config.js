@@ -101,9 +101,7 @@ if (Array.isArray(photosConfig.photos)) {
     if (photo.type !== undefined && photo.type !== "image" && photo.type !== "video") {
       addError(`photos[${index}].type must be "image" or "video" when present.`);
     }
-    if (typeof photo.url === "string" && photo.url.includes("deine-webflow-domain.com")) {
-      addWarning(`photos[${index}].url still looks like a placeholder.`);
-    }
+
     if (photo.type === "video" && typeof photo.url === "string") {
       const url = photo.url;
       const isGoogleHost = /googleusercontent\.com\//.test(url);

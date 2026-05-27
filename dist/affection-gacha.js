@@ -46,7 +46,9 @@
   const NOTIF_KEY = "affektions-gacha:notif:v1";
   const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
   const BAERLAUCH_SCORE_KEY = "affektions-gacha:baerlauch-scores:v1";
+  const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
   const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
+  const GESPRACH_IDX_KEY = "affektions-gacha:gesprach-idx:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -461,11 +463,9 @@
         }
         const merged = Array.from(byKey.values()).sort((a, b) => b.day.localeCompare(a.day));
         writeMissionLog(merged);
-        // re-render open mission panels
+        // re-render open mission panel
         const panel = $("#ag-mission-panel");
         if (panel && !panel.hidden) renderMissionLog($("#ag-mission-log"), getMissionPlayer());
-        const fionnLog = document.getElementById("ag-fionn-mission-log");
-        if (fionnLog) renderMissionLog(fionnLog, "fionn");
       }
 
       // Re-render whichever tab is already open so new data appears without a tab switch
@@ -541,12 +541,10 @@
       applyTheme(theme);
       applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
       hydrateCopy();
-      if (getMissionPlayer() !== "fionn") {
-        renderOdds();
-        renderWunschkapsel();
-        bindEvents();
-        try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
-      }
+      renderOdds();
+      renderWunschkapsel();
+      bindEvents();
+      try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
       registerServiceWorker();
       mount.classList.add("is-ready");
       mount.style.transition = "opacity .18s ease";
@@ -1165,6 +1163,8 @@
           ? "Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei. Jetzt ist es vorbei."
           : "Oops. Ich fürchte, wir haben toten Lauch oder etwas Giftiges gesammelt und sind tragisch eingegangen. Jetzt ist es vorbei.";
     }
+    saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, false);
+    updateBaerlauchScoreDisplay();
   }
   
   function winBaerlauchGame() {
@@ -1179,9 +1179,11 @@
     stopBaerlauchTimer();
 
     state.baerlauch.level += 1;
-    saveBaerlauchScore(getMissionPlayer(), state.baerlauch.level);
+    const isNewHighscore = saveBaerlauchScore(getMissionPlayer(), state.baerlauch.level);
+    saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, true);
     updateBaerlauchScoreDisplay();
     updateBaerlauchLevelText();
+    if (isNewHighscore) triggerConfetti();
   
     if (success) {
       success.hidden = false;
@@ -1198,7 +1200,16 @@
         "Mit dir würde ich jederzeit wieder Bärlauch sammeln.",
         "Sehr beruhigend, dass du uns nicht vergiftet hast.",
         "Wald mit dir > fast alles andere.",
-        "Das war ausgesprochen sammel-kompetent von dir."
+        "Das war ausgesprochen sammel-kompetent von dir.",
+        "Ich würde mit dir auch poisoned Bärlauch essen. Aber bitte nicht.",
+        "Du sammelst Bärlauch so gut wie du alles andere machst.",
+        "Nächstes Mal bring ich Käse. Du bringst dich.",
+        "Ehrlich gesagt bin ich gekommen wegen dir, nicht wegen dem Lauch.",
+        "So stell ich mir perfekte Wochenenden vor — Wald, du, Bärlauch.",
+        "Rekord. Und du weißt genau, dass ich damit dich meine.",
+        "Botanik-Talent plus gute Gesellschaft. Was will man mehr.",
+        "Wenn das hier ein Film wäre, würde jetzt Credit-Musik laufen.",
+        "Pesto später? Verdient."
       ];
       rewardText.textContent = lines[Math.floor(Math.random() * lines.length)];
     }
@@ -1425,6 +1436,19 @@
     const panel = $("#ag-gesprach-panel");
     if (!panel) return;
     panel.hidden = false;
+    // Restore saved question; only pick a new one if none saved yet
+    try {
+      const saved = localStorage.getItem(GESPRACH_IDX_KEY);
+      if (saved !== null) {
+        const idx = parseInt(saved, 10);
+        if (Number.isFinite(idx) && idx >= 0 && idx < GESPRACH_QUESTIONS.length) {
+          gesprachCurrentIndex = idx;
+          const el = $("#ag-gesprach-question");
+          if (el) el.textContent = GESPRACH_QUESTIONS[idx];
+          return;
+        }
+      }
+    } catch (_) {}
     showNextGesprach();
   }
 
@@ -1496,23 +1520,20 @@
     } catch (_) {}
   }
 
-  async function sendMissionFeedback(rating, comment) {
+  function sendMissionFeedback(rating, comment) {
     const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
     const player = getMissionPlayer();
     const mission = getTodaysMission();
-    // update local log entry with rating/comment
     updateMissionLogEntry(day, player, { rating, comment: comment || "" });
+    markFeedbackSent();
     const url = state.backup?.endpointUrl;
     if (url) {
-      try {
-        await fetch(url, {
-          method: "POST",
-          body: JSON.stringify({ type: "mission-feedback", player, day, mission, rating, comment: comment || "" }),
-          headers: { "Content-Type": "application/json" }
-        });
-      } catch (_) {}
+      fetch(url, {
+        method: "POST",
+        body: JSON.stringify({ type: "mission-feedback", player, day, mission, rating, comment: comment || "" }),
+        headers: { "Content-Type": "application/json" }
+      }).catch(() => {});
     }
-    markFeedbackSent();
   }
 
   // ── Mission log helpers ────────────────────────────────────────────────────
@@ -1607,7 +1628,8 @@
 
   function saveBaerlauchScore(player, level) {
     const scores = readBaerlauchScores();
-    if ((scores[player] || 0) < level) {
+    const isNew = (scores[player] || 0) < level;
+    if (isNew) {
       scores[player] = level;
       try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(scores)); } catch (_) {}
       const url = state.backup?.endpointUrl;
@@ -1619,24 +1641,81 @@
         }).catch(() => {});
       }
     }
+    return isNew;
+  }
+
+  function readBaerlauchHistory() {
+    try {
+      const raw = localStorage.getItem(BAERLAUCH_HISTORY_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) { return []; }
+  }
+
+  function saveBaerlauchRound(player, level, won) {
+    const history = readBaerlauchHistory();
+    const tz = state.theme?.timezone || "UTC";
+    const date = dateKeyInTimezone(tz);
+    history.unshift({ date, player, level, won });
+    if (history.length > 50) history.splice(50);
+    try { localStorage.setItem(BAERLAUCH_HISTORY_KEY, JSON.stringify(history)); } catch (_) {}
+  }
+
+  function triggerConfetti() {
+    const container = document.createElement("div");
+    container.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:9999;";
+    document.body.appendChild(container);
+    const colors = ["#2f7a4f","#b9782e","#4a9e6b","#e8c87a","#7ec8a0","#f0e6c8"];
+    const pieces = 80;
+    for (let i = 0; i < pieces; i++) {
+      const el = document.createElement("div");
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 8 + Math.random() * 8;
+      const x = Math.random() * 100;
+      const delay = Math.random() * 0.6;
+      const dur = 1.4 + Math.random() * 0.8;
+      const rotate = Math.random() * 720 - 360;
+      el.style.cssText = `position:absolute;top:-20px;left:${x}%;width:${size}px;height:${size * 0.6}px;background:${color};border-radius:2px;animation:ag-confetti-fall ${dur}s ${delay}s ease-in forwards;transform-origin:center;`;
+      container.appendChild(el);
+    }
+    if (!document.getElementById("ag-confetti-style")) {
+      const style = document.createElement("style");
+      style.id = "ag-confetti-style";
+      style.textContent = `@keyframes ag-confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(var(--r,360deg));opacity:0}}`;
+      document.head.appendChild(style);
+    }
+    container.querySelectorAll("div").forEach((el, i) => {
+      el.style.setProperty("--r", `${Math.random() * 720 - 360}deg`);
+    });
+    setTimeout(() => container.remove(), 3000);
   }
 
   function updateBaerlauchScoreDisplay() {
     const el = $("#ag-baerlauch-scores");
     if (!el) return;
-    const scores = readBaerlauchScores();
     const player = getMissionPlayer();
     const myKey = player === "fionn" ? "fionn" : "lennart";
     const theirKey = myKey === "lennart" ? "fionn" : "lennart";
+    const myName = myKey === "lennart" ? "Lennart" : "Fionn";
     const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
-    const myScore = scores[myKey];
-    const theirScore = scores[theirKey];
-    if (!myScore && !theirScore) { el.hidden = true; return; }
+    const history = readBaerlauchHistory();
+    if (!history.length) { el.hidden = true; return; }
     el.hidden = false;
-    const parts = [];
-    if (myScore) parts.push(`<span class="ag-score-pill ag-score-mine">Dein Rekord: Level ${myScore}</span>`);
-    if (theirScore) parts.push(`<span class="ag-score-pill ag-score-theirs">${theirName}: Level ${theirScore}</span>`);
-    el.innerHTML = parts.join("");
+    const tz = state.theme?.timezone || "UTC";
+    const fmt = (d) => {
+      try {
+        return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz })
+          .format(new Date(d + "T12:00:00Z"));
+      } catch (_) { return d; }
+    };
+    const rows = history.slice(0, 10).map(r => {
+      const isMe = r.player === myKey;
+      const nameClass = isMe ? "ag-score-mine" : "ag-score-theirs";
+      const name = isMe ? "Du" : theirName;
+      const result = r.won ? `✓ Level ${r.level}` : `✗ Level ${r.level - 1 >= 1 ? r.level - 1 : "–"}`;
+      return `<div class="ag-score-row"><span class="ag-score-date">${fmt(r.date)}</span><span class="ag-score-pill ${nameClass}">${name}</span><span class="ag-score-result">${result}</span></div>`;
+    }).join("");
+    el.innerHTML = `<div class="ag-score-table">${rows}</div>`;
   }
 
   // ── Mission panel ────────────────────────────────────────────────────────────
@@ -1649,6 +1728,10 @@
     const feedbackEl = $("#ag-mission-feedback");
     const feedbackSentEl = $("#ag-mission-feedback-sent");
     const doneNote = $("#ag-mission-done-note");
+    const subtitleEl = panel.querySelector(".ag-mini-copy");
+    const isFionn = getMissionPlayer() === "fionn";
+    const otherName = isFionn ? (displayNameFromToken() || "Lennart") : (state.theme?.brand?.fromName || "Fionn");
+    if (subtitleEl) subtitleEl.textContent = `Deine Aufgabe für heute — ${otherName} hat eine andere.`;
     const mission = getTodaysMission();
     if (textEl) textEl.textContent = mission || "Heute keine Mission verfügbar.";
     const done = isMissionDoneToday();
@@ -1679,6 +1762,7 @@
       idx = Math.floor(Math.random() * GESPRACH_QUESTIONS.length);
     } while (idx === gesprachCurrentIndex && GESPRACH_QUESTIONS.length > 1);
     gesprachCurrentIndex = idx;
+    try { localStorage.setItem(GESPRACH_IDX_KEY, String(idx)); } catch (_) {}
     const el = $("#ag-gesprach-question");
     if (el) el.textContent = GESPRACH_QUESTIONS[idx];
   }
@@ -2069,18 +2153,16 @@
   }
 
   function hydrateCopy() {
-    if (getMissionPlayer() === "fionn") {
-      applyFionnView();
-      return;
-    }
-    const name = displayNameFromToken();
+    const isFionn = getMissionPlayer() === "fionn";
+    const name = isFionn ? state.theme.brand.fromName : displayNameFromToken();
+    const recipientName = isFionn ? displayNameFromToken() : state.theme.brand.fromName;
     $("[data-ag-main-title]").textContent = state.theme.brand.titleTemplate.replace("{name}", name);
     $("[data-ag-kicker]").textContent = `${state.theme.brand.kicker} · ${state.photos.length} Erinnerungen`;
     $("[data-ag-intro]").textContent = state.theme.brand.intro;
     $("[data-ag-button-text]").textContent = state.theme.brand.buttonIdle;
     $("[data-ag-rules-title]").textContent = state.theme.brand.rulesTitle;
     $("[data-ag-rules-text]").textContent = state.theme.brand.rulesText;
-    $("[data-ag-send]").textContent = `An ${state.theme.brand.fromName} schicken`;
+    $("[data-ag-send]").textContent = `An ${recipientName} schicken`;
     $("[data-ag-today-pill]").textContent = formatToday();
     $("[data-ag-draw-hint]").textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
 
@@ -3612,14 +3694,13 @@
         btn.classList.add("is-selected");
       });
     });
-    $("#ag-mission-feedback-send")?.addEventListener("click", async () => {
+    $("#ag-mission-feedback-send")?.addEventListener("click", () => {
       const panel = $("#ag-mission-panel");
       const selected = panel?.querySelector(".ag-mission-rate-btn.is-selected");
       const rating = selected?.dataset.rating || null;
       const comment = ($("#ag-mission-comment")?.value || "").trim();
-      await sendMissionFeedback(rating, comment);
+      sendMissionFeedback(rating, comment);
       const sentEl = $("#ag-mission-feedback-sent");
-      // hide form inputs, show confirmation (both are inside #ag-mission-feedback)
       panel?.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
         .forEach(el => { el.hidden = true; });
       if (sentEl) sentEl.hidden = false;
@@ -3965,9 +4046,7 @@
         display:block;
       }
 
-      /* Outer frame: centers the widget on the page with breathing room.
-         Webflow embeds may already constrain width — the inner clamp keeps
-         this widget from spanning edge-to-edge even on a full-bleed section. */
+      /* Outer frame: centers the widget with breathing room. */
       .ag-frame{
         width:100%;
         max-width:1120px;
@@ -4402,12 +4481,34 @@
         gap: 8px;
         margin-bottom: 12px;
       }
+      .ag-score-table {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+      .ag-score-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .82rem;
+      }
+      .ag-score-date {
+        color: var(--ag-muted);
+        min-width: 52px;
+        flex-shrink: 0;
+      }
+      .ag-score-result {
+        color: var(--ag-text);
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+      }
       .ag-score-pill {
         display: inline-flex;
         align-items: center;
-        padding: 4px 12px;
+        padding: 2px 10px;
         border-radius: 999px;
-        font-size: .82rem;
+        font-size: .78rem;
         font-weight: 700;
       }
       .ag-score-mine {

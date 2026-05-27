@@ -1,7 +1,5 @@
 # Editing without touching code
 
-The Webflow page should only contain `webflow-loader.html`.
-
 Everything you actually edit lives in `config/`.
 
 ## Change colors, name, timing
@@ -285,7 +283,7 @@ itself. Adjust the cron in the YAML if you want a different cadence.
 The widget renders inside a centered `.ag-frame` with `max-width: 1120px`
 and `margin-inline: auto`. It does **not** span the full page width — it
 sits as a self-contained card with breathing room on either side, even
-when embedded in a full-bleed Webflow section. Inner padding scales with
+as a self-contained card. Inner padding scales with
 viewport via `clamp()`. The dark hero stage (scene + machine + title +
 tabs) is one rounded card; the cream content cards (Heute-button, result,
 rules, history) sit beneath it on the page background, not inside the
@@ -316,9 +314,7 @@ and the draw button becomes full-width.
 4. Edit text or weights.
 5. Commit directly to `main`.
 6. GitHub Actions validates the config.
-7. The Webflow page loads the updated JSON automatically.
-
-No Webflow update is needed unless you change the loader URL or app script.
+7. GitHub Pages deploys automatically — the live site updates within ~30 s.
 
 ---
 

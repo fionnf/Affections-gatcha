@@ -2,7 +2,7 @@
   "name": "lennart-affektions-gacha",
   "version": "1.0.0",
   "private": true,
-  "description": "A Webflow-loadable German affection gacha with editable JSON content.",
+  "description": "A daily affection gacha PWA for two — GitHub Pages + iCloud album sync.",
   "scripts": {
     "validate": "node scripts/validate-gacha-config.js",
     "simulate": "node scripts/simulate-odds.js 20000 lennart",
