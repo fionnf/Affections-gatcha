@@ -196,11 +196,11 @@ async function syncICloud(url, options = {}) {
     const durationMs = extractICloudDurationMs(photo);
     const longEnough =
       typeof durationMs === "number" && durationMs >= videoMinDurationMs;
-    // Apple Live Photos report a video derivative AND a short duration. Only
-    // emit `"type": "video"` when both the marker and the duration agree —
-    // anything ambiguous is exported as a still so the bundled image renders
-    // correctly instead of a broken short clip.
-    const isVideo = markerSaysVideo && longEnough;
+    // Apple Live Photos report a video derivative AND a short duration. Emit
+    // "video" when the marker agrees AND either duration confirms it OR duration
+    // is unknown (iCloud shared-album videos are reliably real; Live Photos
+    // virtually always have a detectable short duration).
+    const isVideo = markerSaysVideo && (longEnough || durationMs === null);
     if (markerSaysVideo && !isVideo) {
       livePhotoCount += 1;
       console.log(
@@ -225,7 +225,8 @@ async function syncICloud(url, options = {}) {
     photos.push({
       url: mediaUrl,
       alt: `Erinnerung ${index}`,
-      type: emitAsVideo ? "video" : "image"
+      type: emitAsVideo ? "video" : "image",
+      guid: photo.photoGuid || null
     });
   }
 
@@ -650,21 +651,32 @@ async function syncWithDrive(photos, folderId) {
   auth.setCredentials(tokenData);
   const drive = google.drive({ version: "v3", auth });
 
-  // List all files currently in the Drive folder (name → id)
-  const existing = new Map();
+  // Load manifest: maps GUID → { alt, ext, driveId }
+  const MANIFEST_PATH = path.join(ROOT, "config", "drive-manifest.json");
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
+  } catch (_) {
+    manifest = { photos: {}, nextIndex: 1 };
+  }
+  if (!manifest.photos) manifest.photos = {};
+  if (!manifest.nextIndex) manifest.nextIndex = 1;
+
+  // List all file IDs currently in the Drive folder
+  const driveFileIds = new Set();
   let pageToken;
   do {
     const { data } = await drive.files.list({
       q: `'${folderId}' in parents and trashed=false`,
-      fields: "nextPageToken,files(id,name)",
+      fields: "nextPageToken,files(id)",
       pageToken,
       pageSize: 1000
     });
-    for (const f of data.files || []) existing.set(f.name, f.id);
+    for (const f of data.files || []) driveFileIds.add(f.id);
     pageToken = data.nextPageToken;
   } while (pageToken);
 
-  console.log(`Drive: ${existing.size} existing file(s) in folder.`);
+  console.log(`Drive: ${driveFileIds.size} existing file(s) in folder.`);
 
   const { Readable } = require("stream");
   const result = [];
@@ -672,27 +684,52 @@ async function syncWithDrive(photos, folderId) {
   let reused = 0;
 
   for (const photo of photos) {
-    const ext = photo.type === "video" ? "mp4" : "jpg";
-    const filename = `${photo.alt}.${ext}`;
-    let fileId = existing.get(filename);
+    // Resolve or create manifest entry
+    let entry = photo.guid ? manifest.photos[photo.guid] : null;
+    if (!entry) {
+      const alt = `Erinnerung ${manifest.nextIndex}`;
+      manifest.nextIndex += 1;
+      entry = { alt, ext: null, driveId: null };
+      if (photo.guid) manifest.photos[photo.guid] = entry;
+    }
 
-    if (!fileId) {
-      process.stdout.write(`Drive: uploading ${filename}... `);
-      let buffer;
+    const needsUpload = !entry.driveId || !driveFileIds.has(entry.driveId);
+
+    if (needsUpload) {
+      const filename = entry.alt + (entry.ext ? `.${entry.ext}` : "");
+      process.stdout.write(`Drive: uploading ${entry.alt}... `);
+      let buffer, contentType;
       try {
         const resp = await fetch(photo.url, { headers: { "User-Agent": "Mozilla/5.0" } });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        contentType = resp.headers.get("Content-Type") || "";
         buffer = Buffer.from(await resp.arrayBuffer());
       } catch (err) {
-        console.warn(`\nDrive: download failed (${err.message}), keeping iCloud URL for ${filename}.`);
+        console.warn(`\nDrive: download failed (${err.message}), keeping original URL for ${entry.alt}.`);
         result.push(photo);
         continue;
       }
 
-      const mimeType = photo.type === "video" ? "video/mp4" : "image/jpeg";
+      // Detect actual mime type from response Content-Type
+      let ext, mimeType;
+      if (/quicktime/i.test(contentType)) {
+        ext = "mov";
+        mimeType = "video/quicktime";
+      } else if (photo.type === "video") {
+        ext = "mp4";
+        mimeType = "video/mp4";
+      } else {
+        ext = "jpg";
+        mimeType = "image/jpeg";
+      }
+
+      entry.ext = ext;
+      const uploadName = `${entry.alt}.${ext}`;
+
+      let fileId;
       try {
         const { data: file } = await drive.files.create({
-          requestBody: { name: filename, parents: [folderId] },
+          requestBody: { name: uploadName, parents: [folderId] },
           media: { mimeType, body: Readable.from(buffer) },
           fields: "id"
         });
@@ -702,9 +739,10 @@ async function syncWithDrive(photos, folderId) {
           requestBody: { role: "reader", type: "anyone" }
         });
         console.log(`done (${fileId})`);
+        entry.driveId = fileId;
         uploaded++;
       } catch (err) {
-        console.warn(`\nDrive: upload failed (${err.message}), keeping iCloud URL for ${filename}.`);
+        console.warn(`\nDrive: upload failed (${err.message}), keeping original URL for ${entry.alt}.`);
         result.push(photo);
         continue;
       }
@@ -712,13 +750,17 @@ async function syncWithDrive(photos, folderId) {
       reused++;
     }
 
-    // Stable Drive CDN URL — works for publicly shared files, never expires
-    const driveUrl = photo.type === "video"
-      ? `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`
-      : `https://lh3.googleusercontent.com/d/${fileId}`;
+    // Build stable Drive CDN URL
+    const isVideo = entry.ext === "mov" || entry.ext === "mp4";
+    const driveUrl = isVideo
+      ? `https://drive.google.com/uc?export=download&id=${entry.driveId}&confirm=t`
+      : `https://lh3.googleusercontent.com/d/${entry.driveId}`;
 
-    result.push({ ...photo, url: driveUrl });
+    result.push({ ...photo, alt: entry.alt, url: driveUrl });
   }
+
+  // Persist updated manifest
+  fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
 
   console.log(`Drive: ${uploaded} uploaded, ${reused} reused from previous sync.`);
   return result;
