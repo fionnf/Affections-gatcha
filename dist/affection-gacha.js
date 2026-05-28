@@ -879,7 +879,7 @@
                 <span class="ag-date" data-ag-date></span>
               </div>
               <h2 data-ag-title></h2>
-              <p data-ag-message></p>
+              <div class="ag-message" data-ag-message hidden></div>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
               <div data-ag-token-wrap hidden></div>
               <figure class="ag-photo" data-ag-photo-wrap hidden>
@@ -1614,6 +1614,12 @@
 
   function escHtml(str) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function formatMsg(text) {
+    if (!text) return "";
+    const safe = escHtml(text);
+    return safe.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
   }
 
   // ── Bärlauch leaderboard helpers ───────────────────────────────────────────
@@ -2673,7 +2679,7 @@
     $("[data-ag-date]").textContent = pull.day;
     $("[data-ag-title]").textContent = pull.outcome.title;
     const msgEl = $("[data-ag-message]");
-    msgEl.textContent = pull.outcome.message;
+    msgEl.innerHTML = formatMsg(pull.outcome.message);
     msgEl.hidden = false;
 
     // Clean up any previous PIN gate
@@ -3102,9 +3108,9 @@
     title.className = "ag-history-title";
     title.textContent = entry.title || "";
 
-    const message = document.createElement("p");
+    const message = document.createElement("div");
     message.className = "ag-history-message";
-    message.textContent = entry.message || "";
+    message.innerHTML = formatMsg(entry.message || "");
 
     li.appendChild(head);
 
@@ -4787,6 +4793,11 @@
       }
       .ag-result h2{margin:0 0 8px;font-family:"Boska",Georgia,serif;font-size:clamp(1.3rem,1rem + 1vw,1.8rem);line-height:1.15;letter-spacing:-.015em;overflow-wrap:break-word;word-break:break-word}
       .ag-result p{margin:0;color:var(--ag-muted);line-height:1.6}
+      .ag-message{color:var(--ag-muted);line-height:1.7}
+      .ag-message p{margin:0 0 .85em}
+      .ag-message p:last-child{margin-bottom:0}
+      .ag-history-message p{margin:0 0 .5em}
+      .ag-history-message p:last-child{margin-bottom:0}
       .ag-date{color:var(--ag-muted);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
 
       .ag-photo{margin:16px 0 0;overflow:hidden;border-radius:var(--ag-radius-md);border:1px solid var(--ag-border);background:var(--ag-surface-2)}
