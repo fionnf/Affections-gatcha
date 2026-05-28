@@ -2169,24 +2169,23 @@
     const isFionn = getMissionPlayer() === "fionn";
     const name = isFionn ? state.theme.brand.fromName : displayNameFromToken();
     const recipientName = isFionn ? displayNameFromToken() : state.theme.brand.fromName;
-    $("[data-ag-main-title]").textContent = state.theme.brand.titleTemplate.replace("{name}", name);
-    $("[data-ag-kicker]").textContent = `${state.theme.brand.kicker} · ${state.photos.length} Erinnerungen`;
-    $("[data-ag-intro]").textContent = state.theme.brand.intro;
-    $("[data-ag-button-text]").textContent = state.theme.brand.buttonIdle;
-    $("[data-ag-rules-title]").textContent = state.theme.brand.rulesTitle;
-    $("[data-ag-rules-text]").textContent = state.theme.brand.rulesText;
-    $("[data-ag-send]").textContent = `An ${recipientName} schicken`;
-    $("[data-ag-today-pill]").textContent = formatToday();
-    $("[data-ag-draw-hint]").textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
+    const elTitle = $("[data-ag-main-title]"); if (elTitle) elTitle.textContent = state.theme.brand.titleTemplate.replace("{name}", name);
+    const elKicker = $("[data-ag-kicker]"); if (elKicker) elKicker.textContent = `${state.theme.brand.kicker} · ${state.photos.length} Erinnerungen`;
+    const elIntro = $("[data-ag-intro]"); if (elIntro) elIntro.textContent = state.theme.brand.intro;
+    const elBtn = $("[data-ag-button-text]"); if (elBtn) elBtn.textContent = state.theme.brand.buttonIdle;
+    const elRulesTitle = $("[data-ag-rules-title]"); if (elRulesTitle) elRulesTitle.textContent = state.theme.brand.rulesTitle;
+    const elRulesText = $("[data-ag-rules-text]"); if (elRulesText) elRulesText.textContent = state.theme.brand.rulesText;
+    const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
+    const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
+    const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
 
     const chips = $("[data-ag-chips]");
-    chips.innerHTML = "";
+    if (chips) chips.innerHTML = "";
     const chipList = (Array.isArray(state.theme.stickers) && state.theme.stickers.length)
       ? state.theme.stickers
       : defaultChips();
 
-
-    for (const chip of chipList) {
+    for (const chip of chips ? chipList : []) {
       const li = document.createElement("li");
       li.textContent = chip;
     
@@ -2688,6 +2687,7 @@
     $("[data-ag-date]").textContent = pull.day;
     $("[data-ag-title]").textContent = pull.outcome.title;
     const msgEl = $("[data-ag-message]");
+    if (!msgEl) return;
     msgEl.innerHTML = formatMsg(pull.outcome.message);
     msgEl.hidden = false;
 
