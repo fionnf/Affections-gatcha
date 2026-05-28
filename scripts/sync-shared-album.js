@@ -279,6 +279,8 @@ function extractICloudDurationMs(photo) {
 function isVideoEntry(key, d) {
   if (d && typeof d.mediaType === "string" && /video|mp4|quicktime/i.test(d.mediaType)) return true;
   if (/video|mp4|quicktime|movie/i.test(key || "")) return true;
+  // iCloud quality-label video derivatives: "720p", "1080p", "360p", etc.
+  if (/^\d+p$/i.test(key || "")) return true;
   return false;
 }
 
@@ -310,7 +312,13 @@ function pickBestDerivative(derivatives, preferVideo) {
 function sizeOf(d) {
   const w = parseInt(d.width, 10) || 0;
   const h = parseInt(d.height, 10) || 0;
-  return w * h || parseInt(d.fileSize, 10) || 0;
+  if (w && h) return w * h;
+  const fs = parseInt(d.fileSize, 10) || 0;
+  if (fs) return fs;
+  // Rank iCloud quality-label derivatives ("720p" > "360p") when no dimensions available
+  const qm = /^(\d+)p$/i.exec(d._k || "");
+  if (qm) return parseInt(qm[1], 10) * 1000;
+  return 0;
 }
 
 /* ---------- Google Photos (best-effort) ---------- */
