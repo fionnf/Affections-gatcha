@@ -720,14 +720,25 @@ async function syncWithDrive(photos, folderId) {
 
     let needsUpload = !entry.driveId || !driveFileIds.has(entry.driveId);
 
+    // If manifest recorded a jpg for what is now a video (type changed after a
+    // derivative-detection fix), the stored URL would be an image CDN link that
+    // won't play. Force a fresh upload so the video is stored correctly.
+    if (!needsUpload && entry.ext === "jpg" && photo.type === "video") {
+      console.log(`Drive: ${entry.alt} was stored as jpg but is now a video — re-uploading.`);
+      needsUpload = true;
+    }
+
     // When manifest lacks a driveId (e.g. manifest was lost), check Drive by name
     // so we reuse existing uploads rather than duplicating them.
+    // Only match extensions that are consistent with the photo type to avoid
+    // reusing a stale jpg for a video.
     if (needsUpload && entry.alt) {
-      for (const tryExt of ["jpg", "mov", "mp4"]) {
+      const tryExts = photo.type === "video" ? ["mov", "mp4"] : ["jpg"];
+      for (const tryExt of tryExts) {
         const candidate = driveNameToId[`${entry.alt}.${tryExt}`];
         if (candidate) {
           entry.driveId = candidate;
-          if (!entry.ext) entry.ext = tryExt;
+          entry.ext = tryExt;
           needsUpload = false;
           reused++;
           console.log(`Drive: found ${entry.alt}.${tryExt} in folder by name — reusing (${candidate}).`);
