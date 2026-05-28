@@ -2480,7 +2480,10 @@
         tone: special.tone || "jackpot",
         outcomes: specialOutcomes
       };
-      return { day, token, category, outcome, photo: null, unlockTime: special.unlockTime || null };
+      const specialPhoto = (special.photoAlt && state.photos.length)
+        ? (state.photos.find((p) => p.alt === special.photoAlt) || null)
+        : null;
+      return { day, token, category, outcome, photo: specialPhoto, unlockTime: special.unlockTime || null };
     }
 
     let category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0);
@@ -2667,16 +2670,48 @@
     if (photo.type === "video") {
       const driveId = extractDriveFileId(photo.url);
       if (driveId) {
-        // Drive-hosted video: use Google's embedded player (reliable across all browsers).
-        // The export=view/download URLs don't stream reliably in <video>; the /preview
-        // iframe gives the full Drive player with seeking and controls.
-        mediaEl = document.createElement("iframe");
-        mediaEl.src = `https://drive.google.com/file/d/${driveId}/preview`;
-        mediaEl.allow = "autoplay";
-        mediaEl.setAttribute("allowfullscreen", "");
-        mediaEl.setAttribute("frameborder", "0");
-        mediaEl.setAttribute("aria-label", altText);
-        mediaEl.className = "ag-media-content";
+        // Drive-hosted video: show a thumbnail poster with a play button overlay.
+        // Clicking swaps the poster for the Drive /preview iframe (with autoplay=1).
+        // This avoids the all-black initial state of a bare <iframe> embed and gives
+        // users a visible preview before they choose to play.
+        const wrapper = document.createElement("div");
+        wrapper.className = "ag-media-content ag-drive-poster";
+        wrapper.setAttribute("role", "button");
+        wrapper.setAttribute("tabindex", "0");
+        wrapper.setAttribute("aria-label", `${altText} abspielen`);
+
+        const poster = document.createElement("img");
+        poster.src = `https://lh3.googleusercontent.com/d/${driveId}`;
+        poster.alt = altText;
+        poster.className = "ag-drive-poster-img";
+        wrapper.appendChild(poster);
+
+        const playBtn = document.createElement("div");
+        playBtn.className = "ag-drive-play-btn";
+        playBtn.setAttribute("aria-hidden", "true");
+        wrapper.appendChild(playBtn);
+
+        const activate = () => {
+          wrapper.removeEventListener("click", activate);
+          wrapper.removeEventListener("keydown", onKey);
+          wrapper.removeAttribute("role");
+          wrapper.removeAttribute("tabindex");
+          wrapper.style.cursor = "";
+          wrapper.innerHTML = "";
+          const iframe = document.createElement("iframe");
+          iframe.src = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1`;
+          iframe.allow = "autoplay";
+          iframe.setAttribute("allowfullscreen", "");
+          iframe.setAttribute("frameborder", "0");
+          iframe.setAttribute("aria-label", altText);
+          iframe.className = "ag-drive-iframe";
+          wrapper.appendChild(iframe);
+        };
+        const onKey = (e) => { if (e.key === "Enter" || e.key === " ") activate(); };
+        wrapper.addEventListener("click", activate);
+        wrapper.addEventListener("keydown", onKey);
+
+        mediaEl = wrapper;
       } else {
         mediaEl = document.createElement("video");
         mediaEl.src = safeUrl(photo.url);
@@ -4914,7 +4949,12 @@
         border-radius:6px;
       }
       .ag-media-frame video.ag-media-content{width:100%;height:100%;object-fit:contain;background:transparent;border-radius:0}
-      .ag-media-frame iframe.ag-media-content{width:100%;height:100%;border:0;border-radius:0;background:#000}
+      .ag-drive-poster{position:relative;width:100%;height:100%;background:#111;cursor:pointer;overflow:hidden;border-radius:0}
+      .ag-drive-poster-img{width:100%;height:100%;object-fit:cover;display:block}
+      .ag-drive-play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25);transition:background .15s}
+      .ag-drive-play-btn::after{content:"";display:block;width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.55);border:2.5px solid rgba(255,255,255,.9);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpolygon points='9,7 9,17 19,12'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:54% 50%;background-size:60%}
+      .ag-drive-poster:hover .ag-drive-play-btn{background:rgba(0,0,0,.38)}
+      .ag-drive-iframe{width:100%;height:100%;border:0;display:block}
 
       .ag-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
       .ag-secondary{
