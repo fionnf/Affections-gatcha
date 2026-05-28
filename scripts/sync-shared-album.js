@@ -60,7 +60,7 @@ async function main() {
   if (config.saveToRepo) {
     console.log("Repo storage enabled — photos will be committed alongside photos.json.");
     photos = await savePhotosToRepo(photos);
-  } else if (config.driveFolderId && process.env.GDRIVE_SA_KEY) {
+  } else if (config.driveFolderId && process.env.GDRIVE_CLIENT_ID && process.env.GDRIVE_REFRESH_TOKEN) {
     console.log(`Google Drive sync enabled — folder: ${config.driveFolderId}`);
     photos = await syncWithDrive(photos, config.driveFolderId);
   }
@@ -636,19 +636,11 @@ async function syncWithDrive(photos, folderId) {
     fail("googleapis package not found. Run `npm install` first.");
   }
 
-  let credentials;
-  try {
-    credentials = JSON.parse(process.env.GDRIVE_SA_KEY);
-  } catch (_) {
-    fail("GDRIVE_SA_KEY environment variable is not valid JSON.");
-  }
-
-  const auth = new google.auth.JWT(
-    credentials.client_email,
-    null,
-    credentials.private_key,
-    ["https://www.googleapis.com/auth/drive"]
+  const auth = new google.auth.OAuth2(
+    process.env.GDRIVE_CLIENT_ID,
+    process.env.GDRIVE_CLIENT_SECRET || ""
   );
+  auth.setCredentials({ refresh_token: process.env.GDRIVE_REFRESH_TOKEN });
   const drive = google.drive({ version: "v3", auth });
 
   // List all files currently in the Drive folder (name → id)
