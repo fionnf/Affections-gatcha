@@ -3152,13 +3152,30 @@
         img.loading = "lazy";
         img.decoding = "async";
         img.addEventListener("error", function () {
-          thumb.classList.add("is-broken");
-          img.remove();
-          const icon = document.createElement("span");
-          icon.className = "ag-history-thumb-broken";
-          icon.textContent = "📷";
-          thumb.appendChild(icon);
-        });
+          fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
+            const freshPhotos = normalizePhotos(fresh);
+            const match = freshPhotos.find((p) => p.alt === entry.photo.alt) || freshPhotos[0];
+            if (match && match.url) {
+              entry.photo.url = match.url;
+              img.src = safeUrl(match.url);
+              state.photos = freshPhotos;
+            } else {
+              thumb.classList.add("is-broken");
+              img.remove();
+              const icon = document.createElement("span");
+              icon.className = "ag-history-thumb-broken";
+              icon.textContent = "📷";
+              thumb.appendChild(icon);
+            }
+          }).catch(() => {
+            thumb.classList.add("is-broken");
+            img.remove();
+            const icon = document.createElement("span");
+            icon.className = "ag-history-thumb-broken";
+            icon.textContent = "📷";
+            thumb.appendChild(icon);
+          });
+        }, { once: true });
         thumb.appendChild(img);
         thumb.style.cursor = "pointer";
         thumb.title = "Vollansicht";
