@@ -186,12 +186,16 @@ function doPost(e) {
     const favourites   = JSON.stringify(data.favourites || []);
     const tokensJson   = JSON.stringify(data.tokens || {});
     const questPoints  = typeof data.questPoints === "number" ? data.questPoints : 0;
-    const streak       = typeof data.streak === "number" ? data.streak : 0;
+    const incomingStreak = typeof data.streak === "number" ? data.streak : 0;
 
     let metaRow = -1;
+    let existingStreak = 0;
     for (let i = 1; i < backupValues.length; i++) {
-      if (backupValues[i][0] === token) { metaRow = i + 1; break; }
+      if (backupValues[i][0] === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
     }
+    // Always keep the higher streak — prevents a race where a fresh device
+    // syncs before downloading its history and sends streak=0
+    const streak = Math.max(incomingStreak, existingStreak);
     const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp];
     if (metaRow === -1) {
       backupSheet.appendRow(metaRowData);

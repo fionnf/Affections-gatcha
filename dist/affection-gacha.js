@@ -45,6 +45,7 @@
   const MILESTONE_KEY = "affektions-gacha:milestones:v1";
   const NOTIF_KEY = "affektions-gacha:notif:v1";
   const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
+  const STREAK_SYNCED_KEY = "affektions-gacha:streak-synced:v1";
   const BAERLAUCH_SCORE_KEY = "affektions-gacha:baerlauch-scores:v1";
   const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
   const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
@@ -161,6 +162,12 @@
   function writeStreakCache(n) {
     try { localStorage.setItem(STREAK_CACHE_KEY, String(n)); } catch (_) {}
   }
+  function readSyncedStreak() {
+    try { return parseInt(localStorage.getItem(STREAK_SYNCED_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+  }
+  function writeSyncedStreak(n) {
+    try { localStorage.setItem(STREAK_SYNCED_KEY, String(n)); } catch (_) {}
+  }
 
   /** Count consecutive days ending at today (or yesterday if today not yet pulled).
    *  Uses the Sheets-synced cache as a floor so the streak never shows lower after a device switch. */
@@ -188,7 +195,7 @@
       cur.setUTCDate(cur.getUTCDate() - 1);
       dayKey = cur.toISOString().slice(0, 10);
     }
-    return Math.max(streak, readStreakCache());
+    return Math.max(streak, readStreakCache(), readSyncedStreak());
   }
 
   /**
@@ -432,9 +439,11 @@
         try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
       }
 
-      // Cache the Sheets streak as a floor so it survives history gaps on new devices
-      if (typeof data.streak === "number" && data.streak > computeStreak()) {
-        writeStreakCache(data.streak);
+      // Cache the Sheets streak as a persistent floor — survives cleared localStorage
+      // and prevents backupToSheets() racing ahead of sync from zeroing the sheet value
+      if (typeof data.streak === "number" && data.streak > 0) {
+        writeSyncedStreak(data.streak);
+        if (data.streak > computeStreak()) writeStreakCache(data.streak);
       }
 
       // Merge Bärlauch scores — remote wins if higher (so other player's score syncs in)
@@ -2651,10 +2660,10 @@
         fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
           const freshPhotos = normalizePhotos(fresh);
           const match = freshPhotos.find((p) => p.alt === photo.alt) || freshPhotos[0];
-          if (match && match.url && match.url !== photo.url) {
+          if (match && match.url) {
             backdrop.style.backgroundImage = `url("${match.url}")`;
             mediaEl.src = safeUrl(match.url);
-            state.photos = freshPhotos; // update global pool with fresh URLs
+            state.photos = freshPhotos;
           } else {
             const wrap = mediaEl.closest("[data-ag-photo-wrap]");
             if (wrap) wrap.hidden = true;
