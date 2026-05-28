@@ -1423,32 +1423,52 @@
     const img = $("#ag-lightbox-img");
     const cap = $("#ag-lightbox-caption");
     if (!lb || !img) return;
-    const safe = safeUrl(url);
-    if (!safe) return;
-    img.onerror = null; // clear any previous handler before setting src
-    img.src = safe;
-    img.alt = caption || "";
+    // Clean up any Drive iframe from a previous open
+    lb.querySelector(".ag-lightbox-iframe")?.remove();
+
+    const driveId = isVideo ? extractDriveFileId(url) : null;
+    if (driveId) {
+      img.hidden = true;
+      const iframe = document.createElement("iframe");
+      iframe.src = `https://drive.google.com/file/d/${driveId}/preview`;
+      iframe.allow = "autoplay";
+      iframe.setAttribute("allowfullscreen", "");
+      iframe.setAttribute("frameborder", "0");
+      iframe.className = "ag-lightbox-iframe";
+      lb.insertBefore(iframe, cap);
+    } else {
+      img.hidden = false;
+      const safe = safeUrl(url);
+      if (!safe) return;
+      img.onerror = null;
+      img.src = safe;
+      img.alt = caption || "";
+      img.addEventListener("error", () => {
+        const lookupAlt = altHint || caption;
+        fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
+          const freshPhotos = normalizePhotos(fresh);
+          const match = freshPhotos.find((p) => p.alt === lookupAlt) || null;
+          if (match && match.url) {
+            img.src = safeUrl(match.url);
+            state.photos = freshPhotos;
+          }
+        }).catch(() => {});
+      }, { once: true });
+    }
+
     cap.textContent = caption || "";
     cap.hidden = !caption;
     lb.hidden = false;
     document.body.style.overflow = "hidden";
-    // Retry with a fresh URL if iCloud CDN link has expired
-    img.addEventListener("error", () => {
-      const lookupAlt = altHint || caption;
-      fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
-        const freshPhotos = normalizePhotos(fresh);
-        const match = freshPhotos.find((p) => p.alt === lookupAlt) || null;
-        if (match && match.url) {
-          img.src = safeUrl(match.url);
-          state.photos = freshPhotos;
-        }
-      }).catch(() => {});
-    }, { once: true });
   }
 
   function closeLightbox() {
     const lb = $("#ag-lightbox");
-    if (lb) lb.hidden = true;
+    if (!lb) return;
+    lb.querySelector(".ag-lightbox-iframe")?.remove();
+    const lbImg = lb.querySelector(".ag-lightbox-img");
+    if (lbImg) lbImg.hidden = false;
+    lb.hidden = true;
     document.body.style.overflow = "";
   }
 
@@ -2645,15 +2665,29 @@
 
     let mediaEl;
     if (photo.type === "video") {
-      mediaEl = document.createElement("video");
-      mediaEl.src = safeUrl(photo.url);
-      mediaEl.controls = true;
-      mediaEl.muted = true;
-      mediaEl.playsInline = true;
-      mediaEl.setAttribute("playsinline", "");
-      mediaEl.setAttribute("preload", "metadata");
-      mediaEl.setAttribute("aria-label", altText);
-      mediaEl.className = "ag-media-content";
+      const driveId = extractDriveFileId(photo.url);
+      if (driveId) {
+        // Drive-hosted video: use Google's embedded player (reliable across all browsers).
+        // The export=view/download URLs don't stream reliably in <video>; the /preview
+        // iframe gives the full Drive player with seeking and controls.
+        mediaEl = document.createElement("iframe");
+        mediaEl.src = `https://drive.google.com/file/d/${driveId}/preview`;
+        mediaEl.allow = "autoplay";
+        mediaEl.setAttribute("allowfullscreen", "");
+        mediaEl.setAttribute("frameborder", "0");
+        mediaEl.setAttribute("aria-label", altText);
+        mediaEl.className = "ag-media-content";
+      } else {
+        mediaEl = document.createElement("video");
+        mediaEl.src = safeUrl(photo.url);
+        mediaEl.controls = true;
+        mediaEl.muted = true;
+        mediaEl.playsInline = true;
+        mediaEl.setAttribute("playsinline", "");
+        mediaEl.setAttribute("preload", "metadata");
+        mediaEl.setAttribute("aria-label", altText);
+        mediaEl.className = "ag-media-content";
+      }
     } else {
       mediaEl = document.createElement("img");
       mediaEl.alt = altText;
@@ -3148,13 +3182,24 @@
         VIDEO_EXTS_HIST.test(entry.photo.url || "");
       if (isVideoThumb) {
         thumb.classList.add("is-video");
-        const vid = document.createElement("video");
-        vid.src = safeUrl(entry.photo.url);
-        vid.muted = true;
-        vid.setAttribute("preload", "none");
-        vid.setAttribute("playsinline", "");
-        vid.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
-        thumb.appendChild(vid);
+        const driveThumbId = extractDriveFileId(entry.photo.url);
+        if (driveThumbId) {
+          // Drive video: show still thumbnail via Drive CDN (same lh3 CDN used for images)
+          const img = document.createElement("img");
+          img.src = `https://lh3.googleusercontent.com/d/${driveThumbId}`;
+          img.alt = entry.photo.alt || "";
+          img.loading = "lazy";
+          img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+          thumb.appendChild(img);
+        } else {
+          const vid = document.createElement("video");
+          vid.src = safeUrl(entry.photo.url);
+          vid.muted = true;
+          vid.setAttribute("preload", "none");
+          vid.setAttribute("playsinline", "");
+          vid.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+          thumb.appendChild(vid);
+        }
         thumb.style.cursor = "pointer";
         thumb.title = "Vollansicht";
         thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", true, entry.photo.alt));
@@ -4052,6 +4097,13 @@
     }
   }
 
+  function extractDriveFileId(url) {
+    if (typeof url !== "string") return null;
+    // drive.google.com/uc?id={id}&... or drive.google.com/file/d/{id}/...
+    const m = /drive\.google\.com\/(?:uc\?(?:[^&]*&)*id=([^&]+)|file\/d\/([^/?]+))/.exec(url);
+    return m ? (m[1] || m[2]) : null;
+  }
+
   function injectStyles() {
     if (document.querySelector("[data-ag-styles]")) return;
     const style = document.createElement("style");
@@ -4862,6 +4914,7 @@
         border-radius:6px;
       }
       .ag-media-frame video.ag-media-content{width:100%;height:100%;object-fit:contain;background:transparent;border-radius:0}
+      .ag-media-frame iframe.ag-media-content{width:100%;height:100%;border:0;border-radius:0;background:#000}
 
       .ag-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
       .ag-secondary{
@@ -5129,6 +5182,11 @@
       .ag-lightbox-img{
         max-width:100%;max-height:calc(100vh - 80px);
         border-radius:12px;object-fit:contain;
+        animation:ag-enter 220ms var(--ag-ease) both;
+      }
+      .ag-lightbox-iframe{
+        width:min(720px,92vw);aspect-ratio:16/9;
+        border:0;border-radius:12px;background:#000;
         animation:ag-enter 220ms var(--ag-ease) both;
       }
       .ag-lightbox-caption{
