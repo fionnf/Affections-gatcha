@@ -57,6 +57,11 @@ async function main() {
     fail("No media items were discovered in the shared album.");
   }
 
+  if (config.driveFolderId && process.env.GDRIVE_SA_KEY) {
+    console.log(`Google Drive sync enabled — folder: ${config.driveFolderId}`);
+    photos = await syncWithDrive(photos, config.driveFolderId);
+  }
+
   const outputRel = config.output || "config/photos.json";
   const outputPath = path.join(ROOT, outputRel);
 
@@ -561,6 +566,105 @@ async function canFetchAsVideo(url) {
   } catch (_error) {
     return false;
   }
+}
+
+/* ---------- Google Drive upload ---------- */
+
+async function syncWithDrive(photos, folderId) {
+  let google;
+  try {
+    ({ google } = require("googleapis"));
+  } catch (_) {
+    fail("googleapis package not found. Run `npm install` first.");
+  }
+
+  let credentials;
+  try {
+    credentials = JSON.parse(process.env.GDRIVE_SA_KEY);
+  } catch (_) {
+    fail("GDRIVE_SA_KEY environment variable is not valid JSON.");
+  }
+
+  const auth = new google.auth.JWT(
+    credentials.client_email,
+    null,
+    credentials.private_key,
+    ["https://www.googleapis.com/auth/drive"]
+  );
+  const drive = google.drive({ version: "v3", auth });
+
+  // List all files currently in the Drive folder (name → id)
+  const existing = new Map();
+  let pageToken;
+  do {
+    const { data } = await drive.files.list({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: "nextPageToken,files(id,name)",
+      pageToken,
+      pageSize: 1000
+    });
+    for (const f of data.files || []) existing.set(f.name, f.id);
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  console.log(`Drive: ${existing.size} existing file(s) in folder.`);
+
+  const { Readable } = require("stream");
+  const result = [];
+  let uploaded = 0;
+  let reused = 0;
+
+  for (const photo of photos) {
+    const ext = photo.type === "video" ? "mp4" : "jpg";
+    const filename = `${photo.alt}.${ext}`;
+    let fileId = existing.get(filename);
+
+    if (!fileId) {
+      process.stdout.write(`Drive: uploading ${filename}... `);
+      let buffer;
+      try {
+        const resp = await fetch(photo.url, { headers: { "User-Agent": "Mozilla/5.0" } });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        buffer = Buffer.from(await resp.arrayBuffer());
+      } catch (err) {
+        console.warn(`\nDrive: download failed (${err.message}), keeping iCloud URL for ${filename}.`);
+        result.push(photo);
+        continue;
+      }
+
+      const mimeType = photo.type === "video" ? "video/mp4" : "image/jpeg";
+      try {
+        const { data: file } = await drive.files.create({
+          requestBody: { name: filename, parents: [folderId] },
+          media: { mimeType, body: Readable.from(buffer) },
+          fields: "id"
+        });
+        fileId = file.id;
+        await drive.permissions.create({
+          fileId,
+          requestBody: { role: "reader", type: "anyone" }
+        });
+        console.log(`done (${fileId})`);
+        uploaded++;
+      } catch (err) {
+        console.warn(`\nDrive: upload failed (${err.message}), keeping iCloud URL for ${filename}.`);
+        result.push(photo);
+        continue;
+      }
+    } else {
+      reused++;
+    }
+
+    // Stable Drive CDN URL — works for publicly shared files, never expires
+    const driveUrl = photo.type === "video"
+      ? `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`
+      : `https://lh3.googleusercontent.com/d/${fileId}`;
+
+    result.push({ ...photo, url: driveUrl });
+  }
+
+  console.log(`Drive: ${uploaded} uploaded, ${reused} reused from previous sync.`);
+  return result;
 }
 
 /* ---------- helpers ---------- */

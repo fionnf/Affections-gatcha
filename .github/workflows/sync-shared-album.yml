@@ -24,8 +24,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --omit=dev || npm install
 
       - name: Run album sync
+        env:
+          GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
         run: node scripts/sync-shared-album.js
 
       - name: Validate config
