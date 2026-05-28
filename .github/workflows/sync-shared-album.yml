@@ -31,9 +31,8 @@ jobs:
 
       - name: Run album sync
         env:
-          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
-          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
-          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_OAUTH_CLIENT: ${{ secrets.GDRIVE_OAUTH_CLIENT }}
+          GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
         run: node scripts/sync-shared-album.js
 
       - name: Validate config

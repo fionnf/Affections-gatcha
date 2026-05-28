@@ -60,7 +60,7 @@ async function main() {
   if (config.saveToRepo) {
     console.log("Repo storage enabled — photos will be committed alongside photos.json.");
     photos = await savePhotosToRepo(photos);
-  } else if (config.driveFolderId && process.env.GDRIVE_CLIENT_ID && process.env.GDRIVE_REFRESH_TOKEN) {
+  } else if (config.driveFolderId && process.env.GDRIVE_OAUTH_CLIENT && process.env.GDRIVE_TOKEN) {
     console.log(`Google Drive sync enabled — folder: ${config.driveFolderId}`);
     photos = await syncWithDrive(photos, config.driveFolderId);
   }
@@ -636,11 +636,18 @@ async function syncWithDrive(photos, folderId) {
     fail("googleapis package not found. Run `npm install` first.");
   }
 
-  const auth = new google.auth.OAuth2(
-    process.env.GDRIVE_CLIENT_ID,
-    process.env.GDRIVE_CLIENT_SECRET || ""
-  );
-  auth.setCredentials({ refresh_token: process.env.GDRIVE_REFRESH_TOKEN });
+  let clientData, tokenData;
+  try {
+    clientData = JSON.parse(process.env.GDRIVE_OAUTH_CLIENT);
+    tokenData  = JSON.parse(process.env.GDRIVE_TOKEN);
+  } catch (_) {
+    fail("GDRIVE_OAUTH_CLIENT or GDRIVE_TOKEN secret is not valid JSON.");
+  }
+  const creds = clientData.installed || clientData.web;
+  if (!creds) fail("GDRIVE_OAUTH_CLIENT does not look like a Google OAuth client JSON.");
+
+  const auth = new google.auth.OAuth2(creds.client_id, creds.client_secret);
+  auth.setCredentials(tokenData);
   const drive = google.drive({ version: "v3", auth });
 
   // List all files currently in the Drive folder (name → id)
