@@ -104,15 +104,16 @@ if (Array.isArray(photosConfig.photos)) {
 
     if (photo.type === "video" && typeof photo.url === "string") {
       const url = photo.url;
-      const isGoogleHost = /googleusercontent\.com\//.test(url);
+      const isGooglePhotosHost = /googleusercontent\.com\//.test(url);
+      const isDriveViewUrl = /drive\.google\.com\/uc\?/.test(url) && /export=view/.test(url);
       const looksLikeGoogleVideo = /=(dv|m\d+)(?:$|[?&])/.test(url);
       const looksLikeGoogleImage = /=s\d+(?:$|[?&-])/.test(url) || /=w\d+/.test(url);
       const looksLikeStaticImageUrl = /\.(jpe?g|png|gif|webp|heic|heif|avif)(?:$|[?#])/i.test(url);
-      if (isGoogleHost && !looksLikeGoogleVideo) {
+      if (isGooglePhotosHost && !looksLikeGoogleVideo) {
         addWarning(
           `photos[${index}] is type "video" but URL ${looksLikeGoogleImage ? "looks like a Google Photos image thumbnail" : "is a googleusercontent URL without a video suffix (=dv or =m18)"} — it likely will not play. Re-run npm run sync:album, or switch to an iCloud public shared album for reliable video URLs.`
         );
-      } else if (!isGoogleHost && looksLikeStaticImageUrl) {
+      } else if (!isGooglePhotosHost && !isDriveViewUrl && looksLikeStaticImageUrl) {
         addWarning(
           `photos[${index}] is type "video" but URL ends with an image extension — it will not play as a video. Either change "type" to "image" or replace with a real video URL.`
         );

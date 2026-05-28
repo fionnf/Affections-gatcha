@@ -720,20 +720,21 @@ async function syncWithDrive(photos, folderId) {
 
     let needsUpload = !entry.driveId || !driveFileIds.has(entry.driveId);
 
-    // If manifest recorded a jpg for what is now a video (type changed after a
-    // derivative-detection fix), the stored URL would be an image CDN link that
-    // won't play. Force a fresh upload so the video is stored correctly.
-    if (!needsUpload && entry.ext === "jpg" && photo.type === "video") {
-      console.log(`Drive: ${entry.alt} was stored as jpg but is now a video — re-uploading.`);
+    // Force re-upload when the stored format is wrong for the media type:
+    //   - jpg stored for a video → image CDN URL won't play
+    //   - mov stored for a video → QuickTime not supported in Chrome/Firefox;
+    //     iPhone MOV files are H.264/ISOBMFF and play fine when served as mp4
+    if (!needsUpload && photo.type === "video" && (entry.ext === "jpg" || entry.ext === "mov")) {
+      console.log(`Drive: ${entry.alt} was stored as ${entry.ext} but must be mp4 — re-uploading.`);
       needsUpload = true;
     }
 
     // When manifest lacks a driveId (e.g. manifest was lost), check Drive by name
     // so we reuse existing uploads rather than duplicating them.
-    // Only match extensions that are consistent with the photo type to avoid
-    // reusing a stale jpg for a video.
+    // Only match extensions consistent with the photo type to avoid reusing a
+    // stale image file for a video.
     if (needsUpload && entry.alt) {
-      const tryExts = photo.type === "video" ? ["mov", "mp4"] : ["jpg"];
+      const tryExts = photo.type === "video" ? ["mp4"] : ["jpg", "tiff"];
       for (const tryExt of tryExts) {
         const candidate = driveNameToId[`${entry.alt}.${tryExt}`];
         if (candidate) {
@@ -762,14 +763,18 @@ async function syncWithDrive(photos, folderId) {
         continue;
       }
 
-      // Detect actual mime type from response Content-Type
+      // Determine upload format.
+      // Videos: always use mp4/video/mp4. iPhone MOV files are H.264 in an
+      // ISOBMFF container — identical to MP4 structurally — and play in all
+      // browsers when served as video/mp4. QuickTime format only works in Safari.
+      // Images: tiff when the CDN says tiff, otherwise jpg.
       let ext, mimeType;
-      if (/quicktime/i.test(contentType)) {
-        ext = "mov";
-        mimeType = "video/quicktime";
-      } else if (photo.type === "video") {
+      if (photo.type === "video") {
         ext = "mp4";
         mimeType = "video/mp4";
+      } else if (/tiff/i.test(contentType)) {
+        ext = "tiff";
+        mimeType = "image/tiff";
       } else {
         ext = "jpg";
         mimeType = "image/jpeg";
@@ -802,10 +807,15 @@ async function syncWithDrive(photos, folderId) {
       reused++;
     }
 
-    // Build stable Drive CDN URL
-    const isVideo = entry.ext === "mov" || entry.ext === "mp4";
+    // Build stable Drive CDN URL.
+    // Videos: export=view serves the file inline with correct Content-Type and
+    //   supports byte-range requests (needed for seeking). export=download sets
+    //   Content-Disposition:attachment and may not stream reliably in <video>.
+    // Images: lh3.googleusercontent.com/d/{id} is Google's image CDN and is
+    //   faster/more cacheable than the Drive download endpoint.
+    const isVideo = entry.ext === "mp4";
     const driveUrl = isVideo
-      ? `https://drive.google.com/uc?export=download&id=${entry.driveId}&confirm=t`
+      ? `https://drive.google.com/uc?id=${entry.driveId}&export=view`
       : `https://lh3.googleusercontent.com/d/${entry.driveId}`;
 
     result.push({ ...photo, alt: entry.alt, url: driveUrl });
