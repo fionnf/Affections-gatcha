@@ -1418,19 +1418,32 @@
 
   // ── Photo lightbox ──────────────────────────────────────────────────────────
 
-  function openLightbox(url, caption, isVideo) {
+  function openLightbox(url, caption, isVideo, altHint) {
     const lb = $("#ag-lightbox");
     const img = $("#ag-lightbox-img");
     const cap = $("#ag-lightbox-caption");
     if (!lb || !img) return;
     const safe = safeUrl(url);
     if (!safe) return;
+    img.onerror = null; // clear any previous handler before setting src
     img.src = safe;
     img.alt = caption || "";
     cap.textContent = caption || "";
     cap.hidden = !caption;
     lb.hidden = false;
     document.body.style.overflow = "hidden";
+    // Retry with a fresh URL if iCloud CDN link has expired
+    img.addEventListener("error", () => {
+      const lookupAlt = altHint || caption;
+      fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
+        const freshPhotos = normalizePhotos(fresh);
+        const match = freshPhotos.find((p) => p.alt === lookupAlt) || null;
+        if (match && match.url) {
+          img.src = safeUrl(match.url);
+          state.photos = freshPhotos;
+        }
+      }).catch(() => {});
+    }, { once: true });
   }
 
   function closeLightbox() {
@@ -3144,7 +3157,7 @@
         thumb.appendChild(vid);
         thumb.style.cursor = "pointer";
         thumb.title = "Vollansicht";
-        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", true));
+        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", true, entry.photo.alt));
       } else {
         const img = document.createElement("img");
         img.src = safeUrl(entry.photo.url);
@@ -3179,7 +3192,7 @@
         thumb.appendChild(img);
         thumb.style.cursor = "pointer";
         thumb.title = "Vollansicht";
-        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", false));
+        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", false, entry.photo.alt));
       }
 
       const text = document.createElement("div");
