@@ -267,11 +267,16 @@ function extractICloudDurationMs(photo) {
   return null;
 }
 
+function isVideoEntry(key, d) {
+  if (d && typeof d.mediaType === "string" && /video|mp4|quicktime/i.test(d.mediaType)) return true;
+  if (/video|mp4|quicktime|movie/i.test(key || "")) return true;
+  return false;
+}
+
 function hasVideoDerivative(derivatives) {
   if (!derivatives) return false;
-  for (const key of Object.keys(derivatives)) {
-    const d = derivatives[key];
-    if (d && typeof d.mediaType === "string" && /video|mp4|quicktime/i.test(d.mediaType)) return true;
+  for (const [key, d] of Object.entries(derivatives)) {
+    if (isVideoEntry(key, d)) return true;
   }
   return false;
 }
@@ -281,13 +286,11 @@ function pickBestDerivative(derivatives, preferVideo) {
   const entries = Object.entries(derivatives).map(([key, value]) => ({ key, ...value }));
   if (!entries.length) return null;
   if (preferVideo) {
-    const videos = entries.filter((d) => d.mediaType && /video|mp4|quicktime/i.test(d.mediaType));
+    const videos = entries.filter((d) => isVideoEntry(d.key, d));
     if (videos.length) {
       videos.sort((a, b) => sizeOf(b) - sizeOf(a));
       return videos[0];
     }
-    // No video derivative detectable by mediaType — return null so the caller
-    // does not accidentally save an image derivative URL as type "video".
     return null;
   }
   entries.sort((a, b) => sizeOf(b) - sizeOf(a));
