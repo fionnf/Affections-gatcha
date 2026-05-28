@@ -1709,21 +1709,21 @@
     try { localStorage.setItem(BAERLAUCH_HISTORY_KEY, JSON.stringify(history)); } catch (_) {}
   }
 
-  function triggerConfetti() {
+  function triggerConfetti(count = 80, colors) {
+    const defaultColors = ["#2f7a4f","#b9782e","#4a9e6b","#e8c87a","#7ec8a0","#f0e6c8"];
+    const palette = colors || defaultColors;
     const container = document.createElement("div");
     container.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:9999;";
     document.body.appendChild(container);
-    const colors = ["#2f7a4f","#b9782e","#4a9e6b","#e8c87a","#7ec8a0","#f0e6c8"];
-    const pieces = 80;
-    for (let i = 0; i < pieces; i++) {
+    for (let i = 0; i < count; i++) {
       const el = document.createElement("div");
-      const color = colors[Math.floor(Math.random() * colors.length)];
+      const color = palette[Math.floor(Math.random() * palette.length)];
       const size = 8 + Math.random() * 8;
       const x = Math.random() * 100;
       const delay = Math.random() * 0.6;
       const dur = 1.4 + Math.random() * 0.8;
-      const rotate = Math.random() * 720 - 360;
       el.style.cssText = `position:absolute;top:-20px;left:${x}%;width:${size}px;height:${size * 0.6}px;background:${color};border-radius:2px;animation:ag-confetti-fall ${dur}s ${delay}s ease-in forwards;transform-origin:center;`;
+      el.style.setProperty("--r", `${Math.random() * 720 - 360}deg`);
       container.appendChild(el);
     }
     if (!document.getElementById("ag-confetti-style")) {
@@ -1732,9 +1732,6 @@
       style.textContent = `@keyframes ag-confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(var(--r,360deg));opacity:0}}`;
       document.head.appendChild(style);
     }
-    container.querySelectorAll("div").forEach((el, i) => {
-      el.style.setProperty("--r", `${Math.random() * 720 - 360}deg`);
-    });
     setTimeout(() => container.remove(), 3000);
   }
 
@@ -3106,6 +3103,23 @@
       const streak = computeStreak();
       renderStreak();
       renderMilestoneBanner(streak);
+
+      // Confetti burst on good pulls
+      const pullTone = state.todaysPull?.category?.tone;
+      if (pullTone === "special") {
+        // Special day (e.g. birthday) — rainbow burst, two waves
+        const rainbow = ["#ff6b6b","#ffa94d","#ffd43b","#69db7c","#4dabf7","#da77f2","#f783ac","#fff"];
+        triggerConfetti(130, rainbow);
+        setTimeout(() => triggerConfetti(90, rainbow), 700);
+      } else if (pullTone === "jackpot") {
+        // Jackpot — gold-heavy burst, two waves
+        const golds = ["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"];
+        triggerConfetti(120, golds);
+        setTimeout(() => triggerConfetti(80, golds), 650);
+      } else if (pullTone === "rare") {
+        triggerConfetti(70);
+      }
+
       if (MILESTONE_MESSAGES[streak]) {
         haptic([30, 20, 30, 20, 60]);
       } else {
