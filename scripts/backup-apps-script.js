@@ -25,7 +25,7 @@ const HISTORY_SHEET_NAME = "History";
 
 function doGet(e) {
   try {
-    const token = (e.parameter && e.parameter.token) || "Lennart";
+    const token = ((e.parameter && e.parameter.token) || "Lennart").toLowerCase();
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
 
     // Read metadata from Backup sheet
@@ -33,7 +33,7 @@ function doGet(e) {
     const backupValues = backupSheet.getDataRange().getValues();
     let meta = null;
     for (let i = 1; i < backupValues.length; i++) {
-      if (backupValues[i][0] === token) {
+      if ((backupValues[i][0] || "").toLowerCase() === token) {
         meta = {
           favourites: JSON.parse(backupValues[i][1] || "[]"),
           streak:     backupValues[i][2] || 0,
@@ -57,9 +57,9 @@ function doGet(e) {
     }
     for (let i = 1; i < histValues.length; i++) {
       const row = histValues[i];
-      if (row[0] !== token) continue;
+      if ((row[0] || "").toLowerCase() !== token) continue;
       history.push({
-        token:         row[0],
+        token:         token,
         day:           normDay(row[1]),
         categoryId:    row[2],
         categoryLabel: row[3],
@@ -117,6 +117,8 @@ function doGet(e) {
 // ── POST: upsert backup ──────────────────────────────────────────────────────
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
@@ -177,7 +179,7 @@ function doPost(e) {
 
     if (data.type !== "gacha-backup") return jsonOut_({ ok: false, error: "unknown type" });
 
-    const token      = data.token || "Lennart";
+    const token      = (data.token || "lennart").toLowerCase();
     const timestamp  = new Date().toISOString();
 
     // ── Write metadata to Backup sheet ──────────────────────────────────────
@@ -191,7 +193,7 @@ function doPost(e) {
     let metaRow = -1;
     let existingStreak = 0;
     for (let i = 1; i < backupValues.length; i++) {
-      if (backupValues[i][0] === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
+      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
     }
     // Always keep the higher streak — prevents a race where a fresh device
     // syncs before downloading its history and sends streak=0
@@ -218,7 +220,7 @@ function doPost(e) {
       const existingByDay = {};
       const dupeRows = [];
       for (let i = histValues.length - 1; i >= 1; i--) {
-        if (histValues[i][0] !== token) continue;
+        if ((histValues[i][0] || "").toLowerCase() !== token) continue;
         const day = normDay(histValues[i][1]);
         if (!day) continue;
         if (existingByDay[day] !== undefined) {
@@ -269,6 +271,8 @@ function doPost(e) {
     return jsonOut_({ ok: true });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
+  } finally {
+    lock.releaseLock();
   }
 }
 

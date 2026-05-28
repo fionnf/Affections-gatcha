@@ -491,7 +491,7 @@
       const cfg = state.backup;
       if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
       const token = getToken();
-      const history = readHistory();
+      const history = readHistory().filter((e) => (e.token || "").toLowerCase() === token.toLowerCase());
       const qs = readQuestState();
       const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
         challenge: currentChallenge(),
