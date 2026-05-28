@@ -12,14 +12,6 @@
   Then store both file contents as GitHub Secrets:
     GDRIVE_OAUTH_CLIENT  ← contents of oauth_client.json
     GDRIVE_TOKEN         ← contents of token.json
-
-  How to get oauth_client.json (one-time, ~3 min):
-    1. console.cloud.google.com → create/select a project
-    2. APIs & Services → Enable "Google Drive API"
-    3. APIs & Services → Credentials → + Create Credentials
-       → OAuth client ID → Desktop app → Create
-    4. Download JSON → save as oauth_client.json next to this script
-    5. Run: node scripts/auth-drive.js
 */
 
 const fs   = require("fs");
@@ -75,16 +67,26 @@ const server = http.createServer(async (req, res) => {
   const code  = url.searchParams.get("code");
   const error = url.searchParams.get("error");
 
-  if (error || !code) {
+  // Ignore favicon and other browser noise — only act on the OAuth callback
+  if (!code && !error) {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (error) {
     res.writeHead(200, { "Content-Type": "text/html" });
-    res.end(`<h2 style="font-family:sans-serif">Error: ${error || "no code"}. Close this tab and try again.</h2>`);
+    res.end(`<h2 style="font-family:sans-serif;color:red">❌ Error: ${error}. Close this tab and try again.</h2>`);
     server.close();
+    console.error(`\n❌ OAuth error: ${error}`);
     process.exit(1);
   }
 
   res.writeHead(200, { "Content-Type": "text/html" });
   res.end(`<h2 style="font-family:sans-serif;color:green">✅ Authorised — you can close this tab.</h2>`);
   server.close();
+
+  console.log("Exchanging code for tokens...");
 
   const body = new URLSearchParams({
     code,
@@ -94,27 +96,47 @@ const server = http.createServer(async (req, res) => {
     grant_type:    "authorization_code"
   });
 
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString()
-  });
-  const tokens = await tokenRes.json();
+  let tokens;
+  try {
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString()
+    });
+    tokens = await tokenRes.json();
+  } catch (err) {
+    console.error("\n❌ Token exchange failed:", err.message);
+    process.exit(1);
+  }
 
   if (!tokens.refresh_token) {
-    console.error("\n❌ No refresh_token returned:", JSON.stringify(tokens, null, 2));
+    console.error("\n❌ No refresh_token returned. Full response:");
+    console.error(JSON.stringify(tokens, null, 2));
     console.error("\nTip: revoke access at https://myaccount.google.com/permissions then run again.");
     process.exit(1);
   }
 
   fs.writeFileSync(tokenFile, JSON.stringify(tokens, null, 2) + "\n");
-  console.log(`✅ token.json written to ${tokenFile}\n`);
+
+  console.log(`\n✅ token.json written to ${tokenFile}\n`);
   console.log("Now add these two GitHub Secrets (repo → Settings → Secrets → Actions):\n");
   console.log("  GDRIVE_OAUTH_CLIENT  →  paste the full contents of oauth_client.json");
   console.log("  GDRIVE_TOKEN         →  paste the full contents of token.json\n");
   console.log("Also set  driveFolderId  in config/album-source.json (Drive folder URL → last segment).");
+  process.exit(0);
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n❌ Port ${REDIRECT_PORT} is already in use from a previous run.`);
+    console.error(`   Kill it first:  kill $(lsof -ti:${REDIRECT_PORT})`);
+  } else {
+    console.error("\n❌ Server error:", err.message);
+  }
+  process.exit(1);
 });
 
 server.listen(REDIRECT_PORT, () => {
-  console.log(`Waiting for OAuth redirect on http://localhost:${REDIRECT_PORT} ...`);
+  console.log(`Waiting for redirect on http://localhost:${REDIRECT_PORT} ...`);
+  console.log("(approve in the browser, then wait here)\n");
 });
