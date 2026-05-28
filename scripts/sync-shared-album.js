@@ -57,7 +57,10 @@ async function main() {
     fail("No media items were discovered in the shared album.");
   }
 
-  if (config.driveFolderId && process.env.GDRIVE_SA_KEY) {
+  if (config.saveToRepo) {
+    console.log("Repo storage enabled — photos will be committed alongside photos.json.");
+    photos = await savePhotosToRepo(photos);
+  } else if (config.driveFolderId && process.env.GDRIVE_SA_KEY) {
     console.log(`Google Drive sync enabled — folder: ${config.driveFolderId}`);
     photos = await syncWithDrive(photos, config.driveFolderId);
   }
@@ -566,6 +569,61 @@ async function canFetchAsVideo(url) {
   } catch (_error) {
     return false;
   }
+}
+
+/* ---------- Repo photo storage (no external auth) ---------- */
+
+const MAX_REPO_FILE_BYTES = 50 * 1024 * 1024; // 50 MB — GitHub hard limit for individual files
+
+async function savePhotosToRepo(photos) {
+  const PHOTOS_DIR = path.join(ROOT, "media", "photos");
+  fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+
+  const result = [];
+  let downloaded = 0;
+  let reused = 0;
+  let skipped = 0;
+
+  for (const photo of photos) {
+    const ext = photo.type === "video" ? "mp4" : "jpg";
+    const filename = `${photo.alt}.${ext}`;
+    const filepath = path.join(PHOTOS_DIR, filename);
+
+    if (fs.existsSync(filepath)) {
+      reused++;
+      result.push({ ...photo, url: `../media/photos/${filename}` });
+      continue;
+    }
+
+    process.stdout.write(`Repo: downloading ${filename}... `);
+    let buffer;
+    try {
+      const resp = await fetch(photo.url, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      buffer = Buffer.from(await resp.arrayBuffer());
+    } catch (err) {
+      console.warn(`\nRepo: download failed (${err.message}), keeping iCloud URL for ${filename}.`);
+      result.push(photo);
+      skipped++;
+      continue;
+    }
+
+    if (buffer.length > MAX_REPO_FILE_BYTES) {
+      console.warn(`\nRepo: ${filename} is ${(buffer.length / 1024 / 1024).toFixed(1)} MB — over 50 MB limit, keeping iCloud URL.`);
+      result.push(photo);
+      skipped++;
+      continue;
+    }
+
+    fs.writeFileSync(filepath, buffer);
+    console.log(`done (${(buffer.length / 1024).toFixed(0)} KB)`);
+    downloaded++;
+    // URL resolves relative to config/photos.json base
+    result.push({ ...photo, url: `../media/photos/${filename}` });
+  }
+
+  console.log(`Repo: ${downloaded} downloaded, ${reused} reused, ${skipped} kept original URL.`);
+  return result;
 }
 
 /* ---------- Google Drive upload ---------- */

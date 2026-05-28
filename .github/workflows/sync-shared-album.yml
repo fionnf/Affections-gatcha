@@ -41,10 +41,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- config/photos.json; then
-            echo "No changes to config/photos.json. Skipping commit."
+          git add config/photos.json
+          git add media/photos/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No changes. Skipping commit."
             exit 0
           fi
-          git add config/photos.json
           git commit -m "chore(album): sync shared album [skip ci]"
           git push
