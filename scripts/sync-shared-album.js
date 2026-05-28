@@ -211,11 +211,20 @@ async function syncICloud(url, options = {}) {
     let emitAsVideo = isVideo;
     if (!chosen && isVideo) {
       // No video-typed derivative found even though the item is marked as a video.
-      // Fall back to the best image derivative and downgrade to "image" so we
-      // don't save an image URL as type "video" (which would produce broken playback).
+      // Log derivative structure to help diagnose what keys/mimeTypes iCloud returned.
+      if (photo.derivatives) {
+        const derivInfo = Object.entries(photo.derivatives)
+          .map(([k, v]) => `"${k}"→mediaType:${(v && v.mediaType) || "none"}`)
+          .join(", ");
+        console.log(`iCloud: item ${index} derivatives: [${derivInfo}]`);
+      } else {
+        console.log(`iCloud: item ${index} has no derivatives object`);
+      }
       console.log(
         `iCloud: item ${index} marked as video but no video stream derivative found — importing as still image.`
       );
+      // Fall back to best image derivative; downgrade to "image" so we don't
+      // save an image URL as type "video" (broken playback).
       chosen = pickBestDerivative(photo.derivatives, false);
       emitAsVideo = false;
     }
@@ -283,10 +292,11 @@ function hasVideoDerivative(derivatives) {
 
 function pickBestDerivative(derivatives, preferVideo) {
   if (!derivatives) return null;
-  const entries = Object.entries(derivatives).map(([key, value]) => ({ key, ...value }));
+  // Use _k to avoid clobbering a 'key' property that may exist in the derivative value
+  const entries = Object.entries(derivatives).map(([k, value]) => ({ ...value, _k: k }));
   if (!entries.length) return null;
   if (preferVideo) {
-    const videos = entries.filter((d) => isVideoEntry(d.key, d));
+    const videos = entries.filter((d) => isVideoEntry(d._k, d));
     if (videos.length) {
       videos.sort((a, b) => sizeOf(b) - sizeOf(a));
       return videos[0];
@@ -665,17 +675,21 @@ async function syncWithDrive(photos, folderId) {
   if (!manifest.photos) manifest.photos = {};
   if (!manifest.nextIndex) manifest.nextIndex = 1;
 
-  // List all file IDs currently in the Drive folder
+  // List all files currently in the Drive folder (ID + name for name-based recovery)
   const driveFileIds = new Set();
+  const driveNameToId = {}; // "Erinnerung 1.jpg" → fileId
   let pageToken;
   do {
     const { data } = await drive.files.list({
       q: `'${folderId}' in parents and trashed=false`,
-      fields: "nextPageToken,files(id)",
+      fields: "nextPageToken,files(id,name)",
       pageToken,
       pageSize: 1000
     });
-    for (const f of data.files || []) driveFileIds.add(f.id);
+    for (const f of data.files || []) {
+      driveFileIds.add(f.id);
+      if (f.name) driveNameToId[f.name] = f.id;
+    }
     pageToken = data.nextPageToken;
   } while (pageToken);
 
@@ -696,7 +710,23 @@ async function syncWithDrive(photos, folderId) {
       if (photo.guid) manifest.photos[photo.guid] = entry;
     }
 
-    const needsUpload = !entry.driveId || !driveFileIds.has(entry.driveId);
+    let needsUpload = !entry.driveId || !driveFileIds.has(entry.driveId);
+
+    // When manifest lacks a driveId (e.g. manifest was lost), check Drive by name
+    // so we reuse existing uploads rather than duplicating them.
+    if (needsUpload && entry.alt) {
+      for (const tryExt of ["jpg", "mov", "mp4"]) {
+        const candidate = driveNameToId[`${entry.alt}.${tryExt}`];
+        if (candidate) {
+          entry.driveId = candidate;
+          if (!entry.ext) entry.ext = tryExt;
+          needsUpload = false;
+          reused++;
+          console.log(`Drive: found ${entry.alt}.${tryExt} in folder by name — reusing (${candidate}).`);
+          break;
+        }
+      }
+    }
 
     if (needsUpload) {
       const filename = entry.alt + (entry.ext ? `.${entry.ext}` : "");
