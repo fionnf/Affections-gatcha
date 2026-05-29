@@ -53,6 +53,7 @@
   const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
   const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
   const GESPRACH_IDX_KEY = "affektions-gacha:gesprach-idx:v1";
+  const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -614,6 +615,17 @@
       if (state.activeTab === "lieblinge") renderLieblinge();
       renderStreak();
 
+      // Show ping banner if Fionn sent a new ping since last seen
+      if (typeof data.latestPing === "string" && data.latestPing && getToken() !== "fionn") {
+        try {
+          const lastSeen = window.localStorage.getItem(LAST_PING_KEY) || "";
+          if (data.latestPing > lastSeen) {
+            window.localStorage.setItem(LAST_PING_KEY, data.latestPing);
+            showPingBanner();
+          }
+        } catch (_le) {}
+      }
+
       return Array.isArray(data.history) ? data.history.length : 0;
     } catch (_e) { return -1; }
   }
@@ -1023,6 +1035,10 @@
               <div class="ag-milestone" data-ag-milestone hidden>
                 <span data-ag-milestone-text></span>
               </div>
+              <div class="ag-ping-banner" data-ag-ping-banner hidden>
+                <span data-ag-ping-text>👋 Fionn denkt an dich.</span>
+                <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
+              </div>
               <div class="ag-result-head">
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
@@ -1085,6 +1101,20 @@
                 <p class="ag-wish-note" data-ag-wish-done-note></p>
                 <p class="ag-wish-meta" data-ag-wish-done-meta></p>
               </div>
+            </div>
+
+            <div class="ag-card ag-ping-card" data-ag-ping-card hidden>
+              <div class="ag-hug-row">
+                <div class="ag-hug-text">
+                  <p class="ag-wish-label">Lennart anstupsen</p>
+                  <p class="ag-wish-note" style="margin-bottom:0">Schick Lennart einen kleinen Stups — er erscheint als kurze Meldung beim nächsten App-Öffnen.</p>
+                </div>
+                <button class="ag-hug-button" type="button" data-ag-ping-send aria-label="Ping an Lennart senden">
+                  <span class="ag-hug-emoji" aria-hidden="true">👋</span>
+                  <span class="ag-hug-label">Stups senden</span>
+                </button>
+              </div>
+              <p class="ag-hug-status" data-ag-ping-status hidden></p>
             </div>
 
             <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
@@ -3763,11 +3793,42 @@
 
   // ── Streak milestones ────────────────────────────────────────────────────────
 
+  const DAILY_REMINDER_POOL = [
+    { title: "{name}s Kapsel wartet 🎲", body: "Heute noch keine Kapsel gezogen — zieh jetzt!" },
+    { title: "Guten Morgen, {name} 🌿", body: "Deine tägliche Kapsel ist bereit." },
+    { title: "Die Maschine dreht sich 🎲", body: "Du hast heute noch nicht gezogen — auf geht's!" },
+    { title: "{name}s tägliche Kapsel ✨", body: "Eine neue Chance — die Maschine dreht sich." },
+    { title: "Heute wartet etwas 🎲", body: "Die Kapsel des Tages ist für dich bereit." },
+    { title: "Zeit für die Kapsel 🌿", body: "Zieh heute und sieh, was die Maschine bereithält." },
+    { title: "Die Maschine ruft 🎰", body: "Deine Kapsel läuft nicht weg — aber der Tag schon." },
+  ];
+
+  const STREAK_WARN_POOL = [
+    { title: "{name}s Kapsel läuft ab! 🎲", body: "Noch 3 Stunden — dann ist sie weg für heute." },
+    { title: "Nicht vergessen! 🎲", body: "Deine Kapsel wartet noch. Noch 3 Stunden bis Mitternacht." },
+    { title: "Fast zu spät, {name}! 🌙", body: "21 Uhr — in 3 Stunden ist der Tag vorbei." },
+    { title: "Die Maschine wartet auf dich 🎲", body: "Heute noch nicht gezogen. Auf geht's — es ist gleich zu spät." },
+    { title: "{name}s Streak wackelt! 💎", body: "Noch 3 Stunden — dann ist der Streak in Gefahr." },
+  ];
+
+  function dailyMsgIdx(pool) {
+    const now = new Date();
+    const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+    return doy % pool.length;
+  }
+
   const MILESTONE_MESSAGES = {
-    7:  "🌿 Sieben Tage am Stück. Die Maschine nickt anerkennend.",
-    14: "🔥 Zwei Wochen am Stück. Offiziell notiert im Maschinenregister.",
-    21: "✨ Drei Wochen. Die Maschine neigt sich leicht. Respekt.",
-    30: "💎 Dreißig Tage. Die Maschine ist gerührt und würde applaudieren, wenn sie Hände hätte."
+    7:   "🌿 Sieben Tage am Stück. Die Maschine nickt anerkennend.",
+    14:  "🔥 Zwei Wochen am Stück. Offiziell notiert im Maschinenregister.",
+    21:  "✨ Drei Wochen. Die Maschine neigt sich leicht. Respekt.",
+    30:  "💎 Dreißig Tage. Die Maschine ist gerührt und würde applaudieren, wenn sie Hände hätte.",
+    50:  "🌿 Fünfzig Tage. Ein kleines Wunder in der Praxis der Beständigkeit.",
+    60:  "🔥 Sechzig Tage. Die Maschine erinnert sich an jeden davon.",
+    75:  "✨ Fünfundsiebzig Tage. Dreiviertel einer Jahreszeit. Unbeirrbar.",
+    100: "💎 Hundert Tage. Die Maschine schweigt kurz aus Respekt. Dann: Bravo.",
+    150: "🌿 Hundertfünfzig Tage. Die meisten Dinge scheitern an weniger.",
+    200: "🔥 Zweihundert Tage. Ein Name, der im Maschinenregister unterstrichen ist.",
+    365: "💎 Ein ganzes Jahr. Die Maschine verbeugt sich tief."
   };
 
   function readMilestones() {
@@ -3811,6 +3872,41 @@
     $("[data-ag-milestone-text]").textContent = msg;
     el.hidden = false;
     markMilestoneSeen(token, streak);
+  }
+
+  // ── Ping (Fionn → Lennart) ───────────────────────────────────────────────────
+
+  function showPingBanner() {
+    const banner = $("[data-ag-ping-banner]");
+    if (!banner) return;
+    banner.hidden = false;
+    window.setTimeout(() => { if (banner) banner.hidden = true; }, 7000);
+  }
+
+  function sendPingToBackend() {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const button = $("[data-ag-ping-send]");
+    const status = $("[data-ag-ping-status]");
+    if (button) button.disabled = true;
+    if (status) { status.hidden = false; status.textContent = "Wird gesendet…"; delete status.dataset.agHugState; }
+    const body = JSON.stringify({
+      type: "ping",
+      token: getToken(),
+      pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
+      userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
+    });
+    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+    fetch(cfg.endpointUrl, opts)
+      .then((r) => {
+        if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
+        if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
+      })
+      .catch(() => {
+        fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
+        if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
+        if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
+      });
   }
 
   // ── Notifications ────────────────────────────────────────────────────────────
@@ -3861,12 +3957,13 @@
       if (h >= 21) return;
       const msUntil21 = ((21 - h) * 60 - m) * 60 * 1000 - new Date().getSeconds() * 1000;
       const name = displayNameFromToken();
+      const warnMsg = STREAK_WARN_POOL[dailyMsgIdx(STREAK_WARN_POOL)];
       reg.active.postMessage({
         type: "SCHEDULE_NOTIFICATION",
         tag: "ag-streak-warn",
         targetTime: Date.now() + Math.max(0, msUntil21),
-        title: `${name}s Kapsel läuft ab! 🎲`,
-        body: "Noch 3 Stunden — dann ist sie weg für heute."
+        title: warnMsg.title.replace("{name}", name),
+        body: warnMsg.body.replace("{name}", name)
       });
     } catch (_) {}
   }
@@ -3877,12 +3974,13 @@
     try {
       const reg = await navigator.serviceWorker.ready;
       const name = displayNameFromToken();
+      const dailyMsg = DAILY_REMINDER_POOL[dailyMsgIdx(DAILY_REMINDER_POOL)];
       reg.active?.postMessage({
         type: "SCHEDULE_NOTIFICATION",
         tag: "ag-daily",
         targetTime: nextNotificationTimestamp(),
-        title: `${name}s Kapsel wartet 🎲`,
-        body: "Heute noch keine Kapsel gezogen — zieh jetzt!"
+        title: dailyMsg.title.replace("{name}", name),
+        body: dailyMsg.body.replace("{name}", name)
       });
       // Push quest notification if a new period just started and not yet solved
       if (state.quest?.enabled && isQuestAvailable()) {
@@ -4164,6 +4262,30 @@
         setActiveTab(node.dataset.agTab);
       });
     });
+
+    // Show Fionn's ping card only for Fionn token (when backup is enabled)
+    const pingCard = $("[data-ag-ping-card]");
+    if (pingCard) {
+      pingCard.hidden = !(getToken() === "fionn" && state.backup?.enabled);
+    }
+
+    // Ping dismiss button
+    const pingDismiss = $("[data-ag-ping-dismiss]");
+    if (pingDismiss) {
+      pingDismiss.addEventListener("click", () => {
+        const banner = $("[data-ag-ping-banner]");
+        if (banner) banner.hidden = true;
+      });
+    }
+
+    // Fionn ping send button
+    const pingSend = $("[data-ag-ping-send]");
+    if (pingSend) {
+      pingSend.addEventListener("click", () => {
+        haptic([20, 30, 20]);
+        try { sendPingToBackend(); } catch (_error) { /* never block UI */ }
+      });
+    }
 
     // Notfall-Umarmung
     const hugSend = $("[data-ag-hug-send]");
@@ -5372,6 +5494,24 @@
       @media (prefers-color-scheme:dark){
         .ag-milestone{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
         .ag-milestone span{color:#d4c07a}
+      }
+
+      /* ── Ping banner ── */
+      .ag-ping-banner{
+        display:flex;align-items:center;justify-content:space-between;gap:10px;
+        padding:10px 14px;border-radius:var(--ag-radius-md);
+        background:linear-gradient(135deg,rgba(100,160,255,.12),rgba(47,122,79,.1));
+        border:1px solid rgba(100,160,255,.28);
+        margin-bottom:14px;
+        animation:ag-enter 400ms var(--ag-ease);
+      }
+      .ag-ping-banner[data-ag-ping-banner]:not([hidden]){display:flex}
+      .ag-ping-banner [data-ag-ping-text]{font-size:.92rem;font-weight:600;color:var(--ag-primary-dark);line-height:1.4}
+      .ag-ping-dismiss{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1rem;padding:2px 4px;line-height:1;border-radius:4px}
+      .ag-ping-dismiss:hover{color:var(--ag-text)}
+      @media (prefers-color-scheme:dark){
+        .ag-ping-banner{background:linear-gradient(135deg,rgba(100,160,255,.14),rgba(47,122,79,.12));border-color:rgba(100,160,255,.32)}
+        .ag-ping-banner [data-ag-ping-text]{color:#9ec8ff}
       }
 
       /* ── Notfall-Umarmung card ── */

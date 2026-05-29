@@ -103,6 +103,8 @@ function doGet(e) {
       missionLog.push(entry);
     }
 
+    const latestPing = PropertiesService.getScriptProperties().getProperty("latestPing") || null;
+
     return jsonOut_({
       ok: true,
       history,
@@ -112,7 +114,8 @@ function doGet(e) {
       questPoints:   meta ? meta.questPoints : 0,
       lastUpdated:   meta ? meta.lastUpdated : null,
       baerlauchScores,
-      missionLog
+      missionLog,
+      latestPing
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -179,6 +182,12 @@ function doPost(e) {
           sheet.getRange(rowIdx, 1, 1, 3).setValues([[player, level, new Date().toISOString()]]);
         }
       }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Ping (Fionn → Lennart) ────────────────────────────────────────────────
+    if (data.type === "ping") {
+      PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
       return jsonOut_({ ok: true });
     }
 

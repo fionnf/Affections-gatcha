@@ -33,22 +33,29 @@ self.addEventListener("message", (event) => {
 });
 
 // ── Periodic Background Sync ────────────────────────────────────────────────
+const DAILY_SYNC_POOL = [
+  { title: "Kapsel des Tages 🎲", body: "Die tägliche Kapsel wartet — heute noch nicht gezogen?" },
+  { title: "Guten Morgen 🌿", body: "Deine tägliche Kapsel ist bereit." },
+  { title: "Die Maschine dreht sich 🎲", body: "Heute noch keine Kapsel — auf geht's!" },
+  { title: "Heute wartet etwas ✨", body: "Die Kapsel des Tages ist für dich bereit." },
+  { title: "Tägliche Kapsel bereit 🌿", body: "Eine neue Kapsel wartet. Zieh sie noch heute." },
+];
+
 self.addEventListener("periodicsync", (event) => {
   if (event.tag !== "ag-daily-reminder") return;
   event.waitUntil((async () => {
+    const now = new Date();
     const zurichHour = Number(
       new Intl.DateTimeFormat("en-US", {
         timeZone: "Europe/Zurich",
         hour: "numeric",
         hour12: false
-      }).format(new Date())
+      }).format(now)
     );
     if (zurichHour >= 7 && zurichHour < 9) {
-      await fireNotification(
-        "Kapsel des Tages 🎲",
-        "Die tägliche Kapsel wartet — heute noch nicht gezogen?",
-        "ag-daily"
-      );
+      const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+      const msg = DAILY_SYNC_POOL[doy % DAILY_SYNC_POOL.length];
+      await fireNotification(msg.title, msg.body, "ag-daily");
     }
   })());
 });
