@@ -351,6 +351,38 @@
         {
           "title": "Spiegelmoment",
           "message": "Schau kurz in den Spiegel. Die Maschine bestätigt: korrekt. Du siehst gut aus."
+        },
+        {
+          "title": "Sticker-Energie",
+          "message": "Diese Kapsel ist ein unsichtbarer goldener Sticker auf deiner Stirn. Du hast heute schon etwas gut gemacht."
+        },
+        {
+          "title": "Nachmittagssonne",
+          "message": "Irgendwo auf der Welt ist gerade golden hour. Gönn dir eine Minute Fensterlicht."
+        },
+        {
+          "title": "Fußnote des Tages",
+          "message": "Kleiner, fast übersehener Moment von heute: den gibt es. Er zählt."
+        },
+        {
+          "title": "Português: Encantado",
+          "message": "Encantado — bezaubert. Einfach so."
+        },
+        {
+          "title": "Gaeilge: Grianghraf",
+          "message": "Grianghraf — Foto (IE). Das, was man machen will, wenn der andere nicht hinschaut."
+        },
+        {
+          "title": "Gaeilge: Ciúnas",
+          "message": "Ciúnas — Stille (IE). Die gute Art davon, wenn man einfach da ist."
+        },
+        {
+          "title": "Nederlands: Knusse",
+          "message": "Knusse — gemütlich, aber mit noch mehr Decke."
+        },
+        {
+          "title": "Tee-Moment",
+          "message": "Heiß, mit allem was du willst. Kein Anlass nötig."
         }
       ]
     },
@@ -455,6 +487,10 @@
         {
           "title": "Buchseiten-Tausch",
           "message": "Schick mir einen Satz aus dem, was du gerade liest. Papers und WhatsApp-Verläufe zählen nicht."
+        },
+        {
+          "title": "Beste Stelle",
+          "message": "Finde heute den einen Ort, an dem du am liebsten stehst. Foto schicken."
         }
       ]
     },
@@ -507,6 +543,18 @@
         {
           "title": "35mm-Date",
           "message": "Wir gehen raus mit einer Kamera und dem einzigen Ziel, schöne Dinge auf Film festzuhalten. Keine Agenda sonst."
+        },
+        {
+          "title": "Schlaf-Briefing",
+          "message": "Erzähl Fionn kurz, wie dein Schlaf letzte Nacht war — und ein Traum-Fragment, falls vorhanden."
+        },
+        {
+          "title": "Stilles Foto",
+          "message": "Mach ein Foto von etwas das du schön findest. Kein Text, keine Erklärung. Einfach schicken."
+        },
+        {
+          "title": "Zukunfts-Skizze",
+          "message": "Schreib in 3 Sätzen, wo du in 2 Jahren sein willst. Schick’s Fionn."
         }
       ]
     },
@@ -595,6 +643,14 @@
         {
           "title": "Architektur-Strafe",
           "message": "Beschreib uns als Gebäude: Stil, Material, Statik. Übertreibung ausdrücklich erwünscht."
+        },
+        {
+          "title": "Ältestes-Foto-Steuer",
+          "message": "Die Maschine fordert: Schick Fionn das älteste Foto auf deinem Handy. Ohne Vorwarnung."
+        },
+        {
+          "title": "Soundbite-Pflicht",
+          "message": "Sprachnachricht auf Portugiesisch oder Irisch. Fehler sind ausdrücklich erlaubt."
         }
       ]
     },
@@ -656,6 +712,18 @@
         {
           "title": "Date-Credit: Höhenwanderung",
           "message": "Eine Tour mit Gipfel und Picknick. Aussicht inklusive, Wetter auf Bestellung."
+        },
+        {
+          "title": "Date-Credit: Buchhandlung + Kaffee",
+          "message": "Ihr geht zusammen in eine Buchhandlung. Jeder wählt ein Buch für den anderen aus. Danach Kaffee."
+        },
+        {
+          "title": "Date-Credit: Zug ins Blaue",
+          "message": "Ihr nehmt den nächsten verfügbaren Regionalzug in eine unbekannte Richtung. Mal sehen, was kommt."
+        },
+        {
+          "title": "Date-Credit: Zeichnen & Dasein",
+          "message": "Zwei Skizzenblöcke, Stifte, eine Stunde. Nebeneinander sitzen, keine Agenda."
         }
       ]
     },
