@@ -46,6 +46,9 @@
   const NOTIF_KEY = "affektions-gacha:notif:v1";
   const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
   const STREAK_SYNCED_KEY = "affektions-gacha:streak-synced:v1";
+  const STREAK_RESTORE_KEY = "affektions-gacha:streak-restore:v1";
+  // A streak of this many consecutive days earns one (one-time) streak restore.
+  const STREAK_RESTORE_THRESHOLD = 20;
   const BAERLAUCH_SCORE_KEY = "affektions-gacha:baerlauch-scores:v1";
   const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
   const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
@@ -169,6 +172,100 @@
     try { localStorage.setItem(STREAK_SYNCED_KEY, String(n)); } catch (_) {}
   }
 
+  // "Streak restore": the player earns one restore at every STREAK_RESTORE_THRESHOLD
+  // milestone (20, 40, 60 … days). Each restore mends a single skipped day — the
+  // gap that broke the current run — so the streak reconnects to the run before
+  // it. Persisted as { maxStreak, used }: earned = floor(maxStreak / threshold).
+  function readStreakRestore() {
+    try { return JSON.parse(localStorage.getItem(STREAK_RESTORE_KEY) || "{}") || {}; }
+    catch (_) { return {}; }
+  }
+  function writeStreakRestore(obj) {
+    try { localStorage.setItem(STREAK_RESTORE_KEY, JSON.stringify(obj)); } catch (_) {}
+  }
+  function streakRestoresEarned() {
+    const r = readStreakRestore();
+    return Math.floor((r.maxStreak || 0) / STREAK_RESTORE_THRESHOLD);
+  }
+  function streakRestoresLeft() {
+    const r = readStreakRestore();
+    return Math.max(0, streakRestoresEarned() - (r.used || 0));
+  }
+
+  /** The single skipped day that broke the current run, or null if none.
+   *  This is the first missing day scanning backward from the current run;
+   *  it only counts as a mendable gap when pulled days exist before it. */
+  function streakRestoreGapDay() {
+    const token = getToken();
+    const tz = state.theme?.timezone || "UTC";
+    const today = dateKeyInTimezone(tz);
+    const pulled = new Set(
+      readHistory().filter((e) => e.token === token && e.day <= today).map((e) => e.day)
+    );
+    if (!pulled.size) return null;
+    const firstDay = [...pulled].sort()[0];
+
+    const [y, m, d] = today.split("-").map(Number);
+    const cur = new Date(Date.UTC(y, m - 1, d));
+    let key = today;
+    // Begin at the current run's end (today, or yesterday if today isn't pulled)
+    if (!pulled.has(key)) {
+      cur.setUTCDate(cur.getUTCDate() - 1);
+      key = cur.toISOString().slice(0, 10);
+    }
+    // Walk back over the consecutive run
+    while (pulled.has(key)) {
+      cur.setUTCDate(cur.getUTCDate() - 1);
+      key = cur.toISOString().slice(0, 10);
+    }
+    // `key` is now the first missing day before the run. It's a real, mendable
+    // gap only if there is earlier history to reconnect to.
+    if (key < firstDay) return null;
+    return key;
+  }
+
+  function streakRestoreAvailable() {
+    return streakRestoresLeft() > 0 && streakRestoreGapDay() !== null;
+  }
+
+  /** Mend the single gap day with a "Streak gerettet" placeholder, consume one
+   *  restore, and re-sync. Returns the mended day-key, or null if nothing done. */
+  function restoreStreak() {
+    if (streakRestoresLeft() <= 0) return null;
+    const gapDay = streakRestoreGapDay();
+    if (!gapDay) return null;
+    const token = getToken();
+    const placeholder = {
+      day: gapDay,
+      token,
+      categoryId: "niete",
+      categoryLabel: "Streak gerettet",
+      tone: "quiet",
+      title: "Streak gerettet 💎",
+      message: "Dieser Tag wurde mit einem Streak-Retter wiederhergestellt.",
+      link: null,
+      photo: null,
+      unlockTime: null,
+      revealedAt: new Date(gapDay + "T12:00:00").getTime(),
+      restored: true
+    };
+    const seen = new Set();
+    const merged = [placeholder, ...readHistory()]
+      .filter((item) => {
+        const key = `${item.day}|${item.token}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+    writeHistory(merged);
+    const r = readStreakRestore();
+    writeStreakRestore({ ...r, used: (r.used || 0) + 1, usedAt: Date.now() });
+    writeStreakCache(computeStreak());
+    backupToSheets();
+    return gapDay;
+  }
+
   /** Count consecutive days ending at today (or yesterday if today not yet pulled).
    *  Uses the Sheets-synced cache as a floor so the streak never shows lower after a device switch. */
   function computeStreak() {
@@ -244,16 +341,33 @@
 
   function renderStreak() {
     const el = $("[data-ag-streak]");
-    if (!el) return;
     const streak = computeStreak();
-    const info = streakInfo(streak);
-    if (!info) {
-      el.hidden = true;
-      return;
+
+    // Track the all-time-high streak so restores earned at each 20-day
+    // milestone (20, 40, 60 …) persist even after the streak later breaks.
+    const r = readStreakRestore();
+    if (streak > (r.maxStreak || 0)) {
+      writeStreakRestore({ ...r, maxStreak: streak });
     }
-    el.hidden = false;
-    el.textContent = `${info.emoji} ${info.label}`;
-    el.dataset.agStreakTier = info.tier;
+
+    if (el) {
+      const info = streakInfo(streak);
+      if (!info) {
+        el.hidden = true;
+      } else {
+        el.hidden = false;
+        el.textContent = `${info.emoji} ${info.label}`;
+        el.dataset.agStreakTier = info.tier;
+      }
+    }
+
+    renderStreakRestore();
+  }
+
+  function renderStreakRestore() {
+    const btn = $("[data-ag-streak-restore]");
+    if (!btn) return;
+    btn.hidden = !streakRestoreAvailable();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -874,6 +988,7 @@
               <div class="ag-draw-meta">
                 <span class="ag-pill" data-ag-today-pill>Heute</span>
                 <span class="ag-streak" data-ag-streak hidden></span>
+                <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
               <button class="ag-button" type="button" data-ag-draw>
@@ -2715,6 +2830,9 @@
         poster.src = `https://lh3.googleusercontent.com/d/${driveId}`;
         poster.alt = altText;
         poster.className = "ag-drive-poster-img";
+        // Some Drive videos have no still thumbnail on the lh3 CDN — drop the
+        // broken image so the dark backdrop + play button remain (still clickable).
+        poster.addEventListener("error", () => poster.remove(), { once: true });
         wrapper.appendChild(poster);
 
         const playBtn = document.createElement("div");
@@ -3966,6 +4084,30 @@
       });
     }
 
+    const restoreBtn = $("[data-ag-streak-restore]");
+    if (restoreBtn) {
+      restoreBtn.addEventListener("click", () => {
+        if (!streakRestoreAvailable()) { renderStreakRestore(); return; }
+        const gapDay = streakRestoreGapDay();
+        const left = streakRestoresLeft();
+        const ok = window.confirm(
+          `Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${left - 1} Streak-Retter übrig.`
+        );
+        if (!ok) return;
+        restoreBtn.disabled = true;
+        const mended = restoreStreak();
+        renderHistory();
+        renderStreak();
+        if (mended) {
+          const golds = ["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"];
+          triggerConfetti(110, golds);
+          haptic([30, 20, 30, 20, 60]);
+        }
+        renderStreakRestore();
+        restoreBtn.disabled = false;
+      });
+    }
+
     const syncBtn = $("[data-ag-sync-btn]");
     if (syncBtn) {
       syncBtn.addEventListener("click", async () => {
@@ -4947,6 +5089,23 @@
       .ag-streak[data-ag-streak-tier="3"]{
         background:linear-gradient(90deg,rgba(185,120,46,.22),rgba(47,122,79,.18));
         color:var(--ag-gold);
+      }
+      .ag-streak-restore{
+        display:inline-flex;align-items:center;gap:4px;align-self:flex-start;
+        min-height:24px;padding:0 10px;border-radius:999px;cursor:pointer;
+        font-size:.72rem;font-weight:800;letter-spacing:.03em;font-family:inherit;
+        border:1px solid rgba(185,120,46,.5);
+        background:linear-gradient(90deg,rgba(232,164,164,.2),rgba(185,120,46,.22));
+        color:var(--ag-gold);
+        animation:ag-streak-restore-pulse 2.2s ease-in-out infinite;
+        transition:transform 120ms var(--ag-ease);
+      }
+      .ag-streak-restore:hover{transform:translateY(-1px)}
+      .ag-streak-restore:active{transform:translateY(0)}
+      .ag-streak-restore:disabled{opacity:.6;cursor:default;animation:none}
+      @keyframes ag-streak-restore-pulse{
+        0%,100%{box-shadow:0 0 0 0 rgba(185,120,46,.0)}
+        50%{box-shadow:0 0 0 4px rgba(185,120,46,.18)}
       }
 
       .ag-button,.ag-secondary{
