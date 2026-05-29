@@ -105,6 +105,22 @@
         {
           "title": "Maßstab 1:∞",
           "message": "Der Gewinn ist eingezeichnet, aber unendlich klein. Technisch vorhanden, praktisch nicht einlösbar."
+        },
+        {
+          "title": "Reaktionszeit abgelaufen",
+          "message": "Die Kapsel war katalytisch instabil. Zerfallen, bevor sie gezogen werden konnte. Morgen läuft der Versuch stabiler."
+        },
+        {
+          "title": "Velo-Panne",
+          "message": "Platten auf halber Strecke. Die Kapsel rollt nicht weiter. Wir schieben heute."
+        },
+        {
+          "title": "Nebelhorn am See",
+          "message": "Sichtweite null. Die Maschine gibt keine Preise aus, wenn sie die Hand vor Augen nicht sieht."
+        },
+        {
+          "title": "Leerfahrt",
+          "message": "Zug ist pünktlich, aber der Preis hatte keinen Platz reserviert. Nächste Abfahrt: morgen."
         }
       ]
     },
@@ -315,6 +331,26 @@
         {
           "title": "Höhenmeter-Gutschrift",
           "message": "Dir werden 100 imaginäre Höhenmeter gutgeschrieben. Einlösbar gegen ein stolzes Gipfelgefühl, jederzeit."
+        },
+        {
+          "title": "Gaeilge: Mo sholas",
+          "message": "Irisch für 'mein Licht'. Für Tage, an denen du besonders hell bist."
+        },
+        {
+          "title": "Gaeilge: Conas atá tú?",
+          "message": "'Wie geht's dir?' — auf Irisch. Antworte Fionn, er prüft die Aussprache."
+        },
+        {
+          "title": "Chemie-Fakt: Osmium",
+          "message": "Das dichteste natürliche Element der Erde riecht nach Knoblauch. Wie Bärlauch — nur seltener und giftiger. Du bist besser."
+        },
+        {
+          "title": "Português: Maravilhoso",
+          "message": "Bedeutung: Wunderschön, wunderbar. Passt auf dich."
+        },
+        {
+          "title": "Spiegelmoment",
+          "message": "Schau kurz in den Spiegel. Die Maschine bestätigt: korrekt. Du siehst gut aus."
         }
       ]
     },
@@ -411,6 +447,14 @@
         {
           "title": "Fenster-Porträt",
           "message": "Such ein Fenster, hinter dem wir gern wohnen würden, und beschreib mir die Wohnung dahinter in zwei Sätzen."
+        },
+        {
+          "title": "Podcast-Tausch",
+          "message": "Schick mir eine Folge, die du letztens gehört hast, plus einen Satz Begründung. Ich schick dir eine zurück."
+        },
+        {
+          "title": "Buchseiten-Tausch",
+          "message": "Schick mir einen Satz aus dem, was du gerade liest. Papers und WhatsApp-Verläufe zählen nicht."
         }
       ]
     },
@@ -459,6 +503,10 @@
         {
           "title": "Gute-Nacht-Voicenote",
           "message": "Ein Gutschein für eine Sprachnachricht zum Einschlafen. Themenwahl bei dir."
+        },
+        {
+          "title": "35mm-Date",
+          "message": "Wir gehen raus mit einer Kamera und dem einzigen Ziel, schöne Dinge auf Film festzuhalten. Keine Agenda sonst."
         }
       ]
     },
