@@ -187,9 +187,17 @@
     const r = readStreakRestore();
     return Math.floor((r.maxStreak || 0) / STREAK_RESTORE_THRESHOLD);
   }
+  function birthdayBonusLeft() {
+    // One free restore gifted on Lennart's birthday, 2026-05-29
+    const r = readStreakRestore();
+    if (r.birthdayBonus2026Used) return 0;
+    const tz = state.theme?.timezone || "UTC";
+    const today = dateKeyInTimezone(tz);
+    return today === "2026-05-29" ? 1 : 0;
+  }
   function streakRestoresLeft() {
     const r = readStreakRestore();
-    return Math.max(0, streakRestoresEarned() - (r.used || 0));
+    return Math.max(0, streakRestoresEarned() - (r.used || 0)) + birthdayBonusLeft();
   }
 
   /** The single skipped day that broke the current run, or null if none.
@@ -260,7 +268,14 @@
       .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
     writeHistory(merged);
     const r = readStreakRestore();
-    writeStreakRestore({ ...r, used: (r.used || 0) + 1, usedAt: Date.now() });
+    const earnedLeft = Math.max(0, streakRestoresEarned() - (r.used || 0));
+    const usingBirthday = earnedLeft === 0 && birthdayBonusLeft() > 0;
+    writeStreakRestore({
+      ...r,
+      used: usingBirthday ? (r.used || 0) : (r.used || 0) + 1,
+      birthdayBonus2026Used: usingBirthday ? true : (r.birthdayBonus2026Used || false),
+      usedAt: Date.now()
+    });
     writeStreakCache(computeStreak());
     backupToSheets();
     return gapDay;
@@ -1117,6 +1132,7 @@
         <button class="ag-lightbox-close" id="ag-lightbox-close" type="button" aria-label="Schließen">✕</button>
         <img class="ag-lightbox-img" id="ag-lightbox-img" src="" alt="">
         <p class="ag-lightbox-caption" id="ag-lightbox-caption"></p>
+        <a class="ag-lightbox-drive-link" id="ag-lightbox-drive-link" target="_blank" rel="noopener noreferrer" hidden>▶ In Drive öffnen</a>
       </div>
     `;
   }
@@ -1544,6 +1560,7 @@
     const lb = $("#ag-lightbox");
     const img = $("#ag-lightbox-img");
     const cap = $("#ag-lightbox-caption");
+    const driveLink = $("#ag-lightbox-drive-link");
     if (!lb || !img) return;
     // Clean up any media element injected by a previous open
     lb.querySelector(".ag-lightbox-iframe")?.remove();
@@ -1553,6 +1570,7 @@
       lightboxImgErrorHandler = null;
     }
     img.onerror = null;
+    if (driveLink) driveLink.hidden = true;
 
     const driveId = isVideo ? extractDriveFileId(url) : null;
     if (driveId) {
@@ -1565,6 +1583,10 @@
       iframe.setAttribute("frameborder", "0");
       iframe.className = "ag-lightbox-iframe";
       lb.insertBefore(iframe, cap);
+      if (driveLink) {
+        driveLink.href = `https://drive.google.com/file/d/${driveId}/view`;
+        driveLink.hidden = false;
+      }
     } else if (isVideo) {
       // Non-Drive video (direct .mp4 / iCloud CDN) — native <video>
       img.hidden = true;
@@ -4090,9 +4112,11 @@
         if (!streakRestoreAvailable()) { renderStreakRestore(); return; }
         const gapDay = streakRestoreGapDay();
         const left = streakRestoresLeft();
-        const ok = window.confirm(
-          `Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${left - 1} Streak-Retter übrig.`
-        );
+        const isBirthdayBonus = birthdayBonusLeft() > 0 && (left - birthdayBonusLeft()) <= 0;
+        const confirmMsg = isBirthdayBonus
+          ? `🎂 Geburtstagsgeschenk! Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen?`
+          : `Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${left - 1} Streak-Retter übrig.`;
+        const ok = window.confirm(confirmMsg);
         if (!ok) return;
         restoreBtn.disabled = true;
         const mended = restoreStreak();
@@ -5465,6 +5489,14 @@
         margin:12px 0 0;color:rgba(255,255,255,.7);font-size:.88rem;
         text-align:center;max-width:480px;
       }
+      .ag-lightbox-drive-link{
+        display:inline-block;margin-top:10px;
+        color:rgba(255,255,255,.55);font-size:.8rem;text-decoration:none;
+        border:1px solid rgba(255,255,255,.2);border-radius:20px;
+        padding:4px 14px;transition:color .15s,border-color .15s;
+      }
+      .ag-lightbox-drive-link:hover{color:#fff;border-color:rgba(255,255,255,.6)}
+      .ag-lightbox-drive-link[hidden]{display:none}
 
       .ag-letter-card{
         position:relative;
