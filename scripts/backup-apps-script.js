@@ -15,11 +15,16 @@
  *   "Quests"         — one row per solved quest
  *   "MissionFeedback"— one row per feedback submission (append-only)
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
+ *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
 const BACKUP_SHEET_NAME = "Backup";
 const HISTORY_SHEET_NAME = "History";
+const WISH_SHEET_NAME = "Wünsche";
+
+// Email that receives hug + wish alerts — set to the deployer's address.
+const FIONN_EMAIL = Session.getActiveUser().getEmail();
 
 // ── GET: return full backup for a token ─────────────────────────────────────
 
@@ -174,6 +179,41 @@ function doPost(e) {
           sheet.getRange(rowIdx, 1, 1, 3).setValues([[player, level, new Date().toISOString()]]);
         }
       }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Notfall-Umarmung & Wunschkapsel ──────────────────────────────────────
+    if (data.type === "hug" || data.wish) {
+      const isHug = data.type === "hug";
+      const wishText = data.wish || data.message || "";
+      const sender  = (data.token || "lennart");
+      const ts      = new Date();
+      const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
+
+      // Write to sheet
+      const wishSheet = getOrCreateWuenscheSheet_(ss);
+      wishSheet.appendRow([
+        ts.toISOString(),
+        sender,
+        isHug ? "Notfall-Umarmung" : "Wunschkapsel",
+        wishText,
+        data.pageUrl || "",
+        data.userAgent || ""
+      ]);
+
+      // Email Fionn immediately
+      if (FIONN_EMAIL) {
+        try {
+          const subject = isHug
+            ? `🫂 Notfall-Umarmung von ${sender}!`
+            : `💌 Neuer Wunsch von ${sender}`;
+          const body = isHug
+            ? `${sender} braucht gerade eine Umarmung! 🫂\n\n${tsLocal}`
+            : `Neuer Wunsch eingegangen:\n\n„${wishText}"\n\nVon: ${sender}\n${tsLocal}`;
+          MailApp.sendEmail(FIONN_EMAIL, subject, body);
+        } catch (_mailErr) { /* data is safe in sheet */ }
+      }
+
       return jsonOut_({ ok: true });
     }
 
@@ -340,6 +380,17 @@ function getOrCreateBaerlauchScoresSheet_(ss) {
     sheet = ss.insertSheet("BaerlauchScores");
     sheet.appendRow(["Player", "BestLevel", "LastUpdated"]);
     sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getOrCreateWuenscheSheet_(ss) {
+  let sheet = ss.getSheetByName(WISH_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(WISH_SHEET_NAME);
+    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(4, 400);
   }
   return sheet;
 }
