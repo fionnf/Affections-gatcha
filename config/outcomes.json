@@ -81,6 +81,30 @@
         {
           "title": "Treppenhaus-Echo",
           "message": "Du hörst nur deine eigenen Schritte auf dem Weg zum Gewinn. Er ist noch ein paar Stockwerke entfernt. Lauf weiter!"
+        },
+        {
+          "title": "Falsches Stockwerk",
+          "message": "Der Lift hält, aber der Preis wohnt zwei Etagen höher. Heute keine Kapsel, nur ein leises Fahrstuhl-Pling."
+        },
+        {
+          "title": "Föhnsturm",
+          "message": "Bei diesem Wind kann die Maschine keine Preise ausgeben — sie würden bis nach Konstanz fliegen. Morgen, bei Windstille, gerne wieder."
+        },
+        {
+          "title": "Pipettierfehler",
+          "message": "Fionns Laborhand hat gezittert, die Kapsel blieb leer. Reproduzierbarkeit ist eben schwer."
+        },
+        {
+          "title": "Limmat zu kalt",
+          "message": "Neun Grad heute. Selbst der Preis ist wieder reingesprungen und abgetaucht. Kein Fang."
+        },
+        {
+          "title": "Korb leer",
+          "message": "Wo gestern noch Bärlauch stand, wächst heute nur Brennnessel. Wir kommen wieder, wenn's grünt."
+        },
+        {
+          "title": "Maßstab 1:∞",
+          "message": "Der Gewinn ist eingezeichnet, aber unendlich klein. Technisch vorhanden, praktisch nicht einlösbar."
         }
       ]
     },
@@ -263,6 +287,34 @@
         {
           "title": "Kleiner Höhepunkt",
           "message": "Was war heute die beste Kleinigkeit? Kaffeetemperatur, kurze Stille und warme Duschen zählen vollständig."
+        },
+        {
+          "title": "Português: Aconchego",
+          "message": "Bedeutung: Geborgenheit — das warme Gefühl, irgendwo ganz angekommen zu sein."
+        },
+        {
+          "title": "Português: Xodó",
+          "message": "Bedeutung: Herzensschatz, jemand, den man besonders gern hat."
+        },
+        {
+          "title": "Gaeilge: Grá mo chroí",
+          "message": "Irisch für 'Schatz meines Herzens'. Heute nur als Vokabel ausgegeben."
+        },
+        {
+          "title": "Nederlands: Schatje",
+          "message": "Niederländisch für 'kleiner Schatz'. Einmal laut aussprechen, dann gilt's."
+        },
+        {
+          "title": "Architektur-Fakt: Wendeltreppe",
+          "message": "Wendeltreppen drehen historisch nach rechts, damit der Verteidiger mehr Schwertarm-Platz hat. Du verteidigst heute alles locker mit links."
+        },
+        {
+          "title": "Chemie-Fakt: Koffein",
+          "message": "Koffein hat fast dieselbe Form wie Adenosin und blockiert deshalb deine Müdigkeitsrezeptoren. Geprüft von Fionn, im Selbstversuch."
+        },
+        {
+          "title": "Höhenmeter-Gutschrift",
+          "message": "Dir werden 100 imaginäre Höhenmeter gutgeschrieben. Einlösbar gegen ein stolzes Gipfelgefühl, jederzeit."
         }
       ]
     },
@@ -347,6 +399,18 @@
         {
           "title": "Schilder-Safari",
           "message": "Finde das seltsamste Schild, das du heute siehst, und schick ein Foto oder den exakten Wortlaut."
+        },
+        {
+          "title": "Fionns Laborfrage",
+          "message": "Frag mich etwas über Chemie, das du dich nie zu fragen getraut hast. Dumme Fragen gibt's nur in schlechten Laboren."
+        },
+        {
+          "title": "Schattenstudie",
+          "message": "Finde heute einen schönen Schattenwurf und schick ein Foto. Architekt:innen nennen das Feldforschung."
+        },
+        {
+          "title": "Fenster-Porträt",
+          "message": "Such ein Fenster, hinter dem wir gern wohnen würden, und beschreib mir die Wohnung dahinter in zwei Sätzen."
         }
       ]
     },
@@ -379,6 +443,22 @@
         {
           "title": "Meal-Prep Buddy",
           "message": "Fionn hilft Lennart dabei, das Essen für die ganze nächste Woche vorzubereiten. Fionn erfindet das Mealprep-Rezept."
+        },
+        {
+          "title": "Kletter-Gutschein: Fionn sichert",
+          "message": "Du darfst eine Kletter-Session einfordern, bei der ich sichere und ausschließlich Aufbauendes rufe."
+        },
+        {
+          "title": "Reise-Rezept",
+          "message": "Bestell ein Gericht aus Fionns Reisezeit in Tehran. Wird für dich nachgekocht."
+        },
+        {
+          "title": "Playlist nach Maß",
+          "message": "Du darfst eine Playlist zu einer Stimmung bestellen: Fokus, Fernweh, Feierabend oder Faulenzen."
+        },
+        {
+          "title": "Gute-Nacht-Voicenote",
+          "message": "Ein Gutschein für eine Sprachnachricht zum Einschlafen. Themenwahl bei dir."
         }
       ]
     },
@@ -459,6 +539,14 @@
         {
           "title": "Die Maschine fordert: Vorhersage",
           "message": "Sag der Maschine via Wunschkapsel voraus, was diese Woche noch passiert. Sie erinnert sich. Immer."
+        },
+        {
+          "title": "Komplimente-Inflation",
+          "message": "Mach mir drei Komplimente — aber alle über etwas völlig Belangloses (z.B. meine Sockenwahl)."
+        },
+        {
+          "title": "Architektur-Strafe",
+          "message": "Beschreib uns als Gebäude: Stil, Material, Statik. Übertreibung ausdrücklich erwünscht."
         }
       ]
     },
@@ -508,6 +596,18 @@
         {
           "title": "Date-Credit: Rote Fabrik",
           "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft."
+        },
+        {
+          "title": "Date-Credit: Frühschwimmen",
+          "message": "Morgenbaden im See, mit heißem Kaffee danach. Du musst nur den Wecker überleben."
+        },
+        {
+          "title": "Date-Credit: Sternennacht",
+          "message": "Wir fahren raus, wo's dunkel ist, und zählen Sternbilder. Decke bringt Fionn."
+        },
+        {
+          "title": "Date-Credit: Höhenwanderung",
+          "message": "Eine Tour mit Gipfel und Picknick. Aussicht inklusive, Wetter auf Bestellung."
         }
       ]
     },
@@ -575,6 +675,10 @@
         {
           "title": "JACKPOT: Mo anamchara (IE)",
           "message": "Mein Seelenfreund. Ein Gutschein für eine Nacht ohne Wecker, nur wir."
+        },
+        {
+          "title": "JACKPOT: Nacht mit Aussicht",
+          "message": "Eine Übernachtung irgendwo mit Berg- oder Stadtpanorama. Fionn organisiert alles, du packst nur die Zahnbürste."
         }
       ]
     }
