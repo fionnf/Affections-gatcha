@@ -687,6 +687,9 @@
       bindEvents();
       try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
       registerServiceWorker();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") scheduleStreakWarning();
+      });
       mount.classList.add("is-ready");
       mount.style.transition = "opacity .18s ease";
       mount.style.opacity = "1";
@@ -3293,6 +3296,7 @@
       buttonText.textContent = state.theme.brand.buttonShown;
       state.revealed = true;
       if (!getPreviewDay()) recordHistoryEntry(state.todaysPull);
+      scheduleStreakWarning();
       const streak = computeStreak();
       renderStreak();
       renderMilestoneBanner(streak);
@@ -3839,6 +3843,34 @@
     return Date.now() + minutesUntil * 60 * 1000;
   }
 
+  async function scheduleStreakWarning() {
+    if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (!reg.active) return;
+      const tz = state.theme?.timezone || "Europe/Zurich";
+      const token = getToken();
+      const today = dateKeyInTimezone(tz);
+      const alreadyPulled = readHistory().some((e) => e.token === token && e.day === today);
+      if (alreadyPulled) {
+        reg.active.postMessage({ type: "CANCEL_NOTIFICATION", tag: "ag-streak-warn" });
+        return;
+      }
+      const { h, m } = hmInTimezone(tz);
+      if (h >= 21) return;
+      const msUntil21 = ((21 - h) * 60 - m) * 60 * 1000 - new Date().getSeconds() * 1000;
+      const name = displayNameFromToken();
+      reg.active.postMessage({
+        type: "SCHEDULE_NOTIFICATION",
+        tag: "ag-streak-warn",
+        targetTime: Date.now() + Math.max(0, msUntil21),
+        title: `${name}s Kapsel läuft ab! 🎲`,
+        body: "Noch 3 Stunden — dann ist sie weg für heute."
+      });
+    } catch (_) {}
+  }
+
   async function scheduleNotification() {
     if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
@@ -3847,6 +3879,7 @@
       const name = displayNameFromToken();
       reg.active?.postMessage({
         type: "SCHEDULE_NOTIFICATION",
+        tag: "ag-daily",
         targetTime: nextNotificationTimestamp(),
         title: `${name}s Kapsel wartet 🎲`,
         body: "Heute noch keine Kapsel gezogen — zieh jetzt!"
@@ -3893,6 +3926,7 @@
       });
       if (Notification.permission === "granted") {
         await scheduleNotification();
+        await scheduleStreakWarning();
         await tryPeriodicSync();
       }
     } catch (error) {

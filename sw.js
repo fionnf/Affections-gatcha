@@ -1,38 +1,41 @@
 // Affektions-Gacha service worker
-// Handles scheduled daily 8 AM push notifications and periodic sync.
+// Handles scheduled push notifications and periodic sync.
+// Supports multiple concurrent named timers via a tag field.
 
-const CACHE_NAME = "ag-sw-v1";
-let scheduledTimer = null;
+const scheduledTimers = {};
 
 // ── Message handler ─────────────────────────────────────────────────────────
-// The main page posts { type: "SCHEDULE_NOTIFICATION", targetTime, title, body }
-// after the user grants permission.  We cancel any previous timer and set a
-// new one for targetTime (ms since epoch).
+// SCHEDULE_NOTIFICATION: { type, targetTime, title, body, tag? }
+// CANCEL_NOTIFICATION:   { type, tag? }
 
 self.addEventListener("message", (event) => {
-  if (!event.data || event.data.type !== "SCHEDULE_NOTIFICATION") return;
-  const { targetTime, title, body } = event.data;
-  if (scheduledTimer !== null) {
-    clearTimeout(scheduledTimer);
-    scheduledTimer = null;
+  if (!event.data) return;
+  const { type, targetTime, title, body, tag = "default" } = event.data;
+
+  if (type === "SCHEDULE_NOTIFICATION") {
+    if (scheduledTimers[tag]) {
+      clearTimeout(scheduledTimers[tag]);
+      delete scheduledTimers[tag];
+    }
+    const delay = Math.max(0, targetTime - Date.now());
+    scheduledTimers[tag] = setTimeout(() => {
+      delete scheduledTimers[tag];
+      fireNotification(title, body, tag);
+    }, delay);
   }
-  const delay = Math.max(0, targetTime - Date.now());
-  scheduledTimer = setTimeout(() => {
-    scheduledTimer = null;
-    fireNotification(title, body);
-  }, delay);
+
+  if (type === "CANCEL_NOTIFICATION") {
+    if (scheduledTimers[tag]) {
+      clearTimeout(scheduledTimers[tag]);
+      delete scheduledTimers[tag];
+    }
+  }
 });
 
 // ── Periodic Background Sync ────────────────────────────────────────────────
-// Fires when the browser wakes the SW on the "ag-daily-reminder" tag (Chrome
-// only, requires permission).  We fire a notification if it looks like morning
-// in local time (between 07:45 and 09:00 as a rough guard against duplicate
-// firings at odd hours).
-
 self.addEventListener("periodicsync", (event) => {
   if (event.tag !== "ag-daily-reminder") return;
   event.waitUntil((async () => {
-    // Check current hour in Zurich time so the guard is timezone-aware.
     const zurichHour = Number(
       new Intl.DateTimeFormat("en-US", {
         timeZone: "Europe/Zurich",
@@ -43,7 +46,8 @@ self.addEventListener("periodicsync", (event) => {
     if (zurichHour >= 7 && zurichHour < 9) {
       await fireNotification(
         "Kapsel des Tages 🎲",
-        "Die tägliche Kapsel wartet — heute noch nicht gezogen?"
+        "Die tägliche Kapsel wartet — heute noch nicht gezogen?",
+        "ag-daily"
       );
     }
   })());
@@ -64,13 +68,13 @@ self.addEventListener("notificationclick", (event) => {
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 
-async function fireNotification(title, body) {
+async function fireNotification(title, body, notifTag = "ag-daily") {
   if (self.registration.showNotification) {
     await self.registration.showNotification(title, {
       body,
       icon: "./media/icon-192.png",
       badge: "./media/icon-96.png",
-      tag: "ag-daily",
+      tag: notifTag,
       renotify: true,
       silent: true
     });
