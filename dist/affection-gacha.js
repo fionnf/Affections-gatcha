@@ -708,6 +708,10 @@
       .filter((photo) => photo.url);
   }
 
+  function imagePhotos() {
+    return (state.photos || []).filter((p) => p.type !== "video");
+  }
+
   function injectFonts() {
     if (document.querySelector("[data-ag-fonts]")) return;
     const link = document.createElement("link");
@@ -1334,7 +1338,8 @@
     }
   
     if (reward && rewardPhoto && rewardText && state.photos && state.photos.length) {
-      const photo = state.photos[Math.floor(Math.random() * state.photos.length)];
+      const imgs = imagePhotos();
+      const photo = imgs.length ? imgs[Math.floor(Math.random() * imgs.length)] : null;
       renderMediaInto(rewardPhoto, photo);
       reward.hidden = false;
   
@@ -2068,9 +2073,9 @@
 
     const img = $("#ag-letter-photo");
     if (img && state.photos && state.photos.length) {
-      const photo = state.photos[Math.floor(Math.random() * state.photos.length)];
-      img.src = photo.url;
-      img.hidden = false;
+      const imgs = imagePhotos();
+      const photo = imgs.length ? imgs[Math.floor(Math.random() * imgs.length)] : null;
+      if (photo) { img.src = photo.url; img.hidden = false; }
     }
 
     renderLetterMessage();
@@ -2649,7 +2654,7 @@
         outcomes: specialOutcomes
       };
       const specialPhoto = (special.photoAlt && state.photos.length)
-        ? (state.photos.find((p) => p.alt === special.photoAlt) || null)
+        ? (imagePhotos().find((p) => p.alt === special.photoAlt) || null)
         : null;
       return { day, token, category, outcome, photo: specialPhoto, unlockTime: special.unlockTime || null };
     }
@@ -2662,7 +2667,7 @@
       if (forced) category = forced;
     }
 
-    if (category.id === "photo" && !state.photos.length) {
+    if (category.id === "photo" && !imagePhotos().length) {
       category = state.outcomes.categories.find((item) => item.id === "common") || category;
     }
 
@@ -2677,9 +2682,10 @@
       seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)
     ];
 
+    const imgs = imagePhotos();
     const photo =
-      category.id === "photo" && state.photos.length
-        ? state.photos[seededIndex(`${baseSeed}|photo`, state.photos.length)]
+      category.id === "photo" && imgs.length
+        ? imgs[seededIndex(`${baseSeed}|photo`, imgs.length)]
         : null;
 
     return { day, token, category, outcome, photo, collectToken: outcome.token || null };
@@ -2821,7 +2827,7 @@
 
   function renderMediaInto(container, photo) {
     container.innerHTML = "";
-    if (!photo) return;
+    if (!photo || photo.type === "video") return;
     const altText = photo.alt || "Foto von uns";
     const stage = document.createElement("div");
     stage.className = "ag-media-frame";
@@ -3409,79 +3415,53 @@
 
     li.appendChild(head);
 
-    if (entry.photo) {
+    const VIDEO_EXTS_HIST = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
+    const isVideoPhoto = entry.photo &&
+      (entry.photo.type === "video" || VIDEO_EXTS_HIST.test(entry.photo.url || ""));
+
+    if (entry.photo && !isVideoPhoto) {
       const body = document.createElement("div");
       body.className = "ag-history-body";
 
       const thumb = document.createElement("div");
       thumb.className = "ag-history-thumb";
-      const VIDEO_EXTS_HIST = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
-      const isVideoThumb =
-        entry.photo.type === "video" ||
-        VIDEO_EXTS_HIST.test(entry.photo.url || "");
-      if (isVideoThumb) {
-        thumb.classList.add("is-video");
-        const driveThumbId = extractDriveFileId(entry.photo.url);
-        if (driveThumbId) {
-          // Drive video: show still thumbnail via Drive CDN (same lh3 CDN used for images)
-          const img = document.createElement("img");
-          img.src = `https://lh3.googleusercontent.com/d/${driveThumbId}`;
-          img.alt = entry.photo.alt || "";
-          img.loading = "lazy";
-          img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
-          thumb.appendChild(img);
-        } else {
-          const vid = document.createElement("video");
-          vid.src = safeUrl(entry.photo.url);
-          vid.muted = true;
-          vid.setAttribute("preload", "none");
-          vid.setAttribute("playsinline", "");
-          vid.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
-          thumb.appendChild(vid);
-        }
-        thumb.style.cursor = "pointer";
-        thumb.title = "Vollansicht";
-        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", true, entry.photo.alt));
-      } else {
-        const img = document.createElement("img");
-        img.src = safeUrl(entry.photo.url);
-        img.alt = entry.photo.alt || "Foto-Drop";
-        img.loading = "lazy";
-        img.decoding = "async";
-        img.addEventListener("error", function () {
-          fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
-            const freshPhotos = normalizePhotos(fresh);
-            // Only fall back to an image-typed photo — never a video URL in an <img>.
-            const match =
-              freshPhotos.find((p) => p.alt === entry.photo.alt && p.type !== "video") ||
-              freshPhotos.find((p) => p.type !== "video") ||
-              null;
-            if (match && match.url) {
-              entry.photo.url = match.url;
-              img.src = safeUrl(match.url);
-              state.photos = freshPhotos;
-            } else {
-              thumb.classList.add("is-broken");
-              img.remove();
-              const icon = document.createElement("span");
-              icon.className = "ag-history-thumb-broken";
-              icon.textContent = "📷";
-              thumb.appendChild(icon);
-            }
-          }).catch(() => {
+      const img = document.createElement("img");
+      img.src = safeUrl(entry.photo.url);
+      img.alt = entry.photo.alt || "Foto-Drop";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.addEventListener("error", function () {
+        fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
+          const freshPhotos = normalizePhotos(fresh);
+          const match =
+            freshPhotos.find((p) => p.alt === entry.photo.alt && p.type !== "video") ||
+            freshPhotos.find((p) => p.type !== "video") ||
+            null;
+          if (match && match.url) {
+            entry.photo.url = match.url;
+            img.src = safeUrl(match.url);
+            state.photos = freshPhotos;
+          } else {
             thumb.classList.add("is-broken");
             img.remove();
             const icon = document.createElement("span");
             icon.className = "ag-history-thumb-broken";
             icon.textContent = "📷";
             thumb.appendChild(icon);
-          });
-        }, { once: true });
-        thumb.appendChild(img);
-        thumb.style.cursor = "pointer";
-        thumb.title = "Vollansicht";
-        thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", false, entry.photo.alt));
-      }
+          }
+        }).catch(() => {
+          thumb.classList.add("is-broken");
+          img.remove();
+          const icon = document.createElement("span");
+          icon.className = "ag-history-thumb-broken";
+          icon.textContent = "📷";
+          thumb.appendChild(icon);
+        });
+      }, { once: true });
+      thumb.appendChild(img);
+      thumb.style.cursor = "pointer";
+      thumb.title = "Vollansicht";
+      thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", false, entry.photo.alt));
 
       const text = document.createElement("div");
       text.className = "ag-history-text";
