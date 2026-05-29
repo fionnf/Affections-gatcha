@@ -417,7 +417,7 @@
     {
       "id": "uncommon",
       "label": "Ungewöhnlich",
-      "weight": 100,
+      "weight": 150,
       "tone": "warm",
       "outcomes": [
         {
@@ -553,7 +553,7 @@
     {
       "id": "rare",
       "label": "Selten",
-      "weight": 60,
+      "weight": 90,
       "tone": "rare",
       "outcomes": [
         {
@@ -637,7 +637,7 @@
     {
       "id": "photo",
       "label": "Foto-Drop",
-      "weight": 500,
+      "weight": 350,
       "tone": "photo",
       "outcomes": [
         {
@@ -657,7 +657,7 @@
     {
       "id": "jackpot",
       "label": "JACKPOT",
-      "weight": 10,
+      "weight": 30,
       "tone": "jackpot",
       "outcomes": [
         {
