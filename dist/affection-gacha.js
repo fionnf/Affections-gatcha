@@ -4445,6 +4445,8 @@
         background:var(--ag-scene-sky-bottom);
         isolation:isolate;
         box-shadow:var(--ag-shadow);
+        transform:translateZ(0);
+        -webkit-transform:translateZ(0);
       }
       .ag-scene{
         position:absolute;inset:0;width:100%;height:100%;
