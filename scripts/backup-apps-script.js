@@ -251,7 +251,10 @@ function doPost(e) {
           histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
         } else {
           histSheet.appendRow(row);
-          existingByDay[day] = -1; // prevent double-append within this call
+          // Record the real row index so a second same-day entry in this same
+          // payload updates the row instead of calling getRange(-1, …), which
+          // would throw and abort the whole POST.
+          existingByDay[day] = histSheet.getLastRow();
         }
       }
 

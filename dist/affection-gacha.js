@@ -411,7 +411,10 @@
           if (entry.title === "(wiederhergestellt)") continue;
           const day = normaliseDay(entry.day);
           if (!day || day > today) continue;
-          localByDay.set(day, { ...entry, day });
+          // Normalise token case here too: this also feeds state.syncedHistory,
+          // which readHistory returns raw when localStorage is unavailable.
+          const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
+          localByDay.set(day, { ...entry, day, token: normToken });
         }
         const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
         writeHistory(merged);
@@ -1418,16 +1421,27 @@
 
   // ── Photo lightbox ──────────────────────────────────────────────────────────
 
+  // Shared reference so the image error handler is removed between opens
+  // (a persistent #ag-lightbox-img would otherwise accumulate stale listeners).
+  let lightboxImgErrorHandler = null;
+
   function openLightbox(url, caption, isVideo, altHint) {
     const lb = $("#ag-lightbox");
     const img = $("#ag-lightbox-img");
     const cap = $("#ag-lightbox-caption");
     if (!lb || !img) return;
-    // Clean up any Drive iframe from a previous open
+    // Clean up any media element injected by a previous open
     lb.querySelector(".ag-lightbox-iframe")?.remove();
+    lb.querySelector(".ag-lightbox-video")?.remove();
+    if (lightboxImgErrorHandler) {
+      img.removeEventListener("error", lightboxImgErrorHandler);
+      lightboxImgErrorHandler = null;
+    }
+    img.onerror = null;
 
     const driveId = isVideo ? extractDriveFileId(url) : null;
     if (driveId) {
+      // Drive-hosted video — Google's embedded player
       img.hidden = true;
       const iframe = document.createElement("iframe");
       iframe.src = `https://drive.google.com/file/d/${driveId}/preview`;
@@ -1436,14 +1450,26 @@
       iframe.setAttribute("frameborder", "0");
       iframe.className = "ag-lightbox-iframe";
       lb.insertBefore(iframe, cap);
+    } else if (isVideo) {
+      // Non-Drive video (direct .mp4 / iCloud CDN) — native <video>
+      img.hidden = true;
+      const safe = safeUrl(url);
+      if (!safe) return;
+      const video = document.createElement("video");
+      video.src = safe;
+      video.controls = true;
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.className = "ag-lightbox-video";
+      video.setAttribute("aria-label", caption || "");
+      lb.insertBefore(video, cap);
     } else {
       img.hidden = false;
       const safe = safeUrl(url);
       if (!safe) return;
-      img.onerror = null;
       img.src = safe;
       img.alt = caption || "";
-      img.addEventListener("error", () => {
+      lightboxImgErrorHandler = () => {
         const lookupAlt = altHint || caption;
         fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
           const freshPhotos = normalizePhotos(fresh);
@@ -1453,7 +1479,8 @@
             state.photos = freshPhotos;
           }
         }).catch(() => {});
-      }, { once: true });
+      };
+      img.addEventListener("error", lightboxImgErrorHandler, { once: true });
     }
 
     cap.textContent = caption || "";
@@ -1466,8 +1493,15 @@
     const lb = $("#ag-lightbox");
     if (!lb) return;
     lb.querySelector(".ag-lightbox-iframe")?.remove();
+    lb.querySelector(".ag-lightbox-video")?.remove();
     const lbImg = lb.querySelector(".ag-lightbox-img");
-    if (lbImg) lbImg.hidden = false;
+    if (lbImg) {
+      if (lightboxImgErrorHandler) {
+        lbImg.removeEventListener("error", lightboxImgErrorHandler);
+        lightboxImgErrorHandler = null;
+      }
+      lbImg.hidden = false;
+    }
     lb.hidden = true;
     document.body.style.overflow = "";
   }
@@ -2734,10 +2768,15 @@
       }, { once: true });
 
       mediaEl.addEventListener("error", () => {
-        // URL may have expired — refetch photos.json for fresh URLs and retry once
+        // URL may have expired — refetch photos.json for fresh URLs and retry once.
+        // Only fall back to an image-typed photo so we never assign a video URL
+        // to this <img> (which renders broken).
         fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
           const freshPhotos = normalizePhotos(fresh);
-          const match = freshPhotos.find((p) => p.alt === photo.alt) || freshPhotos[0];
+          const match =
+            freshPhotos.find((p) => p.alt === photo.alt && p.type !== "video") ||
+            freshPhotos.find((p) => p.type !== "video") ||
+            null;
           if (match && match.url) {
             backdrop.style.backgroundImage = `url("${match.url}")`;
             mediaEl.src = safeUrl(match.url);
@@ -2881,9 +2920,17 @@
       if (!raw) return state.syncedHistory || [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return state.syncedHistory || [];
-      const entries = parsed.filter((entry) =>
-        entry && typeof entry.day === "string" && typeof entry.token === "string"
-      );
+      const entries = parsed
+        .filter((entry) =>
+          entry && typeof entry.day === "string" && typeof entry.token === "string"
+        )
+        // Normalise token case on ingest. Entries written locally are already
+        // lowercase, but entries merged from the Google Sheet may carry mixed
+        // case ("Lennart"); without this, case-sensitive filters and the
+        // `${day}|${token}` dedup key would skip or duplicate those rows.
+        .map((entry) => (entry.token === entry.token.toLowerCase()
+          ? entry
+          : { ...entry, token: entry.token.toLowerCase() }));
       return entries.length ? entries : (state.syncedHistory || []);
     } catch (error) {
       return state.syncedHistory || [];
@@ -3104,9 +3151,12 @@
       renderStreak();
       renderMilestoneBanner(streak);
 
-      // Confetti burst on good pulls
+      // Confetti burst on good pulls. Special days (birthday etc.) are
+      // identified by category.id — their tone is set to special.tone (often
+      // "jackpot"), so checking the id is what distinguishes them.
+      const pullCategoryId = state.todaysPull?.category?.id;
       const pullTone = state.todaysPull?.category?.tone;
-      if (pullTone === "special") {
+      if (pullCategoryId === "special") {
         // Special day (e.g. birthday) — rainbow burst, two waves
         const rainbow = ["#ff6b6b","#ffa94d","#ffd43b","#69db7c","#4dabf7","#da77f2","#f783ac","#fff"];
         triggerConfetti(130, rainbow);
@@ -3261,7 +3311,11 @@
         img.addEventListener("error", function () {
           fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
             const freshPhotos = normalizePhotos(fresh);
-            const match = freshPhotos.find((p) => p.alt === entry.photo.alt) || freshPhotos[0];
+            // Only fall back to an image-typed photo — never a video URL in an <img>.
+            const match =
+              freshPhotos.find((p) => p.alt === entry.photo.alt && p.type !== "video") ||
+              freshPhotos.find((p) => p.type !== "video") ||
+              null;
             if (match && match.url) {
               entry.photo.url = match.url;
               img.src = safeUrl(match.url);
@@ -5241,6 +5295,11 @@
       .ag-lightbox-iframe{
         width:min(720px,92vw);aspect-ratio:16/9;
         border:0;border-radius:12px;background:#000;
+        animation:ag-enter 220ms var(--ag-ease) both;
+      }
+      .ag-lightbox-video{
+        max-width:100%;max-height:calc(100vh - 80px);
+        border-radius:12px;background:#000;
         animation:ag-enter 220ms var(--ag-ease) both;
       }
       .ag-lightbox-caption{

@@ -305,8 +305,12 @@ function pickBestDerivative(derivatives, preferVideo) {
     }
     return null;
   }
-  entries.sort((a, b) => sizeOf(b) - sizeOf(a));
-  return entries[0];
+  // Image branch: exclude video derivatives so we never emit an image-typed
+  // entry that actually points at a video stream (broken/blank in <img>).
+  const images = entries.filter((d) => !isVideoEntry(d._k, d));
+  const pool = images.length ? images : entries;
+  pool.sort((a, b) => sizeOf(b) - sizeOf(a));
+  return pool[0];
 }
 
 function sizeOf(d) {
@@ -386,7 +390,8 @@ async function syncGooglePhotos(url, options = {}) {
     photos.push({
       url: finalUrl,
       alt: `Erinnerung ${index}`,
-      type: "image"
+      type: "image",
+      key: googleStableKey(cleaned)
     });
   }
 
@@ -501,7 +506,8 @@ async function buildGooglePhotosFromItems(items) {
         photos.push({
           url: videoUrl,
           alt: `Erinnerung ${index}`,
-          type: "video"
+          type: "video",
+          key: googleStableKey(cleaned)
         });
         continue;
       }
@@ -516,7 +522,8 @@ async function buildGooglePhotosFromItems(items) {
         photos.push({
           url: `${cleaned}=s2048`,
           alt: `Erinnerung ${index}`,
-          type: "image"
+          type: "image",
+          key: googleStableKey(cleaned)
         });
         continue;
       }
@@ -543,7 +550,8 @@ async function buildGooglePhotosFromItems(items) {
     photos.push({
       url: `${cleaned}=s2048`,
       alt: `Erinnerung ${index}`,
-      type: "image"
+      type: "image",
+      key: googleStableKey(cleaned)
     });
   }
   if (livePhotoCount) {
@@ -708,14 +716,27 @@ async function syncWithDrive(photos, folderId) {
   let uploaded = 0;
   let reused = 0;
 
+  // Persist the manifest after every upload so a mid-run failure (or process
+  // kill) doesn't discard the driveIds recorded so far and cause a full
+  // re-upload of duplicates next run.
+  const persistManifest = () => {
+    fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+  };
+
   for (const photo of photos) {
+    // Stable manifest key: iCloud photos carry a guid; Google Photos items
+    // carry a stable base-URL key. Items with neither stay ephemeral (no
+    // manifest entry) — keying them on the per-run media URL would only bloat
+    // the manifest with dead entries since those URLs change every sync.
+    const photoKey = photo.guid || photo.key || null;
+
     // Resolve or create manifest entry
-    let entry = photo.guid ? manifest.photos[photo.guid] : null;
+    let entry = photoKey ? manifest.photos[photoKey] : null;
     if (!entry) {
       const alt = `Erinnerung ${manifest.nextIndex}`;
       manifest.nextIndex += 1;
       entry = { alt, ext: null, driveId: null };
-      if (photo.guid) manifest.photos[photo.guid] = entry;
+      if (photoKey) manifest.photos[photoKey] = entry;
     }
 
     let needsUpload = !entry.driveId || !driveFileIds.has(entry.driveId);
@@ -741,7 +762,7 @@ async function syncWithDrive(photos, folderId) {
           entry.driveId = candidate;
           entry.ext = tryExt;
           needsUpload = false;
-          reused++;
+          // Note: the `else` branch below counts this as reused; don't double-count here.
           console.log(`Drive: found ${entry.alt}.${tryExt} in folder by name — reusing (${candidate}).`);
           break;
         }
@@ -791,17 +812,27 @@ async function syncWithDrive(photos, folderId) {
           fields: "id"
         });
         fileId = file.id;
+      } catch (err) {
+        console.warn(`\nDrive: upload failed (${err.message}), keeping original URL for ${entry.alt}.`);
+        result.push(photo);
+        continue;
+      }
+
+      // Record the driveId immediately — before sharing — so a transient
+      // permissions failure doesn't orphan an already-uploaded file and force
+      // a duplicate re-upload next run.
+      entry.driveId = fileId;
+      uploaded++;
+      persistManifest();
+
+      try {
         await drive.permissions.create({
           fileId,
           requestBody: { role: "reader", type: "anyone" }
         });
         console.log(`done (${fileId})`);
-        entry.driveId = fileId;
-        uploaded++;
       } catch (err) {
-        console.warn(`\nDrive: upload failed (${err.message}), keeping original URL for ${entry.alt}.`);
-        result.push(photo);
-        continue;
+        console.warn(`\nDrive: ${entry.alt} uploaded (${fileId}) but sharing failed (${err.message}) — it may not be publicly viewable.`);
       }
     } else {
       reused++;
@@ -821,14 +852,22 @@ async function syncWithDrive(photos, folderId) {
     result.push({ ...photo, alt: entry.alt, url: driveUrl });
   }
 
-  // Persist updated manifest
-  fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+  // Final persist (also captures name-recovered entries that didn't upload)
+  persistManifest();
 
   console.log(`Drive: ${uploaded} uploaded, ${reused} reused from previous sync.`);
   return result;
 }
 
 /* ---------- helpers ---------- */
+
+// Normalise a Google Photos base URL into a stable manifest key. The lhN
+// subdomain (lh3/lh5/...) can rotate between requests, so collapse it so the
+// same photo maps to the same key across syncs.
+function googleStableKey(cleanedBaseUrl) {
+  if (typeof cleanedBaseUrl !== "string" || !cleanedBaseUrl) return null;
+  return cleanedBaseUrl.replace(/^https:\/\/lh\d+\./i, "https://lh.");
+}
 
 function readJson(filePath) {
   try {
