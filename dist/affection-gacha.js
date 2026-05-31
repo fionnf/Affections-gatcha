@@ -54,6 +54,7 @@
   const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
   const GESPRACH_IDX_KEY = "affektions-gacha:gesprach-idx:v1";
   const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
+  const SOUND_KEY = "affektions-gacha:sound:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -1025,6 +1026,7 @@
                 <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
+              <button class="ag-sound-toggle" type="button" data-ag-sound-toggle aria-label="Ton ein/aus" title="Ton ein/aus">🔊</button>
               <button class="ag-button" type="button" data-ag-draw>
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span data-ag-button-text>Kapsel ziehen</span>
@@ -3341,13 +3343,18 @@
         const rainbow = ["#ff6b6b","#ffa94d","#ffd43b","#69db7c","#4dabf7","#da77f2","#f783ac","#fff"];
         triggerConfetti(130, rainbow);
         setTimeout(() => triggerConfetti(90, rainbow), 700);
+        playPullSound("special");
       } else if (pullTone === "jackpot") {
         // Jackpot — gold-heavy burst, two waves
         const golds = ["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"];
         triggerConfetti(120, golds);
         setTimeout(() => triggerConfetti(80, golds), 650);
+        playPullSound("jackpot");
       } else if (pullTone === "rare") {
         triggerConfetti(70);
+        playPullSound("rare");
+      } else {
+        playPullSound(pullTone || "common");
       }
 
       if (MILESTONE_MESSAGES[streak]) {
@@ -4063,6 +4070,78 @@
     if (tab === "lieblinge") renderLieblinge();
   }
 
+  // ── Sound engine (Web Audio API, no external files) ─────────────────────────
+
+  let _audioCtx = null;
+
+  function _getAudioCtx() {
+    if (!_audioCtx) {
+      try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+    }
+    return _audioCtx;
+  }
+
+  function soundEnabled() {
+    try { return window.localStorage.getItem(SOUND_KEY) !== "off"; } catch (_) { return true; }
+  }
+
+  function setSoundEnabled(on) {
+    try { window.localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch (_) {}
+  }
+
+  function _playNote(ctx, freq, startSec, dur, vol = 0.15, type = "sine") {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    const t = ctx.currentTime + startSec;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+
+  function playPullSound(tone) {
+    if (!soundEnabled()) return;
+    const ctx = _getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    switch (tone) {
+      case "quiet":
+        _playNote(ctx, 280, 0,    0.18, 0.08, "sine");
+        _playNote(ctx, 210, 0.12, 0.22, 0.06, "sine");
+        break;
+      case "cursed":
+        _playNote(ctx, 220, 0,    0.12, 0.10, "triangle");
+        _playNote(ctx, 170, 0.09, 0.28, 0.07, "triangle");
+        break;
+      case "uncommon":
+        _playNote(ctx, 523, 0,    0.14, 0.14, "sine");
+        _playNote(ctx, 784, 0.10, 0.22, 0.12, "sine");
+        break;
+      case "rare":
+        _playNote(ctx, 523, 0,    0.12, 0.14, "sine");
+        _playNote(ctx, 659, 0.09, 0.12, 0.14, "sine");
+        _playNote(ctx, 1047,0.18, 0.30, 0.12, "sine");
+        break;
+      case "jackpot":
+        [523, 659, 784, 1047, 1319].forEach((f, i) => _playNote(ctx, f, i * 0.09, 0.18, 0.13, "sine"));
+        _playNote(ctx, 2093, 0.40, 0.40, 0.04, "sine");
+        break;
+      case "special":
+        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => _playNote(ctx, f, i * 0.08, 0.16, 0.13, "sine"));
+        _playNote(ctx, 2093, 0.45, 0.50, 0.05, "sine");
+        break;
+      default: // common, quest, collect, photo
+        _playNote(ctx, 523, 0,    0.12, 0.13, "sine");
+        _playNote(ctx, 659, 0.09, 0.18, 0.10, "sine");
+        break;
+    }
+  }
+
   // ── Haptic feedback ─────────────────────────────────────────────────────────
 
   function haptic(pattern) {
@@ -4262,6 +4341,19 @@
         setActiveTab(node.dataset.agTab);
       });
     });
+
+    // Sound toggle
+    const soundToggle = $("[data-ag-sound-toggle]");
+    if (soundToggle) {
+      const updateSoundBtn = () => { soundToggle.textContent = soundEnabled() ? "🔊" : "🔇"; };
+      updateSoundBtn();
+      soundToggle.addEventListener("click", () => {
+        setSoundEnabled(!soundEnabled());
+        updateSoundBtn();
+        haptic(6);
+        if (soundEnabled()) playPullSound("common");
+      });
+    }
 
     // Show Fionn's ping card only for Fionn token (when backup is enabled)
     const pingCard = $("[data-ag-ping-card]");
@@ -5231,6 +5323,12 @@
         display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
       }
       .ag-draw-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+      .ag-sound-toggle{
+        background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;
+        padding:4px;border-radius:6px;color:var(--ag-muted);transition:color 120ms,opacity 120ms;
+        margin-left:auto;
+      }
+      .ag-sound-toggle:hover{color:var(--ag-text)}
       .ag-pill{
         display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
         border-radius:999px;background:var(--ag-surface-2);
