@@ -6305,6 +6305,8 @@
       .ag-berge-elev-input{font-size:1rem;font-weight:700}
       .ag-berge-notes{resize:vertical;min-height:60px}
 
+      [data-ag-berge-list]{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+
       .ag-gipfel-card{
         position:relative;overflow:hidden;
         animation:ag-enter 350ms var(--ag-ease);
