@@ -56,6 +56,7 @@
   const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
   const SOUND_KEY = "affektions-gacha:sound:v1";
   const GIPFELBUCH_KEY = "affektions-gacha:gipfelbuch:v1";
+  const GLOSSARY_KEY  = "affektions-gacha:glossary:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -640,6 +641,16 @@
         if (state.activeTab === "berge") renderBergePanel();
       }
 
+      // Merge Glossary — sheet is source of truth
+      if (Array.isArray(data.glossary) && data.glossary.length) {
+        const local = readGlossary();
+        const byId = new Map(local.map(w => [w.id, w]));
+        for (const w of data.glossary) { if (w.id) byId.set(w.id, w); }
+        writeGlossary(Array.from(byId.values()));
+        const panel = document.getElementById("ag-glossary-panel");
+        if (panel && !panel.hidden) renderGlossaryPanel(_glossaryCurrentLang);
+      }
+
       return Array.isArray(data.history) ? data.history.length : 0;
     } catch (_e) { return -1; }
   }
@@ -1032,6 +1043,48 @@
             <div class="ag-mission-log" id="ag-mission-log" hidden></div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Glossar 📖</span>
+              <button class="ag-secondary" type="button" id="ag-glossary-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Unser Glossar</h2>
+            <div class="ag-glossary-tabs" id="ag-glossary-tabs">
+              <div class="ag-glossary-tab-track">
+                <div class="ag-glossary-tab-pill" id="ag-glossary-pill"></div>
+                <button class="ag-glossary-tab is-active" type="button" data-lang="swabian">Schwäbisch</button>
+                <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
+                <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
+              </div>
+            </div>
+            <div class="ag-glossary-list" id="ag-glossary-list"></div>
+            <p class="ag-history-empty" id="ag-glossary-empty" hidden>Noch kein Wort hier. Füg eins hinzu.</p>
+            <button class="ag-button ag-glossary-add-btn" type="button" id="ag-glossary-add" style="width:100%;justify-content:center;margin-top:12px">
+              <span class="ag-button-orb" aria-hidden="true"></span>
+              <span>Wort hinzufügen</span>
+            </button>
+            <div class="ag-glossary-form" id="ag-glossary-form" hidden>
+              <p class="ag-wish-label" id="ag-glossary-form-title">Neues Wort</p>
+              <input type="hidden" id="ag-glossary-edit-id">
+              <div class="ag-glossary-form-fields">
+                <input class="ag-berge-input" type="text" id="ag-glossary-word-input" placeholder="Wort / Ausdruck" maxlength="80">
+                <textarea class="ag-berge-input ag-glossary-textarea" id="ag-glossary-meaning-input" rows="2" maxlength="300" placeholder="Bedeutung / Erklärung"></textarea>
+                <div class="ag-glossary-audio-row">
+                  <button class="ag-secondary ag-glossary-record-btn" type="button" id="ag-glossary-record">🎙 Aufnehmen</button>
+                  <button class="ag-secondary ag-glossary-play-preview" type="button" id="ag-glossary-play-preview" hidden>▶ Abspielen</button>
+                  <span class="ag-glossary-audio-status" id="ag-glossary-audio-status"></span>
+                </div>
+              </div>
+              <div class="ag-wish-actions">
+                <button class="ag-secondary" type="button" id="ag-glossary-form-cancel">Abbrechen</button>
+                <button class="ag-button" type="button" id="ag-glossary-form-save">
+                  <span class="ag-button-orb" aria-hidden="true"></span>
+                  <span id="ag-glossary-save-label">Eintragen</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -1245,7 +1298,7 @@
   }
 
   function defaultChips() {
-    return ["Wald", "Velo", "Bärlauch", "Rave 🪩"];
+    return ["Velo", "Bärlauch", "Rave 🪩", "Glossar 📖"];
   }
 
   // Always-on emojis (bike + garlic) plus a deterministic selection from the
@@ -2524,6 +2577,14 @@
           const qs = readQuestState();
           if (!qs.solved) li.classList.add("ag-chip-quest-active");
         }
+      }
+
+      if (chip.toLowerCase().includes("glossar")) {
+        li.id = "ag-btn-glossary";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Glossar öffnen");
+        li.classList.add("ag-chip-clickable");
       }
 
       if (chip.toLowerCase() === "mission") {
@@ -3986,6 +4047,182 @@
     postGipfelToSheet("gipfel-upsert", updated);
   }
 
+  // ── Glossary ─────────────────────────────────────────────────────────────────
+
+  function readGlossary() {
+    try { return JSON.parse(window.localStorage.getItem(GLOSSARY_KEY) || "[]") || []; } catch (_) { return []; }
+  }
+  function writeGlossary(words) {
+    try { window.localStorage.setItem(GLOSSARY_KEY, JSON.stringify(words)); } catch (_) {}
+  }
+  function addGlossaryWord(entry) {
+    const words = readGlossary();
+    words.unshift(entry);
+    writeGlossary(words);
+    postGlossaryToSheet("glossary-upsert", { ...entry, createdAt: new Date().toISOString() });
+  }
+  function updateGlossaryWord(id, fields) {
+    const words = readGlossary();
+    const idx = words.findIndex(w => w.id === id);
+    if (idx === -1) return;
+    const updated = { ...words[idx], ...fields };
+    words[idx] = updated;
+    writeGlossary(words);
+    postGlossaryToSheet("glossary-upsert", updated);
+  }
+  function deleteGlossaryWord(id) {
+    writeGlossary(readGlossary().filter(w => w.id !== id));
+    postGlossaryToSheet("glossary-delete", { id });
+  }
+  function postGlossaryToSheet(type, payload) {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const body = JSON.stringify({ type, token: getToken(), ...payload });
+    fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body })
+      .catch(() => fetch(cfg.endpointUrl, { method: "POST", mode: "no-cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {}));
+  }
+
+  let _glossaryRecorder = null;
+  let _glossaryAudioBlob = null;
+  let _glossaryCurrentLang = "swabian";
+
+  async function _blobToDataUrl(blob) {
+    return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+  }
+
+  async function uploadGlossaryAudio(blob, wordId) {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return _blobToDataUrl(blob);
+    try {
+      const dataUrl = await _blobToDataUrl(blob);
+      const base64 = dataUrl.split(",")[1];
+      const mimeType = blob.type || "audio/webm";
+      const body = JSON.stringify({ type: "glossary-audio", token: getToken(), filename: `glossary-${wordId}.webm`, mimeType, data: base64 });
+      const resp = await fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
+      const json = await resp.json();
+      if (json.ok && json.url) return json.url;
+      return dataUrl;
+    } catch (_) {
+      return _blobToDataUrl(blob);
+    }
+  }
+
+  function renderGlossaryWord(word) {
+    const card = document.createElement("div");
+    card.className = "ag-glossary-card";
+    card.dataset.agGlossaryId = word.id;
+    card.innerHTML = `
+      <div class="ag-glossary-card-body">
+        <div class="ag-glossary-card-text">
+          <div class="ag-glossary-word">${word.word || "—"}</div>
+          ${word.meaning ? `<div class="ag-glossary-meaning-text">${word.meaning}</div>` : ""}
+        </div>
+        <div class="ag-glossary-card-btns">
+          ${word.audioUrl ? `<button class="ag-glossary-play-btn" type="button" data-ag-glossary-play="${word.id}" aria-label="Abspielen">▶</button>` : ""}
+          <button class="ag-glossary-edit-btn" type="button" data-ag-glossary-edit="${word.id}" aria-label="Bearbeiten">Bearbeiten</button>
+          <button class="ag-glossary-del-btn" type="button" data-ag-glossary-del="${word.id}" aria-label="Löschen">✕</button>
+        </div>
+      </div>
+    `;
+    const playBtn = card.querySelector("[data-ag-glossary-play]");
+    if (playBtn && word.audioUrl) {
+      playBtn.addEventListener("click", () => {
+        const audio = new Audio(word.audioUrl);
+        audio.play().catch(() => {});
+        haptic(6);
+      });
+    }
+    const editBtn = card.querySelector("[data-ag-glossary-edit]");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        const form = document.getElementById("ag-glossary-form");
+        const addBtn = document.getElementById("ag-glossary-add");
+        if (!form) return;
+        document.getElementById("ag-glossary-edit-id").value = word.id;
+        document.getElementById("ag-glossary-word-input").value = word.word || "";
+        document.getElementById("ag-glossary-meaning-input").value = word.meaning || "";
+        const titleEl = document.getElementById("ag-glossary-form-title");
+        if (titleEl) titleEl.textContent = "Wort bearbeiten";
+        const labelEl = document.getElementById("ag-glossary-save-label");
+        if (labelEl) labelEl.textContent = "Speichern";
+        const statusEl = document.getElementById("ag-glossary-audio-status");
+        if (statusEl) statusEl.textContent = word.audioUrl ? "Aufnahme vorhanden" : "";
+        _glossaryAudioBlob = null;
+        form.hidden = false;
+        if (addBtn) addBtn.hidden = true;
+        form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        document.getElementById("ag-glossary-word-input")?.focus();
+        haptic(8);
+      });
+    }
+    const delBtn = card.querySelector("[data-ag-glossary-del]");
+    if (delBtn) {
+      delBtn.addEventListener("click", () => {
+        if (!window.confirm(`„${word.word}" löschen?`)) return;
+        deleteGlossaryWord(word.id);
+        renderGlossaryPanel(_glossaryCurrentLang);
+        haptic(8);
+      });
+    }
+    return card;
+  }
+
+  function renderGlossaryPanel(lang) {
+    _glossaryCurrentLang = lang || "swabian";
+    const list = document.getElementById("ag-glossary-list");
+    const empty = document.getElementById("ag-glossary-empty");
+    if (!list) return;
+    // Update tab active state
+    document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
+      btn.classList.toggle("is-active", btn.dataset.lang === _glossaryCurrentLang);
+    });
+    _glossaryMovePill();
+    const words = readGlossary().filter(w => w.lang === _glossaryCurrentLang);
+    list.innerHTML = "";
+    if (!words.length) {
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    words.forEach(w => list.appendChild(renderGlossaryWord(w)));
+  }
+
+  function _glossaryMovePill() {
+    const pill = document.getElementById("ag-glossary-pill");
+    const tabs = document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab");
+    if (!pill || !tabs.length) return;
+    const activeBtn = document.querySelector(`#ag-glossary-tabs .ag-glossary-tab.is-active`);
+    if (!activeBtn) return;
+    pill.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    pill.style.width = `${activeBtn.offsetWidth}px`;
+  }
+
+  function openGlossaryPanel() {
+    const panel = document.getElementById("ag-glossary-panel");
+    if (!panel) return;
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    _glossaryCurrentLang = "swabian";
+    renderGlossaryPanel("swabian");
+    // reset pill after layout
+    window.requestAnimationFrame(() => _glossaryMovePill());
+    haptic(10);
+  }
+
+  function closeGlossaryPanel() {
+    const panel = document.getElementById("ag-glossary-panel");
+    if (panel) panel.hidden = true;
+    const form = document.getElementById("ag-glossary-form");
+    if (form) form.hidden = true;
+    const addBtn = document.getElementById("ag-glossary-add");
+    if (addBtn) addBtn.hidden = false;
+    _glossaryAudioBlob = null;
+    if (_glossaryRecorder && _glossaryRecorder.state !== "inactive") {
+      try { _glossaryRecorder.stop(); } catch (_) {}
+    }
+    _glossaryRecorder = null;
+  }
+
   function formatElev(m) {
     if (!m && m !== 0) return "—";
     return Number(m).toLocaleString("de-CH") + " m";
@@ -4011,8 +4248,10 @@
   function formatBergeDate(iso) {
     if (!iso) return "";
     try {
-      return new Date(iso + "T12:00:00").toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
-    } catch (_) { return iso; }
+      const d = iso.includes("T") ? new Date(iso) : new Date(iso + "T12:00:00");
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
+    } catch (_) { return ""; }
   }
 
   function extractKomootId(url) {
@@ -4021,8 +4260,8 @@
   }
 
   function extractAllTrailsSlug(url) {
-    // handle /explore/trail/... and /trail/... and /explore/recording/...
-    const m = url.match(/alltrails\.com\/(?:explore\/)?(trail\/[^?#]+)/);
+    // Handles /trail/..., /explore/trail/..., /de/trail/..., locale-prefixed paths
+    const m = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?(trail\/[^?#]+)/);
     return m ? m[1].replace(/\/$/, "") : null;
   }
 
@@ -4049,41 +4288,13 @@
         <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
       </div>
       ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
-      ${komootId ? `<div class="ag-gipfel-embed-wrap">
-        <button class="ag-secondary ag-gipfel-load-btn" type="button" data-ag-load-komoot="${komootId}">▶ Komoot-Tour laden</button>
-        <div class="ag-gipfel-iframe-wrap" data-ag-iframe-wrap-km="${komootId}" hidden></div>
-      </div>` : ""}
-      ${allTrailsSlug ? `<div class="ag-gipfel-embed-wrap">
-        <button class="ag-secondary ag-gipfel-load-btn" type="button" data-ag-load-alltrails="${allTrailsSlug}">▶ AllTrails-Route laden</button>
-        <div class="ag-gipfel-iframe-wrap" data-ag-iframe-wrap-at="${allTrailsSlug}" hidden></div>
-      </div>` : ""}
+      ${komootId ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="200" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour"></iframe></div>` : ""}
+      ${allTrailsSlug ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.alltrails.com/widget/${allTrailsSlug}?scrollZoom=false&u=m" height="200" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route"></iframe></div>` : ""}
       ${isAllTrails && !allTrailsSlug ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
       ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
       <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">Bearbeiten</button>
       <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
     `;
-
-    const loadKomootBtn = card.querySelector("[data-ag-load-komoot]");
-    if (loadKomootBtn) {
-      loadKomootBtn.addEventListener("click", () => {
-        const wrap = card.querySelector(`[data-ag-iframe-wrap-km="${komootId}"]`);
-        if (!wrap) return;
-        loadKomootBtn.hidden = true;
-        wrap.hidden = false;
-        wrap.innerHTML = `<iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" width="100%" height="320" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="border-radius:8px;display:block"></iframe>`;
-      });
-    }
-
-    const loadAtBtn = card.querySelector("[data-ag-load-alltrails]");
-    if (loadAtBtn && allTrailsSlug) {
-      loadAtBtn.addEventListener("click", () => {
-        const wrap = card.querySelector(`[data-ag-iframe-wrap-at="${allTrailsSlug}"]`);
-        if (!wrap) return;
-        loadAtBtn.hidden = true;
-        wrap.hidden = false;
-        wrap.innerHTML = `<iframe src="https://www.alltrails.com/widget/${allTrailsSlug}?scrollZoom=false&u=m" width="100%" height="400" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="border-radius:8px;display:block;border:0"></iframe>`;
-      });
-    }
 
     const editBtn = card.querySelector("[data-ag-gipfel-edit]");
     if (editBtn) {
@@ -4468,6 +4679,129 @@
       }
     });
     $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
+
+    // ── Glossary ────────────────────────────────────────────────────────────────
+    $("#ag-btn-glossary")?.addEventListener("click", openGlossaryPanel);
+    $("#ag-btn-glossary")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGlossaryPanel(); }
+    });
+    $("#ag-glossary-close")?.addEventListener("click", closeGlossaryPanel);
+
+    // Language tabs
+    document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
+      btn.addEventListener("click", () => { renderGlossaryPanel(btn.dataset.lang); haptic(4); });
+    });
+
+    // Add button
+    const glossaryAddBtn = document.getElementById("ag-glossary-add");
+    const glossaryForm = document.getElementById("ag-glossary-form");
+    if (glossaryAddBtn) {
+      glossaryAddBtn.addEventListener("click", () => {
+        if (!glossaryForm) return;
+        document.getElementById("ag-glossary-edit-id").value = "";
+        document.getElementById("ag-glossary-word-input").value = "";
+        document.getElementById("ag-glossary-meaning-input").value = "";
+        const titleEl = document.getElementById("ag-glossary-form-title");
+        if (titleEl) titleEl.textContent = "Neues Wort";
+        const labelEl = document.getElementById("ag-glossary-save-label");
+        if (labelEl) labelEl.textContent = "Eintragen";
+        const statusEl = document.getElementById("ag-glossary-audio-status");
+        if (statusEl) statusEl.textContent = "";
+        _glossaryAudioBlob = null;
+        const playPrev = document.getElementById("ag-glossary-play-preview");
+        if (playPrev) playPrev.hidden = true;
+        glossaryForm.hidden = false;
+        glossaryAddBtn.hidden = true;
+        document.getElementById("ag-glossary-word-input")?.focus();
+        haptic(8);
+      });
+    }
+
+    // Form cancel
+    document.getElementById("ag-glossary-form-cancel")?.addEventListener("click", () => {
+      if (glossaryForm) glossaryForm.hidden = true;
+      if (glossaryAddBtn) glossaryAddBtn.hidden = false;
+      document.getElementById("ag-glossary-edit-id").value = "";
+      _glossaryAudioBlob = null;
+      if (_glossaryRecorder && _glossaryRecorder.state !== "inactive") {
+        try { _glossaryRecorder.stop(); } catch (_) {}
+      }
+      _glossaryRecorder = null;
+      haptic(6);
+    });
+
+    // Form save
+    document.getElementById("ag-glossary-form-save")?.addEventListener("click", async () => {
+      const word = (document.getElementById("ag-glossary-word-input")?.value || "").trim();
+      const meaning = (document.getElementById("ag-glossary-meaning-input")?.value || "").trim();
+      const editId = (document.getElementById("ag-glossary-edit-id")?.value || "").trim();
+      if (!word) { document.getElementById("ag-glossary-word-input")?.focus(); return; }
+      const statusEl = document.getElementById("ag-glossary-audio-status");
+      let audioUrl = null;
+      if (_glossaryAudioBlob) {
+        if (statusEl) statusEl.textContent = "Wird hochgeladen…";
+        const newId = editId || `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+        audioUrl = await uploadGlossaryAudio(_glossaryAudioBlob, newId);
+      }
+      haptic([20, 20, 40]);
+      if (editId) {
+        const fields = { word, meaning: meaning || null };
+        if (audioUrl !== null) fields.audioUrl = audioUrl;
+        updateGlossaryWord(editId, fields);
+      } else {
+        addGlossaryWord({ id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`, lang: _glossaryCurrentLang, word, meaning: meaning || null, audioUrl, token: getToken() });
+      }
+      if (glossaryForm) glossaryForm.hidden = true;
+      if (glossaryAddBtn) glossaryAddBtn.hidden = false;
+      document.getElementById("ag-glossary-edit-id").value = "";
+      _glossaryAudioBlob = null;
+      _glossaryRecorder = null;
+      renderGlossaryPanel(_glossaryCurrentLang);
+    });
+
+    // Audio record
+    const recordBtn = document.getElementById("ag-glossary-record");
+    if (recordBtn) {
+      recordBtn.addEventListener("click", async () => {
+        if (_glossaryRecorder && _glossaryRecorder.state === "recording") {
+          _glossaryRecorder.stop();
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const chunks = [];
+          _glossaryRecorder = new MediaRecorder(stream);
+          _glossaryRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+          _glossaryRecorder.onstop = () => {
+            stream.getTracks().forEach(t => t.stop());
+            _glossaryAudioBlob = new Blob(chunks, { type: _glossaryRecorder.mimeType || "audio/webm" });
+            const statusEl = document.getElementById("ag-glossary-audio-status");
+            if (statusEl) statusEl.textContent = "✓ Aufnahme bereit";
+            const playPrev = document.getElementById("ag-glossary-play-preview");
+            if (playPrev) playPrev.hidden = false;
+            recordBtn.textContent = "🎙 Neu aufnehmen";
+          };
+          _glossaryRecorder.start();
+          recordBtn.textContent = "⏹ Stop";
+          const statusEl = document.getElementById("ag-glossary-audio-status");
+          if (statusEl) statusEl.textContent = "● REC";
+          haptic(10);
+        } catch (_) {
+          const statusEl = document.getElementById("ag-glossary-audio-status");
+          if (statusEl) statusEl.textContent = "Mikrofon nicht verfügbar";
+        }
+      });
+    }
+
+    // Preview playback
+    document.getElementById("ag-glossary-play-preview")?.addEventListener("click", () => {
+      if (!_glossaryAudioBlob) return;
+      const url = URL.createObjectURL(_glossaryAudioBlob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.play().catch(() => {});
+    });
+
     $("#ag-btn-mission")?.addEventListener("click", openMissionPanel);
     $("#ag-btn-mission")?.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMissionPanel(); }
@@ -5955,6 +6289,71 @@
         .ag-gipfel-elev{font-size:1.7rem}
       }
       .ag-score-highscores{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--ag-border)}
+
+      /* ── Gipfel card spacing ── */
+      .ag-gipfel-card{padding:12px 14px !important}
+      .ag-gipfel-head{margin-bottom:8px}
+      .ag-gipfel-card .ag-secondary{
+        display:inline-block;min-height:0;line-height:1;
+        font-size:.84rem;padding:6px 12px;border-radius:999px;margin-top:6px;
+      }
+      .ag-gipfel-card .ag-gipfel-load-btn{display:block;width:100%;text-align:center}
+      .ag-gipfel-map-preview{margin-top:10px;border-radius:8px;overflow:hidden;line-height:0}
+      .ag-gipfel-map-preview iframe{display:block;width:100%;border:0;border-radius:8px}
+
+      /* ── Glossary ── */
+      .ag-glossary-tabs{margin:10px 0 14px}
+      .ag-glossary-tab-track{
+        position:relative;display:inline-flex;align-items:center;
+        background:var(--ag-surface-2);border-radius:999px;padding:3px;gap:0;
+      }
+      .ag-glossary-tab-pill{
+        position:absolute;top:3px;left:3px;height:calc(100% - 6px);
+        background:var(--ag-primary);border-radius:999px;
+        transition:transform 220ms var(--ag-ease),width 220ms var(--ag-ease);
+        pointer-events:none;
+      }
+      .ag-glossary-tab{
+        position:relative;z-index:1;background:none;border:none;cursor:pointer;
+        padding:6px 14px;border-radius:999px;font-size:.82rem;font-weight:700;
+        font-family:inherit;color:var(--ag-muted);transition:color 160ms;
+        white-space:nowrap;
+      }
+      .ag-glossary-tab.is-active{color:#fffdf8}
+      .ag-glossary-list{display:grid;gap:8px;margin-bottom:6px}
+      .ag-glossary-card{
+        background:var(--ag-surface-2);border:1px solid var(--ag-border);
+        border-radius:var(--ag-radius-md);padding:12px 14px;
+        transition:border-color 160ms;
+      }
+      .ag-glossary-card:hover{border-color:rgba(47,122,79,.4)}
+      .ag-glossary-card-body{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+      .ag-glossary-card-text{min-width:0;flex:1}
+      .ag-glossary-word{font-size:1.05rem;font-weight:800;color:var(--ag-text);margin-bottom:3px}
+      .ag-glossary-meaning-text{font-size:.88rem;color:var(--ag-muted);line-height:1.5}
+      .ag-glossary-card-btns{display:flex;align-items:center;gap:4px;flex-shrink:0}
+      .ag-glossary-play-btn{
+        background:var(--ag-primary);border:none;color:#fff;cursor:pointer;
+        width:30px;height:30px;border-radius:999px;font-size:.8rem;
+        display:flex;align-items:center;justify-content:center;
+        transition:transform 120ms,opacity 120ms;
+      }
+      .ag-glossary-play-btn:hover{transform:scale(1.1)}
+      .ag-glossary-edit-btn,.ag-glossary-del-btn{
+        background:none;border:none;cursor:pointer;color:var(--ag-muted);
+        font-size:.72rem;font-weight:700;padding:4px 7px;border-radius:6px;
+        opacity:.5;transition:opacity 120ms,background 120ms;font-family:inherit;
+      }
+      .ag-glossary-edit-btn:hover{opacity:1;background:rgba(47,122,79,.1)}
+      .ag-glossary-del-btn:hover{opacity:1;color:#c84a18}
+      .ag-glossary-form{margin-top:14px;padding-top:14px;border-top:1px solid var(--ag-border)}
+      .ag-glossary-form-fields{display:grid;gap:10px;margin-bottom:12px}
+      .ag-glossary-textarea{resize:vertical;min-height:52px}
+      .ag-glossary-audio-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .ag-glossary-record-btn{display:inline-flex;align-items:center;gap:5px;min-height:36px;font-size:.86rem;padding:0 14px}
+      .ag-glossary-play-preview{min-height:36px;font-size:.86rem;padding:0 14px}
+      .ag-glossary-audio-status{font-size:.8rem;color:var(--ag-muted);font-weight:600}
+      .ag-glossary-add-btn{width:100%;justify-content:center;margin-top:12px}
 
       /* ── Milestone banner ── */
       .ag-milestone{
