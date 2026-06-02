@@ -55,6 +55,7 @@
   const GESPRACH_IDX_KEY = "affektions-gacha:gesprach-idx:v1";
   const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
   const SOUND_KEY = "affektions-gacha:sound:v1";
+  const GIPFELBUCH_KEY = "affektions-gacha:gipfelbuch:v1";
 
   // ── PIN unlock helpers ──────────────────────────────────────────────────────
 
@@ -911,6 +912,7 @@
                   <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">⭐</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">⛰</button>
                 </div>
               </div>
             </header>
@@ -1145,6 +1147,39 @@
               <ol class="ag-history" data-ag-lieblinge></ol>
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
+          </section>
+          <section class="ag-panel" data-ag-panel-berge role="tabpanel" hidden>
+            <div class="ag-card ag-berge-header" data-ag-berge-header>
+              <div class="ag-berge-stats">
+                <span class="ag-berge-total-label">Gemeinsame Höhenmeter</span>
+                <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
+              </div>
+              <button class="ag-button ag-berge-add-btn" type="button" data-ag-berge-add>
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>Gipfel eintragen</span>
+              </button>
+            </div>
+            <div class="ag-card ag-berge-form" data-ag-berge-form hidden>
+              <p class="ag-wish-label">Neuer Gipfeleintrag</p>
+              <div class="ag-berge-form-grid">
+                <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
+                <div class="ag-berge-row">
+                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Höhe in m" min="0" max="9000">
+                  <input class="ag-berge-input" type="date" data-ag-berge-date>
+                </div>
+                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot- oder AllTrails-Link (optional)">
+                <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
+              </div>
+              <div class="ag-wish-actions">
+                <button class="ag-secondary" type="button" data-ag-berge-cancel>Abbrechen</button>
+                <button class="ag-button" type="button" data-ag-berge-save>
+                  <span class="ag-button-orb" aria-hidden="true"></span>
+                  <span>Eintragen</span>
+                </button>
+              </div>
+            </div>
+            <div data-ag-berge-list></div>
+            <p class="ag-history-empty" data-ag-berge-empty hidden>Noch kein Gipfel eingetragen. Der erste wartet.</p>
           </section>
           <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
               <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">
@@ -3881,6 +3916,122 @@
     markMilestoneSeen(token, streak);
   }
 
+  // ── Gipfelbuch (Berge tab) ───────────────────────────────────────────────────
+
+  function readGipfelbuch() {
+    try {
+      const raw = window.localStorage.getItem(GIPFELBUCH_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) { return []; }
+  }
+
+  function writeGipfelbuch(entries) {
+    try { window.localStorage.setItem(GIPFELBUCH_KEY, JSON.stringify(entries)); } catch (_) {}
+  }
+
+  function addGipfelEntry(entry) {
+    const entries = readGipfelbuch();
+    entries.unshift(entry);
+    writeGipfelbuch(entries);
+  }
+
+  function deleteGipfelEntry(id) {
+    writeGipfelbuch(readGipfelbuch().filter((e) => e.id !== id));
+  }
+
+  function formatElev(m) {
+    if (!m && m !== 0) return "—";
+    return Number(m).toLocaleString("de-CH") + " m";
+  }
+
+  function formatBergeDate(iso) {
+    if (!iso) return "";
+    try {
+      return new Date(iso + "T12:00:00").toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
+    } catch (_) { return iso; }
+  }
+
+  function extractKomootId(url) {
+    const m = url.match(/komoot\.com(?:\/[a-z-]+)?\/tour\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  function renderGipfelCard(entry) {
+    const card = document.createElement("div");
+    card.className = "ag-card ag-gipfel-card";
+    card.dataset.agGipfelId = entry.id;
+
+    const komootId = entry.activityUrl ? extractKomootId(entry.activityUrl) : null;
+    const isAllTrails = entry.activityUrl && entry.activityUrl.includes("alltrails.com");
+
+    card.innerHTML = `
+      <div class="ag-gipfel-head">
+        <div>
+          <div class="ag-gipfel-name">${entry.name || "—"}</div>
+          <div class="ag-gipfel-date">${formatBergeDate(entry.date)}</div>
+        </div>
+        <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
+      </div>
+      ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
+      ${komootId ? `<div class="ag-gipfel-embed-wrap" data-komoot-id="${komootId}">
+        <button class="ag-secondary ag-gipfel-load-btn" type="button" data-ag-load-komoot="${komootId}">▶ Komoot-Tour laden</button>
+        <div class="ag-gipfel-iframe-wrap" data-ag-iframe-wrap="${komootId}" hidden></div>
+      </div>` : ""}
+      ${isAllTrails && !komootId ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
+      ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
+      <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Eintrag löschen" title="Löschen">✕</button>
+    `;
+
+    const loadBtn = card.querySelector("[data-ag-load-komoot]");
+    if (loadBtn) {
+      loadBtn.addEventListener("click", () => {
+        const iframeWrap = card.querySelector(`[data-ag-iframe-wrap="${komootId}"]`);
+        if (!iframeWrap) return;
+        loadBtn.hidden = true;
+        iframeWrap.hidden = false;
+        iframeWrap.innerHTML = `<iframe
+          src="https://www.komoot.com/tour/${komootId}/embed?profile=1"
+          width="100%" height="320" frameborder="0" scrolling="no"
+          loading="lazy" title="Komoot Tour"
+          style="border-radius:8px;display:block"></iframe>`;
+      });
+    }
+
+    const delBtn = card.querySelector("[data-ag-gipfel-delete]");
+    if (delBtn) {
+      delBtn.addEventListener("click", () => {
+        if (!window.confirm(`„${entry.name}" löschen?`)) return;
+        deleteGipfelEntry(entry.id);
+        renderBergePanel();
+        haptic(8);
+      });
+    }
+
+    return card;
+  }
+
+  function renderBergePanel() {
+    const list = $("[data-ag-berge-list]");
+    const empty = $("[data-ag-berge-empty]");
+    const totalEl = $("[data-ag-berge-total]");
+    if (!list) return;
+
+    const entries = readGipfelbuch();
+    list.innerHTML = "";
+
+    const totalElev = entries.reduce((sum, e) => sum + (Number(e.elevation) || 0), 0);
+    if (totalEl) totalEl.textContent = totalElev > 0 ? formatElev(totalElev) : "— m";
+
+    if (!entries.length) {
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    entries.forEach((entry) => list.appendChild(renderGipfelCard(entry)));
+  }
+
   // ── Ping (Fionn → Lennart) ───────────────────────────────────────────────────
 
   function showPingBanner() {
@@ -4066,8 +4217,10 @@
     $("[data-ag-panel-today]").hidden = tab !== "today";
     $("[data-ag-panel-history]").hidden = tab !== "history";
     $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
+    $("[data-ag-panel-berge]").hidden = tab !== "berge";
     if (tab === "history") renderHistory();
     if (tab === "lieblinge") renderLieblinge();
+    if (tab === "berge") renderBergePanel();
   }
 
   // ── Sound engine (Web Audio API, no external files) ─────────────────────────
@@ -4341,6 +4494,56 @@
         setActiveTab(node.dataset.agTab);
       });
     });
+
+    // Berge / Gipfelbuch
+    const bergeAddBtn = $("[data-ag-berge-add]");
+    const bergeForm = $("[data-ag-berge-form]");
+    const bergeCancel = $("[data-ag-berge-cancel]");
+    const bergeSave = $("[data-ag-berge-save]");
+    if (bergeAddBtn) {
+      bergeAddBtn.addEventListener("click", () => {
+        haptic(8);
+        const dateInput = $("[data-ag-berge-date]");
+        if (dateInput && !dateInput.value) dateInput.value = dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
+        bergeForm.hidden = false;
+        bergeAddBtn.hidden = true;
+        $("[data-ag-berge-name]").focus();
+      });
+    }
+    if (bergeCancel) {
+      bergeCancel.addEventListener("click", () => {
+        haptic(6);
+        bergeForm.hidden = true;
+        bergeAddBtn.hidden = false;
+      });
+    }
+    if (bergeSave) {
+      bergeSave.addEventListener("click", () => {
+        const name = ($("[data-ag-berge-name]")?.value || "").trim();
+        const elev = parseInt($("[data-ag-berge-elev]")?.value || "", 10);
+        const date = $("[data-ag-berge-date]")?.value || dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
+        const url  = ($("[data-ag-berge-url]")?.value || "").trim();
+        const notes = ($("[data-ag-berge-notes]")?.value || "").trim();
+        if (!name) { $("[data-ag-berge-name]")?.focus(); return; }
+        haptic([20, 20, 40]);
+        addGipfelEntry({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          name,
+          elevation: isNaN(elev) ? null : elev,
+          date,
+          activityUrl: url || null,
+          notes: notes || null,
+          token: getToken()
+        });
+        // reset form
+        ["[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-url]","[data-ag-berge-notes]"].forEach((sel) => {
+          const el = $(sel); if (el) el.value = "";
+        });
+        bergeForm.hidden = true;
+        bergeAddBtn.hidden = false;
+        renderBergePanel();
+      });
+    }
 
     // Sound toggle
     const soundToggle = $("[data-ag-sound-toggle]");
@@ -5576,6 +5779,61 @@
       @media (prefers-reduced-motion:reduce){
         .ag-widget *,.ag-widget *:before,.ag-widget *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
         .ag-machine-capsule,.ag-mach-glow,.ag-mach-orbit,.ag-orbit span,.ag-shimmer,.ag-road-dash,.ag-firefly,.ag-sun,.ag-button-orb,.ag-emoji{animation:none!important}
+      }
+
+      /* ── Gipfelbuch / Berge ── */
+      .ag-berge-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+      .ag-berge-stats{display:flex;flex-direction:column;gap:2px}
+      .ag-berge-total-label{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted)}
+      .ag-berge-total-elev{font-size:2rem;font-weight:800;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1}
+      .ag-berge-add-btn{flex-shrink:0}
+
+      .ag-berge-form-grid{display:grid;gap:10px;margin-bottom:14px}
+      .ag-berge-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .ag-berge-input{
+        width:100%;padding:10px 12px;border-radius:var(--ag-radius-sm);border:1px solid var(--ag-border);
+        background:var(--ag-surface-2);color:var(--ag-text);font-family:inherit;font-size:.92rem;
+        box-sizing:border-box;
+      }
+      .ag-berge-input:focus{outline:2px solid var(--ag-primary);outline-offset:1px}
+      .ag-berge-elev-input{font-size:1rem;font-weight:700}
+      .ag-berge-notes{resize:vertical;min-height:60px}
+
+      .ag-gipfel-card{
+        position:relative;
+        animation:ag-enter 350ms var(--ag-ease);
+        overflow:hidden;
+      }
+      .ag-gipfel-head{
+        display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+        margin-bottom:10px;
+      }
+      .ag-gipfel-name{font-size:1.15rem;font-weight:800;color:var(--ag-text);line-height:1.2;margin-bottom:3px}
+      .ag-gipfel-date{font-size:.82rem;color:var(--ag-muted);font-weight:500}
+      .ag-gipfel-elev{
+        font-size:2.2rem;font-weight:800;
+        color:var(--ag-primary-dark);
+        letter-spacing:-.03em;line-height:1;
+        white-space:nowrap;flex-shrink:0;
+      }
+      .ag-gipfel-notes{margin:0 0 12px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
+      .ag-gipfel-embed-wrap{margin-top:10px}
+      .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
+      .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
+      .ag-gipfel-delete{
+        position:absolute;top:10px;right:10px;
+        background:none;border:none;cursor:pointer;
+        color:var(--ag-muted);font-size:.85rem;padding:4px 6px;
+        border-radius:4px;opacity:.5;transition:opacity 120ms;
+      }
+      .ag-gipfel-delete:hover{opacity:1;color:var(--ag-text)}
+      @media (prefers-color-scheme:dark){
+        .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
+        .ag-berge-input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fffdf2}
+      }
+      @media (max-width:400px){
+        .ag-berge-row{grid-template-columns:1fr}
+        .ag-gipfel-elev{font-size:1.7rem}
       }
 
       /* ── Milestone banner ── */
