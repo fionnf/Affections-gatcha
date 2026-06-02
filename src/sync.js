@@ -1,0 +1,218 @@
+// ── Sync / network functions ────────────────────────────────────────────────
+import { state, mount } from "./state.js";
+import {
+  readHistory, writeHistory, readFavorites, writeFavorites,
+  writeTokens, readTokens, readGipfelbuch, writeGipfelbuch,
+  readBaerlauchScores, readMissionLog, writeMissionLog,
+  readQuestState, writeQuestState, readQuestPoints
+} from "./storage.js";
+import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
+import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
+import { BAERLAUCH_SCORE_KEY, QUEST_POINTS_KEY } from "./constants.js";
+
+let _baseUrl = "";
+let _resolveBase = null;
+
+export function initSync(baseUrl, resolveBaseFn) {
+  _baseUrl = baseUrl;
+  _resolveBase = resolveBaseFn;
+}
+
+function resolveBase() {
+  if (_resolveBase) return _resolveBase();
+  if (!_baseUrl) return window.location.href;
+  try {
+    return new URL(_baseUrl, window.location.href).toString();
+  } catch (_error) {
+    return window.location.href;
+  }
+}
+
+export function fetchJson(file, fallback = null) {
+  const url = new URL(file, resolveBase()).toString();
+  return fetch(url, { cache: "no-store" }).then((response) => {
+    if (!response.ok) {
+      if (fallback !== null) return fallback;
+      throw new Error(`${file}: HTTP ${response.status}`);
+    }
+    return response.json();
+  });
+}
+
+export async function loadAllConfig() {
+  const defaultPhotos = { photos: [] };
+  const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions] = await Promise.all([
+    fetchJson("config/theme.json"),
+    fetchJson("config/outcomes.json"),
+    fetchJson("config/photos.json", defaultPhotos),
+    fetchJson("config/special-days.json", { days: [] }),
+    fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
+    fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
+    fetchJson("config/quest.json", { enabled: false }),
+    fetchJson("config/missions.json", { pairs: [] })
+  ]);
+  return { theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions };
+}
+
+export async function syncFromSheets() {
+  try {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return false;
+    const token = getToken();
+    const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 12000);
+    let res;
+    try {
+      res = await fetch(url, { cache: "no-store", signal: controller.signal });
+    } finally {
+      clearTimeout(tid);
+    }
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data.ok) return false;
+
+    const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
+
+    const localRaw = readHistory();
+    const cleaned = localRaw.filter((e) => e.title !== "(wiederhergestellt)" && e.day <= today);
+    if (cleaned.length !== localRaw.length) writeHistory(cleaned);
+
+    const localFavsRaw = readFavorites();
+    const cleanedFavs = localFavsRaw.filter((e) => e.day <= today);
+    if (cleanedFavs.length !== localFavsRaw.length) writeFavorites(cleanedFavs);
+
+    if (Array.isArray(data.history) && data.history.length) {
+      const local = readHistory();
+      const localByDay = new Map(local.map((e) => [e.day, e]));
+      for (const entry of data.history) {
+        if (entry.title === "(wiederhergestellt)") continue;
+        const day = normaliseDay(entry.day);
+        if (!day || day > today) continue;
+        const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
+        localByDay.set(day, { ...entry, day, token: normToken });
+      }
+      const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
+      writeHistory(merged);
+      state.syncedHistory = merged;
+      writeStreakCache(computeStreak());
+    }
+
+    if (Array.isArray(data.favourites) && data.favourites.length) {
+      const localFavs = readFavorites();
+      const favsByDay = new Map(localFavs.map((e) => [e.day, e]));
+      for (const entry of data.favourites) {
+        if (entry.day <= today) favsByDay.set(entry.day, entry);
+      }
+      writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
+    }
+
+    if (data.tokens && typeof data.tokens === "object") {
+      writeTokens(data.tokens);
+    }
+
+    if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
+      try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
+    }
+
+    if (typeof data.streak === "number" && data.streak > 0) {
+      writeSyncedStreak(data.streak);
+      if (data.streak > computeStreak()) writeStreakCache(data.streak);
+    }
+
+    if (data.baerlauchScores && typeof data.baerlauchScores === "object") {
+      const localScores = readBaerlauchScores();
+      let changed = false;
+      for (const [player, level] of Object.entries(data.baerlauchScores)) {
+        if (typeof level === "number" && level > (localScores[player] || 0)) {
+          localScores[player] = level;
+          changed = true;
+        }
+      }
+      if (changed) {
+        try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(localScores)); } catch (_) {}
+      }
+    }
+
+    if (Array.isArray(data.missionLog) && data.missionLog.length) {
+      const local = readMissionLog();
+      const byKey = new Map(local.map(e => [`${e.day}|${e.player}`, e]));
+      for (const entry of data.missionLog) {
+        if (!entry.day || !entry.player) continue;
+        byKey.set(`${entry.day}|${entry.player}`, entry);
+      }
+      const merged = Array.from(byKey.values()).sort((a, b) => b.day.localeCompare(a.day));
+      writeMissionLog(merged);
+    }
+
+    if (typeof data.latestPing === "string" && data.latestPing && getToken() !== "fionn") {
+      try {
+        const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
+        const lastSeen = window.localStorage.getItem(LAST_PING_KEY) || "";
+        if (data.latestPing > lastSeen) {
+          window.localStorage.setItem(LAST_PING_KEY, data.latestPing);
+          // Will be handled by ag-synced event handler
+          state._newPing = true;
+        }
+      } catch (_le) {}
+    }
+
+    if (Array.isArray(data.gipfelbuch) && data.gipfelbuch.length) {
+      const local = readGipfelbuch();
+      const byId = new Map(local.map((e) => [e.id, e]));
+      for (const entry of data.gipfelbuch) {
+        if (entry.id) byId.set(entry.id, entry);
+      }
+      const merged = Array.from(byId.values()).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      writeGipfelbuch(merged);
+    }
+
+    // Dispatch event instead of calling render functions directly
+    if (mount) {
+      mount.dispatchEvent(new CustomEvent("ag-synced", {
+        bubbles: false,
+        detail: { data }
+      }));
+    }
+
+    return Array.isArray(data.history) ? data.history.length : 0;
+  } catch (_e) { return -1; }
+}
+
+export function backupToSheets() {
+  try {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const token = getToken();
+    const history = readHistory().filter((e) => (e.token || "").toLowerCase() === token.toLowerCase());
+    const qs = readQuestState(() => currentQuestPeriod(state));
+    const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
+      challenge: currentChallenge(state),
+      attempts: qs.attempts,
+      points: qs.pointsEarned,
+      period: qs.period
+    } : undefined;
+    if (questLog) { qs._logged = true; writeQuestState(qs); }
+    const body = JSON.stringify({
+      type: "gacha-backup",
+      token,
+      history,
+      favourites: readFavorites(),
+      streak: computeStreak(),
+      tokens: readTokens(),
+      questPoints: readQuestPoints(),
+      ...(questLog ? { questLog } : {})
+    });
+    const opts = {
+      method: "POST",
+      mode: "cors",
+      credentials: "omit",
+      cache: "no-store",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body
+    };
+    fetch(cfg.endpointUrl, opts).catch(() => {
+      fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
+    });
+  } catch (_e) {}
+}

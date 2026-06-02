@@ -4,10 +4,14 @@
   "private": true,
   "description": "A daily affection gacha PWA for two — GitHub Pages + iCloud album sync.",
   "scripts": {
+    "build": "vite build",
     "validate": "node scripts/validate-gacha-config.js",
     "simulate": "node scripts/simulate-odds.js 20000 lennart",
     "build:photos": "node scripts/build-photo-manifest.js photos",
     "sync:album": "node scripts/sync-shared-album.js"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
   },
   "dependencies": {
     "googleapis": "^144.0.0"
