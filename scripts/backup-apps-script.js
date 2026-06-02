@@ -18,6 +18,8 @@
  *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
  *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
+ *
+ * Google Drive folder: "Glossar-Audio" — audio recordings for glossary words
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
@@ -258,6 +260,27 @@ function doPost(e) {
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
       return jsonOut_({ ok: true });
+    }
+
+    // ── Glossary audio upload → Google Drive ────────────────────────────────
+    if (data.type === "glossary-audio") {
+      const base64 = data.data || "";
+      const mimeType = data.mimeType || "audio/webm";
+      const filename = data.filename || `glossary-${Date.now()}.webm`;
+      if (!base64) return jsonOut_({ ok: false, error: "no audio data" });
+      try {
+        const bytes = Utilities.base64Decode(base64);
+        const blob = Utilities.newBlob(bytes, mimeType, filename);
+        let folder;
+        const folderIter = DriveApp.getFoldersByName("Glossar-Audio");
+        folder = folderIter.hasNext() ? folderIter.next() : DriveApp.createFolder("Glossar-Audio");
+        const file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        const url = `https://drive.google.com/uc?id=${file.getId()}`;
+        return jsonOut_({ ok: true, url });
+      } catch (err) {
+        return jsonOut_({ ok: false, error: err.message });
+      }
     }
 
     // ── Glossary delete ──────────────────────────────────────────────────────
