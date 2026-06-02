@@ -17,6 +17,7 @@
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
  *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
+ *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
@@ -125,6 +126,24 @@ function doGet(e) {
       });
     }
 
+    // Read Glossary entries (shared by both players)
+    const glossarSheet = getOrCreateGlossarSheet_(ss);
+    const glossarValues = glossarSheet.getDataRange().getValues();
+    const glossary = [];
+    for (let i = 1; i < glossarValues.length; i++) {
+      const row = glossarValues[i];
+      if (!row[0]) continue;
+      glossary.push({
+        id:        row[0],
+        word:      row[1] || "",
+        meaning:   row[2] || "",
+        lang:      row[3] || "swabian",
+        audioUrl:  row[4] || null,
+        createdBy: row[5] || "",
+        createdAt: row[6] || ""
+      });
+    }
+
     return jsonOut_({
       ok: true,
       history,
@@ -136,7 +155,8 @@ function doGet(e) {
       baerlauchScores,
       missionLog,
       latestPing,
-      gipfelbuch
+      gipfelbuch,
+      glossary
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -219,6 +239,32 @@ function doPost(e) {
       const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString()];
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Glossary upsert ──────────────────────────────────────────────────────
+    if (data.type === "glossary-upsert") {
+      const sheet = getOrCreateGlossarSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const id = data.id || "";
+      if (!id) return jsonOut_({ ok: false, error: "missing id" });
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === id) { rowIdx = i + 1; break; }
+      }
+      const row = [id, data.word || "", data.meaning || "", data.lang || "swabian", data.audioUrl || "", data.createdBy || "", data.createdAt || new Date().toISOString()];
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Glossary delete ──────────────────────────────────────────────────────
+    if (data.type === "glossary-delete") {
+      const sheet = getOrCreateGlossarSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
+      }
       return jsonOut_({ ok: true });
     }
 
@@ -447,6 +493,19 @@ function getOrCreateWuenscheSheet_(ss) {
     sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 400);
+  }
+  return sheet;
+}
+
+function getOrCreateGlossarSheet_(ss) {
+  let sheet = ss.getSheetByName("Glossar");
+  if (!sheet) {
+    sheet = ss.insertSheet("Glossar");
+    sheet.appendRow(["ID", "Word", "Meaning", "Lang", "AudioUrl", "CreatedBy", "CreatedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(2, 180);
+    sheet.setColumnWidth(3, 300);
+    sheet.setColumnWidth(5, 300);
   }
   return sheet;
 }

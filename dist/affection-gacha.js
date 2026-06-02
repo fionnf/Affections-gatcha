@@ -1298,7 +1298,7 @@
   }
 
   function defaultChips() {
-    return ["Velo", "Bärlauch", "Rave 🪩", "Glossar 📖"];
+    return ["Bärlauch", "Rave 🪩", "Glossar 📖"];
   }
 
   // Always-on emojis (bike + garlic) plus a deterministic selection from the
@@ -4260,9 +4260,22 @@
   }
 
   function extractAllTrailsSlug(url) {
-    // Handles /trail/..., /explore/trail/..., /de/trail/..., locale-prefixed paths
-    const m = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?(trail\/[^?#]+)/);
-    return m ? m[1].replace(/\/$/, "") : null;
+    if (!url || !url.includes("alltrails.com")) return null;
+    // Strip locale prefix (/de/, /fr/, …) and /explore/
+    const m = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?([^?#]+)/);
+    if (!m) return null;
+    let slug = m[1].replace(/\/$/, "");
+    // Normalise localised trail-type keywords → "trail"
+    slug = slug.replace(/^(?:wanderweg|sentier|sendero|percorso|trilha|rutt|sti|stezka|tura|spor|trase|traseu|wandeling|ruta)\//, "trail/");
+    // Normalise common non-English country names that appear in Swiss/EU locales
+    const COUNTRY = { "schweiz/":"switzerland/","deutschland/":"germany/","österreich/":"austria/",
+      "frankreich/":"france/","italien/":"italy/","spanien/":"spain/","niederlande/":"netherlands/",
+      "suisse/":"switzerland/","svizzera/":"switzerland/","suiza/":"switzerland/" };
+    for (const [loc, en] of Object.entries(COUNTRY)) {
+      if (slug.startsWith("trail/" + loc)) { slug = "trail/" + en + slug.slice(6 + loc.length); break; }
+    }
+    if (!slug.startsWith("trail/") || slug.split("/").length < 3) return null;
+    return slug;
   }
 
   function renderGipfelCard(entry) {
@@ -4288,9 +4301,8 @@
         <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
       </div>
       ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
-      ${komootId ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="200" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour"></iframe></div>` : ""}
-      ${allTrailsSlug ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.alltrails.com/widget/${allTrailsSlug}?scrollZoom=false&u=m" height="200" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route"></iframe></div>` : ""}
-      ${isAllTrails && !allTrailsSlug ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
+      ${komootId ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="200" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour"></iframe></div><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a>` : ""}
+      ${isAllTrails ? (allTrailsSlug ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.alltrails.com/widget/${allTrailsSlug}?scrollZoom=false&u=m" height="200" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route"></iframe></div>` : "") + `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
       ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
       <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">Bearbeiten</button>
       <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
