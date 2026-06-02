@@ -122,7 +122,9 @@ function doGet(e) {
         activityUrl: row[4] || null,
         notes:       row[5] || null,
         token:       row[6] || "",
-        createdAt:   row[7] || ""
+        createdAt:   row[7] || "",
+        distance:    row[8] || null,
+        elevGain:    row[9] || null
       });
     }
 
@@ -236,7 +238,7 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (values[i][0] === id) { rowIdx = i + 1; break; }
       }
-      const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString()];
+      const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString(), data.distance || "", data.elevGain || ""];
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
       return jsonOut_({ ok: true });
