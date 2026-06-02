@@ -2003,7 +2003,8 @@
     const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
     const scores = readBaerlauchScores();
     const history = readBaerlauchHistory();
-    const hasScores = scores[myKey] || scores[myKey === "fionn" ? "lennart" : "fionn"];
+    const theirKey = myKey === "fionn" ? "lennart" : "fionn";
+    const hasScores = (myKey in scores) || (theirKey in scores);
     if (!hasScores && !history.length) { el.hidden = true; return; }
     el.hidden = false;
     const tz = state.theme?.timezone || "UTC";
@@ -2013,8 +2014,8 @@
     };
     let html = "";
     if (hasScores) {
-      const myBest = scores[myKey] || 0;
-      const theirBest = scores[myKey === "fionn" ? "lennart" : "fionn"] || 0;
+      const myBest = scores[myKey] ?? 0;
+      const theirBest = scores[theirKey] ?? 0;
       html += `<div class="ag-score-highscores">
         <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-mine">Du</span><span class="ag-score-result">Level ${myBest || "—"}</span></div>
         <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-theirs">${theirName}</span><span class="ag-score-result">Level ${theirBest || "—"}</span></div>
@@ -4020,7 +4021,8 @@
   }
 
   function extractAllTrailsSlug(url) {
-    const m = url.match(/alltrails\.com\/(trail\/[^?#]+)/);
+    // handle /explore/trail/... and /trail/... and /explore/recording/...
+    const m = url.match(/alltrails\.com\/(?:explore\/)?(trail\/[^?#]+)/);
     return m ? m[1].replace(/\/$/, "") : null;
   }
 
@@ -4057,10 +4059,8 @@
       </div>` : ""}
       ${isAllTrails && !allTrailsSlug ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
       ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
-      <div class="ag-gipfel-card-actions">
-        <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">✏</button>
-        <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
-      </div>
+      <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">Bearbeiten</button>
+      <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
     `;
 
     const loadKomootBtn = card.querySelector("[data-ag-load-komoot]");
@@ -4657,7 +4657,7 @@
           addGipfelEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...fields, token: getToken() });
         }
         // reset form
-        ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+        ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
           const el = $(sel); if (el) el.value = "";
         });
         const formTitle = $("[data-ag-berge-form-title]");
@@ -5803,9 +5803,10 @@
       }
       @media (prefers-color-scheme:dark){
         .ag-history-item{
-          background:linear-gradient(150deg,rgba(55,78,58,.6) 0%,rgba(25,42,28,.72) 100%);
-          border-color:rgba(255,255,255,.1);
-          box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 -1px 0 rgba(0,0,0,.2) inset,0 4px 18px rgba(0,0,0,.28);
+          background:rgba(28,42,32,.9);
+          border-color:rgba(255,255,255,.08);
+          box-shadow:0 4px 14px rgba(0,0,0,.3);
+          backdrop-filter:none;-webkit-backdrop-filter:none;
         }
       }
       .ag-history-item:hover{transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 8px 28px rgba(8,28,18,.13),0 2px 6px rgba(8,28,18,.07)}
@@ -5924,9 +5925,10 @@
       }
       @media (prefers-color-scheme:dark){
         .ag-gipfel-card{
-          background:linear-gradient(150deg,rgba(50,72,55,.65) 0%,rgba(22,38,26,.78) 100%) !important;
-          border-color:rgba(255,255,255,.11) !important;
-          box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.22) inset,0 8px 32px rgba(0,0,0,.35) !important;
+          background:linear-gradient(180deg,rgba(28,42,32,.97),rgba(18,30,22,.95)) !important;
+          border-color:rgba(255,255,255,.08) !important;
+          box-shadow:0 12px 36px rgba(0,0,0,.4) !important;
+          backdrop-filter:none;-webkit-backdrop-filter:none;
         }
       }
       .ag-gipfel-cover{
@@ -5950,18 +5952,22 @@
       .ag-gipfel-embed-wrap{margin-top:10px;margin-bottom:4px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
-      .ag-gipfel-card-actions{
-        display:flex;align-items:center;justify-content:flex-end;gap:6px;
-        padding-top:10px;border-top:1px solid rgba(0,0,0,.05);margin-top:10px;
-      }
-      @media (prefers-color-scheme:dark){.ag-gipfel-card-actions{border-top-color:rgba(255,255,255,.07)}}
-      .ag-gipfel-edit,.ag-gipfel-delete{
+      .ag-gipfel-edit{
+        position:absolute;top:10px;right:42px;
         background:none;border:none;cursor:pointer;
-        color:var(--ag-muted);font-size:.9rem;padding:5px 8px;
-        border-radius:6px;opacity:.55;transition:opacity 120ms,background 120ms;
+        color:var(--ag-muted);font-size:.7rem;font-weight:700;letter-spacing:.02em;
+        padding:4px 8px;border-radius:999px;opacity:.5;
+        border:1px solid transparent;
+        transition:opacity 120ms,background 120ms,border-color 120ms;font-family:inherit;
       }
-      .ag-gipfel-edit:hover{opacity:1;background:rgba(47,122,79,.1)}
-      .ag-gipfel-delete:hover{opacity:1;color:#c84a18;background:rgba(200,74,24,.08)}
+      .ag-gipfel-edit:hover{opacity:1;background:rgba(47,122,79,.1);border-color:rgba(47,122,79,.2)}
+      .ag-gipfel-delete{
+        position:absolute;top:10px;right:10px;
+        background:none;border:none;cursor:pointer;
+        color:var(--ag-muted);font-size:.85rem;padding:4px 7px;
+        border-radius:4px;opacity:.45;transition:opacity 120ms,color 120ms;
+      }
+      .ag-gipfel-delete:hover{opacity:1;color:#c84a18}
       @media (prefers-color-scheme:dark){
         .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
         .ag-berge-input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fffdf2}
