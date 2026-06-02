@@ -4280,21 +4280,29 @@
   }
 
   // Returns the embed iframe src for an AllTrails URL, or null.
-  // Handles: widget URLs (with sh=), recording URLs, and trail URLs.
+  // Always forces elevationDiagram=false and scrollZoom=false.
   function extractAllTrailsEmbed(url) {
     if (!url || !url.includes("alltrails.com")) return null;
+    function cleanParams(src) {
+      // Ensure elevationDiagram=false, scrollZoom=false, u=m
+      src = src.replace(/[?&]elevationDiagram=[^&#]*/g, "");
+      if (!src.includes("scrollZoom")) src += (src.includes("?") ? "&" : "?") + "scrollZoom=false";
+      if (!src.includes("u=")) src += "&u=m";
+      src += "&elevationDiagram=false";
+      return src;
+    }
     // Already a widget URL (user pasted from AllTrails embed code)
-    if (url.includes("/widget/")) return url.includes("scrollZoom") ? url : url + (url.includes("?") ? "&" : "?") + "scrollZoom=false&u=m";
+    if (url.includes("/widget/")) return cleanParams(url);
     // Recording URL: /explore/recording/slug or /recording/slug
     const recM = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?recording\/([^?#/]+)/);
     if (recM) {
       const shM = url.match(/[?&]sh=([^&#]+)/);
       const sh = shM ? `&sh=${shM[1]}` : "";
-      return `https://www.alltrails.com/widget/recording/${recM[1]}?scrollZoom=false&u=m${sh}`;
+      return cleanParams(`https://www.alltrails.com/widget/recording/${recM[1]}?scrollZoom=false&u=m${sh}`);
     }
     // Trail URL: extract slug
     const slug = extractAllTrailsSlug(url);
-    return slug ? `https://www.alltrails.com/widget/${slug}?scrollZoom=false&u=m` : null;
+    return slug ? cleanParams(`https://www.alltrails.com/widget/${slug}?scrollZoom=false&u=m`) : null;
   }
 
   function renderGipfelCard(entry) {
@@ -4333,7 +4341,7 @@
       ${statsHtml}
       ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
       ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
-      ${isAllTrails ? `<div class="ag-gipfel-embed-row">${allTrailsEmbed ? `<button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-alltrails="1">🗺 AllTrails-Karte</button>` : ""}<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a></div>${allTrailsEmbed ? `<div class="ag-gipfel-map-preview" data-ag-map-wrap-alltrails="1" hidden></div>` : ""}` : ""}
+      ${isAllTrails ? `${allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
       ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
     `;
 
@@ -4384,19 +4392,6 @@
         wrap.innerHTML = `<iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="220" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
         wrap.hidden = false;
         komootMapBtn.textContent = "Karte schließen";
-        haptic(4);
-      });
-    }
-
-    const atMapBtn = card.querySelector("[data-ag-map-alltrails]");
-    if (atMapBtn && allTrailsEmbed) {
-      atMapBtn.addEventListener("click", () => {
-        const wrap = card.querySelector("[data-ag-map-wrap-alltrails]");
-        if (!wrap) return;
-        if (!wrap.hidden) { wrap.hidden = true; atMapBtn.textContent = "🗺 AllTrails-Karte"; return; }
-        wrap.innerHTML = `<iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
-        wrap.hidden = false;
-        atMapBtn.textContent = "Karte schließen";
         haptic(4);
       });
     }
@@ -4618,7 +4613,7 @@
     $("[data-ag-panel-berge]").hidden = tab !== "berge";
     if (tab === "history") renderHistory();
     if (tab === "lieblinge") renderLieblinge();
-    if (tab === "berge") renderBergePanel();
+    if (tab === "berge") { renderBergePanel(); syncFromSheets().then(() => renderBergePanel()).catch(() => {}); }
   }
 
   // ── Sound engine (Web Audio API, no external files) ─────────────────────────
