@@ -628,6 +628,18 @@
         } catch (_le) {}
       }
 
+      // Merge Gipfelbuch — sheet is source of truth (all players share one log)
+      if (Array.isArray(data.gipfelbuch) && data.gipfelbuch.length) {
+        const local = readGipfelbuch();
+        const byId = new Map(local.map((e) => [e.id, e]));
+        for (const entry of data.gipfelbuch) {
+          if (entry.id) byId.set(entry.id, entry);
+        }
+        const merged = Array.from(byId.values()).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        writeGipfelbuch(merged);
+        if (state.activeTab === "berge") renderBergePanel();
+      }
+
       return Array.isArray(data.history) ? data.history.length : 0;
     } catch (_e) { return -1; }
   }
@@ -1231,7 +1243,7 @@
   }
 
   function defaultChips() {
-    return ["Wald", "Velo", "Stadt", "Bärlauch", "Rave 🪩"];
+    return ["Wald", "Velo", "Bärlauch", "Rave 🪩"];
   }
 
   // Always-on emojis (bike + garlic) plus a deterministic selection from the
@@ -3931,14 +3943,24 @@
     try { window.localStorage.setItem(GIPFELBUCH_KEY, JSON.stringify(entries)); } catch (_) {}
   }
 
+  function postGipfelToSheet(type, payload) {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const body = JSON.stringify({ type, ...payload });
+    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+    fetch(cfg.endpointUrl, opts).catch(() => fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}));
+  }
+
   function addGipfelEntry(entry) {
     const entries = readGipfelbuch();
     entries.unshift(entry);
     writeGipfelbuch(entries);
+    postGipfelToSheet("gipfel-upsert", { ...entry, createdAt: new Date().toISOString() });
   }
 
   function deleteGipfelEntry(id) {
     writeGipfelbuch(readGipfelbuch().filter((e) => e.id !== id));
+    postGipfelToSheet("gipfel-delete", { id });
   }
 
   function formatElev(m) {

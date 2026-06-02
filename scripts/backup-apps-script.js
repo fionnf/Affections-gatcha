@@ -16,6 +16,7 @@
  *   "MissionFeedback"— one row per feedback submission (append-only)
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
  *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
+ *   "Gipfelbuch"     — one row per summit entry, upsert by id
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
@@ -105,6 +106,25 @@ function doGet(e) {
 
     const latestPing = PropertiesService.getScriptProperties().getProperty("latestPing") || null;
 
+    // Read Gipfelbuch entries (all players share one log)
+    const gipfelSheet = getOrCreateGipfelbuchSheet_(ss);
+    const gipfelValues = gipfelSheet.getDataRange().getValues();
+    const gipfelbuch = [];
+    for (let i = 1; i < gipfelValues.length; i++) {
+      const row = gipfelValues[i];
+      if (!row[0]) continue;
+      gipfelbuch.push({
+        id:          row[0],
+        name:        row[1] || "",
+        elevation:   row[2] || null,
+        date:        row[3] ? String(row[3]).slice(0, 10) : "",
+        activityUrl: row[4] || null,
+        notes:       row[5] || null,
+        token:       row[6] || "",
+        createdAt:   row[7] || ""
+      });
+    }
+
     return jsonOut_({
       ok: true,
       history,
@@ -115,7 +135,8 @@ function doGet(e) {
       lastUpdated:   meta ? meta.lastUpdated : null,
       baerlauchScores,
       missionLog,
-      latestPing
+      latestPing,
+      gipfelbuch
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -181,6 +202,32 @@ function doPost(e) {
         } else {
           sheet.getRange(rowIdx, 1, 1, 3).setValues([[player, level, new Date().toISOString()]]);
         }
+      }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Gipfelbuch upsert ────────────────────────────────────────────────────
+    if (data.type === "gipfel-upsert") {
+      const sheet = getOrCreateGipfelbuchSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const id = data.id || "";
+      if (!id) return jsonOut_({ ok: false, error: "missing id" });
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === id) { rowIdx = i + 1; break; }
+      }
+      const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString()];
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Gipfelbuch delete ─────────────────────────────────────────────────────
+    if (data.type === "gipfel-delete") {
+      const sheet = getOrCreateGipfelbuchSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
       }
       return jsonOut_({ ok: true });
     }
@@ -400,6 +447,19 @@ function getOrCreateWuenscheSheet_(ss) {
     sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 400);
+  }
+  return sheet;
+}
+
+function getOrCreateGipfelbuchSheet_(ss) {
+  let sheet = ss.getSheetByName("Gipfelbuch");
+  if (!sheet) {
+    sheet = ss.insertSheet("Gipfelbuch");
+    sheet.appendRow(["ID", "Name", "Elevation", "Date", "ActivityURL", "Notes", "Token", "CreatedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(2, 180);
+    sheet.setColumnWidth(5, 300);
+    sheet.setColumnWidth(6, 300);
   }
   return sheet;
 }
