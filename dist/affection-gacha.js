@@ -1230,10 +1230,14 @@
               <div class="ag-berge-form-grid">
                 <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
                 <div class="ag-berge-row">
-                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Höhe in m" min="0" max="9000">
+                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Gipfelhöhe (m)" min="0" max="9000">
                   <input class="ag-berge-input" type="date" data-ag-berge-date>
                 </div>
-                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot- oder AllTrails-Link (optional)">
+                <div class="ag-berge-row">
+                  <input class="ag-berge-input" type="number" data-ag-berge-dist placeholder="Distanz (km)" min="0" max="500" step="0.1">
+                  <input class="ag-berge-input" type="number" data-ag-berge-gain placeholder="Höhenmeter (↑ m)" min="0" max="9000">
+                </div>
+                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot-URL oder AllTrails-Widget-URL (mit sh=…)">
                 <input class="ag-berge-input" type="url" data-ag-berge-cover placeholder="Titelbild-URL (optional)">
                 <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
               </div>
@@ -4261,13 +4265,10 @@
 
   function extractAllTrailsSlug(url) {
     if (!url || !url.includes("alltrails.com")) return null;
-    // Strip locale prefix (/de/, /fr/, …) and /explore/
     const m = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?([^?#]+)/);
     if (!m) return null;
     let slug = m[1].replace(/\/$/, "");
-    // Normalise localised trail-type keywords → "trail"
     slug = slug.replace(/^(?:wanderweg|sentier|sendero|percorso|trilha|rutt|sti|stezka|tura|spor|trase|traseu|wandeling|ruta)\//, "trail/");
-    // Normalise common non-English country names that appear in Swiss/EU locales
     const COUNTRY = { "schweiz/":"switzerland/","deutschland/":"germany/","österreich/":"austria/",
       "frankreich/":"france/","italien/":"italy/","spanien/":"spain/","niederlande/":"netherlands/",
       "suisse/":"switzerland/","svizzera/":"switzerland/","suiza/":"switzerland/" };
@@ -4278,6 +4279,24 @@
     return slug;
   }
 
+  // Returns the embed iframe src for an AllTrails URL, or null.
+  // Handles: widget URLs (with sh=), recording URLs, and trail URLs.
+  function extractAllTrailsEmbed(url) {
+    if (!url || !url.includes("alltrails.com")) return null;
+    // Already a widget URL (user pasted from AllTrails embed code)
+    if (url.includes("/widget/")) return url.includes("scrollZoom") ? url : url + (url.includes("?") ? "&" : "?") + "scrollZoom=false&u=m";
+    // Recording URL: /explore/recording/slug or /recording/slug
+    const recM = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?recording\/([^?#/]+)/);
+    if (recM) {
+      const shM = url.match(/[?&]sh=([^&#]+)/);
+      const sh = shM ? `&sh=${shM[1]}` : "";
+      return `https://www.alltrails.com/widget/recording/${recM[1]}?scrollZoom=false&u=m${sh}`;
+    }
+    // Trail URL: extract slug
+    const slug = extractAllTrailsSlug(url);
+    return slug ? `https://www.alltrails.com/widget/${slug}?scrollZoom=false&u=m` : null;
+  }
+
   function renderGipfelCard(entry) {
     const card = document.createElement("div");
     card.className = "ag-card ag-gipfel-card";
@@ -4285,27 +4304,37 @@
 
     const komootId = entry.activityUrl ? extractKomootId(entry.activityUrl) : null;
     const isAllTrails = entry.activityUrl && entry.activityUrl.includes("alltrails.com");
-    const allTrailsSlug = isAllTrails ? extractAllTrailsSlug(entry.activityUrl) : null;
+    const allTrailsEmbed = isAllTrails ? extractAllTrailsEmbed(entry.activityUrl) : null;
+    const allTrailsSlug = allTrailsEmbed; // kept for map button data attribute
 
     const coverHtml = entry.cover
       ? `<div class="ag-gipfel-cover"><img src="${entry.cover}" alt="${entry.name || ""}" loading="lazy"></div>`
       : "";
 
+    const distStr = entry.distance ? `${entry.distance} km` : "";
+    const gainStr = entry.elevGain ? `↑ ${entry.elevGain} m` : "";
+    const statsHtml = (distStr || gainStr)
+      ? `<div class="ag-gipfel-stats">${[distStr, gainStr].filter(Boolean).join(" · ")}</div>`
+      : "";
+
     card.innerHTML = `
       ${coverHtml}
       <div class="ag-gipfel-head">
-        <div>
+        <div class="ag-gipfel-head-info">
           <div class="ag-gipfel-name">${entry.name || "—"}</div>
           <div class="ag-gipfel-date">${formatBergeDate(entry.date)}</div>
         </div>
         <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
+        <div class="ag-gipfel-actions">
+          <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">✏️</button>
+          <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
+        </div>
       </div>
+      ${statsHtml}
       ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
-      ${komootId ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="200" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour"></iframe></div><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a>` : ""}
-      ${isAllTrails ? (allTrailsSlug ? `<div class="ag-gipfel-map-preview"><iframe src="https://www.alltrails.com/widget/${allTrailsSlug}?scrollZoom=false&u=m" height="200" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route"></iframe></div>` : "") + `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
+      ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
+      ${isAllTrails ? `<div class="ag-gipfel-embed-row">${allTrailsEmbed ? `<button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-alltrails="1">🗺 AllTrails-Karte</button>` : ""}<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a></div>${allTrailsEmbed ? `<div class="ag-gipfel-map-preview" data-ag-map-wrap-alltrails="1" hidden></div>` : ""}` : ""}
       ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
-      <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">Bearbeiten</button>
-      <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
     `;
 
     const editBtn = card.querySelector("[data-ag-gipfel-edit]");
@@ -4318,6 +4347,8 @@
         if (editIdEl) editIdEl.value = entry.id;
         const nameEl = $("[data-ag-berge-name]"); if (nameEl) nameEl.value = entry.name || "";
         const elevEl = $("[data-ag-berge-elev]"); if (elevEl) elevEl.value = entry.elevation || "";
+        const distEl = $("[data-ag-berge-dist]"); if (distEl) distEl.value = entry.distance || "";
+        const gainEl = $("[data-ag-berge-gain]"); if (gainEl) gainEl.value = entry.elevGain || "";
         const dateEl = $("[data-ag-berge-date]"); if (dateEl) dateEl.value = entry.date || "";
         const urlEl = $("[data-ag-berge-url]"); if (urlEl) urlEl.value = entry.activityUrl || "";
         const coverEl = $("[data-ag-berge-cover]"); if (coverEl) coverEl.value = entry.cover || "";
@@ -4341,6 +4372,32 @@
         deleteGipfelEntry(entry.id);
         renderBergePanel();
         haptic(8);
+      });
+    }
+
+    const komootMapBtn = card.querySelector("[data-ag-map-komoot]");
+    if (komootMapBtn) {
+      komootMapBtn.addEventListener("click", () => {
+        const wrap = card.querySelector(`[data-ag-map-wrap-komoot="${komootId}"]`);
+        if (!wrap) return;
+        if (!wrap.hidden) { wrap.hidden = true; komootMapBtn.textContent = "🗺 Komoot-Karte"; return; }
+        wrap.innerHTML = `<iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="220" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
+        wrap.hidden = false;
+        komootMapBtn.textContent = "Karte schließen";
+        haptic(4);
+      });
+    }
+
+    const atMapBtn = card.querySelector("[data-ag-map-alltrails]");
+    if (atMapBtn && allTrailsEmbed) {
+      atMapBtn.addEventListener("click", () => {
+        const wrap = card.querySelector("[data-ag-map-wrap-alltrails]");
+        if (!wrap) return;
+        if (!wrap.hidden) { wrap.hidden = true; atMapBtn.textContent = "🗺 AllTrails-Karte"; return; }
+        wrap.innerHTML = `<iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
+        wrap.hidden = false;
+        atMapBtn.textContent = "Karte schließen";
+        haptic(4);
       });
     }
 
@@ -4989,6 +5046,8 @@
       bergeSave.addEventListener("click", () => {
         const name = ($("[data-ag-berge-name]")?.value || "").trim();
         const elev = parseInt($("[data-ag-berge-elev]")?.value || "", 10);
+        const dist = parseFloat($("[data-ag-berge-dist]")?.value || "");
+        const gain = parseInt($("[data-ag-berge-gain]")?.value || "", 10);
         const date = $("[data-ag-berge-date]")?.value || dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
         const url   = ($("[data-ag-berge-url]")?.value || "").trim();
         const cover = ($("[data-ag-berge-cover]")?.value || "").trim();
@@ -4996,14 +5055,14 @@
         const editId = ($("[data-ag-berge-edit-id]")?.value || "").trim();
         if (!name) { $("[data-ag-berge-name]")?.focus(); return; }
         haptic([20, 20, 40]);
-        const fields = { name, elevation: isNaN(elev) ? null : elev, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
+        const fields = { name, elevation: isNaN(elev) ? null : elev, distance: isNaN(dist) ? null : dist, elevGain: isNaN(gain) ? null : gain, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
         if (editId) {
           updateGipfelEntry(editId, fields);
         } else {
           addGipfelEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...fields, token: getToken() });
         }
         // reset form
-        ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+        ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
           const el = $(sel); if (el) el.value = "";
         });
         const formTitle = $("[data-ag-berge-form-title]");
@@ -6260,36 +6319,32 @@
         border-radius:calc(var(--ag-radius-md) - 2px);
       }
       .ag-gipfel-cover img{width:100%;height:100%;object-fit:cover;display:block}
-      .ag-gipfel-head{
-        display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-        margin-bottom:10px;
-      }
+      .ag-gipfel-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+      .ag-gipfel-head-info{flex:1;min-width:0}
       .ag-gipfel-name{font-size:1.15rem;font-weight:800;color:var(--ag-text);line-height:1.2;margin-bottom:3px}
       .ag-gipfel-date{font-size:.82rem;color:var(--ag-muted);font-weight:500}
       .ag-gipfel-elev{
-        font-size:2.2rem;font-weight:800;
+        font-size:2rem;font-weight:800;
         color:var(--ag-primary-dark);
         letter-spacing:-.03em;line-height:1;
-        white-space:nowrap;flex-shrink:0;
+        white-space:nowrap;flex-shrink:0;padding-top:2px;
       }
-      .ag-gipfel-notes{margin:0 0 12px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
+      .ag-gipfel-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0;align-items:flex-end}
+      .ag-gipfel-stats{font-size:.82rem;color:var(--ag-muted);font-weight:500;margin-bottom:6px}
+      .ag-gipfel-notes{margin:0 0 10px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
       .ag-gipfel-embed-wrap{margin-top:10px;margin-bottom:4px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
       .ag-gipfel-edit{
-        position:absolute;top:10px;right:42px;
-        background:none;border:none;cursor:pointer;
-        color:var(--ag-muted);font-size:.7rem;font-weight:700;letter-spacing:.02em;
-        padding:4px 8px;border-radius:999px;opacity:.5;
-        border:1px solid transparent;
-        transition:opacity 120ms,background 120ms,border-color 120ms;font-family:inherit;
+        background:none;border:none;cursor:pointer;font-size:1rem;
+        padding:2px 4px;border-radius:4px;opacity:.5;
+        transition:opacity 120ms;line-height:1;
       }
-      .ag-gipfel-edit:hover{opacity:1;background:rgba(47,122,79,.1);border-color:rgba(47,122,79,.2)}
+      .ag-gipfel-edit:hover{opacity:1}
       .ag-gipfel-delete{
-        position:absolute;top:10px;right:10px;
         background:none;border:none;cursor:pointer;
-        color:var(--ag-muted);font-size:.85rem;padding:4px 7px;
-        border-radius:4px;opacity:.45;transition:opacity 120ms,color 120ms;
+        color:var(--ag-muted);font-size:.85rem;padding:2px 4px;
+        border-radius:4px;opacity:.45;transition:opacity 120ms,color 120ms;line-height:1;
       }
       .ag-gipfel-delete:hover{opacity:1;color:#c84a18}
       @media (prefers-color-scheme:dark){
@@ -6309,7 +6364,8 @@
         display:inline-block;min-height:0;line-height:1;
         font-size:.84rem;padding:6px 12px;border-radius:999px;margin-top:6px;
       }
-      .ag-gipfel-card .ag-gipfel-load-btn{display:block;width:100%;text-align:center}
+      .ag-gipfel-embed-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+      .ag-gipfel-embed-row .ag-secondary{margin-top:0}
       .ag-gipfel-map-preview{margin-top:10px;border-radius:8px;overflow:hidden;line-height:0}
       .ag-gipfel-map-preview iframe{display:block;width:100%;border:0;border-radius:8px}
 
