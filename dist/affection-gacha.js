@@ -4284,12 +4284,14 @@
   function extractAllTrailsEmbed(url) {
     if (!url || !url.includes("alltrails.com")) return null;
     function cleanParams(src) {
-      // Ensure elevationDiagram=false, scrollZoom=false, u=m
-      src = src.replace(/[?&]elevationDiagram=[^&#]*/g, "");
-      if (!src.includes("scrollZoom")) src += (src.includes("?") ? "&" : "?") + "scrollZoom=false";
-      if (!src.includes("u=")) src += "&u=m";
-      src += "&elevationDiagram=false";
-      return src;
+      const qIdx = src.indexOf("?");
+      const base = qIdx === -1 ? src : src.slice(0, qIdx);
+      const qs   = qIdx === -1 ? "" : src.slice(qIdx + 1);
+      const p = new URLSearchParams(qs);
+      p.set("scrollZoom", "false");
+      p.set("u", "m");
+      p.set("elevationDiagram", "false");
+      return base + "?" + p.toString();
     }
     // Already a widget URL (user pasted from AllTrails embed code)
     if (url.includes("/widget/")) return cleanParams(url);
