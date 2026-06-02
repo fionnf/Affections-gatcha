@@ -1040,7 +1040,6 @@
                 <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
-              <button class="ag-sound-toggle" type="button" data-ag-sound-toggle aria-label="Ton ein/aus" title="Ton ein/aus">🔊</button>
               <button class="ag-button" type="button" data-ag-draw>
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span data-ag-button-text>Kapsel ziehen</span>
@@ -1165,6 +1164,7 @@
               <div class="ag-berge-stats">
                 <span class="ag-berge-total-label">Gemeinsame Höhenmeter</span>
                 <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
+                <span class="ag-berge-analogy" data-ag-berge-analogy hidden></span>
               </div>
               <button class="ag-button ag-berge-add-btn" type="button" data-ag-berge-add>
                 <span class="ag-button-orb" aria-hidden="true"></span>
@@ -1172,7 +1172,8 @@
               </button>
             </div>
             <div class="ag-card ag-berge-form" data-ag-berge-form hidden>
-              <p class="ag-wish-label">Neuer Gipfeleintrag</p>
+              <p class="ag-wish-label" data-ag-berge-form-title>Neuer Gipfeleintrag</p>
+              <input type="hidden" data-ag-berge-edit-id>
               <div class="ag-berge-form-grid">
                 <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
                 <div class="ag-berge-row">
@@ -1180,6 +1181,7 @@
                   <input class="ag-berge-input" type="date" data-ag-berge-date>
                 </div>
                 <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot- oder AllTrails-Link (optional)">
+                <input class="ag-berge-input" type="url" data-ag-berge-cover placeholder="Titelbild-URL (optional)">
                 <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
               </div>
               <div class="ag-wish-actions">
@@ -1998,27 +2000,37 @@
     if (!el) return;
     const player = getMissionPlayer();
     const myKey = player === "fionn" ? "fionn" : "lennart";
-    const theirKey = myKey === "lennart" ? "fionn" : "lennart";
-    const myName = myKey === "lennart" ? "Lennart" : "Fionn";
     const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
+    const scores = readBaerlauchScores();
     const history = readBaerlauchHistory();
-    if (!history.length) { el.hidden = true; return; }
+    const hasScores = scores[myKey] || scores[myKey === "fionn" ? "lennart" : "fionn"];
+    if (!hasScores && !history.length) { el.hidden = true; return; }
     el.hidden = false;
     const tz = state.theme?.timezone || "UTC";
     const fmt = (d) => {
-      try {
-        return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz })
-          .format(new Date(d + "T12:00:00Z"));
-      } catch (_) { return d; }
+      try { return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz }).format(new Date(d + "T12:00:00Z")); }
+      catch (_) { return d; }
     };
-    const rows = history.slice(0, 10).map(r => {
-      const isMe = r.player === myKey;
-      const nameClass = isMe ? "ag-score-mine" : "ag-score-theirs";
-      const name = isMe ? "Du" : theirName;
-      const result = r.won ? `✓ Level ${r.level}` : `✗ Level ${r.level - 1 >= 1 ? r.level - 1 : "–"}`;
-      return `<div class="ag-score-row"><span class="ag-score-date">${fmt(r.date)}</span><span class="ag-score-pill ${nameClass}">${name}</span><span class="ag-score-result">${result}</span></div>`;
-    }).join("");
-    el.innerHTML = `<div class="ag-score-table">${rows}</div>`;
+    let html = "";
+    if (hasScores) {
+      const myBest = scores[myKey] || 0;
+      const theirBest = scores[myKey === "fionn" ? "lennart" : "fionn"] || 0;
+      html += `<div class="ag-score-highscores">
+        <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-mine">Du</span><span class="ag-score-result">Level ${myBest || "—"}</span></div>
+        <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-theirs">${theirName}</span><span class="ag-score-result">Level ${theirBest || "—"}</span></div>
+      </div>`;
+    }
+    if (history.length) {
+      const rows = history.slice(0, 8).map(r => {
+        const isMe = r.player === myKey;
+        const nameClass = isMe ? "ag-score-mine" : "ag-score-theirs";
+        const name = isMe ? "Du" : theirName;
+        const result = r.won ? `✓ Level ${r.level}` : `✗ Level ${r.level - 1 >= 1 ? r.level - 1 : "–"}`;
+        return `<div class="ag-score-row"><span class="ag-score-date">${fmt(r.date)}</span><span class="ag-score-pill ${nameClass}">${name}</span><span class="ag-score-result">${result}</span></div>`;
+      }).join("");
+      html += `<div class="ag-score-table">${rows}</div>`;
+    }
+    el.innerHTML = html;
   }
 
   // ── Mission panel ────────────────────────────────────────────────────────────
@@ -3963,9 +3975,36 @@
     postGipfelToSheet("gipfel-delete", { id });
   }
 
+  function updateGipfelEntry(id, fields) {
+    const entries = readGipfelbuch();
+    const idx = entries.findIndex((e) => e.id === id);
+    if (idx === -1) return;
+    const updated = { ...entries[idx], ...fields };
+    entries[idx] = updated;
+    writeGipfelbuch(entries);
+    postGipfelToSheet("gipfel-upsert", updated);
+  }
+
   function formatElev(m) {
     if (!m && m !== 0) return "—";
     return Number(m).toLocaleString("de-CH") + " m";
+  }
+
+  function elevationAnalogy(m) {
+    if (!m || m <= 0) return null;
+    const refs = [
+      [8849,"Everest"],[4478,"Matterhorn"],[3692,"Titlis"],
+      [2415,"Säntis"],[1897,"Pilatus"],[1782,"Rigi"],
+      [869,"Üetliberg"],[668,"Grosse Mythen"]
+    ];
+    for (const [h, name] of refs) {
+      const t = m / h;
+      if (t >= 0.7) {
+        const n = t >= 2 ? Math.round(t) : (Math.round(t * 10) / 10).toString().replace(".", ",");
+        return `≈ ${n}× ${name}`;
+      }
+    }
+    return null;
   }
 
   function formatBergeDate(iso) {
@@ -3980,6 +4019,11 @@
     return m ? m[1] : null;
   }
 
+  function extractAllTrailsSlug(url) {
+    const m = url.match(/alltrails\.com\/(trail\/[^?#]+)/);
+    return m ? m[1].replace(/\/$/, "") : null;
+  }
+
   function renderGipfelCard(entry) {
     const card = document.createElement("div");
     card.className = "ag-card ag-gipfel-card";
@@ -3987,8 +4031,14 @@
 
     const komootId = entry.activityUrl ? extractKomootId(entry.activityUrl) : null;
     const isAllTrails = entry.activityUrl && entry.activityUrl.includes("alltrails.com");
+    const allTrailsSlug = isAllTrails ? extractAllTrailsSlug(entry.activityUrl) : null;
+
+    const coverHtml = entry.cover
+      ? `<div class="ag-gipfel-cover"><img src="${entry.cover}" alt="${entry.name || ""}" loading="lazy"></div>`
+      : "";
 
     card.innerHTML = `
+      ${coverHtml}
       <div class="ag-gipfel-head">
         <div>
           <div class="ag-gipfel-name">${entry.name || "—"}</div>
@@ -3997,27 +4047,67 @@
         <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
       </div>
       ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
-      ${komootId ? `<div class="ag-gipfel-embed-wrap" data-komoot-id="${komootId}">
+      ${komootId ? `<div class="ag-gipfel-embed-wrap">
         <button class="ag-secondary ag-gipfel-load-btn" type="button" data-ag-load-komoot="${komootId}">▶ Komoot-Tour laden</button>
-        <div class="ag-gipfel-iframe-wrap" data-ag-iframe-wrap="${komootId}" hidden></div>
+        <div class="ag-gipfel-iframe-wrap" data-ag-iframe-wrap-km="${komootId}" hidden></div>
       </div>` : ""}
-      ${isAllTrails && !komootId ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
+      ${allTrailsSlug ? `<div class="ag-gipfel-embed-wrap">
+        <button class="ag-secondary ag-gipfel-load-btn" type="button" data-ag-load-alltrails="${allTrailsSlug}">▶ AllTrails-Route laden</button>
+        <div class="ag-gipfel-iframe-wrap" data-ag-iframe-wrap-at="${allTrailsSlug}" hidden></div>
+      </div>` : ""}
+      ${isAllTrails && !allTrailsSlug ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
       ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
-      <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Eintrag löschen" title="Löschen">✕</button>
+      <div class="ag-gipfel-card-actions">
+        <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">✏</button>
+        <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
+      </div>
     `;
 
-    const loadBtn = card.querySelector("[data-ag-load-komoot]");
-    if (loadBtn) {
-      loadBtn.addEventListener("click", () => {
-        const iframeWrap = card.querySelector(`[data-ag-iframe-wrap="${komootId}"]`);
-        if (!iframeWrap) return;
-        loadBtn.hidden = true;
-        iframeWrap.hidden = false;
-        iframeWrap.innerHTML = `<iframe
-          src="https://www.komoot.com/tour/${komootId}/embed?profile=1"
-          width="100%" height="320" frameborder="0" scrolling="no"
-          loading="lazy" title="Komoot Tour"
-          style="border-radius:8px;display:block"></iframe>`;
+    const loadKomootBtn = card.querySelector("[data-ag-load-komoot]");
+    if (loadKomootBtn) {
+      loadKomootBtn.addEventListener("click", () => {
+        const wrap = card.querySelector(`[data-ag-iframe-wrap-km="${komootId}"]`);
+        if (!wrap) return;
+        loadKomootBtn.hidden = true;
+        wrap.hidden = false;
+        wrap.innerHTML = `<iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" width="100%" height="320" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="border-radius:8px;display:block"></iframe>`;
+      });
+    }
+
+    const loadAtBtn = card.querySelector("[data-ag-load-alltrails]");
+    if (loadAtBtn && allTrailsSlug) {
+      loadAtBtn.addEventListener("click", () => {
+        const wrap = card.querySelector(`[data-ag-iframe-wrap-at="${allTrailsSlug}"]`);
+        if (!wrap) return;
+        loadAtBtn.hidden = true;
+        wrap.hidden = false;
+        wrap.innerHTML = `<iframe src="https://www.alltrails.com/widget/${allTrailsSlug}?scrollZoom=false&u=m" width="100%" height="400" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="border-radius:8px;display:block;border:0"></iframe>`;
+      });
+    }
+
+    const editBtn = card.querySelector("[data-ag-gipfel-edit]");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        const bergeForm = $("[data-ag-berge-form]");
+        const bergeAddBtn = $("[data-ag-berge-add]");
+        if (!bergeForm) return;
+        const editIdEl = $("[data-ag-berge-edit-id]");
+        if (editIdEl) editIdEl.value = entry.id;
+        const nameEl = $("[data-ag-berge-name]"); if (nameEl) nameEl.value = entry.name || "";
+        const elevEl = $("[data-ag-berge-elev]"); if (elevEl) elevEl.value = entry.elevation || "";
+        const dateEl = $("[data-ag-berge-date]"); if (dateEl) dateEl.value = entry.date || "";
+        const urlEl = $("[data-ag-berge-url]"); if (urlEl) urlEl.value = entry.activityUrl || "";
+        const coverEl = $("[data-ag-berge-cover]"); if (coverEl) coverEl.value = entry.cover || "";
+        const notesEl = $("[data-ag-berge-notes]"); if (notesEl) notesEl.value = entry.notes || "";
+        const formTitle = $("[data-ag-berge-form-title]");
+        if (formTitle) formTitle.textContent = "Eintrag bearbeiten";
+        const saveSpan = $("[data-ag-berge-save] span:last-child");
+        if (saveSpan) saveSpan.textContent = "Speichern";
+        bergeForm.hidden = false;
+        if (bergeAddBtn) bergeAddBtn.hidden = true;
+        bergeForm.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (nameEl) nameEl.focus();
+        haptic(8);
       });
     }
 
@@ -4038,6 +4128,7 @@
     const list = $("[data-ag-berge-list]");
     const empty = $("[data-ag-berge-empty]");
     const totalEl = $("[data-ag-berge-total]");
+    const analogyEl = $("[data-ag-berge-analogy]");
     if (!list) return;
 
     const entries = readGipfelbuch();
@@ -4045,6 +4136,11 @@
 
     const totalElev = entries.reduce((sum, e) => sum + (Number(e.elevation) || 0), 0);
     if (totalEl) totalEl.textContent = totalElev > 0 ? formatElev(totalElev) : "— m";
+    if (analogyEl) {
+      const analogy = elevationAnalogy(totalElev);
+      if (analogy) { analogyEl.textContent = analogy; analogyEl.hidden = false; }
+      else { analogyEl.hidden = true; }
+    }
 
     if (!entries.length) {
       if (empty) empty.hidden = false;
@@ -4284,35 +4380,39 @@
     const ctx = _getAudioCtx();
     if (!ctx) return;
     if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const p = (f, s, d, v, t) => _playNote(ctx, f, s, d, v ?? 0.12, t ?? "sine");
     switch (tone) {
       case "quiet":
-        _playNote(ctx, 280, 0,    0.18, 0.08, "sine");
-        _playNote(ctx, 210, 0.12, 0.22, 0.06, "sine");
+        p(392, 0,    0.22, 0.07); p(294, 0.16, 0.30, 0.05);
         break;
       case "cursed":
-        _playNote(ctx, 220, 0,    0.12, 0.10, "triangle");
-        _playNote(ctx, 170, 0.09, 0.28, 0.07, "triangle");
+        p(233, 0,    0.14, 0.09, "triangle"); p(175, 0.11, 0.30, 0.07, "triangle");
+        p(117, 0.22, 0.32, 0.05, "triangle");
         break;
       case "uncommon":
-        _playNote(ctx, 523, 0,    0.14, 0.14, "sine");
-        _playNote(ctx, 784, 0.10, 0.22, 0.12, "sine");
+        p(523, 0,    0.15, 0.12); p(659, 0.11, 0.20, 0.12); p(784, 0.22, 0.30, 0.10);
+        p(523 * 1.005, 0, 0.15, 0.03); // subtle chorus
         break;
       case "rare":
-        _playNote(ctx, 523, 0,    0.12, 0.14, "sine");
-        _playNote(ctx, 659, 0.09, 0.12, 0.14, "sine");
-        _playNote(ctx, 1047,0.18, 0.30, 0.12, "sine");
+        p(523, 0,    0.13, 0.13); p(659, 0.09, 0.15, 0.13);
+        p(784, 0.18, 0.15, 0.12); p(1047, 0.27, 0.38, 0.11);
+        p(659 * 1.005, 0.09, 0.15, 0.04);
         break;
       case "jackpot":
-        [523, 659, 784, 1047, 1319].forEach((f, i) => _playNote(ctx, f, i * 0.09, 0.18, 0.13, "sine"));
-        _playNote(ctx, 2093, 0.40, 0.40, 0.04, "sine");
+        [523, 659, 784, 1047, 1319].forEach((f, i) => {
+          p(f, i * 0.085, 0.22, 0.12); p(f * 1.004, i * 0.085, 0.22, 0.03); // chorus
+        });
+        p(2093, 0.44, 0.55, 0.05); p(2093, 0.54, 0.35, 0.03);
         break;
       case "special":
-        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => _playNote(ctx, f, i * 0.08, 0.16, 0.13, "sine"));
-        _playNote(ctx, 2093, 0.45, 0.50, 0.05, "sine");
+        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => {
+          p(f, i * 0.075, 0.20, 0.11); p(f * 1.004, i * 0.075, 0.20, 0.03);
+        });
+        p(2093, 0.48, 0.55, 0.05); p(2637, 0.58, 0.42, 0.04);
         break;
       default: // common, quest, collect, photo
-        _playNote(ctx, 523, 0,    0.12, 0.13, "sine");
-        _playNote(ctx, 659, 0.09, 0.18, 0.10, "sine");
+        p(523, 0,    0.14, 0.12); p(659, 0.10, 0.22, 0.10);
+        p(523 * 1.005, 0, 0.14, 0.04); // slight warmth
         break;
     }
   }
@@ -4544,39 +4644,29 @@
         const name = ($("[data-ag-berge-name]")?.value || "").trim();
         const elev = parseInt($("[data-ag-berge-elev]")?.value || "", 10);
         const date = $("[data-ag-berge-date]")?.value || dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
-        const url  = ($("[data-ag-berge-url]")?.value || "").trim();
+        const url   = ($("[data-ag-berge-url]")?.value || "").trim();
+        const cover = ($("[data-ag-berge-cover]")?.value || "").trim();
         const notes = ($("[data-ag-berge-notes]")?.value || "").trim();
+        const editId = ($("[data-ag-berge-edit-id]")?.value || "").trim();
         if (!name) { $("[data-ag-berge-name]")?.focus(); return; }
         haptic([20, 20, 40]);
-        addGipfelEntry({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          name,
-          elevation: isNaN(elev) ? null : elev,
-          date,
-          activityUrl: url || null,
-          notes: notes || null,
-          token: getToken()
-        });
+        const fields = { name, elevation: isNaN(elev) ? null : elev, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
+        if (editId) {
+          updateGipfelEntry(editId, fields);
+        } else {
+          addGipfelEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...fields, token: getToken() });
+        }
         // reset form
-        ["[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-url]","[data-ag-berge-notes]"].forEach((sel) => {
+        ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
           const el = $(sel); if (el) el.value = "";
         });
+        const formTitle = $("[data-ag-berge-form-title]");
+        if (formTitle) formTitle.textContent = "Neuer Gipfeleintrag";
+        const saveSpan = $("[data-ag-berge-save] span:last-child");
+        if (saveSpan) saveSpan.textContent = "Eintragen";
         bergeForm.hidden = true;
         bergeAddBtn.hidden = false;
         renderBergePanel();
-      });
-    }
-
-    // Sound toggle
-    const soundToggle = $("[data-ag-sound-toggle]");
-    if (soundToggle) {
-      const updateSoundBtn = () => { soundToggle.textContent = soundEnabled() ? "🔊" : "🔇"; };
-      updateSoundBtn();
-      soundToggle.addEventListener("click", () => {
-        setSoundEnabled(!soundEnabled());
-        updateSoundBtn();
-        haptic(6);
-        if (soundEnabled()) playPullSound("common");
       });
     }
 
@@ -5548,12 +5638,6 @@
         display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
       }
       .ag-draw-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
-      .ag-sound-toggle{
-        background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;
-        padding:4px;border-radius:6px;color:var(--ag-muted);transition:color 120ms,opacity 120ms;
-        margin-left:auto;
-      }
-      .ag-sound-toggle:hover{color:var(--ag-text)}
       .ag-pill{
         display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
         border-radius:999px;background:var(--ag-surface-2);
@@ -5710,12 +5794,21 @@
         overflow-wrap:break-word;word-break:break-word;
       }
       .ag-history-item{
-        padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
-        background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
-        transition:transform 180ms var(--ag-ease), border-color 180ms var(--ag-ease);
+        padding:12px 14px;border-radius:var(--ag-radius-md);
+        background:linear-gradient(150deg,rgba(255,255,255,.82) 0%,rgba(220,240,230,.6) 100%);
+        border:1px solid rgba(255,255,255,.88);
+        box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 4px 18px rgba(8,28,18,.08),0 1px 3px rgba(8,28,18,.05);
+        backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+        transition:transform 200ms var(--ag-ease),box-shadow 200ms var(--ag-ease);
       }
-      @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
-      .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
+      @media (prefers-color-scheme:dark){
+        .ag-history-item{
+          background:linear-gradient(150deg,rgba(55,78,58,.6) 0%,rgba(25,42,28,.72) 100%);
+          border-color:rgba(255,255,255,.1);
+          box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 -1px 0 rgba(0,0,0,.2) inset,0 4px 18px rgba(0,0,0,.28);
+        }
+      }
+      .ag-history-item:hover{transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 8px 28px rgba(8,28,18,.13),0 2px 6px rgba(8,28,18,.07)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
       .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
       .ag-history-badge{
@@ -5822,10 +5915,25 @@
       .ag-berge-notes{resize:vertical;min-height:60px}
 
       .ag-gipfel-card{
-        position:relative;
+        position:relative;overflow:hidden;
+        background:linear-gradient(150deg,rgba(255,255,255,.8) 0%,rgba(215,240,228,.58) 100%) !important;
+        border:1px solid rgba(255,255,255,.85) !important;
+        box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 8px 32px rgba(8,28,18,.11),0 2px 8px rgba(8,28,18,.06) !important;
+        backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
         animation:ag-enter 350ms var(--ag-ease);
-        overflow:hidden;
       }
+      @media (prefers-color-scheme:dark){
+        .ag-gipfel-card{
+          background:linear-gradient(150deg,rgba(50,72,55,.65) 0%,rgba(22,38,26,.78) 100%) !important;
+          border-color:rgba(255,255,255,.11) !important;
+          box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.22) inset,0 8px 32px rgba(0,0,0,.35) !important;
+        }
+      }
+      .ag-gipfel-cover{
+        height:160px;overflow:hidden;margin-bottom:14px;
+        border-radius:calc(var(--ag-radius-md) - 2px);
+      }
+      .ag-gipfel-cover img{width:100%;height:100%;object-fit:cover;display:block}
       .ag-gipfel-head{
         display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
         margin-bottom:10px;
@@ -5839,16 +5947,21 @@
         white-space:nowrap;flex-shrink:0;
       }
       .ag-gipfel-notes{margin:0 0 12px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
-      .ag-gipfel-embed-wrap{margin-top:10px}
+      .ag-gipfel-embed-wrap{margin-top:10px;margin-bottom:4px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
-      .ag-gipfel-delete{
-        position:absolute;top:10px;right:10px;
-        background:none;border:none;cursor:pointer;
-        color:var(--ag-muted);font-size:.85rem;padding:4px 6px;
-        border-radius:4px;opacity:.5;transition:opacity 120ms;
+      .ag-gipfel-card-actions{
+        display:flex;align-items:center;justify-content:flex-end;gap:6px;
+        padding-top:10px;border-top:1px solid rgba(0,0,0,.05);margin-top:10px;
       }
-      .ag-gipfel-delete:hover{opacity:1;color:var(--ag-text)}
+      @media (prefers-color-scheme:dark){.ag-gipfel-card-actions{border-top-color:rgba(255,255,255,.07)}}
+      .ag-gipfel-edit,.ag-gipfel-delete{
+        background:none;border:none;cursor:pointer;
+        color:var(--ag-muted);font-size:.9rem;padding:5px 8px;
+        border-radius:6px;opacity:.55;transition:opacity 120ms,background 120ms;
+      }
+      .ag-gipfel-edit:hover{opacity:1;background:rgba(47,122,79,.1)}
+      .ag-gipfel-delete:hover{opacity:1;color:#c84a18;background:rgba(200,74,24,.08)}
       @media (prefers-color-scheme:dark){
         .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
         .ag-berge-input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fffdf2}
@@ -5857,6 +5970,7 @@
         .ag-berge-row{grid-template-columns:1fr}
         .ag-gipfel-elev{font-size:1.7rem}
       }
+      .ag-score-highscores{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--ag-border)}
 
       /* ── Milestone banner ── */
       .ag-milestone{
