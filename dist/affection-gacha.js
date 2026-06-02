@@ -5794,22 +5794,12 @@
         overflow-wrap:break-word;word-break:break-word;
       }
       .ag-history-item{
-        padding:12px 14px;border-radius:var(--ag-radius-md);
-        background:linear-gradient(150deg,rgba(255,255,255,.82) 0%,rgba(220,240,230,.6) 100%);
-        border:1px solid rgba(255,255,255,.88);
-        box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 4px 18px rgba(8,28,18,.08),0 1px 3px rgba(8,28,18,.05);
-        backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-        transition:transform 200ms var(--ag-ease),box-shadow 200ms var(--ag-ease);
+        padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
+        background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
+        transition:transform 180ms var(--ag-ease), border-color 180ms var(--ag-ease);
       }
-      @media (prefers-color-scheme:dark){
-        .ag-history-item{
-          background:rgba(28,42,32,.9);
-          border-color:rgba(255,255,255,.08);
-          box-shadow:0 4px 14px rgba(0,0,0,.3);
-          backdrop-filter:none;-webkit-backdrop-filter:none;
-        }
-      }
-      .ag-history-item:hover{transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 8px 28px rgba(8,28,18,.13),0 2px 6px rgba(8,28,18,.07)}
+      @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
+      .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
       .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
       .ag-history-badge{
@@ -5917,19 +5907,7 @@
 
       .ag-gipfel-card{
         position:relative;overflow:hidden;
-        background:linear-gradient(150deg,rgba(255,255,255,.8) 0%,rgba(215,240,228,.58) 100%) !important;
-        border:1px solid rgba(255,255,255,.85) !important;
-        box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -1px 0 rgba(0,0,0,.03) inset,0 8px 32px rgba(8,28,18,.11),0 2px 8px rgba(8,28,18,.06) !important;
-        backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
         animation:ag-enter 350ms var(--ag-ease);
-      }
-      @media (prefers-color-scheme:dark){
-        .ag-gipfel-card{
-          background:linear-gradient(180deg,rgba(28,42,32,.97),rgba(18,30,22,.95)) !important;
-          border-color:rgba(255,255,255,.08) !important;
-          box-shadow:0 12px 36px rgba(0,0,0,.4) !important;
-          backdrop-filter:none;-webkit-backdrop-filter:none;
-        }
       }
       .ag-gipfel-cover{
         height:160px;overflow:hidden;margin-bottom:14px;
