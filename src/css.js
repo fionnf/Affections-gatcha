@@ -1021,7 +1021,12 @@ export const css = `
       .ag-gipfel-notes{margin:0 0 10px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
       .ag-gipfel-map-preview{margin-top:10px}
       .ag-gipfel-embed-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-      .ag-gipfel-trail-link{display:block;margin-top:10px}
+      .ag-gipfel-trail-arrow{
+        color:var(--ag-primary);text-decoration:none;
+        font-size:.82rem;font-weight:700;opacity:.65;
+        transition:opacity 150ms;
+      }
+      .ag-gipfel-trail-arrow:hover{opacity:1}
       .ag-gipfel-embed-wrap{margin-top:10px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
@@ -1729,12 +1734,14 @@ export const css = `
 }
 .leaflet-control-zoom a:hover{background:rgba(47,122,79,.7)!important}
 .leaflet-popup-content-wrapper{
-  background:rgba(14,26,16,.95);color:#fffdf2;
-  border:1px solid rgba(255,255,255,.12);border-radius:12px!important;
-  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  background:rgba(14,26,16,.97)!important;color:#fffdf2!important;
+  border:1px solid rgba(126,207,163,.2)!important;border-radius:12px!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)!important;
 }
-.leaflet-popup-tip{background:rgba(14,26,16,.95)}
-.leaflet-popup-content{margin:12px 16px;font-size:.9rem}
+.leaflet-popup-tip-container .leaflet-popup-tip{background:rgba(14,26,16,.97)!important}
+.leaflet-popup-content{margin:12px 16px!important;font-size:.88rem}
+.leaflet-popup-close-button{color:#a8d5b5!important;font-size:1.1rem!important}
+.leaflet-popup-close-button:hover{color:#7ecfa3!important}
     `;
 
 export function injectStyles() {
