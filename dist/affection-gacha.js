@@ -1010,13 +1010,7 @@
       .ag-gipfel-embed-wrap{margin-top:10px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
-      .ag-gipfel-delete{
-        position:absolute;top:10px;right:10px;
-        background:none;border:none;cursor:pointer;
-        color:var(--ag-muted);font-size:.85rem;padding:4px 6px;
-        border-radius:4px;opacity:.5;transition:opacity 120ms;
-      }
-      .ag-gipfel-delete:hover{opacity:1;color:var(--ag-text)}
+      /* ag-gipfel-delete styled in mobile tap-target section below */
       @media (prefers-color-scheme:dark){
         .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
         .ag-berge-input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fffdf2}
@@ -1561,7 +1555,7 @@
       /* ── Sheet backdrop ── */
       .ag-sheet-backdrop{
         display:none;position:fixed;inset:0;z-index:900;
-        background:rgba(0,0,0,.48);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+        background:rgba(0,0,0,.38);
         animation:ag-letter-fade-in 200ms ease both;
       }
       .ag-sheet-backdrop.is-open{display:block}
@@ -1601,12 +1595,48 @@
       .ag-ptr.is-loading .ag-ptr-icon{animation:ag-spin .7s linear infinite;display:inline-block}
       .ag-ptr-icon{font-size:.88rem;color:var(--ag-primary)}
 
-      /* ── Larger tap targets for action buttons ── */
-      .ag-gipfel-edit{min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
-      .ag-gipfel-delete{min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
-      .ag-glossary-edit-btn{min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
-      .ag-glossary-del-btn{min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
-      .ag-glossary-play-btn{width:36px;height:36px}
+      /* ── Gipfel (peak) action buttons ── */
+      .ag-gipfel-actions{
+        display:flex;align-items:center;gap:4px;flex-shrink:0;
+      }
+      .ag-gipfel-edit,.ag-gipfel-delete{
+        display:flex;align-items:center;justify-content:center;
+        width:32px;height:32px;
+        background:none;border:none;cursor:pointer;
+        border-radius:var(--ag-radius-sm);
+        color:var(--ag-muted);font-size:.9rem;
+        opacity:.55;transition:opacity 120ms,background 120ms,color 120ms;
+        -webkit-tap-highlight-color:transparent;
+      }
+      .ag-gipfel-edit:hover,.ag-gipfel-delete:hover{
+        opacity:1;background:var(--ag-surface-2);color:var(--ag-text);
+      }
+      .ag-gipfel-delete:hover{color:#c0392b}
+
+      /* ── Glossary card action buttons ── */
+      .ag-glossary-card-btns{
+        display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;
+      }
+      .ag-glossary-play-btn,.ag-glossary-edit-btn,.ag-glossary-del-btn{
+        display:inline-flex;align-items:center;justify-content:center;
+        background:var(--ag-surface-2);border:1px solid var(--ag-border);
+        border-radius:var(--ag-radius-sm);cursor:pointer;
+        color:var(--ag-text);font-family:inherit;
+        transition:background 140ms,border-color 140ms,transform 100ms;
+        -webkit-tap-highlight-color:transparent;
+      }
+      .ag-glossary-play-btn{width:34px;height:34px;font-size:.85rem}
+      .ag-glossary-edit-btn{padding:0 12px;height:34px;font-size:.82rem;font-weight:600}
+      .ag-glossary-del-btn{width:34px;height:34px;font-size:.82rem;color:var(--ag-muted)}
+      .ag-glossary-play-btn:hover,.ag-glossary-edit-btn:hover{background:rgba(47,122,79,.12);border-color:var(--ag-primary)}
+      .ag-glossary-del-btn:hover{background:rgba(192,57,43,.1);border-color:rgba(192,57,43,.4);color:#c0392b}
+      .ag-glossary-play-btn:active,.ag-glossary-edit-btn:active,.ag-glossary-del-btn:active{transform:scale(.93)}
+      @media (prefers-color-scheme:dark){
+        .ag-glossary-play-btn,.ag-glossary-edit-btn,.ag-glossary-del-btn{
+          background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1);color:var(--ag-text)
+        }
+        .ag-glossary-play-btn:hover,.ag-glossary-edit-btn:hover{background:rgba(47,122,79,.2)}
+      }
     `;function gr(){if(document.querySelector("[data-ag-styles]"))return;const e=document.createElement("style");e.dataset.agStyles="true",e.textContent=cr,document.head.appendChild(e)}function ur(){return`
       <svg class="ag-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <defs>
