@@ -1,5 +1,5 @@
 // ── Berge / Gipfelbuch ────────────────────────────────────────────────────────
-import { state, $ } from "./state.js";
+import { state, mount, $ } from "./state.js";
 import { getToken, formatElev, formatBergeDate, extractKomootId } from "./utils.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
@@ -148,6 +148,10 @@ export function renderGipfelCard(entry) {
       const urlEl = $("[data-ag-berge-url]"); if (urlEl) urlEl.value = entry.activityUrl || "";
       const coverEl = $("[data-ag-berge-cover]"); if (coverEl) coverEl.value = entry.cover || "";
       const notesEl = $("[data-ag-berge-notes]"); if (notesEl) notesEl.value = entry.notes || "";
+      const latEl2 = $("[data-ag-berge-lat]"); if (latEl2) latEl2.value = entry.lat || "";
+      const lngEl2 = $("[data-ag-berge-lng]"); if (lngEl2) lngEl2.value = entry.lng || "";
+      const locLabelEl = $("[data-ag-berge-loc-label]"); if (locLabelEl) locLabelEl.value = entry.locLabel || "";
+      const locSearchEl = $("[data-ag-loc-search]"); if (locSearchEl) locSearchEl.value = entry.locLabel || "";
       const formTitle = $("[data-ag-berge-form-title]");
       if (formTitle) formTitle.textContent = "Eintrag bearbeiten";
       const saveSpan = $("[data-ag-berge-save] span:last-child");
@@ -209,8 +213,186 @@ export function renderBergePanel() {
 
   if (!entries.length) {
     if (empty) empty.hidden = false;
+    initGipfelMap([]);
     return;
   }
   if (empty) empty.hidden = true;
   entries.forEach((entry) => list.appendChild(renderGipfelCard(entry)));
+  initGipfelMap(entries);
+}
+
+// ── Location search ────────────────────────────────────────────────────────────
+export function bindLocationSearch(mountEl) {
+  const searchInput = mountEl.querySelector("[data-ag-loc-search]");
+  const dropdown = mountEl.querySelector("[data-ag-loc-dropdown]");
+  if (!searchInput || !dropdown) return;
+
+  let debounceTimer = null;
+
+  function clearLocation() {
+    const latEl = mountEl.querySelector("[data-ag-berge-lat]");
+    const lngEl = mountEl.querySelector("[data-ag-berge-lng]");
+    const labelEl = mountEl.querySelector("[data-ag-berge-loc-label]");
+    if (latEl) latEl.value = "";
+    if (lngEl) lngEl.value = "";
+    if (labelEl) labelEl.value = "";
+    dropdown.hidden = true;
+    dropdown.innerHTML = "";
+  }
+
+  searchInput.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const q = searchInput.value.trim();
+    if (!q) { clearLocation(); return; }
+    debounceTimer = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1`;
+        const res = await fetch(url, { headers: { "User-Agent": "affections-gacha/1.0" } });
+        const results = await res.json();
+        dropdown.innerHTML = "";
+        if (!results.length) { dropdown.hidden = true; return; }
+        results.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "ag-location-result";
+          btn.textContent = item.display_name;
+          btn.addEventListener("click", () => {
+            const latEl = mountEl.querySelector("[data-ag-berge-lat]");
+            const lngEl = mountEl.querySelector("[data-ag-berge-lng]");
+            const labelEl = mountEl.querySelector("[data-ag-berge-loc-label]");
+            if (latEl) latEl.value = item.lat;
+            if (lngEl) lngEl.value = item.lon;
+            if (labelEl) labelEl.value = item.display_name;
+            searchInput.value = item.display_name;
+            dropdown.hidden = true;
+            dropdown.innerHTML = "";
+          });
+          dropdown.appendChild(btn);
+        });
+        dropdown.hidden = false;
+      } catch (_) {
+        dropdown.hidden = true;
+      }
+    }, 300);
+  });
+
+  // Hide dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.hidden = true;
+    }
+  });
+}
+
+export function bindBergeEvents() {
+  bindLocationSearch(mount);
+}
+
+// ── Leaflet map ────────────────────────────────────────────────────────────────
+let _map = null;
+let _markerLayer = null;
+
+async function loadLeaflet() {
+  if (window.L) return;
+  await new Promise((res, rej) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = res; script.onerror = rej;
+    document.head.appendChild(script);
+  });
+}
+
+export async function initGipfelMap(entries) {
+  const section = $("[data-ag-gipfel-map-section]");
+  if (!section) return;
+
+  const geoEntries = entries.filter((e) => e.lat && e.lng);
+
+  if (!geoEntries.length) {
+    section.hidden = true;
+    return;
+  }
+
+  section.hidden = false;
+
+  try {
+    await loadLeaflet();
+  } catch (_) {
+    return;
+  }
+
+  const L = window.L;
+  const mapEl = document.getElementById("ag-gipfel-map");
+  if (!mapEl) return;
+
+  const CH_BOUNDS = [[45.8, 5.9], [47.8, 10.5]];
+  const EU_BOUNDS = [[35.0, -11.0], [71.0, 32.0]];
+
+  if (!_map) {
+    _map = L.map(mapEl).fitBounds(CH_BOUNDS);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>',
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(_map);
+
+    // Toggle buttons
+    const toggleBtns = section.querySelectorAll("[data-map-view]");
+    toggleBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        toggleBtns.forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        const bounds = btn.dataset.mapView === "eu" ? EU_BOUNDS : CH_BOUNDS;
+        _map.fitBounds(bounds);
+      });
+    });
+  }
+
+  // Clear existing markers
+  if (_markerLayer) {
+    _markerLayer.clearLayers();
+  } else {
+    _markerLayer = L.layerGroup().addTo(_map);
+  }
+
+  geoEntries.forEach((entry) => {
+    const marker = L.circleMarker([parseFloat(entry.lat), parseFloat(entry.lng)], {
+      radius: 8,
+      fillColor: "#7ecfa3",
+      color: "#1a4a2c",
+      weight: 2,
+      fillOpacity: 0.9
+    });
+
+    const popupContent = document.createElement("div");
+    popupContent.style.cssText = "min-width:120px";
+    popupContent.innerHTML = `
+      <div style="font-weight:700;margin-bottom:2px">${entry.name || "—"}</div>
+      <div style="font-size:.82rem;opacity:.75;margin-bottom:6px">${formatElev(entry.elevation)}</div>
+    `;
+    const goBtn = document.createElement("button");
+    goBtn.type = "button";
+    goBtn.textContent = "Zum Eintrag";
+    goBtn.style.cssText = "background:rgba(47,122,79,.3);border:1px solid rgba(126,207,163,.4);color:#7ecfa3;border-radius:6px;padding:4px 10px;font-size:.78rem;cursor:pointer;font-family:inherit;width:100%";
+    goBtn.addEventListener("click", () => {
+      marker.closePopup();
+      const card = mount.querySelector(`[data-ag-gipfel-id="${entry.id}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("ag-gipfel-highlight");
+        setTimeout(() => card.classList.remove("ag-gipfel-highlight"), 1200);
+      }
+    });
+    popupContent.appendChild(goBtn);
+    marker.bindPopup(popupContent);
+    _markerLayer.addLayer(marker);
+  });
+
+  requestAnimationFrame(() => {
+    _map.invalidateSize();
+  });
 }

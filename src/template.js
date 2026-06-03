@@ -466,6 +466,13 @@ export const html = `
               <input type="hidden" data-ag-berge-edit-id>
               <div class="ag-berge-form-grid">
                 <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
+                <div class="ag-location-wrap">
+                  <input class="ag-berge-input" type="text" data-ag-loc-search placeholder="Standort suchen…" autocomplete="off">
+                  <div class="ag-location-dropdown" data-ag-loc-dropdown hidden></div>
+                  <input type="hidden" data-ag-berge-lat>
+                  <input type="hidden" data-ag-berge-lng>
+                  <input type="hidden" data-ag-berge-loc-label>
+                </div>
                 <div class="ag-berge-row">
                   <input class="ag-berge-input" type="date" data-ag-berge-date>
                   <input class="ag-berge-input" type="number" data-ag-berge-gain placeholder="Höhenmeter (↑ m)" min="0" max="9000">
@@ -485,6 +492,16 @@ export const html = `
             </div>
             <div data-ag-berge-list></div>
             <p class="ag-history-empty" data-ag-berge-empty hidden>Noch kein Gipfel eingetragen. Der erste wartet.</p>
+            <div class="ag-gipfel-map-section" data-ag-gipfel-map-section hidden>
+              <div class="ag-gipfel-map-bar">
+                <span class="ag-gipfel-map-title">⛰ Auf der Karte</span>
+                <div class="ag-gipfel-map-toggles">
+                  <button class="ag-gipfel-map-toggle is-active" data-map-view="ch" type="button">Schweiz</button>
+                  <button class="ag-gipfel-map-toggle" data-map-view="eu" type="button">Europa</button>
+                </div>
+              </div>
+              <div id="ag-gipfel-map" class="ag-gipfel-map"></div>
+            </div>
           </section>
           <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
               <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">

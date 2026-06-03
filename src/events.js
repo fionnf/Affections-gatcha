@@ -12,7 +12,7 @@ import { triggerConfetti } from "./confetti.js";
 import { haptic } from "./haptic.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderOdds, renderWunschkapsel, toggleFavorite, messageText, hydrateCopy, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
-import { renderBergePanel, addGipfelEntry, updateGipfelEntry } from "./berge.js";
+import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, _glossaryCurrentLang, _glossaryAudioBlob, _glossaryRecorder } from "./glossary.js";
@@ -968,9 +968,13 @@ export function bindEvents() {
       bergeForm.hidden = true;
       bergeAddBtn.hidden = false;
       $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
-      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]","[data-ag-berge-lat]","[data-ag-berge-lng]","[data-ag-berge-loc-label]"].forEach((sel) => {
         const el = $(sel); if (el) el.value = "";
       });
+      const locSearchEl = $("[data-ag-loc-search]");
+      if (locSearchEl) locSearchEl.value = "";
+      const locDrop = $("[data-ag-loc-dropdown]");
+      if (locDrop) { locDrop.hidden = true; locDrop.innerHTML = ""; }
       const formTitle = $("[data-ag-berge-form-title]");
       if (formTitle) formTitle.textContent = "Neuer Gipfeleintrag";
       const saveSpan = $("[data-ag-berge-save] span:last-child");
@@ -987,18 +991,23 @@ export function bindEvents() {
       const cover = ($("[data-ag-berge-cover]")?.value || "").trim();
       const notes = ($("[data-ag-berge-notes]")?.value || "").trim();
       const editId = ($("[data-ag-berge-edit-id]")?.value || "").trim();
+      const lat = ($("[data-ag-berge-lat]")?.value || "").trim() || null;
+      const lng = ($("[data-ag-berge-lng]")?.value || "").trim() || null;
+      const locLabel = ($("[data-ag-berge-loc-label]")?.value || "").trim() || null;
       if (!name) { $("[data-ag-berge-name]")?.focus(); return; }
       haptic([20, 20, 40]);
-      const fields = { name, elevation: null, distance: isNaN(dist) ? null : dist, elevGain: isNaN(gain) ? null : gain, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
+      const fields = { name, elevation: null, distance: isNaN(dist) ? null : dist, elevGain: isNaN(gain) ? null : gain, date, activityUrl: url || null, cover: cover || null, notes: notes || null, lat, lng, locLabel };
       if (editId) {
         updateGipfelEntry(editId, fields);
       } else {
         addGipfelEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...fields, token: getToken() });
       }
       // reset form
-      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]","[data-ag-berge-lat]","[data-ag-berge-lng]","[data-ag-berge-loc-label]"].forEach((sel) => {
         const el = $(sel); if (el) el.value = "";
       });
+      const locSearchEl = $("[data-ag-loc-search]");
+      if (locSearchEl) locSearchEl.value = "";
       const formTitle = $("[data-ag-berge-form-title]");
       if (formTitle) formTitle.textContent = "Neuer Gipfeleintrag";
       const saveSpan = $("[data-ag-berge-save] span:last-child");
@@ -1010,6 +1019,9 @@ export function bindEvents() {
       showToast("Gipfel gespeichert ✓");
     });
   }
+
+  // Bind berge-specific events (location search, etc.)
+  bindBergeEvents();
 
   // Show Fionn's ping card only for Fionn token (when backup is enabled)
   const pingCard = $("[data-ag-ping-card]");

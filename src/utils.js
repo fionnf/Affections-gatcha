@@ -39,8 +39,13 @@ export function formatHistoryDate(dayKey) {
 export function formatBergeDate(iso) {
   if (!iso) return "";
   try {
-    return new Date(iso + "T12:00:00").toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
-  } catch (_) { return iso; }
+    const s = String(iso).trim();
+    // Normalize: strip time component if present (Sheets returns full ISO timestamps)
+    const dateOnly = /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s;
+    const d = new Date(dateOnly + "T12:00:00");
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
+  } catch (_) { return String(iso); }
 }
 
 export function formatElev(m) {
