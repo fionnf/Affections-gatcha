@@ -109,8 +109,11 @@ export function renderGipfelCard(entry) {
 
   const elevDisplay = entry.elevGain || entry.elevation;
   const distStr = entry.distance ? `${entry.distance} km` : "";
-  const statsHtml = distStr
-    ? `<div class="ag-gipfel-stats">${distStr}</div>`
+  const trailLink = entry.activityUrl
+    ? `<a class="ag-gipfel-trail-arrow" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗</a>`
+    : "";
+  const statsHtml = (distStr || trailLink)
+    ? `<div class="ag-gipfel-stats">${distStr}${distStr && trailLink ? " " : ""}${trailLink}</div>`
     : "";
 
   card.innerHTML = `
@@ -128,9 +131,8 @@ export function renderGipfelCard(entry) {
     </div>
     ${statsHtml}
     ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
-    ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
-    ${isAllTrails ? `${allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}<a class="ag-secondary ag-gipfel-trail-link" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
-    ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary ag-gipfel-trail-link" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
+    ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
+    ${isAllTrails && allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}
   `;
 
   const editBtn = card.querySelector("[data-ag-gipfel-edit]");

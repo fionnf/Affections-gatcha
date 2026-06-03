@@ -1021,7 +1021,12 @@ export const css = `
       .ag-gipfel-notes{margin:0 0 10px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
       .ag-gipfel-map-preview{margin-top:10px}
       .ag-gipfel-embed-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-      .ag-gipfel-trail-link{display:block;margin-top:10px}
+      .ag-gipfel-trail-arrow{
+        color:var(--ag-primary);text-decoration:none;
+        font-size:.82rem;font-weight:700;opacity:.65;
+        transition:opacity 150ms;
+      }
+      .ag-gipfel-trail-arrow:hover{opacity:1}
       .ag-gipfel-embed-wrap{margin-top:10px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
