@@ -968,7 +968,7 @@ export function bindEvents() {
       bergeForm.hidden = true;
       bergeAddBtn.hidden = false;
       $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
-      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
         const el = $(sel); if (el) el.value = "";
       });
       const formTitle = $("[data-ag-berge-form-title]");
@@ -980,7 +980,6 @@ export function bindEvents() {
   if (bergeSave) {
     bergeSave.addEventListener("click", () => {
       const name = ($("[data-ag-berge-name]")?.value || "").trim();
-      const elev = parseInt($("[data-ag-berge-elev]")?.value || "", 10);
       const dist = parseFloat($("[data-ag-berge-dist]")?.value || "");
       const gain = parseInt($("[data-ag-berge-gain]")?.value || "", 10);
       const date = $("[data-ag-berge-date]")?.value || dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
@@ -990,14 +989,14 @@ export function bindEvents() {
       const editId = ($("[data-ag-berge-edit-id]")?.value || "").trim();
       if (!name) { $("[data-ag-berge-name]")?.focus(); return; }
       haptic([20, 20, 40]);
-      const fields = { name, elevation: isNaN(elev) ? null : elev, distance: isNaN(dist) ? null : dist, elevGain: isNaN(gain) ? null : gain, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
+      const fields = { name, elevation: null, distance: isNaN(dist) ? null : dist, elevGain: isNaN(gain) ? null : gain, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
       if (editId) {
         updateGipfelEntry(editId, fields);
       } else {
         addGipfelEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...fields, token: getToken() });
       }
       // reset form
-      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
         const el = $(sel); if (el) el.value = "";
       });
       const formTitle = $("[data-ag-berge-form-title]");

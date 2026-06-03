@@ -107,20 +107,20 @@ export function renderGipfelCard(entry) {
     ? `<div class="ag-gipfel-cover"><img src="${entry.cover}" alt="${entry.name || ""}" loading="lazy"></div>`
     : "";
 
+  const elevDisplay = entry.elevGain || entry.elevation;
   const distStr = entry.distance ? `${entry.distance} km` : "";
-  const gainStr = entry.elevGain ? `↑ ${entry.elevGain} m` : "";
-  const statsHtml = (distStr || gainStr)
-    ? `<div class="ag-gipfel-stats">${[distStr, gainStr].filter(Boolean).join(" · ")}</div>`
+  const statsHtml = distStr
+    ? `<div class="ag-gipfel-stats">${distStr}</div>`
     : "";
 
   card.innerHTML = `
     ${coverHtml}
     <div class="ag-gipfel-head">
       <div class="ag-gipfel-head-info">
-        <div class="ag-gipfel-name">${entry.name || "—"}</div>
         <div class="ag-gipfel-date">${formatBergeDate(entry.date)}</div>
+        <div class="ag-gipfel-name">${entry.name || "—"}</div>
       </div>
-      <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
+      ${elevDisplay ? `<div class="ag-gipfel-elev">↑ ${formatElev(elevDisplay)}</div>` : ""}
       <div class="ag-gipfel-actions">
         <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">✏️</button>
         <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
@@ -129,8 +129,8 @@ export function renderGipfelCard(entry) {
     ${statsHtml}
     ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
     ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
-    ${isAllTrails ? `${allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
-    ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
+    ${isAllTrails ? `${allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}<a class="ag-secondary ag-gipfel-trail-link" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
+    ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary ag-gipfel-trail-link" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
   `;
 
   const editBtn = card.querySelector("[data-ag-gipfel-edit]");
@@ -142,9 +142,8 @@ export function renderGipfelCard(entry) {
       const editIdEl = $("[data-ag-berge-edit-id]");
       if (editIdEl) editIdEl.value = entry.id;
       const nameEl = $("[data-ag-berge-name]"); if (nameEl) nameEl.value = entry.name || "";
-      const elevEl = $("[data-ag-berge-elev]"); if (elevEl) elevEl.value = entry.elevation || "";
       const distEl = $("[data-ag-berge-dist]"); if (distEl) distEl.value = entry.distance || "";
-      const gainEl = $("[data-ag-berge-gain]"); if (gainEl) gainEl.value = entry.elevGain || "";
+      const gainEl = $("[data-ag-berge-gain]"); if (gainEl) gainEl.value = entry.elevGain || entry.elevation || "";
       const dateEl = $("[data-ag-berge-date]"); if (dateEl) dateEl.value = entry.date || "";
       const urlEl = $("[data-ag-berge-url]"); if (urlEl) urlEl.value = entry.activityUrl || "";
       const coverEl = $("[data-ag-berge-cover]"); if (coverEl) coverEl.value = entry.cover || "";
@@ -200,7 +199,7 @@ export function renderBergePanel() {
   const entries = readGipfelbuch();
   list.innerHTML = "";
 
-  const totalElev = entries.reduce((sum, e) => sum + (Number(e.elevation) || 0), 0);
+  const totalElev = entries.reduce((sum, e) => sum + (Number(e.elevGain) || Number(e.elevation) || 0), 0);
   if (totalEl) totalEl.textContent = totalElev > 0 ? formatElev(totalElev) : "— m";
   if (analogyEl) {
     const analogy = elevationAnalogy(totalElev);

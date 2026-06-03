@@ -989,24 +989,39 @@ export const css = `
       .ag-berge-elev-input{font-size:1rem;font-weight:700}
       .ag-berge-notes{resize:vertical;min-height:60px}
 
+      /* Gipfel list: same grid gap as history */
+      [data-ag-berge-list]{display:grid;gap:10px}
+
       .ag-gipfel-card{
         position:relative;
+        padding:12px 14px;
+        border:1px solid var(--ag-border);
+        border-radius:var(--ag-radius-md);
+        background:rgba(255,253,248,.85);
+        box-shadow:var(--ag-shadow-soft);
+        transition:transform 180ms var(--ag-ease),border-color 180ms var(--ag-ease);
         animation:ag-enter 350ms var(--ag-ease);
         overflow:hidden;
       }
+      .ag-gipfel-card:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
+      @media (prefers-color-scheme:dark){.ag-gipfel-card{background:rgba(23,32,23,.7)}}
       .ag-gipfel-head{
         display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-        margin-bottom:10px;
+        margin-bottom:6px;
       }
-      .ag-gipfel-name{font-size:1.15rem;font-weight:800;color:var(--ag-text);line-height:1.2;margin-bottom:3px}
-      .ag-gipfel-date{font-size:.82rem;color:var(--ag-muted);font-weight:500}
+      .ag-gipfel-name{font-size:1rem;font-weight:800;color:var(--ag-text);line-height:1.3;margin-bottom:2px}
+      .ag-gipfel-date{font-size:.78rem;color:var(--ag-muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
       .ag-gipfel-elev{
-        font-size:2.2rem;font-weight:800;
+        font-size:1.35rem;font-weight:800;
         color:var(--ag-primary-dark);
-        letter-spacing:-.03em;line-height:1;
+        letter-spacing:-.02em;line-height:1;
         white-space:nowrap;flex-shrink:0;
       }
-      .ag-gipfel-notes{margin:0 0 12px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
+      .ag-gipfel-stats{font-size:.85rem;color:var(--ag-muted);margin-bottom:8px}
+      .ag-gipfel-notes{margin:0 0 10px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
+      .ag-gipfel-map-preview{margin-top:10px}
+      .ag-gipfel-embed-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+      .ag-gipfel-trail-link{display:block;margin-top:10px}
       .ag-gipfel-embed-wrap{margin-top:10px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
@@ -1330,9 +1345,7 @@ export const css = `
         box-shadow:0 0 0 3px rgba(47,122,79,.15);
       }
 
-      /* Gipfel cards: taller cover, more breathing room */
-      .ag-gipfel-card{padding:18px 20px !important}
-      .ag-gipfel-cover{height:190px;border-radius:var(--ag-radius-md)}
+      .ag-gipfel-cover{height:160px;border-radius:var(--ag-radius-md);margin-bottom:10px}
       @media (prefers-color-scheme:dark){
         .ag-gipfel-elev{color:#8fcf9e}
         .ag-berge-total-elev{color:#8fcf9e}
@@ -1340,6 +1353,34 @@ export const css = `
 
       /* Berge stats counter: bigger */
       .ag-berge-total-elev{font-size:2.4rem}
+
+      /* ── Glossary language tab strip ── */
+      .ag-glossary-tab-track{
+        position:relative;display:inline-flex;align-items:stretch;
+        background:var(--ag-surface-2);border-radius:999px;padding:3px;gap:0;
+        margin-bottom:14px;
+      }
+      @media (prefers-color-scheme:dark){
+        .ag-glossary-tab-track{background:rgba(255,255,255,.08)}
+      }
+      .ag-glossary-tab-pill{
+        position:absolute;top:3px;left:0;height:calc(100% - 6px);
+        border-radius:999px;background:var(--ag-primary);
+        transition:transform 300ms cubic-bezier(.34,1.56,.64,1),width 300ms cubic-bezier(.34,1.56,.64,1);
+        pointer-events:none;z-index:0;
+      }
+      .ag-glossary-tab{
+        position:relative;z-index:1;
+        appearance:none;-webkit-appearance:none;
+        border:none;background:transparent;
+        padding:6px 16px;border-radius:999px;
+        font-size:.82rem;font-weight:600;
+        color:var(--ag-muted);
+        cursor:pointer;white-space:nowrap;
+        transition:color 200ms;
+      }
+      .ag-glossary-tab.is-active{color:#fff;font-weight:700}
+      .ag-glossary-tab:focus-visible{outline:2px solid var(--ag-primary);outline-offset:2px}
 
       /* Glossary cards: elevated hover */
       .ag-glossary-card{
