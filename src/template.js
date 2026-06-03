@@ -467,13 +467,10 @@ export const html = `
               <div class="ag-berge-form-grid">
                 <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
                 <div class="ag-berge-row">
-                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Gipfelhöhe (m)" min="0" max="9000">
                   <input class="ag-berge-input" type="date" data-ag-berge-date>
-                </div>
-                <div class="ag-berge-row">
-                  <input class="ag-berge-input" type="number" data-ag-berge-dist placeholder="Distanz (km)" min="0" max="500" step="0.1">
                   <input class="ag-berge-input" type="number" data-ag-berge-gain placeholder="Höhenmeter (↑ m)" min="0" max="9000">
                 </div>
+                <input class="ag-berge-input" type="number" data-ag-berge-dist placeholder="Distanz (km)" min="0" max="500" step="0.1">
                 <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot-URL oder AllTrails-Widget-URL (mit sh=…)">
                 <input class="ag-berge-input" type="url" data-ag-berge-cover placeholder="Titelbild-URL (optional)">
                 <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
