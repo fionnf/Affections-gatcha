@@ -264,9 +264,7 @@ export function retryPendingWishSend() {
   sendWishToInbox(wish);
 }
 
-export function showNotifPrompt() {
-  const card = document.querySelector('[data-ag-notif-card]');
-  if (!card) return;
+export async function showNotifPrompt() {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
 
@@ -274,8 +272,26 @@ export function showNotifPrompt() {
     if (window.localStorage.getItem(NOTIF_KEY) === 'dismissed') return;
   } catch {}
 
-  card.hidden = false;
-  card.removeAttribute('hidden');
+  // Attempt native permission request directly — fires the browser dialog immediately
+  // on Firefox and iOS PWA (allowed without user gesture there).
+  // Chrome silently ignores it and keeps permission at 'default', so we fall through
+  // to the in-app banner as a fallback.
+  let result = 'default';
+  try { result = await Notification.requestPermission(); } catch (_) {}
+
+  if (result === 'granted') {
+    try { window.localStorage.setItem(NOTIF_KEY, 'granted'); } catch {}
+    await registerServiceWorker();
+    return;
+  }
+  if (result === 'denied') {
+    try { window.localStorage.setItem(NOTIF_KEY, 'dismissed'); } catch {}
+    return;
+  }
+
+  // 'default' → browser blocked silent request → show in-app banner
+  const card = document.querySelector('[data-ag-notif-card]');
+  if (card) { card.hidden = false; card.removeAttribute('hidden'); }
 }
 
 function nextNotificationTimestamp() {
