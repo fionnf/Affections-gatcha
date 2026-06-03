@@ -1622,7 +1622,7 @@ export const css = `
 
       /* ── Sheet backdrop ── */
       .ag-sheet-backdrop{
-        display:none;position:fixed;inset:0;z-index:900;
+        display:none;position:fixed;inset:0;z-index:1005;
         background:rgba(0,0,0,.38);
         animation:ag-letter-fade-in 200ms ease both;
       }
@@ -1630,7 +1630,7 @@ export const css = `
 
       /* Form must always sit above the backdrop on every screen size */
       [data-ag-berge-form]:not([hidden]),
-      #ag-glossary-form:not([hidden]){position:relative;z-index:901}
+      #ag-glossary-form:not([hidden]){position:relative;z-index:1010}
 
       /* Glossary form field spacing */
       .ag-glossary-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
@@ -1644,11 +1644,11 @@ export const css = `
         [data-ag-berge-form]:not([hidden]),
         #ag-glossary-form:not([hidden]){
           position:fixed;bottom:0;left:0;right:0;
-          z-index:901;
+          z-index:1010;
           background:var(--ag-surface);
           border-radius:var(--ag-radius-lg) var(--ag-radius-lg) 0 0;
-          padding:24px 20px calc(90px + env(safe-area-inset-bottom));
-          max-height:92vh;overflow-y:auto;
+          padding:24px 20px calc(32px + env(safe-area-inset-bottom));
+          max-height:88vh;overflow-y:auto;
           box-shadow:0 -8px 40px rgba(0,0,0,.28);
           margin:0;
           animation:ag-sheet-in 300ms var(--ag-ease) both;

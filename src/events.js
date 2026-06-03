@@ -716,6 +716,7 @@ export function bindEvents() {
       if (playPrev) playPrev.hidden = true;
       glossaryForm.hidden = false;
       glossaryAddBtn.hidden = true;
+      $("[data-ag-sheet-backdrop]")?.classList.add("is-open");
       document.getElementById("ag-glossary-word-input")?.focus();
       haptic(8);
     });
@@ -725,6 +726,7 @@ export function bindEvents() {
   document.getElementById("ag-glossary-form-cancel")?.addEventListener("click", () => {
     if (glossaryForm) glossaryForm.hidden = true;
     if (glossaryAddBtn) glossaryAddBtn.hidden = false;
+    $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
     document.getElementById("ag-glossary-edit-id").value = "";
     glossaryMod._glossaryAudioBlob = null;
     if (glossaryMod._glossaryRecorder && glossaryMod._glossaryRecorder.state !== "inactive") {
