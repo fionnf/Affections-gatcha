@@ -968,6 +968,13 @@ export function bindEvents() {
       bergeForm.hidden = true;
       bergeAddBtn.hidden = false;
       $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
+      ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
+        const el = $(sel); if (el) el.value = "";
+      });
+      const formTitle = $("[data-ag-berge-form-title]");
+      if (formTitle) formTitle.textContent = "Neuer Gipfeleintrag";
+      const saveSpan = $("[data-ag-berge-save] span:last-child");
+      if (saveSpan) saveSpan.textContent = "Eintragen";
     });
   }
   if (bergeSave) {
