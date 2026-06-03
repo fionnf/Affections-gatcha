@@ -62,6 +62,18 @@ export function setActiveTab(tab) {
     node.classList.toggle("is-active", isActive);
     node.setAttribute("aria-selected", isActive ? "true" : "false");
   });
+  // Slide the liquid glass pill to the active button
+  const activeBtn = mount.querySelector(".ag-bottomnav-btn.is-active");
+  const pill = mount.querySelector(".ag-nav-pill");
+  if (pill && activeBtn) {
+    const nav = activeBtn.closest(".ag-bottomnav");
+    const navRect = nav ? nav.getBoundingClientRect() : null;
+    const btnRect = activeBtn.getBoundingClientRect();
+    if (navRect && btnRect.width) {
+      pill.style.left = `${btnRect.left - navRect.left}px`;
+      pill.style.width = `${btnRect.width}px`;
+    }
+  }
   $("[data-ag-panel-today]").hidden = tab !== "today";
   $("[data-ag-panel-history]").hidden = tab !== "history";
   $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
