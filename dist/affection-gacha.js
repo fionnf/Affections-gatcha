@@ -6655,6 +6655,173 @@
       }
       .ag-letter-body p:last-child{margin-bottom:0}
       .ag-letter-sign{font-style:italic;font-weight:600;color:rgba(143,207,158,.9)!important;}
+
+      /* ═══════════════════════════════════
+         UI / UX OVERHAUL — Refinement pass
+         ═══════════════════════════════════ */
+
+      /* Cards: cleaner flat premium surface */
+      .ag-card{
+        background:var(--ag-surface);
+        box-shadow:0 1px 3px rgba(8,28,18,.06),0 6px 20px rgba(8,28,18,.1),0 1px 0 rgba(255,255,255,.65) inset;
+        transition:box-shadow 220ms var(--ag-ease),transform 220ms var(--ag-ease);
+      }
+      @media (prefers-color-scheme:dark){
+        .ag-card{
+          background:rgba(21,33,23,.98);
+          box-shadow:0 1px 3px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.42);
+        }
+      }
+
+      /* History: timeline left-accent per tone */
+      .ag-history-item{
+        padding:14px 16px;
+        border-left-width:3px;
+        border-radius:0 var(--ag-radius-md) var(--ag-radius-md) 0;
+        background:var(--ag-surface);
+        box-shadow:0 1px 4px rgba(8,28,18,.06);
+      }
+      .ag-history-item:hover{
+        transform:translateY(-1px);
+        border-left-color:var(--ag-primary);
+        box-shadow:0 4px 14px rgba(8,28,18,.11);
+      }
+      .ag-history-item[data-tone="warm"]    {border-left-color:var(--ag-gold)}
+      .ag-history-item[data-tone="jackpot"] {border-left-color:var(--ag-gold)}
+      .ag-history-item[data-tone="quest"]   {border-left-color:var(--ag-blue)}
+      .ag-history-item[data-tone="rare"],
+      .ag-history-item[data-tone="photo"]   {border-left-color:var(--ag-green)}
+      .ag-history-item[data-tone="cursed"]  {border-left-color:var(--ag-primary)}
+      @media (prefers-color-scheme:dark){
+        .ag-history-item{background:rgba(22,34,24,.82)}
+        .ag-history-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.3)}
+      }
+
+      /* History thumbnail: slightly larger on wide screens */
+      @media (min-width:480px){
+        .ag-history-thumb{width:72px;height:72px;border-radius:12px}
+      }
+
+      /* History title & date: sharper */
+      .ag-history-title{font-size:1.02rem;font-weight:800}
+      .ag-history-date{font-size:.75rem;letter-spacing:.06em}
+
+      /* Empty state: solid border, centred */
+      .ag-history-empty{
+        border-style:solid;
+        background:var(--ag-surface);
+        text-align:center;
+        padding:24px 20px;
+        border-radius:var(--ag-radius-lg);
+      }
+
+      /* Form inputs: shadow ring on focus */
+      .ag-berge-input{
+        transition:border-color 150ms var(--ag-ease),box-shadow 150ms var(--ag-ease);
+      }
+      .ag-berge-input:focus{
+        border-color:var(--ag-primary);
+        box-shadow:0 0 0 3px rgba(47,122,79,.15);
+        outline:none;
+      }
+      .ag-wish-input:focus{
+        border-color:var(--ag-primary);
+        box-shadow:0 0 0 3px rgba(47,122,79,.15);
+      }
+      .ag-mission-comment:focus{
+        box-shadow:0 0 0 3px rgba(47,122,79,.15);
+      }
+
+      /* Gipfel cards: taller cover, more breathing room */
+      .ag-gipfel-card{padding:18px 20px !important}
+      .ag-gipfel-cover{height:190px;border-radius:var(--ag-radius-md)}
+      @media (prefers-color-scheme:dark){
+        .ag-gipfel-elev{color:#8fcf9e}
+        .ag-berge-total-elev{color:#8fcf9e}
+      }
+
+      /* Berge stats counter: bigger */
+      .ag-berge-total-elev{font-size:2.4rem}
+
+      /* Glossary cards: elevated hover */
+      .ag-glossary-card{
+        background:var(--ag-surface);
+        border-radius:var(--ag-radius-lg);
+        padding:14px 16px;
+        box-shadow:0 1px 4px rgba(8,28,18,.05);
+        transition:transform 160ms var(--ag-ease),box-shadow 160ms var(--ag-ease),border-color 160ms;
+      }
+      .ag-glossary-card:hover{
+        transform:translateY(-2px);
+        box-shadow:0 4px 18px rgba(8,28,18,.12);
+        border-color:rgba(47,122,79,.45);
+      }
+      @media (prefers-color-scheme:dark){
+        .ag-glossary-card{background:rgba(22,34,24,.82)}
+        .ag-glossary-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.32)}
+      }
+
+      /* Chips: smooth hover scale */
+      .ag-chips li{transition:transform 140ms var(--ag-ease),background 140ms}
+      .ag-chip-clickable:hover{transform:translateY(-2px) scale(1.04);background:rgba(8,28,18,.6)}
+
+      /* Secondary button: subtle surface + refined dark mode */
+      .ag-secondary{background:var(--ag-surface-2)}
+      .ag-secondary:hover{background:rgba(47,122,79,.1)}
+      @media (prefers-color-scheme:dark){
+        .ag-secondary{background:rgba(255,255,255,.05);color:var(--ag-primary)}
+        .ag-secondary:hover{background:rgba(47,122,79,.18);border-color:var(--ag-primary)}
+      }
+
+      /* Mission card: more spacious, larger radius */
+      .ag-mission-card{padding:20px 22px;border-radius:var(--ag-radius-lg)}
+      @media (prefers-color-scheme:dark){.ag-mission-card{background:rgba(22,34,24,.96)}}
+
+      /* Banners: consistent large radius */
+      .ag-milestone{border-radius:var(--ag-radius-lg);padding:14px 18px}
+      .ag-ping-banner{border-radius:var(--ag-radius-lg)}
+
+      /* Forage: consistent radius */
+      .ag-forage-field{border-radius:var(--ag-radius-lg)}
+
+      /* Hug button: warmer hover shadow */
+      .ag-hug-button{background:linear-gradient(135deg,rgba(232,164,164,.28),rgba(185,120,46,.22));border-color:rgba(232,164,164,.3)}
+      .ag-hug-button:hover{box-shadow:0 6px 22px rgba(232,164,164,.28)}
+
+      /* Result card: larger heading, readable body */
+      .ag-result h2{font-size:clamp(1.45rem,1.1rem + 1.3vw,2.1rem)}
+      .ag-result p{font-size:.96rem;line-height:1.65}
+
+      /* Photo: rounded media inside card */
+      .ag-photo{border-radius:var(--ag-radius-lg)}
+
+      /* Forage reward photo: bigger radius */
+      .ag-baerlauch-photo{border-radius:var(--ag-radius-lg)}
+
+      /* Quest/Gespräch cards: match card style */
+      .ag-quest-challenge,
+      .ag-gesprach-card{border-radius:var(--ag-radius-md);transition:border-color 150ms}
+
+      /* Notif card: more visual separation */
+      .ag-notif-text{font-size:.95rem}
+
+      /* Kicker: slightly brighter */
+      .ag-kicker{color:#e0f0dc}
+
+      /* Intro text: more readable line length */
+      .ag-intro{max-width:32rem;font-size:clamp(.97rem,.93rem + .2vw,1.06rem)}
+
+      /* Score pill: tighter */
+      .ag-score-pill{font-weight:800;letter-spacing:.03em}
+
+      /* Draw hint: italic */
+      .ag-draw-hint{font-style:italic;font-size:.9rem}
+
+      /* Panel gap */
+      .ag-panel{gap:clamp(12px,2vw,16px)}
+
+      /* Sticky-like tabs: add a small top margin to compensate for scroll */
+      .ag-tabs{box-shadow:0 2px 8px rgba(8,28,18,.12)}
     `;
     document.head.appendChild(style);
   }
