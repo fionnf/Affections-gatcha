@@ -62,16 +62,19 @@ export function setActiveTab(tab) {
     node.classList.toggle("is-active", isActive);
     node.setAttribute("aria-selected", isActive ? "true" : "false");
   });
-  // Slide the liquid glass pill to the active button
+  // Slide the liquid glass pill to the active button's icon centre
+  const PILL_W = 54;
   const activeBtn = mount.querySelector(".ag-bottomnav-btn.is-active");
   const pill = mount.querySelector(".ag-nav-pill");
   if (pill && activeBtn) {
     const nav = activeBtn.closest(".ag-bottomnav");
     const navRect = nav ? nav.getBoundingClientRect() : null;
-    const btnRect = activeBtn.getBoundingClientRect();
-    if (navRect && btnRect.width) {
-      pill.style.left = `${btnRect.left - navRect.left}px`;
-      pill.style.width = `${btnRect.width}px`;
+    const icon = activeBtn.querySelector(".ag-bottomnav-btn-icon") || activeBtn;
+    const iconRect = icon.getBoundingClientRect();
+    if (navRect && iconRect.width) {
+      const centre = iconRect.left - navRect.left + iconRect.width / 2;
+      pill.style.width = `${PILL_W}px`;
+      pill.style.left = `${centre - PILL_W / 2}px`;
     }
   }
   $("[data-ag-panel-today]").hidden = tab !== "today";
@@ -968,11 +971,12 @@ export function bindEvents() {
     bottomNav.addEventListener("pointerdown", (e) => {
       const navRect = bottomNav.getBoundingClientRect();
       bottomNav.setPointerCapture(e.pointerId);
+      const pw = parseFloat(pill?.style.width) || 54;
       drag = {
         id: e.pointerId,
         startX: e.clientX - navRect.left,
-        pillStartLeft: parseFloat(pill?.style.left) || 0,
-        pillWidth: parseFloat(pill?.style.width) || 0,
+        pillStartCentre: (parseFloat(pill?.style.left) || 0) + pw / 2,
+        pillWidth: pw,
         moved: false,
         suppress: false
       };
@@ -987,10 +991,12 @@ export function bindEvents() {
       drag.suppress = true;
       if (!pill) return;
       pill.style.transition = "none";
-      const max = navRect.width - drag.pillWidth;
-      let left = drag.pillStartLeft + dx;
+      const navRect2 = bottomNav.getBoundingClientRect();
+      const centre = drag.pillStartCentre + dx;
+      const hw = drag.pillWidth / 2;
+      let left = centre - hw;
       if (left < 0) left = left * 0.25;
-      else if (left > max) left = max + (left - max) * 0.25;
+      else if (left + drag.pillWidth > navRect2.width) left = navRect2.width - drag.pillWidth + (left + drag.pillWidth - navRect2.width) * 0.25;
       pill.style.left = `${left}px`;
     });
 
