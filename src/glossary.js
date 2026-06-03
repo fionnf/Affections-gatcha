@@ -68,14 +68,19 @@ export async function uploadGlossaryAudio(blob, wordId) {
   }
 }
 
-export function renderGlossaryWord(word) {
+const LANG_LABELS = { swabian: "Schwäbisch", portuguese: "Português", irish: "Gaeilge" };
+
+export function renderGlossaryWord(word, showLang = false) {
   const card = document.createElement("div");
   card.className = "ag-glossary-card";
   card.dataset.agGlossaryId = word.id;
+  const langBadge = showLang && word.lang
+    ? `<span class="ag-glossary-lang-badge">${LANG_LABELS[word.lang] || word.lang}</span>`
+    : "";
   card.innerHTML = `
     <div class="ag-glossary-card-body">
       <div class="ag-glossary-card-text">
-        <div class="ag-glossary-word">${word.word || "—"}</div>
+        <div class="ag-glossary-word">${word.word || "—"}${langBadge}</div>
         ${word.meaning ? `<div class="ag-glossary-meaning-text">${word.meaning}</div>` : ""}
       </div>
       <div class="ag-glossary-card-btns">
@@ -138,14 +143,21 @@ export function renderGlossaryPanel(lang) {
     btn.classList.toggle("is-active", btn.dataset.lang === _glossaryCurrentLang);
   });
   _glossaryMovePill();
-  const words = readGlossary().filter(w => w.lang === _glossaryCurrentLang);
+  const query = (document.getElementById("ag-glossary-search")?.value || "").trim().toLowerCase();
+  const allWords = readGlossary();
+  const words = query
+    ? allWords.filter(w =>
+        (w.word || "").toLowerCase().includes(query) ||
+        (w.meaning || "").toLowerCase().includes(query)
+      )
+    : allWords.filter(w => w.lang === _glossaryCurrentLang);
   list.innerHTML = "";
   if (!words.length) {
-    if (empty) empty.hidden = false;
+    if (empty) { empty.textContent = query ? "Kein Treffer." : "Noch kein Wort hier. Füg eins hinzu."; empty.hidden = false; }
     return;
   }
   if (empty) empty.hidden = true;
-  words.forEach(w => list.appendChild(renderGlossaryWord(w)));
+  words.forEach(w => list.appendChild(renderGlossaryWord(w, !!query)));
 }
 
 export function _glossaryMovePill() {
@@ -164,6 +176,8 @@ export function openGlossaryPanel() {
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
   _glossaryCurrentLang = "swabian";
+  const searchEl = document.getElementById("ag-glossary-search");
+  if (searchEl) searchEl.value = "";
   renderGlossaryPanel("swabian");
   // reset pill after layout
   window.requestAnimationFrame(() => _glossaryMovePill());

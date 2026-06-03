@@ -294,6 +294,9 @@ export const html = `
                 <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
               </div>
             </div>
+            <div class="ag-glossary-search-wrap">
+              <input class="ag-glossary-search" type="search" id="ag-glossary-search" placeholder="Suchen…" autocomplete="off" spellcheck="false">
+            </div>
             <div class="ag-glossary-list" id="ag-glossary-list"></div>
             <p class="ag-history-empty" id="ag-glossary-empty" hidden>Noch kein Wort hier. Füg eins hinzu.</p>
             <button class="ag-button ag-glossary-add-btn" type="button" id="ag-glossary-add" style="width:100%;justify-content:center;margin-top:12px">
@@ -312,7 +315,7 @@ export const html = `
                   <span class="ag-glossary-audio-status" id="ag-glossary-audio-status"></span>
                 </div>
               </div>
-              <div class="ag-wish-actions">
+              <div class="ag-glossary-form-actions">
                 <button class="ag-secondary" type="button" id="ag-glossary-form-cancel">Abbrechen</button>
                 <button class="ag-button" type="button" id="ag-glossary-form-save">
                   <span class="ag-button-orb" aria-hidden="true"></span>
