@@ -371,10 +371,11 @@ export async function initGipfelMap(entries) {
     });
 
     const popupContent = document.createElement("div");
-    popupContent.style.cssText = "min-width:120px";
+    popupContent.style.cssText = "min-width:130px";
+    const elevVal = entry.elevGain || entry.elevation;
     popupContent.innerHTML = `
-      <div style="font-weight:700;margin-bottom:2px">${entry.name || "—"}</div>
-      <div style="font-size:.82rem;opacity:.75;margin-bottom:6px">${formatElev(entry.elevation)}</div>
+      <div style="font-weight:700;margin-bottom:4px;font-size:.92rem">${entry.name || "—"}</div>
+      ${elevVal ? `<div style="font-size:.8rem;opacity:.7;margin-bottom:6px">↑ ${formatElev(elevVal)}</div>` : ""}
     `;
     const goBtn = document.createElement("button");
     goBtn.type = "button";

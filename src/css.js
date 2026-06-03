@@ -1734,12 +1734,14 @@ export const css = `
 }
 .leaflet-control-zoom a:hover{background:rgba(47,122,79,.7)!important}
 .leaflet-popup-content-wrapper{
-  background:rgba(14,26,16,.95);color:#fffdf2;
-  border:1px solid rgba(255,255,255,.12);border-radius:12px!important;
-  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  background:rgba(14,26,16,.97)!important;color:#fffdf2!important;
+  border:1px solid rgba(126,207,163,.2)!important;border-radius:12px!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)!important;
 }
-.leaflet-popup-tip{background:rgba(14,26,16,.95)}
-.leaflet-popup-content{margin:12px 16px;font-size:.9rem}
+.leaflet-popup-tip-container .leaflet-popup-tip{background:rgba(14,26,16,.97)!important}
+.leaflet-popup-content{margin:12px 16px!important;font-size:.88rem}
+.leaflet-popup-close-button{color:#a8d5b5!important;font-size:1.1rem!important}
+.leaflet-popup-close-button:hover{color:#7ecfa3!important}
     `;
 
 export function injectStyles() {
