@@ -16,6 +16,7 @@ A daily capsule-pull PWA for Lennart and Fionn — served straight from GitHub P
 | ⚙️ **GAS backup endpoint** | https://script.google.com/macros/s/AKfycbzod1vU7KQEjno6-vq5uGSuWWNsft8o7igqXprYbxlFNHTSN2Vindxc0nWCVrYspjKV5Q/exec |
 | ⚙️ **GAS wish-inbox endpoint** | https://script.google.com/macros/s/AKfycbzV6VKQvFGrA0AB-qp8UfNQuLeE5tFXmezVeEkjIziU7KFVlznz6eCJCoRcNMNG6coVSg/exec |
 | 📦 **GitHub repo** | https://github.com/fionnf/Affections-gatcha |
+| 🖨️ **3D print design** | https://a360.co/4uNxWSR |
 
 ---
 
@@ -408,6 +409,8 @@ npm run simulate
 ---
 
 ## 3D print notes
+
+**Design file:** [Autodesk Fusion 360 — Gacha machine](https://a360.co/4uNxWSR)
 
 - NFC sticker: NTAG215 or NTAG216, 25 mm
 - Keep NFC under 1–2 mm of plastic; don't place directly behind metal
