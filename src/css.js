@@ -1281,7 +1281,7 @@ export const css = `
       .ag-history-item{
         padding:14px 16px;
         border-left-width:3px;
-        border-radius:0 var(--ag-radius-md) var(--ag-radius-md) 0;
+        border-radius:var(--ag-radius-md);
         background:var(--ag-surface);
         box-shadow:0 1px 4px rgba(8,28,18,.06);
       }
