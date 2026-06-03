@@ -62,16 +62,19 @@ export function setActiveTab(tab) {
     node.classList.toggle("is-active", isActive);
     node.setAttribute("aria-selected", isActive ? "true" : "false");
   });
-  // Slide the liquid glass pill to the active button
+  // Slide the liquid glass pill to the active button's icon centre
+  const PILL_W = 54;
   const activeBtn = mount.querySelector(".ag-bottomnav-btn.is-active");
   const pill = mount.querySelector(".ag-nav-pill");
   if (pill && activeBtn) {
     const nav = activeBtn.closest(".ag-bottomnav");
     const navRect = nav ? nav.getBoundingClientRect() : null;
-    const btnRect = activeBtn.getBoundingClientRect();
-    if (navRect && btnRect.width) {
-      pill.style.left = `${btnRect.left - navRect.left}px`;
-      pill.style.width = `${btnRect.width}px`;
+    const icon = activeBtn.querySelector(".ag-bottomnav-btn-icon") || activeBtn;
+    const iconRect = icon.getBoundingClientRect();
+    if (navRect && iconRect.width) {
+      const centre = iconRect.left - navRect.left + iconRect.width / 2;
+      pill.style.width = `${PILL_W}px`;
+      pill.style.left = `${centre - PILL_W / 2}px`;
     }
   }
   $("[data-ag-panel-today]").hidden = tab !== "today";
@@ -957,6 +960,83 @@ export function bindEvents() {
       setActiveTab(node.dataset.agTab);
     });
   });
+
+  // ── Drag-to-switch on the floating nav pill ─────────────────────────────────
+  const bottomNav = mount.querySelector(".ag-bottomnav");
+  if (bottomNav) {
+    const pill = bottomNav.querySelector(".ag-nav-pill");
+    const navBtns = [...bottomNav.querySelectorAll(".ag-bottomnav-btn[data-ag-tab]")];
+    let drag = null;
+
+    bottomNav.addEventListener("pointerdown", (e) => {
+      const navRect = bottomNav.getBoundingClientRect();
+      bottomNav.setPointerCapture(e.pointerId);
+      const pw = parseFloat(pill?.style.width) || 54;
+      drag = {
+        id: e.pointerId,
+        startX: e.clientX - navRect.left,
+        pillStartCentre: (parseFloat(pill?.style.left) || 0) + pw / 2,
+        pillWidth: pw,
+        moved: false,
+        suppress: false
+      };
+    });
+
+    bottomNav.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const navRect = bottomNav.getBoundingClientRect();
+      const dx = (e.clientX - navRect.left) - drag.startX;
+      if (!drag.moved && Math.abs(dx) < 6) return;
+      drag.moved = true;
+      drag.suppress = true;
+      if (!pill) return;
+      pill.style.transition = "none";
+      const navRect2 = bottomNav.getBoundingClientRect();
+      const centre = drag.pillStartCentre + dx;
+      const hw = drag.pillWidth / 2;
+      let left = centre - hw;
+      if (left < 0) left = left * 0.25;
+      else if (left + drag.pillWidth > navRect2.width) left = navRect2.width - drag.pillWidth + (left + drag.pillWidth - navRect2.width) * 0.25;
+      pill.style.left = `${left}px`;
+    });
+
+    const finishDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const didMove = drag.moved;
+      const suppress = drag.suppress;
+      drag = null;
+      if (pill) pill.style.transition = "";
+      if (!didMove) return;
+
+      // Snap to the tab whose centre is closest to release X
+      const navRect = bottomNav.getBoundingClientRect();
+      const releaseX = e.clientX - navRect.left;
+      let nearest = navBtns[0];
+      let nearestDist = Infinity;
+      navBtns.forEach((btn) => {
+        const r = btn.getBoundingClientRect();
+        const centre = r.left - navRect.left + r.width / 2;
+        const d = Math.abs(releaseX - centre);
+        if (d < nearestDist) { nearestDist = d; nearest = btn; }
+      });
+      haptic(6);
+      setActiveTab(nearest.dataset.agTab);
+
+      // Block the tap that fires on the button after pointerup
+      if (suppress) {
+        const once = (ev) => { ev.stopImmediatePropagation(); ev.preventDefault(); };
+        bottomNav.addEventListener("click", once, { capture: true, once: true });
+      }
+    };
+
+    bottomNav.addEventListener("pointerup", finishDrag);
+    bottomNav.addEventListener("pointercancel", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag = null;
+      if (pill) pill.style.transition = "";
+      setActiveTab(state.activeTab); // re-snap to current
+    });
+  }
 
   // Berge / Gipfelbuch
   const bergeAddBtn = $("[data-ag-berge-add]");

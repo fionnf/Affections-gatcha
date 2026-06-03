@@ -1540,28 +1540,34 @@ export const css = `
           position:absolute;
           top:5px;
           height:calc(100% - 10px);
-          border-radius:20px;
-          background:rgba(255,255,255,.20);
-          backdrop-filter:blur(32px) saturate(2.2) brightness(1.08);
-          -webkit-backdrop-filter:blur(32px) saturate(2.2) brightness(1.08);
-          border:1px solid rgba(255,255,255,.55);
+          border-radius:16px;
+          background:linear-gradient(170deg,rgba(255,255,255,.32) 0%,rgba(255,255,255,.10) 100%);
+          backdrop-filter:blur(28px) saturate(2.8) brightness(1.14);
+          -webkit-backdrop-filter:blur(28px) saturate(2.8) brightness(1.14);
+          border:1px solid rgba(255,255,255,.62);
           box-shadow:
-            0 2px 0 rgba(255,255,255,.40) inset,
-            0 -1px 0 rgba(0,0,0,.06) inset,
-            0 8px 24px rgba(0,0,0,.14),
-            0 1px 3px rgba(0,0,0,.08);
+            0 1.5px 0 rgba(255,255,255,.70) inset,
+            0 -1px 0 rgba(0,0,0,.07) inset,
+            1.5px 0 0 rgba(255,255,255,.22) inset,
+            -1.5px 0 0 rgba(255,255,255,.22) inset,
+            0 10px 28px rgba(0,0,0,.16),
+            0 2px 6px rgba(0,0,0,.10);
           pointer-events:none;
           z-index:0;
-          will-change:left,width;
-          transition:left 340ms cubic-bezier(.34,1.56,.64,1),width 340ms cubic-bezier(.34,1.56,.64,1);
+          will-change:left;
+          transition:left 340ms cubic-bezier(.34,1.56,.64,1);
         }
         @media (prefers-color-scheme:dark){
           .ag-nav-pill{
-            background:rgba(255,255,255,.10);
-            border-color:rgba(255,255,255,.28);
+            background:linear-gradient(170deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 100%);
+            border-color:rgba(255,255,255,.32);
             box-shadow:
-              0 1.5px 0 rgba(255,255,255,.18) inset,
-              0 8px 28px rgba(0,0,0,.40);
+              0 1.5px 0 rgba(255,255,255,.28) inset,
+              0 -1px 0 rgba(0,0,0,.12) inset,
+              1.5px 0 0 rgba(255,255,255,.10) inset,
+              -1.5px 0 0 rgba(255,255,255,.10) inset,
+              0 10px 32px rgba(0,0,0,.50),
+              0 2px 8px rgba(0,0,0,.28);
           }
         }
         .ag-bottomnav-btn.is-active{color:#fff}
