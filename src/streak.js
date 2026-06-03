@@ -7,7 +7,7 @@ import {
 } from "./storage.js";
 import { dateKeyInTimezone, getToken, seededRandom } from "./utils.js";
 
-export { readStreakCache, writeStreakCache, readSyncedStreak, writeSyncedStreak };
+export { readStreakCache, writeStreakCache, readSyncedStreak, writeSyncedStreak, readStreakRestore, writeStreakRestore };
 
 export function computeStreak() {
   const token = getToken();

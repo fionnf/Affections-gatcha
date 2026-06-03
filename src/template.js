@@ -1,4 +1,5 @@
 // ── HTML template string ────────────────────────────────────────────────────
+import { mount } from "./state.js";
 
 function sceneSvg() {
   return `
@@ -279,6 +280,48 @@ export const html = `
             <div class="ag-mission-log" id="ag-mission-log" hidden></div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Glossar 📖</span>
+              <button class="ag-secondary" type="button" id="ag-glossary-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Unser Glossar</h2>
+            <div class="ag-glossary-tabs" id="ag-glossary-tabs">
+              <div class="ag-glossary-tab-track">
+                <div class="ag-glossary-tab-pill" id="ag-glossary-pill"></div>
+                <button class="ag-glossary-tab is-active" type="button" data-lang="swabian">Schwäbisch</button>
+                <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
+                <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
+              </div>
+            </div>
+            <div class="ag-glossary-list" id="ag-glossary-list"></div>
+            <p class="ag-history-empty" id="ag-glossary-empty" hidden>Noch kein Wort hier. Füg eins hinzu.</p>
+            <button class="ag-button ag-glossary-add-btn" type="button" id="ag-glossary-add" style="width:100%;justify-content:center;margin-top:12px">
+              <span class="ag-button-orb" aria-hidden="true"></span>
+              <span>Wort hinzufügen</span>
+            </button>
+            <div class="ag-glossary-form" id="ag-glossary-form" hidden>
+              <p class="ag-wish-label" id="ag-glossary-form-title">Neues Wort</p>
+              <input type="hidden" id="ag-glossary-edit-id">
+              <div class="ag-glossary-form-fields">
+                <input class="ag-berge-input" type="text" id="ag-glossary-word-input" placeholder="Wort / Ausdruck" maxlength="80">
+                <textarea class="ag-berge-input ag-glossary-textarea" id="ag-glossary-meaning-input" rows="2" maxlength="300" placeholder="Bedeutung / Erklärung"></textarea>
+                <div class="ag-glossary-audio-row">
+                  <button class="ag-secondary ag-glossary-record-btn" type="button" id="ag-glossary-record">🎙 Aufnehmen</button>
+                  <button class="ag-secondary ag-glossary-play-preview" type="button" id="ag-glossary-play-preview" hidden>▶ Abspielen</button>
+                  <span class="ag-glossary-audio-status" id="ag-glossary-audio-status"></span>
+                </div>
+              </div>
+              <div class="ag-wish-actions">
+                <button class="ag-secondary" type="button" id="ag-glossary-form-cancel">Abbrechen</button>
+                <button class="ag-button" type="button" id="ag-glossary-form-save">
+                  <span class="ag-button-orb" aria-hidden="true"></span>
+                  <span id="ag-glossary-save-label">Eintragen</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -287,7 +330,6 @@ export const html = `
                 <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
-              <button class="ag-sound-toggle" type="button" data-ag-sound-toggle aria-label="Ton ein/aus" title="Ton ein/aus">🔊</button>
               <button class="ag-button" type="button" data-ag-draw>
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span data-ag-button-text>Kapsel ziehen</span>
@@ -412,6 +454,7 @@ export const html = `
               <div class="ag-berge-stats">
                 <span class="ag-berge-total-label">Gemeinsame Höhenmeter</span>
                 <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
+                <span class="ag-berge-analogy" data-ag-berge-analogy hidden></span>
               </div>
               <button class="ag-button ag-berge-add-btn" type="button" data-ag-berge-add>
                 <span class="ag-button-orb" aria-hidden="true"></span>
@@ -419,14 +462,20 @@ export const html = `
               </button>
             </div>
             <div class="ag-card ag-berge-form" data-ag-berge-form hidden>
-              <p class="ag-wish-label">Neuer Gipfeleintrag</p>
+              <p class="ag-wish-label" data-ag-berge-form-title>Neuer Gipfeleintrag</p>
+              <input type="hidden" data-ag-berge-edit-id>
               <div class="ag-berge-form-grid">
                 <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
                 <div class="ag-berge-row">
-                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Höhe in m" min="0" max="9000">
+                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Gipfelhöhe (m)" min="0" max="9000">
                   <input class="ag-berge-input" type="date" data-ag-berge-date>
                 </div>
-                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot- oder AllTrails-Link (optional)">
+                <div class="ag-berge-row">
+                  <input class="ag-berge-input" type="number" data-ag-berge-dist placeholder="Distanz (km)" min="0" max="500" step="0.1">
+                  <input class="ag-berge-input" type="number" data-ag-berge-gain placeholder="Höhenmeter (↑ m)" min="0" max="9000">
+                </div>
+                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot-URL oder AllTrails-Widget-URL (mit sh=…)">
+                <input class="ag-berge-input" type="url" data-ag-berge-cover placeholder="Titelbild-URL (optional)">
                 <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
               </div>
               <div class="ag-wish-actions">
@@ -467,4 +516,34 @@ export const html = `
         <p class="ag-lightbox-caption" id="ag-lightbox-caption"></p>
         <a class="ag-lightbox-drive-link" id="ag-lightbox-drive-link" target="_blank" rel="noopener noreferrer" hidden>▶ In Drive öffnen</a>
       </div>
+
+      <div class="ag-sheet-backdrop" data-ag-sheet-backdrop></div>
+      <div class="ag-ptr" data-ag-ptr aria-hidden="true"><span class="ag-ptr-icon">↓</span></div>
+      <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
+      <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
+      <nav class="ag-bottomnav" aria-label="Navigation">
+        <div class="ag-nav-pill" aria-hidden="true"></div>
+        <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">✦</span>
+          <span class="ag-bottomnav-btn-label">Heute</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="history">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">📋</span>
+          <span class="ag-bottomnav-btn-label">Verlauf</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⭐</span>
+          <span class="ag-bottomnav-btn-label">Lieblinge</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⛰</span>
+          <span class="ag-bottomnav-btn-label">Berge</span>
+        </button>
+      </nav>
     `;
+
+export function renderShell() {
+  mount.className = "ag-widget";
+  mount.setAttribute("aria-labelledby", "ag-title");
+  mount.innerHTML = html;
+}

@@ -27,6 +27,7 @@ export const CACHE_VERSION           = "2026-05-22-v2";
 export const TOKEN_GOAL              = 5;
 export const STREAK_RESTORE_THRESHOLD = 20;
 export const QUEST_POINTS_SCHEDULE   = [100, 75, 50, 25];
+export const GLOSSARY_KEY            = "affektions-gacha:glossary:v1";
 
 export const TOKEN_REWARDS = {
   "🌿": "Fionn kocht dir ein Abendessen nach Wahl",

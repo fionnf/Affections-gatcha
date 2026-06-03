@@ -18,7 +18,7 @@ export function initSync(baseUrl, resolveBaseFn) {
   _resolveBase = resolveBaseFn;
 }
 
-function resolveBase() {
+export function resolveBase() {
   if (_resolveBase) return _resolveBase();
   if (!_baseUrl) return window.location.href;
   try {
