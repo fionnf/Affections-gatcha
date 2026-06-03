@@ -1,5447 +1,4 @@
-(function () {
-  const script = document.currentScript;
-  const mountSelector = script?.dataset.mount || "#affektions-gacha";
-  const baseUrl = script?.dataset.configBase || "";
-  const mount = document.querySelector(mountSelector) || createMount();
-
-  const STORAGE_KEY = "affektions-gacha:history:v1";
-  const FAVORITES_KEY = "affektions-gacha:favourites:v1";
-  const TOKENS_KEY = "affektions-gacha:tokens:v1";
-  const STREAK_CACHE_KEY = "affektions-gacha:streak-cache:v1";
-  const CACHE_VERSION_KEY = "affektions-gacha:cache-version:v1";
-  const CACHE_VERSION = "2026-05-22-v2";
-  const TOKEN_GOAL = 5;
-  const TOKEN_REWARDS = {
-    "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
-    "🔥": "Wochenend-Abenteuer — Ziel nach deiner Wahl",
-    "⭐": "Fionns Überraschung — er entscheidet"
-  };
-
-  function readTokens() {
-    try {
-      const raw = localStorage.getItem(TOKENS_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      return typeof parsed === "object" && parsed !== null ? parsed : {};
-    } catch (_e) { return {}; }
-  }
-
-  function writeTokens(tokens) {
-    try { localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens)); } catch (_e) {}
-  }
-
-  function addToken(token) {
-    const tokens = readTokens();
-    tokens[token] = (tokens[token] || 0) + 1;
-    writeTokens(tokens);
-    return tokens[token];
-  }
-
-  function resetToken(token) {
-    const tokens = readTokens();
-    tokens[token] = 0;
-    writeTokens(tokens);
-  }
-  const WISH_KEY = "affektions-gacha:wish:v1";
-  const MILESTONE_KEY = "affektions-gacha:milestones:v1";
-  const NOTIF_KEY = "affektions-gacha:notif:v1";
-  const PIN_UNLOCK_PREFIX = "affektions-gacha:pin-unlock:";
-  const STREAK_SYNCED_KEY = "affektions-gacha:streak-synced:v1";
-  const STREAK_RESTORE_KEY = "affektions-gacha:streak-restore:v1";
-  // A streak of this many consecutive days earns one (one-time) streak restore.
-  const STREAK_RESTORE_THRESHOLD = 20;
-  const BAERLAUCH_SCORE_KEY = "affektions-gacha:baerlauch-scores:v1";
-  const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
-  const MISSION_LOG_KEY = "affektions-gacha:mission-log:v1";
-  const GESPRACH_IDX_KEY = "affektions-gacha:gesprach-idx:v1";
-  const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
-  const SOUND_KEY = "affektions-gacha:sound:v1";
-  const GIPFELBUCH_KEY = "affektions-gacha:gipfelbuch:v1";
-  const GLOSSARY_KEY  = "affektions-gacha:glossary:v1";
-
-  // ── PIN unlock helpers ──────────────────────────────────────────────────────
-
-  function isPinUnlocked(pin) {
-    try { return localStorage.getItem(PIN_UNLOCK_PREFIX + pin) === "1"; } catch (_) { return false; }
-  }
-  function persistPinUnlock(pin) {
-    try { localStorage.setItem(PIN_UNLOCK_PREFIX + pin, "1"); } catch (_) {}
-  }
-  function buildPinGate(pin, onUnlock) {
-    const wrap = document.createElement("div");
-    wrap.className = "ag-pin-gate";
-    const hint = document.createElement("p");
-    hint.className = "ag-pin-hint";
-    hint.textContent = "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";
-    const row = document.createElement("div");
-    row.className = "ag-pin-row";
-    const input = document.createElement("input");
-    input.type = "text";
-    input.inputMode = "numeric";
-    input.pattern = "[0-9]*";
-    input.maxLength = 4;
-    input.className = "ag-pin-input";
-    input.placeholder = "_ _ _ _";
-    input.autocomplete = "off";
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "ag-secondary";
-    btn.textContent = "Öffnen";
-    const err = document.createElement("p");
-    err.className = "ag-pin-err";
-    err.hidden = true;
-    err.textContent = "Falsche Zahl. Noch einmal.";
-    function attempt() {
-      if (input.value.trim() === pin) {
-        persistPinUnlock(pin);
-        onUnlock();
-      } else {
-        err.hidden = false;
-        input.classList.add("ag-pin-shake");
-        input.value = "";
-        setTimeout(() => input.classList.remove("ag-pin-shake"), 450);
-      }
-    }
-    btn.addEventListener("click", attempt);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") attempt(); });
-    row.appendChild(input);
-    row.appendChild(btn);
-    wrap.appendChild(hint);
-    wrap.appendChild(row);
-    wrap.appendChild(err);
-    return wrap;
-  }
-
-  function buildLinkPinGate(pin, linkWrap, pull) {
-    const wrap = document.createElement("div");
-    wrap.className = "ag-pin-gate";
-    const lockLine = document.createElement("span");
-    lockLine.className = "ag-outcome-link-locked";
-    lockLine.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
-    const hint = document.createElement("p");
-    hint.className = "ag-pin-hint";
-    hint.style.marginTop = "10px";
-    hint.textContent = "Oder: erste drei Buchstaben deines Ziels 🗺️";
-    const row = document.createElement("div");
-    row.className = "ag-pin-row";
-    const input = document.createElement("input");
-    input.type = "text";
-    input.maxLength = 3;
-    input.className = "ag-pin-input";
-    input.placeholder = "_ _ _";
-    input.autocomplete = "off";
-    input.spellcheck = false;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "ag-secondary";
-    btn.textContent = "Öffnen";
-    const err = document.createElement("p");
-    err.className = "ag-pin-err";
-    err.hidden = true;
-    err.textContent = "Nicht ganz. Versuch nochmal.";
-    function attempt() {
-      if (input.value.trim().toLowerCase() === pin.toLowerCase()) {
-        persistPinUnlock("link-" + pin);
-        wrap.remove();
-        renderLinkInto(linkWrap, pull.outcome.link);
-      } else {
-        err.hidden = false;
-        input.classList.add("ag-pin-shake");
-        input.value = "";
-        setTimeout(() => input.classList.remove("ag-pin-shake"), 450);
-      }
-    }
-    btn.addEventListener("click", attempt);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") attempt(); });
-    row.appendChild(input);
-    row.appendChild(btn);
-    wrap.appendChild(lockLine);
-    wrap.appendChild(hint);
-    wrap.appendChild(row);
-    wrap.appendChild(err);
-    return wrap;
-  }
-
-  // ── Streak helpers ──────────────────────────────────────────────────────────
-
-  function readStreakCache() {
-    try { return parseInt(localStorage.getItem(STREAK_CACHE_KEY) || "0", 10) || 0; } catch (_) { return 0; }
-  }
-  function writeStreakCache(n) {
-    try { localStorage.setItem(STREAK_CACHE_KEY, String(n)); } catch (_) {}
-  }
-  function readSyncedStreak() {
-    try { return parseInt(localStorage.getItem(STREAK_SYNCED_KEY) || "0", 10) || 0; } catch (_) { return 0; }
-  }
-  function writeSyncedStreak(n) {
-    try { localStorage.setItem(STREAK_SYNCED_KEY, String(n)); } catch (_) {}
-  }
-
-  // "Streak restore": the player earns one restore at every STREAK_RESTORE_THRESHOLD
-  // milestone (20, 40, 60 … days). Each restore mends a single skipped day — the
-  // gap that broke the current run — so the streak reconnects to the run before
-  // it. Persisted as { maxStreak, used }: earned = floor(maxStreak / threshold).
-  function readStreakRestore() {
-    try { return JSON.parse(localStorage.getItem(STREAK_RESTORE_KEY) || "{}") || {}; }
-    catch (_) { return {}; }
-  }
-  function writeStreakRestore(obj) {
-    try { localStorage.setItem(STREAK_RESTORE_KEY, JSON.stringify(obj)); } catch (_) {}
-  }
-  function streakRestoresEarned() {
-    const r = readStreakRestore();
-    return Math.floor((r.maxStreak || 0) / STREAK_RESTORE_THRESHOLD);
-  }
-  function birthdayBonusLeft() {
-    // One free restore gifted on Lennart's birthday, 2026-05-29
-    const r = readStreakRestore();
-    if (r.birthdayBonus2026Used) return 0;
-    const tz = state.theme?.timezone || "UTC";
-    const today = dateKeyInTimezone(tz);
-    return today === "2026-05-29" ? 1 : 0;
-  }
-  function streakRestoresLeft() {
-    const r = readStreakRestore();
-    return Math.max(0, streakRestoresEarned() - (r.used || 0)) + birthdayBonusLeft();
-  }
-
-  /** The single skipped day that broke the current run, or null if none.
-   *  This is the first missing day scanning backward from the current run;
-   *  it only counts as a mendable gap when pulled days exist before it. */
-  function streakRestoreGapDay() {
-    const token = getToken();
-    const tz = state.theme?.timezone || "UTC";
-    const today = dateKeyInTimezone(tz);
-    const pulled = new Set(
-      readHistory().filter((e) => e.token === token && e.day <= today).map((e) => e.day)
-    );
-    if (!pulled.size) return null;
-    const firstDay = [...pulled].sort()[0];
-
-    const [y, m, d] = today.split("-").map(Number);
-    const cur = new Date(Date.UTC(y, m - 1, d));
-    let key = today;
-    // Begin at the current run's end (today, or yesterday if today isn't pulled)
-    if (!pulled.has(key)) {
-      cur.setUTCDate(cur.getUTCDate() - 1);
-      key = cur.toISOString().slice(0, 10);
-    }
-    // Walk back over the consecutive run
-    while (pulled.has(key)) {
-      cur.setUTCDate(cur.getUTCDate() - 1);
-      key = cur.toISOString().slice(0, 10);
-    }
-    // `key` is now the first missing day before the run. It's a real, mendable
-    // gap only if there is earlier history to reconnect to.
-    if (key < firstDay) return null;
-    return key;
-  }
-
-  function streakRestoreAvailable() {
-    return streakRestoresLeft() > 0 && streakRestoreGapDay() !== null;
-  }
-
-  /** Mend the single gap day with a "Streak gerettet" placeholder, consume one
-   *  restore, and re-sync. Returns the mended day-key, or null if nothing done. */
-  function restoreStreak() {
-    if (streakRestoresLeft() <= 0) return null;
-    const gapDay = streakRestoreGapDay();
-    if (!gapDay) return null;
-    const token = getToken();
-    const placeholder = {
-      day: gapDay,
-      token,
-      categoryId: "niete",
-      categoryLabel: "Streak gerettet",
-      tone: "quiet",
-      title: "Streak gerettet 💎",
-      message: "Dieser Tag wurde mit einem Streak-Retter wiederhergestellt.",
-      link: null,
-      photo: null,
-      unlockTime: null,
-      revealedAt: new Date(gapDay + "T12:00:00").getTime(),
-      restored: true
-    };
-    const seen = new Set();
-    const merged = [placeholder, ...readHistory()]
-      .filter((item) => {
-        const key = `${item.day}|${item.token}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
-    writeHistory(merged);
-    const r = readStreakRestore();
-    const earnedLeft = Math.max(0, streakRestoresEarned() - (r.used || 0));
-    const usingBirthday = earnedLeft === 0 && birthdayBonusLeft() > 0;
-    writeStreakRestore({
-      ...r,
-      used: usingBirthday ? (r.used || 0) : (r.used || 0) + 1,
-      birthdayBonus2026Used: usingBirthday ? true : (r.birthdayBonus2026Used || false),
-      usedAt: Date.now()
-    });
-    writeStreakCache(computeStreak());
-    backupToSheets();
-    return gapDay;
-  }
-
-  /** Count consecutive days ending at today (or yesterday if today not yet pulled).
-   *  Uses the Sheets-synced cache as a floor so the streak never shows lower after a device switch. */
-  function computeStreak() {
-    const token = getToken();
-    const history = readHistory().filter((e) => e.token === token);
-    if (!history.length) return 0;
-    const tz = state.theme?.timezone || "UTC";
-    const today = dateKeyInTimezone(tz);
-    const pulledDays = new Set(history.map((e) => e.day));
-
-    const [y, m, d] = today.split("-").map(Number);
-    let cur = new Date(Date.UTC(y, m - 1, d));
-
-    // If today hasn't been pulled yet, start counting from yesterday
-    let dayKey = today;
-    if (!pulledDays.has(dayKey)) {
-      cur.setUTCDate(cur.getUTCDate() - 1);
-      dayKey = cur.toISOString().slice(0, 10);
-    }
-
-    let streak = 0;
-    while (pulledDays.has(dayKey)) {
-      streak++;
-      cur.setUTCDate(cur.getUTCDate() - 1);
-      dayKey = cur.toISOString().slice(0, 10);
-    }
-    return Math.max(streak, readStreakCache(), readSyncedStreak());
-  }
-
-  /**
-   * Returns { emoji, label, tier } for a given streak length, or null for streak < 1.
-   * tier 0 = no bonus (1–4 days), 1 = small bonus (5–9), 2 = strong bonus (10–19), 3 = max bonus (20+)
-   */
-  function streakInfo(streak) {
-    if (streak <= 0) return null;
-    const tagWord = streak === 1 ? "Tag" : "Tage";
-    if (streak >= 20) return { emoji: "💎", label: `${streak} ${tagWord}`, tier: 3 };
-    if (streak >= 10) return { emoji: "🔥", label: `${streak} ${tagWord}`, tier: 2 };
-    if (streak >= 5)  return { emoji: "✨", label: `${streak} ${tagWord}`, tier: 1 };
-    return { emoji: "🌱", label: `${streak} ${tagWord}`, tier: 0 };
-  }
-
-  /**
-   * Return a copy of state.outcomes.categories with weights boosted at streak milestones.
-   * Better outcomes (rare, jackpot, uncommon) gain weight; niete loses weight.
-   */
-  function boostedCategories(streak) {
-    if (streak < 5) return state.outcomes.categories;
-    const boosts = streak >= 20
-      ? { niete: 0.4, jackpot: 2.0, rare: 1.5, uncommon: 1.3 }
-      : streak >= 10
-      ? { niete: 0.6, jackpot: 1.5, rare: 1.3, uncommon: 1.2 }
-      : { niete: 0.8, jackpot: 1.2, rare: 1.15, uncommon: 1.1 };
-    return state.outcomes.categories.map((cat) => ({
-      ...cat,
-      weight: Math.max(1, Math.round(cat.weight * (boosts[cat.id] || 1)))
-    }));
-  }
-
-  function pickWeightedWithStreak(seedText, streak) {
-    const cats = boostedCategories(streak);
-    const total = cats.reduce((sum, cat) => sum + cat.weight, 0);
-    const roll = Math.floor(seededRandom(seedText) * total);
-    let cursor = 0;
-    for (const cat of cats) {
-      cursor += cat.weight;
-      if (roll < cursor) {
-        return state.outcomes.categories.find((c) => c.id === cat.id) || cat;
-      }
-    }
-    return state.outcomes.categories[state.outcomes.categories.length - 1];
-  }
-
-  function renderStreak() {
-    const el = $("[data-ag-streak]");
-    const streak = computeStreak();
-
-    // Track the all-time-high streak so restores earned at each 20-day
-    // milestone (20, 40, 60 …) persist even after the streak later breaks.
-    const r = readStreakRestore();
-    if (streak > (r.maxStreak || 0)) {
-      writeStreakRestore({ ...r, maxStreak: streak });
-    }
-
-    if (el) {
-      const info = streakInfo(streak);
-      if (!info) {
-        el.hidden = true;
-      } else {
-        el.hidden = false;
-        el.textContent = `${info.emoji} ${info.label}`;
-        el.dataset.agStreakTier = info.tier;
-      }
-    }
-
-    renderStreakRestore();
-  }
-
-  function renderStreakRestore() {
-    const btn = $("[data-ag-streak-restore]");
-    if (!btn) return;
-    btn.hidden = !streakRestoreAvailable();
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const state = {
-    theme: null,
-    outcomes: null,
-    photos: null,
-    specialDays: null,
-    quest: null,
-    missions: null,
-    todaysPull: null,
-    activeTab: "today",
-    revealed: false,
-    syncedHistory: null,   // in-memory fallback for restricted WebView localStorage
-    baerlauch: {
-      level: 1,
-      locked: false,
-      timerId: null,
-      startedAt: null,
-      durationMs: 8000
-    }
-  };
-
-
-  const defaultPhotos = { photos: [] };
-
-  function createMount() {
-    const element = document.createElement("section");
-    element.id = "affektions-gacha";
-    document.body.appendChild(element);
-    return element;
-  }
-
-  function resolveBase() {
-    if (!baseUrl) return window.location.href;
-    try {
-      return new URL(baseUrl, window.location.href).toString();
-    } catch (_error) {
-      return window.location.href;
-    }
-  }
-
-  function urlFor(file) {
-    return new URL(file, resolveBase()).toString();
-  }
-
-  async function fetchJson(file, fallback = null) {
-    const response = await fetch(urlFor(file), { cache: "no-store" });
-    if (!response.ok) {
-      if (fallback !== null) return fallback;
-      throw new Error(`${file}: HTTP ${response.status}`);
-    }
-    return response.json();
-  }
-
-  function recoverHistory() {
-    const token = getToken();
-    const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    const RECOVERED = [
-      {day:"2026-05-01",categoryId:"rare",categoryLabel:"Selten",tone:"rare",title:"6a-Belay-Pass",message:"Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."},
-      {day:"2026-05-02",categoryId:"photo",categoryLabel:"Foto-Drop",tone:"photo",title:"Foto-Drop",message:"Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut."},
-      {day:"2026-05-03",categoryId:"rare",categoryLabel:"Selten",tone:"rare",title:"6a-Belay-Pass",message:"Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."},
-      {day:"2026-05-04",categoryId:"jackpot",categoryLabel:"JACKPOT",tone:"jackpot",title:"JACKPOT: Der Fionn-Quest-Sieger",message:"Lennart ist der offizielle Gewinner. 24h lang hast du die absolute Entscheidungsgewalt über alle Freizeitaktivitäten."},
-      {day:"2026-05-05",categoryId:"common",categoryLabel:"Gewöhnlich",tone:"soft",title:"Barróg (IE)",message:"Eine feste Umarmung (20 Sekunden Minimum)."},
-      {day:"2026-05-06",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Sprachnachricht",message:"Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."},
-      {day:"2026-05-07",categoryId:"niete",categoryLabel:"Niete",tone:"quiet",title:"Baugespann-Sperre",message:"Hier entsteht demnächst ein Gewinn. Aktuell sieht man nur die Holzpfosten auf dem Dach."},
-      {day:"2026-05-08",categoryId:"quest",categoryLabel:"Mini-Quest",tone:"quest",title:"Design-Safari",message:"Schick mir ein Foto von einem Gebäude oder Detail, das du heute siehst und das entweder genial oder ein Verbrechen ist."},
-      {day:"2026-05-09",categoryId:"jackpot",categoryLabel:"JACKPOT",tone:"jackpot",title:"JACKPOT: Überraschungs-Wochenende",message:"Fionn plant einen kompletten Tag für dich. Du musst nur sagen, wann du Zeit hast."},
-      {day:"2026-05-10",categoryId:"special",categoryLabel:"Laf Schnell!",tone:"jackpot",title:"🌟 SSR-Speed-Dämon-Pull! 🌟",message:"Hey Lennart! An diesem besonderen Tag in München beim Wings for Life World Run, möge dein Lauf mit deine friends ein legendärer Gacha-Pull sein: epische Speed, Ausdauer-Verlust und alle Kumpels SSR-Rarität (Super Super Rare, die Besten der Besten!) für maximalen Spaß! Rennt wie die Teufel, lacht euch schlapp und erobert die Strecke aus dem Olympiapark wie Bosse. Ich vermisse dich total hier in Zürich, aber freue mich fuer dich!"},
-      {day:"2026-05-11",categoryId:"common",categoryLabel:"Gewöhnlich",tone:"soft",title:"Gedanken-Ping",message:"Du musst jetzt acht Sekunden an mich denken. Die Maschine behauptet, sie könne das überprüfen <3."},
-      {day:"2026-05-12",categoryId:"quest",categoryLabel:"Mini-Quest",tone:"quest",title:"Geräusch-Notiz",message:"Beschreib mir das markanteste Geräusch deines Tages in maximal fünf Wörtern. Poetisch oder komplett nüchtern ist beides erlaubt."},
-      {day:"2026-05-13",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Foto-Anfrage",message:"Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: Alle drei."},
-      {day:"2026-05-14",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Saudades (PT)",message:"Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date."},
-      {day:"2026-05-15",categoryId:"special",categoryLabel:"Abendessen 🍽️",tone:"rare",title:"Fionn lädt zum Abendessen ein 🍽️",message:"Heute Abend geht's auf Fionns Rechnung. Treffpunkt: Stauffacher, 20:00 Uhr."},
-      {day:"2026-05-16",categoryId:"photo",categoryLabel:"Foto-Drop",tone:"photo",title:"Bildkapsel",message:"Heute gibt es kein Gutschein-Drama, nur ein kleines Bild."},
-      {day:"2026-05-17",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Tehran & Guatemala Tales",message:"Du darfst eine Geschichte aus deiner Reisezeit einfordern, die du noch nicht kennst."},
-      {day:"2026-05-18",categoryId:"niete",categoryLabel:"Niete",tone:"quiet",title:"Züri-Regen",message:"Grauer Himmel über Wiedikon. Kein Preis, nur das Bedürfnis nach einem sehr großen Tee."},
-      {day:"2026-05-19",categoryId:"quest",categoryLabel:"Mini-Quest",tone:"quest",title:"Drei-Wort-Reisebericht",message:"Schick Fionn deinen Tag in genau drei Worten, als wärst du sehr erschöpft in einem Zug."},
-      {day:"2026-05-20",categoryId:"niete",categoryLabel:"Niete",tone:"quiet",title:"Denkmalschutz",message:"Dieser Slot darf aus historischen Gründen heute nicht verändert oder mit Preisen befüllt werden. Ein Klassiker unter den Nieten."},
-      {day:"2026-05-21",categoryId:"special",categoryLabel:"Packliste 🧳",tone:"quest",title:"Deine Aufgabe: ein Brief 💌",message:"Ich kann es kaum erwarten. Den Rest findest du auf der Liste die ich dir gegeben habe — aber eins noch: deine HiFi-Ohrstöpsel. Vertrau mir.\n\nUnd eine Aufgabe von der Maschine: Schreib mir einen kurzen Brief auf Papier. Nicht lang, nicht perfekt — einfach was du gerade denkst. Bring ihn mit. Ich lese ihn wenn wir uns sehen. Bis bald. 🐚"}
-    ];
-    const existing = readHistory();
-    const existingDays = new Set(existing.map((e) => e.day));
-    const toAdd = RECOVERED
-      .filter((e) => !existingDays.has(e.day) && e.day <= today)
-      .map((e) => ({ ...e, token, link: null, photo: null, unlockTime: null,
-        revealedAt: new Date(e.day + "T12:00:00").getTime() }));
-    if (!toAdd.length) return 0;
-    const merged = [...existing, ...toAdd].sort((a, b) => b.day.localeCompare(a.day));
-    writeHistory(merged);
-    state.syncedHistory = merged;
-    writeStreakCache(computeStreak());
-    backupToSheets();
-    return toAdd.length;
-  }
-
-  // Normalise any day value the GAS might send.
-  // Handles clean "2026-05-22", ISO timestamps, and the garbled "Sun May 22"
-  // produced when Google Sheets auto-converts date cells and old GAS does
-  // String(dateObj).slice(0,10) — losing the year.
-  function normaliseDay(raw) {
-    const s = String(raw || "").trim();
-    if (!s) return "";
-    // Already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    // ISO with time component
-    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
-    // "Sun May 22" or "Sun May  1" — GAS Date.toString() truncated to 10 chars
-    const MONTHS = { Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",
-                     Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12" };
-    const m = s.match(/([A-Za-z]{3})\s+(\d{1,2})/);
-    if (m && MONTHS[m[1]]) {
-      const year = new Date().getFullYear();
-      return `${year}-${MONTHS[m[1]]}-${String(m[2]).padStart(2, "0")}`;
-    }
-    return "";
-  }
-
-  async function syncFromSheets() {
-    try {
-      const cfg = state.backup;
-      if (!cfg || !cfg.enabled || !cfg.endpointUrl) return false;
-      const token = getToken();
-      const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
-      const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 12000);
-      let res;
-      try {
-        res = await fetch(url, { cache: "no-store", signal: controller.signal });
-      } finally {
-        clearTimeout(tid);
-      }
-      if (!res.ok) return false;
-      const data = await res.json();
-      if (!data.ok) return false;
-
-      const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
-
-      // Purge synthetic placeholders and future entries from history
-      const localRaw = readHistory();
-      const cleaned = localRaw.filter((e) => e.title !== "(wiederhergestellt)" && e.day <= today);
-      if (cleaned.length !== localRaw.length) writeHistory(cleaned);
-
-      // Purge future entries from favourites
-      const localFavsRaw = readFavorites();
-      const cleanedFavs = localFavsRaw.filter((e) => e.day <= today);
-      if (cleanedFavs.length !== localFavsRaw.length) writeFavorites(cleanedFavs);
-
-      // Merge Sheet history with local history — union by day, Sheet wins on conflict
-      if (Array.isArray(data.history) && data.history.length) {
-        const local = readHistory();
-        const localByDay = new Map(local.map((e) => [e.day, e]));
-        for (const entry of data.history) {
-          if (entry.title === "(wiederhergestellt)") continue;
-          const day = normaliseDay(entry.day);
-          if (!day || day > today) continue;
-          // Normalise token case here too: this also feeds state.syncedHistory,
-          // which readHistory returns raw when localStorage is unavailable.
-          const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
-          localByDay.set(day, { ...entry, day, token: normToken });
-        }
-        const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
-        writeHistory(merged);
-        state.syncedHistory = merged; // in-memory fallback for WebView localStorage restrictions
-        writeStreakCache(computeStreak());
-      }
-
-      // Merge favourites — union by day, Sheet wins; never import future entries
-      if (Array.isArray(data.favourites) && data.favourites.length) {
-        const localFavs = readFavorites();
-        const favsByDay = new Map(localFavs.map((e) => [e.day, e]));
-        for (const entry of data.favourites) {
-          if (entry.day <= today) favsByDay.set(entry.day, entry);
-        }
-        writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
-      }
-
-      // Restore reward tokens — sheet wins so redemptions propagate across devices
-      if (data.tokens && typeof data.tokens === "object") {
-        writeTokens(data.tokens);
-      }
-
-      // Restore quest points — take the higher of local and sheet
-      if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
-        try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
-      }
-
-      // Cache the Sheets streak as a persistent floor — survives cleared localStorage
-      // and prevents backupToSheets() racing ahead of sync from zeroing the sheet value
-      if (typeof data.streak === "number" && data.streak > 0) {
-        writeSyncedStreak(data.streak);
-        if (data.streak > computeStreak()) writeStreakCache(data.streak);
-      }
-
-      // Merge Bärlauch scores — remote wins if higher (so other player's score syncs in)
-      if (data.baerlauchScores && typeof data.baerlauchScores === "object") {
-        const localScores = readBaerlauchScores();
-        let changed = false;
-        for (const [player, level] of Object.entries(data.baerlauchScores)) {
-          if (typeof level === "number" && level > (localScores[player] || 0)) {
-            localScores[player] = level;
-            changed = true;
-          }
-        }
-        if (changed) {
-          try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(localScores)); } catch (_) {}
-          updateBaerlauchScoreDisplay();
-        }
-      }
-
-      // Merge mission log — union by day+player, remote wins to propagate other player's entries
-      if (Array.isArray(data.missionLog) && data.missionLog.length) {
-        const local = readMissionLog();
-        const byKey = new Map(local.map(e => [`${e.day}|${e.player}`, e]));
-        for (const entry of data.missionLog) {
-          if (!entry.day || !entry.player) continue;
-          byKey.set(`${entry.day}|${entry.player}`, entry);
-        }
-        const merged = Array.from(byKey.values()).sort((a, b) => b.day.localeCompare(a.day));
-        writeMissionLog(merged);
-        // re-render open mission panel
-        const panel = $("#ag-mission-panel");
-        if (panel && !panel.hidden) renderMissionLog($("#ag-mission-log"), getMissionPlayer());
-      }
-
-      // Re-render whichever tab is already open so new data appears without a tab switch
-      if (state.activeTab === "history") renderHistory();
-      if (state.activeTab === "lieblinge") renderLieblinge();
-      renderStreak();
-
-      // Show ping banner if Fionn sent a new ping since last seen
-      if (typeof data.latestPing === "string" && data.latestPing && getToken() !== "fionn") {
-        try {
-          const lastSeen = window.localStorage.getItem(LAST_PING_KEY) || "";
-          if (data.latestPing > lastSeen) {
-            window.localStorage.setItem(LAST_PING_KEY, data.latestPing);
-            showPingBanner();
-          }
-        } catch (_le) {}
-      }
-
-      // Merge Gipfelbuch — sheet is source of truth (all players share one log)
-      if (Array.isArray(data.gipfelbuch) && data.gipfelbuch.length) {
-        const local = readGipfelbuch();
-        const byId = new Map(local.map((e) => [e.id, e]));
-        for (const entry of data.gipfelbuch) {
-          if (entry.id) byId.set(entry.id, entry);
-        }
-        const merged = Array.from(byId.values()).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-        writeGipfelbuch(merged);
-        if (state.activeTab === "berge") renderBergePanel();
-      }
-
-      // Merge Glossary — sheet is source of truth
-      if (Array.isArray(data.glossary) && data.glossary.length) {
-        const local = readGlossary();
-        const byId = new Map(local.map(w => [w.id, w]));
-        for (const w of data.glossary) { if (w.id) byId.set(w.id, w); }
-        writeGlossary(Array.from(byId.values()));
-        const panel = document.getElementById("ag-glossary-panel");
-        if (panel && !panel.hidden) renderGlossaryPanel(_glossaryCurrentLang);
-      }
-
-      return Array.isArray(data.history) ? data.history.length : 0;
-    } catch (_e) { return -1; }
-  }
-
-  function backupToSheets() {
-    try {
-      const cfg = state.backup;
-      if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-      const token = getToken();
-      const history = readHistory().filter((e) => (e.token || "").toLowerCase() === token.toLowerCase());
-      const qs = readQuestState();
-      const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
-        challenge: currentChallenge(),
-        attempts: qs.attempts,
-        points: qs.pointsEarned,
-        period: qs.period
-      } : undefined;
-      if (questLog) { qs._logged = true; writeQuestState(qs); }
-      const body = JSON.stringify({
-        type: "gacha-backup",
-        token,
-        history,
-        favourites: readFavorites(),
-        streak: computeStreak(),
-        tokens: readTokens(),
-        questPoints: readQuestPoints(),
-        ...(questLog ? { questLog } : {})
-      });
-      const opts = {
-        method: "POST",
-        mode: "cors",
-        credentials: "omit",
-        cache: "no-store",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body
-      };
-      fetch(cfg.endpointUrl, opts).catch(() => {
-        fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
-      });
-    } catch (_e) {}
-  }
-
-  async function init() {
-    injectFonts();
-    injectStyles();
-    renderShell();
-    try {
-      const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions] = await Promise.all([
-        fetchJson("config/theme.json"),
-        fetchJson("config/outcomes.json"),
-        fetchJson("config/photos.json", defaultPhotos),
-        fetchJson("config/special-days.json", { days: [] }),
-        fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
-        fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
-        fetchJson("config/quest.json", { enabled: false }),
-        fetchJson("config/missions.json", { pairs: [] })
-      ]);
-      state.theme = theme;
-      state.outcomes = outcomes;
-      state.photos = normalizePhotos(photos);
-      state.specialDays = specialDays;
-      state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
-      state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
-      state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
-      state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
-      applyTheme(theme);
-      applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
-      hydrateCopy();
-      renderOdds();
-      renderWunschkapsel();
-      bindEvents();
-      try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
-      registerServiceWorker();
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") scheduleStreakWarning();
-      });
-      mount.classList.add("is-ready");
-      mount.style.transition = "opacity .18s ease";
-      mount.style.opacity = "1";
-      const _todayKey = dateKeyInTimezone(theme.timezone);
-      if (readHistory().some(e => e.token === getToken() && e.day === _todayKey)) {
-        mount.classList.add("has-drawn");
-      }
-      syncFromSheets().catch(() => {});
-    } catch (error) {
-      renderError(error);
-    }
-  }
-
-  function normalizePhotos(photosConfig) {
-    const VIDEO_EXTS = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
-    const photos = Array.isArray(photosConfig?.photos) ? photosConfig.photos : [];
-    return photos
-      .map((photo) => {
-        const resolvedUrl = new URL(photo.url, urlFor("config/photos.json")).toString();
-        const isVideo = photo.type === "video" || VIDEO_EXTS.test(resolvedUrl);
-        return { ...photo, type: isVideo ? "video" : "image", url: resolvedUrl };
-      })
-      .filter((photo) => photo.url);
-  }
-
-  function imagePhotos() {
-    return (state.photos || []).filter((p) => p.type !== "video");
-  }
-
-  function injectFonts() {
-    if (document.querySelector("[data-ag-fonts]")) return;
-    const link = document.createElement("link");
-    link.dataset.agFonts = "true";
-    link.rel = "stylesheet";
-    link.href = "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=boska@400,500,700&display=swap";
-    document.head.appendChild(link);
-  }
-
-  function sceneSvg() {
-    return `
-      <svg class="ag-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="ag-sky-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--ag-scene-sky-top)"/>
-            <stop offset="100%" stop-color="var(--ag-scene-sky-bottom)"/>
-          </linearGradient>
-          <linearGradient id="ag-water" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--ag-scene-water-top)"/>
-            <stop offset="100%" stop-color="var(--ag-scene-water-bottom)"/>
-          </linearGradient>
-          <radialGradient id="ag-sun" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="rgba(255,238,180,.95)"/>
-            <stop offset="55%" stop-color="rgba(255,215,140,.35)"/>
-            <stop offset="100%" stop-color="rgba(255,215,140,0)"/>
-          </radialGradient>
-          <pattern id="ag-leaf" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
-            <path d="M24 6 C 14 14, 14 30, 24 42 C 34 30, 34 14, 24 6 Z" fill="rgba(255,255,255,.04)"/>
-            <line x1="24" y1="6" x2="24" y2="42" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
-          </pattern>
-        </defs>
-
-        <rect width="1200" height="600" fill="url(#ag-sky-grad)"/>
-        <circle class="ag-sun" cx="940" cy="150" r="180" fill="url(#ag-sun)"/>
-
-        <g class="ag-mountains">
-          <polygon points="-40,360 220,170 360,300 540,180 720,330 880,210 1080,340 1240,260 1240,420 -40,420"
-            fill="var(--ag-scene-mountain-far)"/>
-          <polygon points="-40,420 160,300 320,400 500,290 660,400 840,310 1020,420 1240,330 1240,520 -40,520"
-            fill="var(--ag-scene-mountain-mid)"/>
-        </g>
-
-        <g class="ag-forest-back">
-          <path d="M-40 460 C 80 420, 160 470, 240 440 C 320 410, 400 470, 500 450 C 620 430, 720 480, 820 450 C 920 420, 1040 470, 1240 450 L 1240 600 L -40 600 Z"
-            fill="var(--ag-scene-forest-far)"/>
-        </g>
-
-        <g class="ag-water-band">
-          <rect x="-40" y="455" width="1280" height="34" fill="url(#ag-water)" opacity=".9"/>
-          <path class="ag-shimmer" d="M0 470 Q 60 466 120 470 T 240 470 T 360 470 T 480 470 T 600 470 T 720 470 T 840 470 T 960 470 T 1080 470 T 1200 470"
-            stroke="rgba(255,255,255,.55)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-          <path class="ag-shimmer ag-shimmer-2" d="M0 478 Q 80 474 160 478 T 320 478 T 480 478 T 640 478 T 800 478 T 960 478 T 1120 478 T 1280 478"
-            stroke="rgba(255,255,255,.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
-        </g>
-
-        <g class="ag-city">
-          <rect x="780" y="380" width="14" height="80" fill="var(--ag-scene-city)"/>
-          <rect x="800" y="360" width="20" height="100" fill="var(--ag-scene-city)"/>
-          <polygon points="826,360 836,344 846,360" fill="var(--ag-scene-city)"/>
-          <rect x="828" y="360" width="16" height="100" fill="var(--ag-scene-city)"/>
-          <rect x="850" y="372" width="18" height="88" fill="var(--ag-scene-city)"/>
-          <rect x="872" y="350" width="10" height="110" fill="var(--ag-scene-city)"/>
-          <rect x="886" y="370" width="22" height="90" fill="var(--ag-scene-city)"/>
-          <rect x="912" y="358" width="14" height="102" fill="var(--ag-scene-city)"/>
-          <g fill="rgba(255,236,170,.7)">
-            <rect x="803" y="372" width="3" height="3"/>
-            <rect x="809" y="382" width="3" height="3"/>
-            <rect x="833" y="376" width="3" height="3"/>
-            <rect x="855" y="386" width="3" height="3"/>
-            <rect x="876" y="362" width="3" height="3"/>
-            <rect x="892" y="384" width="3" height="3"/>
-            <rect x="916" y="372" width="3" height="3"/>
-          </g>
-        </g>
-
-        <g class="ag-road">
-          <path d="M-20 588 C 200 520, 360 540, 520 510 C 720 472, 880 500, 1240 460"
-            stroke="var(--ag-scene-road)" stroke-width="22" fill="none" stroke-linecap="round" opacity=".9"/>
-          <path class="ag-road-dash" d="M-20 588 C 200 520, 360 540, 520 510 C 720 472, 880 500, 1240 460"
-            stroke="rgba(255,253,242,.85)" stroke-width="2" fill="none" stroke-linecap="round"
-            stroke-dasharray="10 18"/>
-        </g>
-
-        <g class="ag-trees">
-          <g transform="translate(80,470)"><polygon points="0,0 18,-44 36,0" fill="var(--ag-scene-tree)"/><polygon points="4,-16 18,-58 32,-16" fill="var(--ag-scene-tree-light)"/><rect x="16" y="0" width="4" height="10" fill="#3a2418"/></g>
-          <g transform="translate(150,488)"><polygon points="0,0 14,-32 28,0" fill="var(--ag-scene-tree)"/><rect x="12" y="0" width="4" height="8" fill="#3a2418"/></g>
-          <g transform="translate(220,478)"><polygon points="0,0 22,-52 44,0" fill="var(--ag-scene-tree)"/><polygon points="6,-20 22,-66 38,-20" fill="var(--ag-scene-tree-light)"/><rect x="20" y="0" width="4" height="10" fill="#3a2418"/></g>
-          <g transform="translate(310,498)"><polygon points="0,0 12,-26 24,0" fill="var(--ag-scene-tree)"/></g>
-          <g transform="translate(420,492)"><polygon points="0,0 16,-36 32,0" fill="var(--ag-scene-tree)"/><polygon points="4,-12 16,-46 28,-12" fill="var(--ag-scene-tree-light)"/></g>
-          <g transform="translate(560,494)"><polygon points="0,0 12,-28 24,0" fill="var(--ag-scene-tree)"/></g>
-          <g transform="translate(640,488)"><polygon points="0,0 18,-42 36,0" fill="var(--ag-scene-tree)"/><polygon points="4,-14 18,-54 32,-14" fill="var(--ag-scene-tree-light)"/></g>
-          <g transform="translate(1080,490)"><polygon points="0,0 16,-38 32,0" fill="var(--ag-scene-tree)"/></g>
-          <g transform="translate(1140,500)"><polygon points="0,0 12,-26 24,0" fill="var(--ag-scene-tree)"/></g>
-        </g>
-
-        <g class="ag-baerlauch">
-          <g transform="translate(60,548)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
-          <g transform="translate(380,558)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
-          <g transform="translate(720,562)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
-          <g transform="translate(990,556)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
-          <g transform="translate(160,572)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
-          <g transform="translate(540,572)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
-          <g transform="translate(880,576)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
-        </g>
-
-        <g class="ag-fireflies">
-          <circle class="ag-firefly" cx="180" cy="220" r="2.4" fill="rgba(255,236,170,.95)"/>
-          <circle class="ag-firefly ag-firefly-2" cx="430" cy="170" r="1.8" fill="rgba(255,236,170,.85)"/>
-          <circle class="ag-firefly ag-firefly-3" cx="720" cy="240" r="2.2" fill="rgba(255,236,170,.9)"/>
-          <circle class="ag-firefly ag-firefly-4" cx="980" cy="200" r="1.6" fill="rgba(255,236,170,.8)"/>
-          <circle class="ag-firefly ag-firefly-5" cx="320" cy="310" r="1.6" fill="rgba(255,236,170,.7)"/>
-          <circle class="ag-firefly ag-firefly-6" cx="610" cy="320" r="1.4" fill="rgba(255,236,170,.7)"/>
-        </g>
-
-        <rect width="1200" height="600" fill="url(#ag-leaf)"/>
-      </svg>
-    `;
-  }
-
-  function machineSvg() {
-    return `
-      <svg class="ag-machine-svg" viewBox="0 0 280 320" aria-hidden="true">
-        <defs>
-          <linearGradient id="ag-mach-body" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--ag-mach-top)"/>
-            <stop offset="100%" stop-color="var(--ag-mach-bottom)"/>
-          </linearGradient>
-          <radialGradient id="ag-mach-glow" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stop-color="rgba(255,236,170,.9)"/>
-            <stop offset="55%" stop-color="rgba(255,236,170,.18)"/>
-            <stop offset="100%" stop-color="rgba(255,236,170,0)"/>
-          </radialGradient>
-          <linearGradient id="ag-glass" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
-            <stop offset="50%" stop-color="rgba(255,255,255,.06)"/>
-            <stop offset="100%" stop-color="rgba(0,0,0,.18)"/>
-          </linearGradient>
-        </defs>
-        <rect x="20" y="14" width="240" height="292" rx="36" fill="url(#ag-mach-body)" stroke="rgba(255,255,255,.16)"/>
-        <circle class="ag-mach-glow" cx="140" cy="148" r="120" fill="url(#ag-mach-glow)"/>
-        <circle cx="140" cy="148" r="86" fill="rgba(8,28,18,.65)" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
-        <path d="M62 152 a78 78 0 0 1 156 0" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="2"/>
-        <g class="ag-mach-orbit">
-          <circle cx="140" cy="62" r="3" fill="rgba(255,236,170,.95)"/>
-          <circle cx="218" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
-          <circle cx="140" cy="234" r="2" fill="rgba(255,236,170,.6)"/>
-          <circle cx="62" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
-        </g>
-        <ellipse cx="140" cy="148" rx="34" ry="46" fill="url(#ag-glass)" opacity=".85"/>
-        <rect x="64" y="266" width="152" height="20" rx="10" fill="rgba(8,28,18,.55)"/>
-      </svg>
-    `;
-  }
-
-  function renderShell() {
-    mount.className = "ag-widget";
-    mount.setAttribute("aria-labelledby", "ag-title");
-    mount.innerHTML = `
-      <div class="ag-frame">
-        <div class="ag-stage">
-          ${sceneSvg()}
-          <div class="ag-stage-veil" aria-hidden="true"></div>
-          <div class="ag-shell">
-            <header class="ag-hero">
-              <div class="ag-machine-wrap" aria-hidden="true">
-                ${machineSvg()}
-                <div class="ag-machine-capsule" data-capsule>
-                  <span class="ag-capsule-shine"></span>
-                </div>
-                <div class="ag-orbit">
-                  <span></span><span></span><span></span><span></span>
-                </div>
-                <div class="ag-emoji-orbit" data-ag-emoji-orbit aria-hidden="true"></div>
-              </div>
-              <div class="ag-copy">
-                <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
-                <h1 id="ag-title" data-ag-main-title>Affektions-Gacha</h1>
-                <p class="ag-intro" data-ag-intro></p>
-                <ul class="ag-chips" data-ag-chips></ul>
-                <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
-                  <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">⭐</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">⛰</button>
-                </div>
-              </div>
-            </header>
-          </div>
-        </div>
-
-        <div class="ag-content">
-          <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Bärlauch-Modus</span>
-              <button class="ag-secondary" type="button" id="ag-baerlauch-close">✕</button>
-            </div>
-
-            <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
-            <div class="ag-baerlauch-scores" id="ag-baerlauch-scores" hidden></div>
-            <p class="ag-mini-copy" id="ag-baerlauch-instruction">
-              Sammle nur die guten grünen Blätter – aber nicht toten Lauch oder Maiglöckchen, die giftig sind.
-            </p>
-            <p class="ag-mini-level" id="ag-baerlauch-level">Level 1</p>
-
-            <div class="ag-forage-wrap">
-              <div class="ag-forage-timer" id="ag-baerlauch-timer">8.0</div>
-              <div class="ag-forage-field" id="ag-baerlauch-field">
-                <div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>
-              </div>
-            </div>
-
-            <div class="ag-baerlauch-reward" id="ag-baerlauch-reward" hidden>
-              <div class="ag-baerlauch-photo" id="ag-baerlauch-photo"></div>
-              <p class="ag-baerlauch-text" id="ag-baerlauch-text"></p>
-            </div>
-
-            <div class="ag-baerlauch-actions" id="ag-baerlauch-actions" hidden>
-              <button class="ag-secondary" type="button" id="ag-baerlauch-next">
-                Nächstes Level
-              </button>
-            </div>
-
-            <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
-
-          </section>
-
-          <section class="ag-card ag-mini-panel" id="ag-gesprach-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Gespräch</span>
-              <button class="ag-secondary" type="button" id="ag-gesprach-close">✕</button>
-            </div>
-            <h2 class="ag-mini-title">Offene Fragen 💬</h2>
-            <p class="ag-mini-copy" id="ag-gesprach-copy">Eine Frage für euch beide.</p>
-            <div class="ag-gesprach-card" id="ag-gesprach-question"></div>
-            <div class="ag-gesprach-actions">
-              <button class="ag-secondary" type="button" id="ag-gesprach-next">Neue Frage</button>
-              <button class="ag-secondary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen</button>
-            </div>
-          </section>
-
-          <section class="ag-card ag-mini-panel" id="ag-quest-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge" id="ag-quest-badge">Quest</span>
-              <button class="ag-secondary" type="button" id="ag-quest-close">✕</button>
-            </div>
-            <h2 class="ag-mini-title" id="ag-quest-title">Foto-Aufgabe 📷</h2>
-            <p class="ag-mini-copy" id="ag-quest-copy"></p>
-            <div class="ag-quest-challenge" id="ag-quest-challenge"></div>
-            <div class="ag-quest-loading" id="ag-quest-loading" hidden>
-              <div class="ag-quest-spinner"></div>
-              <p class="ag-quest-loading-text">Maschine prüft das Foto…</p>
-            </div>
-            <div class="ag-quest-hint-history" id="ag-quest-hint-history" hidden></div>
-            <div class="ag-quest-actions" id="ag-quest-actions">
-              <label class="ag-primary ag-quest-upload-label" id="ag-quest-upload-label">
-                📷 Foto aufnehmen
-                <input type="file" accept="image/*" capture="environment" id="ag-quest-file" style="display:none">
-              </label>
-            </div>
-            <div class="ag-quest-result" id="ag-quest-result" hidden></div>
-            <div class="ag-quest-points" id="ag-quest-points" hidden></div>
-          </section>
-
-          <section class="ag-card ag-mini-panel" id="ag-mission-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Mission</span>
-              <button class="ag-secondary" type="button" id="ag-mission-close">✕</button>
-            </div>
-            <p class="ag-mini-copy">Deine Aufgabe für heute — Fionn hat eine andere.</p>
-            <div class="ag-mission-card" id="ag-mission-text"></div>
-            <div class="ag-mission-actions" id="ag-mission-actions">
-              <button class="ag-button" type="button" id="ag-mission-done">
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span>Erledigt ✓</span>
-              </button>
-            </div>
-            <div class="ag-mission-feedback" id="ag-mission-feedback" hidden>
-              <p class="ag-mission-feedback-label">Wie war's?</p>
-              <div class="ag-mission-rating" id="ag-mission-rating">
-                <button class="ag-mission-rate-btn" type="button" data-rating="fire">🔥</button>
-                <button class="ag-mission-rate-btn" type="button" data-rating="ok">👍</button>
-                <button class="ag-mission-rate-btn" type="button" data-rating="meh">😴</button>
-              </div>
-              <textarea class="ag-mission-comment" id="ag-mission-comment" rows="2" maxlength="200" placeholder="Optional: was hat funktioniert oder nicht?"></textarea>
-              <button class="ag-secondary ag-mission-feedback-send" type="button" id="ag-mission-feedback-send">Feedback senden</button>
-              <p class="ag-mission-feedback-sent" id="ag-mission-feedback-sent" hidden>Danke — die Maschine lernt.</p>
-            </div>
-            <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
-            <div class="ag-mission-log" id="ag-mission-log" hidden></div>
-          </section>
-
-          <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Glossar 📖</span>
-              <button class="ag-secondary" type="button" id="ag-glossary-close">✕</button>
-            </div>
-            <h2 class="ag-mini-title">Unser Glossar</h2>
-            <div class="ag-glossary-tabs" id="ag-glossary-tabs">
-              <div class="ag-glossary-tab-track">
-                <div class="ag-glossary-tab-pill" id="ag-glossary-pill"></div>
-                <button class="ag-glossary-tab is-active" type="button" data-lang="swabian">Schwäbisch</button>
-                <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
-                <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
-              </div>
-            </div>
-            <div class="ag-glossary-list" id="ag-glossary-list"></div>
-            <p class="ag-history-empty" id="ag-glossary-empty" hidden>Noch kein Wort hier. Füg eins hinzu.</p>
-            <button class="ag-button ag-glossary-add-btn" type="button" id="ag-glossary-add" style="width:100%;justify-content:center;margin-top:12px">
-              <span class="ag-button-orb" aria-hidden="true"></span>
-              <span>Wort hinzufügen</span>
-            </button>
-            <div class="ag-glossary-form" id="ag-glossary-form" hidden>
-              <p class="ag-wish-label" id="ag-glossary-form-title">Neues Wort</p>
-              <input type="hidden" id="ag-glossary-edit-id">
-              <div class="ag-glossary-form-fields">
-                <input class="ag-berge-input" type="text" id="ag-glossary-word-input" placeholder="Wort / Ausdruck" maxlength="80">
-                <textarea class="ag-berge-input ag-glossary-textarea" id="ag-glossary-meaning-input" rows="2" maxlength="300" placeholder="Bedeutung / Erklärung"></textarea>
-                <div class="ag-glossary-audio-row">
-                  <button class="ag-secondary ag-glossary-record-btn" type="button" id="ag-glossary-record">🎙 Aufnehmen</button>
-                  <button class="ag-secondary ag-glossary-play-preview" type="button" id="ag-glossary-play-preview" hidden>▶ Abspielen</button>
-                  <span class="ag-glossary-audio-status" id="ag-glossary-audio-status"></span>
-                </div>
-              </div>
-              <div class="ag-wish-actions">
-                <button class="ag-secondary" type="button" id="ag-glossary-form-cancel">Abbrechen</button>
-                <button class="ag-button" type="button" id="ag-glossary-form-save">
-                  <span class="ag-button-orb" aria-hidden="true"></span>
-                  <span id="ag-glossary-save-label">Eintragen</span>
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section class="ag-panel" data-ag-panel-today role="tabpanel">
-            <div class="ag-card ag-draw-card">
-              <div class="ag-draw-meta">
-                <span class="ag-pill" data-ag-today-pill>Heute</span>
-                <span class="ag-streak" data-ag-streak hidden></span>
-                <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
-                <span class="ag-draw-hint" data-ag-draw-hint></span>
-              </div>
-              <button class="ag-button" type="button" data-ag-draw>
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span data-ag-button-text>Kapsel ziehen</span>
-              </button>
-            </div>
-
-            <article class="ag-card ag-result" data-ag-result aria-live="polite" hidden>
-              <div class="ag-milestone" data-ag-milestone hidden>
-                <span data-ag-milestone-text></span>
-              </div>
-              <div class="ag-ping-banner" data-ag-ping-banner hidden>
-                <span data-ag-ping-text>👋 Fionn denkt an dich.</span>
-                <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
-              </div>
-              <div class="ag-result-head">
-                <span class="ag-badge" data-ag-rarity></span>
-                <span class="ag-date" data-ag-date></span>
-              </div>
-              <h2 data-ag-title></h2>
-              <div class="ag-message" data-ag-message hidden></div>
-              <div class="ag-link-embed" data-ag-link-wrap hidden></div>
-              <div data-ag-token-wrap hidden></div>
-              <figure class="ag-photo" data-ag-photo-wrap hidden>
-                <div class="ag-media-stage" data-ag-photo-media></div>
-                <figcaption data-ag-photo-caption hidden></figcaption>
-              </figure>
-              <div class="ag-actions">
-                <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
-                <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
-                <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
-                <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
-              </div>
-            </article>
-
-            <details class="ag-card ag-rules">
-              <summary data-ag-rules-title>Maschinenregeln</summary>
-              <p data-ag-rules-text></p>
-              <ul data-ag-odds></ul>
-            </details>
-
-            <div class="ag-card ag-hug-card" data-ag-hug-card>
-              <div class="ag-hug-row">
-                <div class="ag-hug-text">
-                  <p class="ag-wish-label">Notfall-Umarmung</p>
-                  <p class="ag-wish-note" style="margin-bottom:0">Ein Stups an Fionn, wenn dir gerade nach einer Umarmung ist.</p>
-                </div>
-                <button class="ag-hug-button" type="button" data-ag-hug-send aria-label="Notfall-Umarmung an Fionn senden">
-                  <span class="ag-hug-emoji" aria-hidden="true">🫂</span>
-                  <span class="ag-hug-label">Umarmung senden</span>
-                </button>
-              </div>
-              <p class="ag-hug-status" data-ag-hug-status hidden></p>
-            </div>
-
-            <div class="ag-card ag-wish-card" data-ag-wish-card>
-              <div data-ag-wish-idle>
-                <p class="ag-wish-label">Wunschkapsel</p>
-                <p class="ag-wish-note">Einmal pro Woche kannst du einen Wunsch einreichen. Die Maschine nimmt ihn entgegen – ohne Versprechen.</p>
-                <button class="ag-secondary" type="button" data-ag-wish-open>Wunsch einreichen</button>
-              </div>
-              <div data-ag-wish-form hidden>
-                <p class="ag-wish-label">Was wünschst du dir?</p>
-                <textarea class="ag-wish-input" data-ag-wish-input rows="3" maxlength="280" placeholder="Ein Spaziergang, ein Abend, etwas Besonderes..."></textarea>
-                <div class="ag-wish-actions">
-                  <button class="ag-secondary" type="button" data-ag-wish-cancel>Abbrechen</button>
-                  <button class="ag-button" type="button" data-ag-wish-submit>
-                    <span class="ag-button-orb" aria-hidden="true"></span>
-                    <span>Einreichen</span>
-                  </button>
-                </div>
-              </div>
-              <div data-ag-wish-done hidden>
-                <p class="ag-wish-label" data-ag-wish-done-title></p>
-                <p class="ag-wish-note" data-ag-wish-done-note></p>
-                <p class="ag-wish-meta" data-ag-wish-done-meta></p>
-              </div>
-            </div>
-
-            <div class="ag-card ag-ping-card" data-ag-ping-card hidden>
-              <div class="ag-hug-row">
-                <div class="ag-hug-text">
-                  <p class="ag-wish-label">Lennart anstupsen</p>
-                  <p class="ag-wish-note" style="margin-bottom:0">Schick Lennart einen kleinen Stups — er erscheint als kurze Meldung beim nächsten App-Öffnen.</p>
-                </div>
-                <button class="ag-hug-button" type="button" data-ag-ping-send aria-label="Ping an Lennart senden">
-                  <span class="ag-hug-emoji" aria-hidden="true">👋</span>
-                  <span class="ag-hug-label">Stups senden</span>
-                </button>
-              </div>
-              <p class="ag-hug-status" data-ag-ping-status hidden></p>
-            </div>
-
-            <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
-              <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>
-              <div class="ag-notif-actions">
-                <button class="ag-secondary" type="button" data-ag-notif-dismiss>Nicht jetzt</button>
-                <button class="ag-secondary" type="button" data-ag-notif-enable>Erinnern</button>
-              </div>
-            </div>
-          </section>
-
-          <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
-            <div class="ag-card">
-              <div class="ag-history-header">
-                <p class="ag-history-note" data-ag-history-note></p>
-                <button class="ag-sync-btn" data-ag-recover-btn type="button" title="Mai-Verlauf wiederherstellen">↺</button>
-                <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
-              </div>
-              <ol class="ag-history" data-ag-history></ol>
-              <p class="ag-history-empty" data-ag-history-empty hidden></p>
-            </div>
-          </section>
-          <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
-            <div class="ag-card">
-              <p class="ag-history-note" data-ag-lieblinge-note></p>
-              <ol class="ag-history" data-ag-lieblinge></ol>
-              <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
-            </div>
-          </section>
-          <section class="ag-panel" data-ag-panel-berge role="tabpanel" hidden>
-            <div class="ag-card ag-berge-header" data-ag-berge-header>
-              <div class="ag-berge-stats">
-                <span class="ag-berge-total-label">Gemeinsame Höhenmeter</span>
-                <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
-                <span class="ag-berge-analogy" data-ag-berge-analogy hidden></span>
-              </div>
-              <button class="ag-button ag-berge-add-btn" type="button" data-ag-berge-add>
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span>Gipfel eintragen</span>
-              </button>
-            </div>
-            <div class="ag-card ag-berge-form" data-ag-berge-form hidden>
-              <p class="ag-wish-label" data-ag-berge-form-title>Neuer Gipfeleintrag</p>
-              <input type="hidden" data-ag-berge-edit-id>
-              <div class="ag-berge-form-grid">
-                <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
-                <div class="ag-berge-row">
-                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Gipfelhöhe (m)" min="0" max="9000">
-                  <input class="ag-berge-input" type="date" data-ag-berge-date>
-                </div>
-                <div class="ag-berge-row">
-                  <input class="ag-berge-input" type="number" data-ag-berge-dist placeholder="Distanz (km)" min="0" max="500" step="0.1">
-                  <input class="ag-berge-input" type="number" data-ag-berge-gain placeholder="Höhenmeter (↑ m)" min="0" max="9000">
-                </div>
-                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot-URL oder AllTrails-Widget-URL (mit sh=…)">
-                <input class="ag-berge-input" type="url" data-ag-berge-cover placeholder="Titelbild-URL (optional)">
-                <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
-              </div>
-              <div class="ag-wish-actions">
-                <button class="ag-secondary" type="button" data-ag-berge-cancel>Abbrechen</button>
-                <button class="ag-button" type="button" data-ag-berge-save>
-                  <span class="ag-button-orb" aria-hidden="true"></span>
-                  <span>Eintragen</span>
-                </button>
-              </div>
-            </div>
-            <div data-ag-berge-list></div>
-            <p class="ag-history-empty" data-ag-berge-empty hidden>Noch kein Gipfel eingetragen. Der erste wartet.</p>
-          </section>
-          <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
-              <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span>💡 Lichtsteuerung</span>
-              </a>
-            </div>
-        </div>
-      </div>
-
-      <div class="ag-letter-overlay" id="ag-letter-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="ag-letter-title">
-        <div class="ag-letter-card">
-          <button class="ag-letter-close" type="button" id="ag-letter-close" aria-label="Schließen">✕</button>
-          <img class="ag-letter-photo" id="ag-letter-photo" src="" alt="" hidden>
-          <p class="ag-letter-eyebrow">🍀 Nur für dich</p>
-          <h2 class="ag-letter-title" id="ag-letter-title">Du hast es gefunden.</h2>
-          <div class="ag-letter-body" id="ag-letter-body">
-            <p class="ag-letter-loading">…</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="ag-lightbox" id="ag-lightbox" hidden role="dialog" aria-modal="true" aria-label="Foto-Vollansicht">
-        <button class="ag-lightbox-close" id="ag-lightbox-close" type="button" aria-label="Schließen">✕</button>
-        <img class="ag-lightbox-img" id="ag-lightbox-img" src="" alt="">
-        <p class="ag-lightbox-caption" id="ag-lightbox-caption"></p>
-        <a class="ag-lightbox-drive-link" id="ag-lightbox-drive-link" target="_blank" rel="noopener noreferrer" hidden>▶ In Drive öffnen</a>
-      </div>
-
-      <div class="ag-sheet-backdrop" data-ag-sheet-backdrop></div>
-      <div class="ag-ptr" data-ag-ptr aria-hidden="true"><span class="ag-ptr-icon">↓</span></div>
-      <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
-      <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
-      <nav class="ag-bottomnav" aria-label="Navigation">
-        <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">
-          <span class="ag-bottomnav-btn-icon" aria-hidden="true">✦</span>
-          <span class="ag-bottomnav-btn-label">Heute</span>
-        </button>
-        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="history">
-          <span class="ag-bottomnav-btn-icon" aria-hidden="true">📋</span>
-          <span class="ag-bottomnav-btn-label">Verlauf</span>
-        </button>
-        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">
-          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⭐</span>
-          <span class="ag-bottomnav-btn-label">Lieblinge</span>
-        </button>
-        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">
-          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⛰</span>
-          <span class="ag-bottomnav-btn-label">Berge</span>
-        </button>
-      </nav>
-    `;
-  }
-
-  function $(selector) {
-    return mount.querySelector(selector);
-  }
-
-  function getToken() {
-    return getMissionPlayer() === "fionn" ? "fionn" : "lennart";
-  }
-
-  function displayNameFromToken() {
-    const token = getToken();
-    return token
-      .replace(/[-_]+/g, " ")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toLocaleUpperCase("de-CH") + part.slice(1))
-      .join(" ") || state.theme.brand.displayNameDefault || "Lennart";
-  }
-
-  function defaultChips() {
-    return ["Bärlauch", "Rave 🪩", "Glossar 📖"];
-  }
-
-  // Always-on emojis (bike + garlic) plus a deterministic selection from the
-  // curated pool below — picked per day+token so the constellation refreshes
-  // daily but is stable across reloads on the same day.
-  const REQUIRED_EMOJIS = ["🚴", "🧄"];
-  const EMOJI_POOL = [
-    "🥾", "🌲", "🧗‍♂️", "✨",
-    "📚", "💭", "🌙", "☕",
-    "🔥", "💛", "🫶", "🌿",
-    "🎿", "❄️", "😄", "🎶",
-    "🌊", "🚤", "🍃", "🌍",
-    "💌", "🥹", "🌈", "🕊️",
-    "😏", "💫", "🧠", "⚡",
-    "🍝", "🍷", "😋", "🌆",
-    "🎧", "🎵", "💃", "🪩",
-    "🌄", "🧭", "🚶‍♂️", "🍂",
-    "💬", "👀", "🤍", "🔐",
-    "🏔️", "🪨", "💪", "🌤️",
-    "😂", "🤭", "🎯", "💥",
-    "🛤️", "🌌", "🕯️", "📖",
-    "❤️‍🔥", "😇", "😈",
-    "🍓", "🍫", "😚",
-    "🫂", "🌻", "🌞",
-    "🐻", "🛌",
-    "🎻", "👨‍❤️‍👨"
-  ];
-
-  function emojiSeedKey() {
-    const day = dateKeyInTimezone(state.theme.timezone);
-    const token = getToken();
-    return `${state.theme.secret}|${token}|${day}|emoji`;
-  }
-
-  // Pick 3-5 distinct emojis from EMOJI_POOL deterministically, then prepend
-  // the always-on bike + garlic. Result: 5-7 total floating accents.
-  function pickEmojiSet() {
-    const seedBase = emojiSeedKey();
-    const count = 3 + Math.floor(seededRandom(`${seedBase}|count`) * 3); // 3..5
-    const pool = EMOJI_POOL.slice();
-    const chosen = [];
-    for (let i = 0; i < count && pool.length; i += 1) {
-      const idx = Math.floor(seededRandom(`${seedBase}|pick|${i}`) * pool.length);
-      chosen.push(pool.splice(idx, 1)[0]);
-    }
-    return [...REQUIRED_EMOJIS, ...chosen];
-  }
-  
-  function renderEmojiOrbit() {
-    const orbit = $("[data-ag-emoji-orbit]");
-    if (!orbit) return;
-    orbit.innerHTML = "";
-    const emojis = pickEmojiSet();
-    const total = emojis.length;
-    const seedBase = emojiSeedKey();
-    emojis.forEach((emoji, i) => {
-      const span = document.createElement("span");
-      span.className = "ag-emoji";
-      span.textContent = emoji;
-      // Distribute around the circle, with a small deterministic jitter so
-      // the constellation doesn't look like a perfect compass rose.
-      const baseAngle = (360 / total) * i;
-      const jitter = (seededRandom(`${seedBase}|angle|${i}`) - 0.5) * 28;
-      const angle = baseAngle + jitter;
-      const radiusJitter = seededRandom(`${seedBase}|radius|${i}`) * 21 - 10.5;
-      const duration = 16 + seededRandom(`${seedBase}|dur|${i}`) * 10; // 16..26s
-      const delay = -seededRandom(`${seedBase}|delay|${i}`) * duration;
-      const direction = seededRandom(`${seedBase}|dir|${i}`) > 0.5 ? 1 : -1;
-      span.style.setProperty("--ag-emoji-angle", `${angle}deg`);
-      span.style.setProperty("--ag-emoji-radius", `${250 + radiusJitter}%`);
-      span.style.setProperty("--ag-emoji-duration", `${duration.toFixed(2)}s`);
-      span.style.setProperty("--ag-emoji-delay", `${delay.toFixed(2)}s`);
-      span.style.setProperty("--ag-emoji-direction", direction === 1 ? "normal" : "reverse");
-      orbit.appendChild(span);
-    });
-  }
-
-
-
-  const BAERLAUCH_LEVELS = [
-    { timeMs: 20000, good: 10, bad: 8, speedMin: 3.2, speedMax: 3.7 },
-    { timeMs: 17000, good: 10, bad: 12, speedMin: 3.0, speedMax: 3.7 },
-    { timeMs: 14500, good: 12, bad: 18, speedMin: 2.8, speedMax: 3.6 },
-    { timeMs: 12200, good: 14, bad: 20, speedMin: 2.6, speedMax: 3.3 },
-    { timeMs: 10200, good: 14, bad: 25, speedMin: 1.45, speedMax: 2.05 },
-    { timeMs: 8500, good: 16, bad: 25, speedMin: 1.3, speedMax: 1.85 },
-    { timeMs: 7000, good: 18, bad: 28, speedMin: 1.15, speedMax: 1.65 },
-    { timeMs: 5800, good: 20, bad: 30, speedMin: 1.0, speedMax: 1.45 },
-    { timeMs: 4700, good: 22, bad: 30, speedMin: 0.9, speedMax: 1.25 },
-    { timeMs: 3800, good: 30, bad: 30, speedMin: 0.4, speedMax: 0.8 }
-  ];
-  
-  function baerlauchConfigForLevel(level) {
-    return BAERLAUCH_LEVELS[Math.min(level - 1, BAERLAUCH_LEVELS.length - 1)];
-  }
-  
-
-
-  function randomBetween(min, max) {
-    return min + Math.random() * (max - min);
-  }
-  
-  function baerlauchDurationForLevel(level) {
-    return Math.max(1800, 15000 - (level - 1) * 500);
-  }
-  
-  function updateBaerlauchLevelText() {
-    const el = $("#ag-baerlauch-level");
-    if (el) el.textContent = `Level ${state.baerlauch.level}`;
-  }
-  
-  function stopBaerlauchTimer() {
-    if (state.baerlauch.timerId) {
-      clearInterval(state.baerlauch.timerId);
-      state.baerlauch.timerId = null;
-    }
-  }
-  
-  function failBaerlauchGame(reason) {
-    const field = $("#ag-baerlauch-field");
-    const success = $("#ag-baerlauch-success");
-    const reward = $("#ag-baerlauch-reward");
-    const rewardPhoto = $("#ag-baerlauch-photo");
-    const rewardText = $("#ag-baerlauch-text");
-    const actions = $("#ag-baerlauch-actions");
-    
-    if (actions) actions.hidden = true;
-
-  
-    stopBaerlauchTimer();
-    state.baerlauch.locked = true;
-  
-    if (field) {
-      field.innerHTML = `<div class="ag-forage-darkness" id="ag-baerlauch-darkness" style="opacity:.78"></div>`;
-    }
-  
-    if (reward) reward.hidden = true;
-    if (rewardPhoto) rewardPhoto.innerHTML = "";
-    if (rewardText) rewardText.textContent = "";
-  
-    if (success) {
-      success.hidden = false;
-      success.style.color = "#fff";
-      success.textContent =
-        reason === "timeout"
-          ? "Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei. Jetzt ist es vorbei."
-          : "Oops. Ich fürchte, wir haben toten Lauch oder etwas Giftiges gesammelt und sind tragisch eingegangen. Jetzt ist es vorbei.";
-    }
-    saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, false);
-    updateBaerlauchScoreDisplay();
-  }
-  
-  function winBaerlauchGame() {
-    const success = $("#ag-baerlauch-success");
-    const reward = $("#ag-baerlauch-reward");
-    const rewardPhoto = $("#ag-baerlauch-photo");
-    const rewardText = $("#ag-baerlauch-text");
-    const actions = $("#ag-baerlauch-actions");
-    const nextButton = $("#ag-baerlauch-next");
-
-  
-    stopBaerlauchTimer();
-
-    state.baerlauch.level += 1;
-    const isNewHighscore = saveBaerlauchScore(getMissionPlayer(), state.baerlauch.level);
-    saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, true);
-    updateBaerlauchScoreDisplay();
-    updateBaerlauchLevelText();
-    if (isNewHighscore) triggerConfetti();
-  
-    if (success) {
-      success.hidden = false;
-      success.textContent = "Sehr stark. Du hast nur den guten Bärlauch gesammelt. 💚";
-    }
-  
-    if (reward && rewardPhoto && rewardText && state.photos && state.photos.length) {
-      const imgs = imagePhotos();
-      const photo = imgs.length ? imgs[Math.floor(Math.random() * imgs.length)] : null;
-      renderMediaInto(rewardPhoto, photo);
-      reward.hidden = false;
-  
-      const lines = [
-        "Du bist eindeutig mein Lieblingsfund.",
-        "Mit dir würde ich jederzeit wieder Bärlauch sammeln.",
-        "Sehr beruhigend, dass du uns nicht vergiftet hast.",
-        "Wald mit dir > fast alles andere.",
-        "Das war ausgesprochen sammel-kompetent von dir.",
-        "Ich würde mit dir auch poisoned Bärlauch essen. Aber bitte nicht.",
-        "Du sammelst Bärlauch so gut wie du alles andere machst.",
-        "Nächstes Mal bring ich Käse. Du bringst dich.",
-        "Ehrlich gesagt bin ich gekommen wegen dir, nicht wegen dem Lauch.",
-        "So stell ich mir perfekte Wochenenden vor — Wald, du, Bärlauch.",
-        "Rekord. Und du weißt genau, dass ich damit dich meine.",
-        "Botanik-Talent plus gute Gesellschaft. Was will man mehr.",
-        "Wenn das hier ein Film wäre, würde jetzt Credit-Musik laufen.",
-        "Pesto später? Verdient."
-      ];
-      rewardText.textContent = lines[Math.floor(Math.random() * lines.length)];
-    }
-    if (nextButton) {
-      nextButton.textContent = `Level ${state.baerlauch.level} starten`;
-    }
-    
-    if (actions) {
-      actions.hidden = false;
-    }
-  }
-  
-  function startBaerlauchTimer(onTimeout) {
-    const timerEl = $("#ag-baerlauch-timer");
-    const darknessEl = $("#ag-baerlauch-darkness");
-    const config = baerlauchConfigForLevel(state.baerlauch.level);
-    const durationMs = config.timeMs;
-
-    state.baerlauch.durationMs = durationMs;
-    state.baerlauch.startedAt = performance.now();
-  
-    stopBaerlauchTimer();
-  
-    state.baerlauch.timerId = setInterval(() => {
-      const elapsed = performance.now() - state.baerlauch.startedAt;
-      const remaining = Math.max(0, durationMs - elapsed);
-      const progress = Math.min(1, elapsed / durationMs);
-  
-      if (timerEl) timerEl.textContent = (remaining / 1000).toFixed(1);
-      if (darknessEl) darknessEl.style.opacity = String(Math.pow(progress, 1.5) * 0.92);
-
-      const items = document.querySelectorAll(".ag-forage-item");
-      const itemDarkness = Math.pow(progress, 1.4);
-      
-      items.forEach((item) => {
-        item.style.filter = `brightness(${1 - itemDarkness * 0.72}) saturate(${1 - itemDarkness * 0.45}) hue-rotate(${itemDarkness * 8}deg)`;
-        item.style.opacity = String(1 - itemDarkness * 0.28);
-
-      });
-      
-  
-      if (remaining <= 0) {
-        stopBaerlauchTimer();
-        onTimeout();
-      }
-    }, 50);
-  }
-  
-  function openBaerlauchGame() {
-    const panel = $("#ag-baerlauch-panel");
-    const field = $("#ag-baerlauch-field");
-    const success = $("#ag-baerlauch-success");
-    const reward = $("#ag-baerlauch-reward");
-    const rewardPhoto = $("#ag-baerlauch-photo");
-    const rewardText = $("#ag-baerlauch-text");
-    const actions = $("#ag-baerlauch-actions");
-
-  
-    if (!panel || !field || !success || !reward || !rewardPhoto || !rewardText) return;
-
-    panel.hidden = false;
-    updateBaerlauchScoreDisplay();
-    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  
-    if (state.baerlauch.locked) {
-      success.hidden = false;
-      success.textContent = "Diese Runde ist vorbei. Vielleicht nach einem Neuladen nochmal.";
-      return;
-    }
-  
-    field.innerHTML = `<div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>`;
-    success.hidden = true;
-    reward.hidden = true;
-    rewardPhoto.innerHTML = "";
-    rewardText.textContent = "";
-    if (actions) actions.hidden = true;
-    updateBaerlauchLevelText();
-  
-    const config = baerlauchConfigForLevel(state.baerlauch.level);
-
-    const goodPool = [
-      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
-      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
-      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
-      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
-      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
-      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
-      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
-      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
-      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
-      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
-      "🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃",
-      "🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱",
-      "🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🌿","🍀"
-    ];
-    
-    const badPool = [
-      "🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂",
-      "💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸",
-      "☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄",
-      "🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂",
-       "🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂",
-      "💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸",
-      "☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄",
-      "🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂",
-       "🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂",
-      "💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸",
-      "☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄",
-      "🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂","💀"
-    ];
-    
-    const items = [
-      ...goodPool.slice(0, config.good).map((emoji) => ({ emoji, good: true })),
-      ...badPool.slice(0, config.bad).map((emoji) => ({ emoji, good: false }))
-    ];
-
-  
-    let collectedGood = 0;
-    const totalGood = items.filter((item) => item.good).length;
-  
-    items.forEach((entry) => {
-      const item = document.createElement("button");
-      item.type = "button";
-      item.className = "ag-forage-item";
-      item.textContent = entry.emoji;
-      item.dataset.good = entry.good ? "true" : "false";
-  
-      item.style.left = `${randomBetween(8, 82)}%`;
-      item.style.top = `${randomBetween(10, 72)}%`;
-      item.style.setProperty("--dx", `${randomBetween(-320, 320)}px`);
-      item.style.setProperty("--dy", `${randomBetween(-220, 220)}px`);
-      item.style.setProperty("--dur", `${randomBetween(config.speedMin, config.speedMax)}s`);
-      item.style.setProperty("--delay", `${randomBetween(-1.8, 0)}s`);
-  
-      item.addEventListener("click", () => {
-        if (state.baerlauch.locked) return;
-  
-        if (item.dataset.good === "true") {
-          item.classList.add("is-picked");
-          item.disabled = true;
-          collectedGood += 1;
-  
-          setTimeout(() => item.remove(), 140);
-  
-          if (collectedGood === totalGood) {
-            winBaerlauchGame();
-          }
-        } else {
-          failBaerlauchGame("poison");
-        }
-      });
-  
-      field.appendChild(item);
-    });
-  
-    startBaerlauchTimer(() => failBaerlauchGame("timeout"));
-  }
-  
-  function closeBaerlauchGame() {
-    const panel = $("#ag-baerlauch-panel");
-    stopBaerlauchTimer();
-    if (panel) panel.hidden = true;
-  }
-
-  const GESPRACH_QUESTIONS = [
-    "Wenn wir ein Restaurant eröffnen würden — was servieren wir, wie heißt es, und wo steht es?",
-    "Was ist eine Sache, die du mit mir noch erleben möchtest, die wir noch nie gemacht haben?",
-    "Welcher Moment aus unserer Zeit zusammen würdest du am liebsten noch einmal erleben?",
-    "Was ist die seltsamste Eigenschaft von mir, die du heimlich magst?",
-    "Wenn wir für ein Jahr irgendwo auf der Welt leben könnten — wo, und was wäre unser Alltag?",
-    "In welchem Moment hast du gemerkt, dass ich dir wirklich wichtig bin?",
-    "Was ist etwas, das du mir noch nie gesagt hast, mir aber vielleicht heute sagen könntest?",
-    "Was macht dich gerade in deinem Leben am stolzesten?",
-    "Was ist eine Eigenschaft von mir, die du bewunderst, die ich selbst wahrscheinlich nicht merke?",
-    "Wann fühlst du dich bei mir am geborgensten?",
-    "Gibt es etwas, das ich öfter machen könnte, das dir gut tun würde?",
-    "Was ist ein Ritual, das du gerne mit mir hätte — etwas nur für uns zwei?",
-    "Wenn du meine Gedanken lesen könntest, was glaubst du, würde ich gerade denken?",
-    "Was ist deine liebste Erinnerung an einen ganz normalen Tag mit mir?",
-    "Was würde die Version von uns in 10 Jahren über uns heute denken?",
-    "Was ist ein Traum, den du dir noch nicht erlaubt hast, laut auszusprechen?",
-    "Wie sieht ein perfekter Tag für dich aus — von morgens bis nachts?",
-    "Was ist etwas, das du von mir gelernt hast?",
-    "Was fehlt dir gerade, und wie könnte ich helfen?",
-    "Was war dein Lieblingsmoment auf unserer Reise nach Lissabon?",
-    "Wenn wir spontan ein Wochenende planen würden — wohin, und warum genau dorthin?",
-    "Was brauchst du gerade von mir, das du dir vielleicht noch nicht getraut hast zu sagen?",
-    "Was ist der Unterschied zwischen dem Lennart von vor einem Jahr und dem heute?",
-    "Wie hat sich das Gefühl für mich für dich in den letzten Monaten verändert?",
-    "Wenn du einen Brief an dich selbst in einem Jahr schreiben würdest — was würde drin stehen?",
-    "Was ist eine kleine Sache, die ich tue, die du magst, ohne dass ich es weiß?",
-    "Welchen meiner Züge findest du am lustigsten?",
-    "Was ist etwas, das du an Zürich vermissen würdest, wenn wir woanders leben würden?",
-    "Wenn ich ein Tier wäre — welches, und warum genau das?",
-    "Was wäre dein perfektes Date mit mir, völlig egal ob realistisch oder nicht?"
-  ];
-
-  // ── Photo lightbox ──────────────────────────────────────────────────────────
-
-  // Shared reference so the image error handler is removed between opens
-  // (a persistent #ag-lightbox-img would otherwise accumulate stale listeners).
-  let lightboxImgErrorHandler = null;
-
-  function openLightbox(url, caption, isVideo, altHint) {
-    const lb = $("#ag-lightbox");
-    const img = $("#ag-lightbox-img");
-    const cap = $("#ag-lightbox-caption");
-    const driveLink = $("#ag-lightbox-drive-link");
-    if (!lb || !img) return;
-    // Clean up any media element injected by a previous open
-    lb.querySelector(".ag-lightbox-iframe")?.remove();
-    lb.querySelector(".ag-lightbox-video")?.remove();
-    if (lightboxImgErrorHandler) {
-      img.removeEventListener("error", lightboxImgErrorHandler);
-      lightboxImgErrorHandler = null;
-    }
-    img.onerror = null;
-    if (driveLink) driveLink.hidden = true;
-
-    const driveId = isVideo ? extractDriveFileId(url) : null;
-    if (driveId) {
-      // Drive-hosted video — Google's embedded player
-      img.hidden = true;
-      const iframe = document.createElement("iframe");
-      iframe.src = `https://drive.google.com/file/d/${driveId}/preview`;
-      iframe.allow = "autoplay";
-      iframe.setAttribute("allowfullscreen", "");
-      iframe.setAttribute("frameborder", "0");
-      iframe.className = "ag-lightbox-iframe";
-      lb.insertBefore(iframe, cap);
-      if (driveLink) {
-        driveLink.href = `https://drive.google.com/file/d/${driveId}/view`;
-        driveLink.hidden = false;
-      }
-    } else if (isVideo) {
-      // Non-Drive video (direct .mp4 / iCloud CDN) — native <video>
-      img.hidden = true;
-      const safe = safeUrl(url);
-      if (!safe) return;
-      const video = document.createElement("video");
-      video.src = safe;
-      video.controls = true;
-      video.playsInline = true;
-      video.setAttribute("playsinline", "");
-      video.className = "ag-lightbox-video";
-      video.setAttribute("aria-label", caption || "");
-      lb.insertBefore(video, cap);
-    } else {
-      img.hidden = false;
-      const safe = safeUrl(url);
-      if (!safe) return;
-      img.src = safe;
-      img.alt = caption || "";
-      lightboxImgErrorHandler = () => {
-        const lookupAlt = altHint || caption;
-        fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
-          const freshPhotos = normalizePhotos(fresh);
-          const match = freshPhotos.find((p) => p.alt === lookupAlt) || null;
-          if (match && match.url) {
-            img.src = safeUrl(match.url);
-            state.photos = freshPhotos;
-          }
-        }).catch(() => {});
-      };
-      img.addEventListener("error", lightboxImgErrorHandler, { once: true });
-    }
-
-    cap.textContent = caption || "";
-    cap.hidden = !caption;
-    lb.hidden = false;
-    document.body.style.overflow = "hidden";
-  }
-
-  function closeLightbox() {
-    const lb = $("#ag-lightbox");
-    if (!lb) return;
-    lb.querySelector(".ag-lightbox-iframe")?.remove();
-    lb.querySelector(".ag-lightbox-video")?.remove();
-    const lbImg = lb.querySelector(".ag-lightbox-img");
-    if (lbImg) {
-      if (lightboxImgErrorHandler) {
-        lbImg.removeEventListener("error", lightboxImgErrorHandler);
-        lightboxImgErrorHandler = null;
-      }
-      lbImg.hidden = false;
-    }
-    lb.hidden = true;
-    document.body.style.overflow = "";
-  }
-
-  let gesprachCurrentIndex = -1;
-
-  function openGesprachPanel() {
-    const panel = $("#ag-gesprach-panel");
-    if (!panel) return;
-    panel.hidden = false;
-    // Restore saved question; only pick a new one if none saved yet
-    try {
-      const saved = localStorage.getItem(GESPRACH_IDX_KEY);
-      if (saved !== null) {
-        const idx = parseInt(saved, 10);
-        if (Number.isFinite(idx) && idx >= 0 && idx < GESPRACH_QUESTIONS.length) {
-          gesprachCurrentIndex = idx;
-          const el = $("#ag-gesprach-question");
-          if (el) el.textContent = GESPRACH_QUESTIONS[idx];
-          return;
-        }
-      }
-    } catch (_) {}
-    showNextGesprach();
-  }
-
-  function closeGesprachPanel() {
-    const panel = $("#ag-gesprach-panel");
-    if (panel) panel.hidden = true;
-  }
-
-  // ── Mission panel ────────────────────────────────────────────────────────────
-
-  const MISSION_DONE_KEY = "affektions-gacha:mission-done:v1";
-
-  function getMissionPlayer() {
-    try {
-      const p = new URLSearchParams(window.location.search).get("player");
-      return p === "fionn" ? "fionn" : "lennart";
-    } catch (_) { return "lennart"; }
-  }
-
-  function getTodaysMission() {
-    const pairs = state.missions?.pairs;
-    if (!Array.isArray(pairs) || !pairs.length) return null;
-    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    const idx = seededIndex(`${state.theme.secret}|mission|${day}`, pairs.length);
-    const pair = pairs[idx];
-    const player = getMissionPlayer();
-    return player === "fionn" ? pair.fionn : pair.lennart;
-  }
-
-  function isMissionDoneToday() {
-    try {
-      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-      return localStorage.getItem(MISSION_DONE_KEY) === day;
-    } catch (_) { return false; }
-  }
-
-  function markMissionDone() {
-    try {
-      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-      localStorage.setItem(MISSION_DONE_KEY, day);
-      const player = getMissionPlayer();
-      const mission = getTodaysMission();
-      const doneAt = new Date().toISOString();
-      appendMissionLogEntry({ day, player, mission, doneAt });
-      const url = state.backup?.endpointUrl;
-      if (url && mission) {
-        fetch(url, {
-          method: "POST",
-          body: JSON.stringify({ type: "mission-log", player, day, mission, doneAt }),
-          headers: { "Content-Type": "application/json" }
-        }).catch(() => {});
-      }
-    } catch (_) {}
-  }
-
-  const MISSION_FEEDBACK_KEY = "affektions-gacha:mission-feedback:v1";
-
-  function isFeedbackSentToday() {
-    try {
-      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-      return localStorage.getItem(MISSION_FEEDBACK_KEY) === day;
-    } catch (_) { return false; }
-  }
-
-  function markFeedbackSent() {
-    try {
-      const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-      localStorage.setItem(MISSION_FEEDBACK_KEY, day);
-    } catch (_) {}
-  }
-
-  function sendMissionFeedback(rating, comment) {
-    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    const player = getMissionPlayer();
-    const mission = getTodaysMission();
-    updateMissionLogEntry(day, player, { rating, comment: comment || "" });
-    markFeedbackSent();
-    const url = state.backup?.endpointUrl;
-    if (url) {
-      fetch(url, {
-        method: "POST",
-        body: JSON.stringify({ type: "mission-feedback", player, day, mission, rating, comment: comment || "" }),
-        headers: { "Content-Type": "application/json" }
-      }).catch(() => {});
-    }
-  }
-
-  // ── Mission log helpers ────────────────────────────────────────────────────
-
-  function readMissionLog() {
-    try {
-      const raw = localStorage.getItem(MISSION_LOG_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) { return []; }
-  }
-
-  function writeMissionLog(entries) {
-    try { localStorage.setItem(MISSION_LOG_KEY, JSON.stringify(entries)); } catch (_) {}
-  }
-
-  function appendMissionLogEntry(entry) {
-    const log = readMissionLog();
-    const existing = log.findIndex(e => e.day === entry.day && e.player === entry.player);
-    if (existing >= 0) {
-      log[existing] = { ...log[existing], ...entry };
-    } else {
-      log.unshift(entry);
-      if (log.length > 60) log.splice(60);
-    }
-    writeMissionLog(log);
-  }
-
-  function updateMissionLogEntry(day, player, updates) {
-    const log = readMissionLog();
-    const idx = log.findIndex(e => e.day === day && e.player === player);
-    if (idx >= 0) { log[idx] = { ...log[idx], ...updates }; writeMissionLog(log); }
-  }
-
-  function renderMissionLog(containerEl, playerFilter) {
-    if (!containerEl) return;
-    const log = readMissionLog();
-    const tz = state.theme?.timezone || "UTC";
-    const today = dateKeyInTimezone(tz);
-    // group by day, collect both players
-    const byDay = new Map();
-    for (const entry of log) {
-      if (!byDay.has(entry.day)) byDay.set(entry.day, {});
-      byDay.get(entry.day)[entry.player] = entry;
-    }
-    // show last 30 days that have at least one entry
-    const days = Array.from(byDay.keys()).sort((a, b) => b.localeCompare(a)).slice(0, 30);
-    if (!days.length) { containerEl.hidden = true; return; }
-    containerEl.hidden = false;
-    const ratingEmoji = { fire: "🔥", ok: "👍", meh: "😴" };
-    const fmt = (day) => {
-      try {
-        return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz })
-          .format(new Date(day + "T12:00:00Z"));
-      } catch (_) { return day; }
-    };
-    containerEl.innerHTML = `<h3 class="ag-mission-log-title">Verlauf</h3>` +
-      days.map(day => {
-        const entries = byDay.get(day);
-        const lennart = entries.lennart;
-        const fionn = entries.fionn;
-        const isToday = day === today;
-        const rows = [];
-        if (lennart && (playerFilter !== "fionn")) {
-          const done = lennart.doneAt ? `<span class="ag-log-done">✓</span>` : "";
-          const rating = lennart.rating ? `<span class="ag-log-rating">${ratingEmoji[lennart.rating] || ""}</span>` : "";
-          rows.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-lennart">Lennart</span><span class="ag-log-text">${escHtml(lennart.mission || "")}</span>${done}${rating}</div>`);
-        }
-        if (fionn && (playerFilter !== "lennart")) {
-          const done = fionn.doneAt ? `<span class="ag-log-done">✓</span>` : "";
-          const rating = fionn.rating ? `<span class="ag-log-rating">${ratingEmoji[fionn.rating] || ""}</span>` : "";
-          rows.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-fionn">Fionn</span><span class="ag-log-text">${escHtml(fionn.mission || "")}</span>${done}${rating}</div>`);
-        }
-        if (!rows.length) return "";
-        return `<div class="ag-log-day${isToday ? " ag-log-today" : ""}"><span class="ag-log-date">${fmt(day)}</span>${rows.join("")}</div>`;
-      }).filter(Boolean).join("");
-  }
-
-  function escHtml(str) {
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
-  function formatMsg(text) {
-    if (!text) return "";
-    const safe = escHtml(text);
-    return safe.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
-  }
-
-  // ── Bärlauch leaderboard helpers ───────────────────────────────────────────
-
-  function readBaerlauchScores() {
-    try {
-      const raw = localStorage.getItem(BAERLAUCH_SCORE_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      return typeof parsed === "object" && parsed !== null ? parsed : {};
-    } catch (_) { return {}; }
-  }
-
-  function saveBaerlauchScore(player, level) {
-    const scores = readBaerlauchScores();
-    const isNew = (scores[player] || 0) < level;
-    if (isNew) {
-      scores[player] = level;
-      try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(scores)); } catch (_) {}
-      const url = state.backup?.endpointUrl;
-      if (url) {
-        fetch(url, {
-          method: "POST",
-          body: JSON.stringify({ type: "baerlauch-score", player, level }),
-          headers: { "Content-Type": "application/json" }
-        }).catch(() => {});
-      }
-    }
-    return isNew;
-  }
-
-  function readBaerlauchHistory() {
-    try {
-      const raw = localStorage.getItem(BAERLAUCH_HISTORY_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) { return []; }
-  }
-
-  function saveBaerlauchRound(player, level, won) {
-    const history = readBaerlauchHistory();
-    const tz = state.theme?.timezone || "UTC";
-    const date = dateKeyInTimezone(tz);
-    history.unshift({ date, player, level, won });
-    if (history.length > 50) history.splice(50);
-    try { localStorage.setItem(BAERLAUCH_HISTORY_KEY, JSON.stringify(history)); } catch (_) {}
-  }
-
-  function triggerConfetti(count = 80, colors) {
-    const defaultColors = ["#2f7a4f","#b9782e","#4a9e6b","#e8c87a","#7ec8a0","#f0e6c8"];
-    const palette = colors || defaultColors;
-    const container = document.createElement("div");
-    container.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:9999;";
-    document.body.appendChild(container);
-    for (let i = 0; i < count; i++) {
-      const el = document.createElement("div");
-      const color = palette[Math.floor(Math.random() * palette.length)];
-      const size = 8 + Math.random() * 8;
-      const x = Math.random() * 100;
-      const delay = Math.random() * 0.6;
-      const dur = 1.4 + Math.random() * 0.8;
-      el.style.cssText = `position:absolute;top:-20px;left:${x}%;width:${size}px;height:${size * 0.6}px;background:${color};border-radius:2px;animation:ag-confetti-fall ${dur}s ${delay}s ease-in forwards;transform-origin:center;`;
-      el.style.setProperty("--r", `${Math.random() * 720 - 360}deg`);
-      container.appendChild(el);
-    }
-    if (!document.getElementById("ag-confetti-style")) {
-      const style = document.createElement("style");
-      style.id = "ag-confetti-style";
-      style.textContent = `@keyframes ag-confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(var(--r,360deg));opacity:0}}`;
-      document.head.appendChild(style);
-    }
-    setTimeout(() => container.remove(), 3000);
-  }
-
-  function updateBaerlauchScoreDisplay() {
-    const el = $("#ag-baerlauch-scores");
-    if (!el) return;
-    const player = getMissionPlayer();
-    const myKey = player === "fionn" ? "fionn" : "lennart";
-    const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
-    const scores = readBaerlauchScores();
-    const history = readBaerlauchHistory();
-    const theirKey = myKey === "fionn" ? "lennart" : "fionn";
-    const hasScores = (myKey in scores) || (theirKey in scores);
-    if (!hasScores && !history.length) { el.hidden = true; return; }
-    el.hidden = false;
-    const tz = state.theme?.timezone || "UTC";
-    const fmt = (d) => {
-      try { return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz }).format(new Date(d + "T12:00:00Z")); }
-      catch (_) { return d; }
-    };
-    let html = "";
-    if (hasScores) {
-      const myBest = scores[myKey] ?? 0;
-      const theirBest = scores[theirKey] ?? 0;
-      html += `<div class="ag-score-highscores">
-        <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-mine">Du</span><span class="ag-score-result">Level ${myBest || "—"}</span></div>
-        <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-theirs">${theirName}</span><span class="ag-score-result">Level ${theirBest || "—"}</span></div>
-      </div>`;
-    }
-    if (history.length) {
-      const rows = history.slice(0, 8).map(r => {
-        const isMe = r.player === myKey;
-        const nameClass = isMe ? "ag-score-mine" : "ag-score-theirs";
-        const name = isMe ? "Du" : theirName;
-        const result = r.won ? `✓ Level ${r.level}` : `✗ Level ${r.level - 1 >= 1 ? r.level - 1 : "–"}`;
-        return `<div class="ag-score-row"><span class="ag-score-date">${fmt(r.date)}</span><span class="ag-score-pill ${nameClass}">${name}</span><span class="ag-score-result">${result}</span></div>`;
-      }).join("");
-      html += `<div class="ag-score-table">${rows}</div>`;
-    }
-    el.innerHTML = html;
-  }
-
-  // ── Mission panel ────────────────────────────────────────────────────────────
-
-  function openMissionPanel() {
-    const panel = $("#ag-mission-panel");
-    if (!panel) return;
-    const textEl = $("#ag-mission-text");
-    const actionsEl = $("#ag-mission-actions");
-    const feedbackEl = $("#ag-mission-feedback");
-    const feedbackSentEl = $("#ag-mission-feedback-sent");
-    const doneNote = $("#ag-mission-done-note");
-    const subtitleEl = panel.querySelector(".ag-mini-copy");
-    if (subtitleEl) subtitleEl.hidden = true;
-    const mission = getTodaysMission();
-    if (textEl) textEl.textContent = mission || "Heute keine Mission verfügbar.";
-    const done = isMissionDoneToday();
-    const feedbackSent = isFeedbackSentToday();
-    if (actionsEl) actionsEl.hidden = done;
-    if (feedbackEl) {
-      feedbackEl.hidden = !done;
-      // restore inner form elements visibility (in case they were hidden after sending)
-      panel.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
-        .forEach(el => { el.hidden = feedbackSent; });
-    }
-    if (feedbackSentEl) feedbackSentEl.hidden = !feedbackSent;
-    if (doneNote) doneNote.hidden = !done;
-    panel.querySelectorAll(".ag-mission-rate-btn").forEach(b => b.classList.remove("is-selected"));
-    renderMissionLog($("#ag-mission-log"), getMissionPlayer());
-    panel.hidden = false;
-    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-
-  function closeMissionPanel() {
-    const panel = $("#ag-mission-panel");
-    if (panel) panel.hidden = true;
-  }
-
-  function showNextGesprach() {
-    let idx;
-    do {
-      idx = Math.floor(Math.random() * GESPRACH_QUESTIONS.length);
-    } while (idx === gesprachCurrentIndex && GESPRACH_QUESTIONS.length > 1);
-    gesprachCurrentIndex = idx;
-    try { localStorage.setItem(GESPRACH_IDX_KEY, String(idx)); } catch (_) {}
-    const el = $("#ag-gesprach-question");
-    if (el) el.textContent = GESPRACH_QUESTIONS[idx];
-  }
-
-  // ── Hidden letter Easter egg ─────────────────────────────────────────────────
-
-  const LETTER_FALLBACKS = [
-    ["Du bist mein Lieblingsmensch.", "Jeden Tag ein bisschen mehr als am Tag davor.", "Pass auf dich auf."],
-    ["Manchmal mach ich was und denke sofort: Das muss ich dir zeigen.", "Ich find es schön, dass wir so sind. Einfach so."],
-    ["Weißt du wie besonders du bist? Nicht weil ich dir das sage — einfach so, grundsätzlich.", "Das wollte ich irgendwo festhalten."],
-    ["Ich hab diese Maschine gebaut weil ich nicht immer weiß wie ich solche Sachen sage.", "Aber hier, wo es niemand sieht: Du machst alles besser."],
-    ["Nicht jeder findet seine Geheimverstecke. Du schon.", "Danke, dass du so bist wie du bist."],
-    ["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.", "Kein Drama, kein Aufwand — einfach sehr gut."],
-    ["Ich bin froh, dass du in meinem Leben bist.", "So einfach ist das."]
-  ];
-
-  function playLetterSound() {
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      const ctx = new AC();
-      const t = ctx.currentTime;
-
-      // Soft filtered noise whoosh
-      const bufLen = Math.floor(ctx.sampleRate * 0.9);
-      const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-      const bd = buf.getChannelData(0);
-      for (let i = 0; i < bufLen; i++) bd[i] = Math.random() * 2 - 1;
-      const ns = ctx.createBufferSource();
-      ns.buffer = buf;
-      const nf = ctx.createBiquadFilter();
-      nf.type = "bandpass"; nf.Q.value = 1.2;
-      nf.frequency.setValueAtTime(500, t);
-      nf.frequency.exponentialRampToValueAtTime(2200, t + 0.55);
-      const ng = ctx.createGain();
-      ng.gain.setValueAtTime(0, t);
-      ng.gain.linearRampToValueAtTime(0.055, t + 0.06);
-      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
-      ns.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
-      ns.start(t); ns.stop(t + 0.9);
-
-      // Three staggered ascending tones (chord opening)
-      [[290, 640, 0, 1.5, 0.12], [435, 870, 0.07, 1.3, 0.08], [580, 1100, 0.14, 1.1, 0.05]].forEach(([f0, f1, delay, dur, vol]) => {
-        const osc = ctx.createOscillator();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(f0, t + delay);
-        osc.frequency.exponentialRampToValueAtTime(f1, t + delay + dur * 0.55);
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0, t + delay);
-        g.gain.linearRampToValueAtTime(vol, t + delay + 0.09);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
-        osc.connect(g); g.connect(ctx.destination);
-        osc.start(t + delay); osc.stop(t + delay + dur + 0.05);
-      });
-    } catch (_) {}
-  }
-
-  function showLetterLoading(el) {
-    const text = "you didn't see this message coming did you…";
-    const p = document.createElement("p");
-    p.className = "ag-letter-prelude";
-    text.split(" ").forEach((word, i) => {
-      const span = document.createElement("span");
-      span.className = "ag-letter-word";
-      span.textContent = word;
-      span.style.animationDelay = `${320 + i * 155}ms`;
-      p.appendChild(span);
-      p.appendChild(document.createTextNode(" "));
-    });
-    el.innerHTML = "";
-    el.appendChild(p);
-  }
-
-  function revealLetterContent(body, paras) {
-    body.innerHTML = paras.map((p) => `<p>${p}</p>`).join("") +
-      '<p class="ag-letter-sign">— Fionn 🍀</p>';
-    body.style.animation = "none";
-    body.getBoundingClientRect();
-    body.style.animation = "";
-  }
-
-  function openLetter() {
-    const overlay = $("#ag-letter-overlay");
-    if (!overlay) return;
-    overlay.hidden = false;
-    overlay.focus();
-    haptic([20, 60, 20]);
-    playLetterSound();
-
-    const img = $("#ag-letter-photo");
-    if (img && state.photos && state.photos.length) {
-      const imgs = imagePhotos();
-      const photo = imgs.length ? imgs[Math.floor(Math.random() * imgs.length)] : null;
-      if (photo) { img.src = photo.url; img.hidden = false; }
-    }
-
-    renderLetterMessage();
-  }
-
-  async function renderLetterMessage() {
-    const body = $("#ag-letter-body");
-    if (!body) return;
-    showLetterLoading(body);
-
-    const proxyUrl = state.quest?.proxyUrl;
-    if (proxyUrl) {
-      try {
-        const res = await fetch(proxyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ type: "letter" })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.paragraphs && data.paragraphs.length) {
-            revealLetterContent(body, data.paragraphs);
-            return;
-          }
-        }
-      } catch (_) {}
-    }
-
-    const paras = LETTER_FALLBACKS[Math.floor(Math.random() * LETTER_FALLBACKS.length)];
-    revealLetterContent(body, paras);
-  }
-
-  function closeLetter() {
-    const overlay = $("#ag-letter-overlay");
-    if (overlay) overlay.hidden = true;
-  }
-
-  function sendGesprachToWhatsApp() {
-    const question = GESPRACH_QUESTIONS[gesprachCurrentIndex] || "";
-    if (!question) return;
-    const template = (state.theme && state.theme.messageTarget) || "https://wa.me/?text={text}";
-    const text = encodeURIComponent("💬 Gespräch-Frage:\n\n" + question + "\n\n(via Affektions-Gacha)");
-    const url = template.replace("{text}", text);
-    window.location.href = url;
-  }
-
-  // ── Quest helpers ────────────────────────────────────────────────────────────
-
-  const QUEST_STORAGE_KEY = "affektions-gacha:quest:v1";
-  const QUEST_POINTS_KEY  = "affektions-gacha:quest-points:v1";
-  const QUEST_POINTS_SCHEDULE = [100, 75, 50, 25];
-
-  function currentQuestPeriod() {
-    const tz = state.theme?.timezone || "UTC";
-    const today = dateKeyInTimezone(tz);
-    const [y, m, d] = today.split("-").map(Number);
-    const epochDays = Math.floor(new Date(Date.UTC(y, m - 1, d)).getTime() / 86400000);
-    return Math.floor(epochDays / ((state.quest?.periodDays) || 2));
-  }
-
-  function currentChallenge() {
-    const challenges = state.quest?.challenges;
-    if (!Array.isArray(challenges) || !challenges.length) return null;
-    const period = currentQuestPeriod();
-    const entry = challenges[period % challenges.length];
-    if (typeof entry === "string") return { prompt: entry, solution: "" };
-    return entry;
-  }
-
-  function readQuestState() {
-    try {
-      const raw = localStorage.getItem(QUEST_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      const period = currentQuestPeriod();
-      if (parsed.period !== period) return { period, solved: false, attempts: 0, hints: [] };
-      return parsed;
-    } catch (_e) { return { period: currentQuestPeriod(), solved: false, attempts: 0, hints: [] }; }
-  }
-
-  function writeQuestState(qs) {
-    try { localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(qs)); } catch (_e) {}
-  }
-
-  function readQuestPoints() {
-    try { return parseInt(localStorage.getItem(QUEST_POINTS_KEY) || "0", 10); } catch (_e) { return 0; }
-  }
-
-  function addQuestPoints(pts) {
-    try {
-      const total = readQuestPoints() + pts;
-      localStorage.setItem(QUEST_POINTS_KEY, String(total));
-      return total;
-    } catch (_e) { return pts; }
-  }
-
-  function isQuestAvailable() {
-    return !!(state.quest?.enabled && currentChallenge());
-  }
-
-  function openQuestPanel() {
-    const panel = $("#ag-quest-panel");
-    if (!panel) return;
-    panel.hidden = false;
-    renderQuestPanel();
-  }
-
-  function closeQuestPanel() {
-    const panel = $("#ag-quest-panel");
-    if (panel) panel.hidden = true;
-  }
-
-  function renderQuestPanel() {
-    const challengeObj = currentChallenge();
-    const qs = readQuestState();
-    const challengeEl = $("#ag-quest-challenge");
-    const historyEl   = $("#ag-quest-hint-history");
-    const loadingEl   = $("#ag-quest-loading");
-    const actionsEl   = $("#ag-quest-actions");
-    const resultEl    = $("#ag-quest-result");
-    const pointsEl    = $("#ag-quest-points");
-    const copyEl      = $("#ag-quest-copy");
-    const titleEl     = $("#ag-quest-title");
-    const prompt      = challengeObj?.prompt || "";
-
-    if (!challengeObj) {
-      if (titleEl) titleEl.textContent = "Keine Aufgabe";
-      if (copyEl) copyEl.textContent = "Schau später nochmal vorbei.";
-      if (challengeEl) challengeEl.textContent = "";
-      if (actionsEl) actionsEl.hidden = true;
-      return;
-    }
-
-    if (challengeEl) challengeEl.textContent = prompt;
-    if (loadingEl) loadingEl.hidden = true;
-
-    // Hint history
-    if (historyEl) {
-      if (qs.hints && qs.hints.length > 0) {
-        historyEl.innerHTML = qs.hints.map((h, i) =>
-          `<div class="ag-hint-item"><span class="ag-hint-num">${i + 1}</span><p>${h}</p></div>`
-        ).join("");
-        historyEl.hidden = false;
-      } else {
-        historyEl.hidden = true;
-      }
-    }
-
-    if (qs.solved) {
-      if (titleEl) titleEl.textContent = "Aufgabe gelöst ✓";
-      if (copyEl) copyEl.textContent = "Gut gemacht.";
-      if (actionsEl) actionsEl.hidden = true;
-      if (resultEl) { resultEl.textContent = qs.successMessage || ""; resultEl.hidden = false; }
-      if (pointsEl) {
-        pointsEl.textContent = `+${qs.pointsEarned} Punkte · Gesamt: ${readQuestPoints()}`;
-        pointsEl.hidden = false;
-      }
-      return;
-    }
-
-    if (titleEl) titleEl.textContent = "Foto-Aufgabe 📷";
-    if (copyEl) copyEl.textContent = qs.attempts === 0
-      ? "Fotografiere und schick mir das Resultat."
-      : `Versuch ${qs.attempts + 1} — du schaffst das.`;
-    if (actionsEl) actionsEl.hidden = false;
-    if (resultEl) resultEl.hidden = true;
-    if (pointsEl) pointsEl.hidden = true;
-  }
-
-  async function handleQuestPhoto(file) {
-    if (!file) return;
-    const actionsEl  = $("#ag-quest-actions");
-    const loadingEl  = $("#ag-quest-loading");
-    const resultEl   = $("#ag-quest-result");
-    const pointsEl   = $("#ag-quest-points");
-    const copyEl     = $("#ag-quest-copy");
-
-    if (actionsEl) actionsEl.hidden = true;
-    if (loadingEl) loadingEl.hidden = false;
-    if (resultEl) resultEl.hidden = true;
-
-    const base64 = await fileToBase64(file);
-    const qs = readQuestState();
-    const challengeObj = currentChallenge();
-    const challenge = challengeObj?.prompt || "";
-    const solution  = challengeObj?.solution || "";
-
-    try {
-      const result = await callQuestProxy(base64, challenge, solution, qs.attempts + 1, qs.hints);
-      qs.attempts += 1;
-
-      if (result.success) {
-        const pts = QUEST_POINTS_SCHEDULE[Math.min(qs.attempts - 1, QUEST_POINTS_SCHEDULE.length - 1)];
-        const total = addQuestPoints(pts);
-        qs.solved = true;
-        qs.pointsEarned = pts;
-        qs.successMessage = result.message || "Perfekt.";
-        writeQuestState(qs);
-        backupToSheets();
-        if (resultEl) { resultEl.textContent = result.message || "Perfekt."; resultEl.hidden = false; }
-        if (pointsEl) { pointsEl.textContent = `+${pts} Punkte · Gesamt: ${total}`; pointsEl.hidden = false; }
-        if (loadingEl) loadingEl.hidden = true;
-        if (copyEl) copyEl.textContent = "Aufgabe gelöst ✓";
-        if (actionsEl) actionsEl.hidden = true;
-        const chip = $("#ag-btn-quest");
-        if (chip) chip.classList.remove("ag-chip-quest-active");
-        haptic([20, 20, 40, 20, 60]);
-      } else {
-        if (loadingEl) loadingEl.hidden = true;
-        qs.hints = [...(qs.hints || []), result.hint || "Versuch nochmal."];
-        writeQuestState(qs);
-        renderQuestPanel();
-      }
-    } catch (_e) {
-      if (loadingEl) loadingEl.hidden = true;
-      if (resultEl) { resultEl.textContent = "Fehler — versuch nochmal."; resultEl.hidden = false; }
-      if (actionsEl) actionsEl.hidden = false;
-    }
-  }
-
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function callQuestProxy(base64, challenge, solution, attemptNumber, previousHints) {
-    const url = state.quest?.proxyUrl;
-    if (!url) throw new Error("no proxy");
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ base64, challenge, solution, attemptNumber, previousHints })
-    });
-    if (!res.ok) throw new Error("proxy error");
-    return res.json();
-  }
-
-  // Map a tone to a complementary emoji used in messages sent to Fionn.
-  // Falls back to ❤️ if tone is missing/unknown.
-  function emojiForTone(tone) {
-    const map = {
-      quiet: "🌙",
-      soft: "🌿",
-      quest: "🧭",
-      warm: "✨",
-      cursed: "😈",
-      rare: "💫",
-      photo: "📸",
-      jackpot: "🎰"
-    };
-    return map[tone] || "❤️";
-  }
-
-  function applyFionnView() {
-    // Minimal view for Fionn — just his daily mission, no pull UI
-    document.title = "Fionns Mission";
-    const frame = mount.querySelector(".ag-frame");
-    if (frame) {
-      frame.innerHTML = "";
-      const header = document.createElement("div");
-      header.className = "ag-fionn-header";
-      header.innerHTML = `<h1 class="ag-fionn-title">Deine Mission heute</h1><p class="ag-fionn-sub">Lennart hat eine andere — ihr erfahrt voneinander was es war wenn ihr redet.</p>`;
-      const card = document.createElement("div");
-      card.className = "ag-mission-card ag-fionn-card";
-      card.textContent = getTodaysMission() || "Heute keine Mission.";
-      const done = document.createElement("button");
-      done.className = "ag-button ag-fionn-done";
-      done.type = "button";
-      done.innerHTML = `<span class="ag-button-orb" aria-hidden="true"></span><span>Erledigt ✓</span>`;
-      const doneNote = document.createElement("p");
-      doneNote.className = "ag-mission-done-note";
-      doneNote.hidden = true;
-      doneNote.textContent = "Gut gemacht. Morgen gibt es eine neue.";
-      if (isMissionDoneToday()) { done.hidden = true; doneNote.hidden = false; }
-      const logDiv = document.createElement("div");
-      logDiv.className = "ag-mission-log";
-      logDiv.id = "ag-fionn-mission-log";
-      done.addEventListener("click", () => {
-        markMissionDone();
-        done.hidden = true;
-        doneNote.hidden = false;
-        renderMissionLog(logDiv, "fionn");
-      });
-      frame.appendChild(header);
-      frame.appendChild(card);
-      frame.appendChild(done);
-      frame.appendChild(doneNote);
-      frame.appendChild(logDiv);
-      renderMissionLog(logDiv, "fionn");
-    }
-  }
-
-  function hydrateCopy() {
-    const isFionn = getMissionPlayer() === "fionn";
-    const name = isFionn ? state.theme.brand.fromName : displayNameFromToken();
-    const recipientName = isFionn ? displayNameFromToken() : state.theme.brand.fromName;
-    const elTitle = $("[data-ag-main-title]"); if (elTitle) elTitle.textContent = state.theme.brand.titleTemplate.replace("{name}", name);
-    const elKicker = $("[data-ag-kicker]"); if (elKicker) elKicker.textContent = `${state.theme.brand.kicker} · ${state.photos.length} Erinnerungen`;
-    const elIntro = $("[data-ag-intro]"); if (elIntro) elIntro.textContent = state.theme.brand.intro;
-    const elBtn = $("[data-ag-button-text]"); if (elBtn) elBtn.textContent = state.theme.brand.buttonIdle;
-    const elRulesTitle = $("[data-ag-rules-title]"); if (elRulesTitle) elRulesTitle.textContent = state.theme.brand.rulesTitle;
-    const elRulesText = $("[data-ag-rules-text]"); if (elRulesText) elRulesText.textContent = state.theme.brand.rulesText;
-    const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
-    const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
-    const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
-
-    const chips = $("[data-ag-chips]");
-    if (chips) chips.innerHTML = "";
-    const chipList = (Array.isArray(state.theme.stickers) && state.theme.stickers.length)
-      ? state.theme.stickers
-      : defaultChips();
-
-    for (const chip of chips ? chipList : []) {
-      const li = document.createElement("li");
-      li.textContent = chip;
-    
-      if (chip.toLowerCase().includes("bärlauch") || chip.toLowerCase().includes("barlauch")) {
-        li.id = "ag-btn-baerlauch";
-        li.tabIndex = 0;
-        li.setAttribute("role", "button");
-        li.setAttribute("aria-label", "Bärlauch öffnen");
-        li.classList.add("ag-chip-clickable");
-      }
-
-      if (chip.toLowerCase().includes("gespräch") || chip.toLowerCase().includes("gesprach")) {
-        li.id = "ag-btn-gesprach";
-        li.tabIndex = 0;
-        li.setAttribute("role", "button");
-        li.setAttribute("aria-label", "Gespräch öffnen");
-        li.classList.add("ag-chip-clickable");
-      }
-
-      if (chip.toLowerCase().includes("rave")) {
-        li.id = "ag-btn-rave";
-        li.tabIndex = 0;
-        li.setAttribute("role", "link");
-        li.setAttribute("aria-label", "Rave Board öffnen");
-        li.classList.add("ag-chip-clickable");
-      }
-
-      if (chip.toLowerCase() === "quest") {
-        li.id = "ag-btn-quest";
-        li.tabIndex = 0;
-        li.setAttribute("role", "button");
-        li.setAttribute("aria-label", "Quest öffnen");
-        li.classList.add("ag-chip-clickable");
-        if (state.quest?.enabled && isQuestAvailable()) {
-          const qs = readQuestState();
-          if (!qs.solved) li.classList.add("ag-chip-quest-active");
-        }
-      }
-
-      if (chip.toLowerCase().includes("glossar")) {
-        li.id = "ag-btn-glossary";
-        li.tabIndex = 0;
-        li.setAttribute("role", "button");
-        li.setAttribute("aria-label", "Glossar öffnen");
-        li.classList.add("ag-chip-clickable");
-      }
-
-      if (chip.toLowerCase() === "mission") {
-        li.id = "ag-btn-mission";
-        li.tabIndex = 0;
-        li.setAttribute("role", "button");
-        li.setAttribute("aria-label", "Mission öffnen");
-        li.classList.add("ag-chip-clickable");
-        if (!isMissionDoneToday()) li.classList.add("ag-chip-mission-active");
-      }
-
-      chips.appendChild(li);
-    }
-
-
-
-
-    renderEmojiOrbit();
-    renderStreak();
-  }
-
-  function formatToday() {
-    try {
-      const date = new Date();
-      return new Intl.DateTimeFormat("de-CH", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        timeZone: state.theme.timezone
-      }).format(date);
-    } catch (error) {
-      return dateKeyInTimezone(state.theme.timezone);
-    }
-  }
-
-  function applyTheme(theme) {
-    const set = (name, value) => mount.style.setProperty(name, value);
-    const colors = theme.colors || {};
-    const dark = theme.darkColors || colors;
-    set("--ag-bg", colors.background);
-    set("--ag-surface", colors.surface);
-    set("--ag-surface-2", colors.surfaceAlt);
-    set("--ag-text", colors.text);
-    set("--ag-muted", colors.muted);
-    set("--ag-border", colors.border);
-    set("--ag-primary", colors.primary);
-    set("--ag-primary-dark", colors.primaryDark);
-    set("--ag-gold", colors.gold);
-    set("--ag-green", colors.green);
-    set("--ag-blue", colors.blue);
-    set("--ag-sky", colors.sky);
-    set("--ag-mountain", colors.mountain);
-    set("--ag-dark-bg", dark.background);
-    set("--ag-dark-surface", dark.surface);
-    set("--ag-dark-surface-2", dark.surfaceAlt);
-    set("--ag-dark-text", dark.text);
-    set("--ag-dark-muted", dark.muted);
-    set("--ag-dark-border", dark.border);
-    set("--ag-dark-primary", dark.primary);
-    set("--ag-dark-primary-dark", dark.primaryDark);
-    set("--ag-dark-gold", dark.gold);
-    set("--ag-dark-green", dark.green);
-    set("--ag-dark-blue", dark.blue);
-    set("--ag-dark-sky", dark.sky);
-    set("--ag-dark-mountain", dark.mountain);
-  }
-
-  const COLOR_VAR_MAP = {
-    background: "--ag-bg",
-    surface: "--ag-surface",
-    surfaceAlt: "--ag-surface-2",
-    text: "--ag-text",
-    muted: "--ag-muted",
-    border: "--ag-border",
-    primary: "--ag-primary",
-    primaryDark: "--ag-primary-dark",
-    gold: "--ag-gold",
-    green: "--ag-green",
-    blue: "--ag-blue",
-    sky: "--ag-sky",
-    mountain: "--ag-mountain"
-  };
-
-  const DARK_COLOR_VAR_MAP = {
-    background: "--ag-dark-bg",
-    surface: "--ag-dark-surface",
-    surfaceAlt: "--ag-dark-surface-2",
-    text: "--ag-dark-text",
-    muted: "--ag-dark-muted",
-    border: "--ag-dark-border",
-    primary: "--ag-dark-primary",
-    primaryDark: "--ag-dark-primary-dark",
-    gold: "--ag-dark-gold",
-    green: "--ag-dark-green",
-    blue: "--ag-dark-blue",
-    sky: "--ag-dark-sky",
-    mountain: "--ag-dark-mountain"
-  };
-
-  function getPreviewDay() {
-    const params = new URLSearchParams(window.location.search);
-    const raw = params.get("preview-day");
-    if (!raw) return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-    if (/^\d{2}-\d{2}$/.test(raw)) {
-      const year = new Date().getFullYear().toString();
-      return `${year}-${raw}`;
-    }
-    return null;
-  }
-
-  function getPreviewCategory() {
-    const params = new URLSearchParams(window.location.search);
-    const raw = (params.get("preview-category") || "").trim().toLowerCase();
-    if (!raw) return null;
-    return raw;
-  }
-
-  function checkSpecialDay(day) {
-    const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
-    const mmdd = day.slice(5); // "MM-DD" from "YYYY-MM-DD"
-    for (const entry of days) {
-      if (entry.date === day || entry.date === mmdd) return entry;
-    }
-    return null;
-  }
-
-  function applySpecialDayColors(day) {
-    const special = checkSpecialDay(day);
-    if (!special) return;
-    const set = (name, value) => mount.style.setProperty(name, value);
-    if (special.colors && typeof special.colors === "object") {
-      for (const [key, value] of Object.entries(special.colors)) {
-        if (COLOR_VAR_MAP[key] && typeof value === "string") set(COLOR_VAR_MAP[key], value);
-      }
-    }
-    if (special.darkColors && typeof special.darkColors === "object") {
-      for (const [key, value] of Object.entries(special.darkColors)) {
-        if (DARK_COLOR_VAR_MAP[key] && typeof value === "string") set(DARK_COLOR_VAR_MAP[key], value);
-      }
-    }
-  }
-
-  function dateKeyInTimezone(timezone, date) {
-    const parts = new Intl.DateTimeFormat("de-CH", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
-    }).formatToParts(date || new Date());
-    const get = (type) => parts.find((part) => part.type === type).value;
-    return `${get("year")}-${get("month")}-${get("day")}`;
-  }
-
-  function hmInTimezone(timezone) {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    }).formatToParts(new Date());
-    const get = (type) => Number(parts.find((p) => p.type === type).value);
-    return { h: get("hour"), m: get("minute") };
-  }
-
-  function hashStringToUint32(input) {
-    let hash = 2166136261;
-    for (let index = 0; index < input.length; index += 1) {
-      hash ^= input.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
-    return hash >>> 0;
-  }
-
-  function mulberry32(seed) {
-    return function () {
-      let t = (seed += 0x6D2B79F5);
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
-  function seededRandom(seedText) {
-    return mulberry32(hashStringToUint32(seedText))();
-  }
-
-  function seededIndex(seedText, length) {
-    if (!length) return 0;
-    return Math.floor(seededRandom(seedText) * length);
-  }
-
-  function totalWeight() {
-    return state.outcomes.categories.reduce((sum, category) => sum + category.weight, 0);
-  }
-
-  function pickWeighted(seedText) {
-    const total = totalWeight();
-    const roll = Math.floor(seededRandom(seedText) * total);
-    let cursor = 0;
-    for (const category of state.outcomes.categories) {
-      cursor += category.weight;
-      if (roll < cursor) return category;
-    }
-    return state.outcomes.categories[state.outcomes.categories.length - 1];
-  }
-
-  function buildPullForDay(day, streak) {
-    const token = getToken();
-    const baseSeed = `${state.theme.secret}|${token}|${day}`;
-
-    const special = checkSpecialDay(day);
-    if (special) {
-      const specialOutcomes = Array.isArray(special.outcomes) && special.outcomes.length
-        ? special.outcomes
-        : [{ title: special.label, message: "" }];
-      const outcome = specialOutcomes[seededIndex(`${baseSeed}|special|outcome`, specialOutcomes.length)];
-      const category = {
-        id: "special",
-        label: special.label,
-        weight: 0,
-        tone: special.tone || "jackpot",
-        outcomes: specialOutcomes
-      };
-      const specialPhoto = (special.photoAlt && state.photos.length)
-        ? (imagePhotos().find((p) => p.alt === special.photoAlt) || null)
-        : null;
-      return { day, token, category, outcome, photo: specialPhoto, unlockTime: special.unlockTime || null };
-    }
-
-    let category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0);
-
-    const previewCategory = getPreviewCategory();
-    if (previewCategory) {
-      const forced = state.outcomes.categories.find((c) => c.id === previewCategory);
-      if (forced) category = forced;
-    }
-
-    if (category.id === "photo" && !imagePhotos().length) {
-      category = state.outcomes.categories.find((item) => item.id === "common") || category;
-    }
-
-    const usedTitles = new Set(
-      readHistory()
-        .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
-        .map((e) => e.title)
-    );
-    const availableOutcomes = category.outcomes.filter((o) => !usedTitles.has(o.title));
-    const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : category.outcomes;
-    const outcome = outcomePool[
-      seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)
-    ];
-
-    const imgs = imagePhotos();
-    const photo =
-      category.id === "photo" && imgs.length
-        ? imgs[seededIndex(`${baseSeed}|photo`, imgs.length)]
-        : null;
-
-    return { day, token, category, outcome, photo, collectToken: outcome.token || null };
-  }
-
-  function buildPull() {
-    const day = getPreviewDay() || dateKeyInTimezone(state.theme.timezone);
-    const streak = computeStreak();
-    return buildPullForDay(day, streak);
-  }
-
-  function setCapsuleTone(tone) {
-    const capsule = $("[data-capsule]");
-    if (!capsule) return;
-    const colors = {
-      quiet: "linear-gradient(90deg, #9faf9a 0 50%, #e6efdf 50% 100%)",
-      soft: "linear-gradient(90deg, var(--ag-primary) 0 50%, #d8ecbf 50% 100%)",
-      quest: "linear-gradient(90deg, var(--ag-blue) 0 50%, #d8ecbf 50% 100%)",
-      warm: "linear-gradient(90deg, var(--ag-gold) 0 50%, #e1efc8 50% 100%)",
-      cursed: "linear-gradient(90deg, #172018 0 50%, var(--ag-primary) 50% 100%)",
-      rare: "linear-gradient(90deg, var(--ag-green) 0 50%, #f2df9d 50% 100%)",
-      photo: "linear-gradient(90deg, var(--ag-green) 0 50%, var(--ag-sky) 50% 100%)",
-      jackpot: "linear-gradient(90deg, var(--ag-gold) 0 50%, #fff0a8 50% 100%)"
-    };
-    capsule.style.background = colors[tone] || colors.soft;
-  }
-
-  function messageText(pull) {
-    const emoji = emojiForTone(pull.category.tone);
-    return [
-      `${emoji} ${displayNameFromToken()}s ${state.theme.brand.machineName}: ${pull.category.label}`,
-      pull.outcome.title,
-      pull.outcome.message,
-      (pull.outcome.link && (!pull.unlockTime || (() => {
-        const [h, m] = pull.unlockTime.split(":").map(Number);
-        const now = hmInTimezone(state.theme?.timezone || "UTC");
-        return now.h > h || (now.h === h && now.m >= m);
-      })()))
-        ? `🔗 ${pull.outcome.link}` : "",
-      pull.photo ? `📸 ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
-      `Tag: ${pull.day}`
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  /** Convert a Spotify share URL to its embed URL, or return null if not Spotify. */
-  function buildSpotifyEmbed(url) {
-    try {
-      const parsed = new URL(url);
-      if (parsed.hostname !== "open.spotify.com") return null;
-      const parts = parsed.pathname.split("/").filter(Boolean);
-      if (parts.length < 2) return null;
-      const type = parts[0];
-      const id = parts[1];
-      const validTypes = ["track", "album", "playlist", "artist", "episode", "show"];
-      if (!validTypes.includes(type)) return null;
-      const iframe = document.createElement("iframe");
-      iframe.src = `https://open.spotify.com/embed/${type}/${id}`;
-      iframe.width = "100%";
-      iframe.height = (type === "track" || type === "episode") ? "80" : "152";
-      iframe.setAttribute("frameborder", "0");
-      iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-      iframe.loading = "lazy";
-      iframe.setAttribute("allowtransparency", "true");
-      iframe.setAttribute("title", "Spotify player");
-      iframe.className = "ag-spotify-iframe";
-      return iframe;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /** Build a generic styled link element for non-Spotify URLs. */
-  function buildGenericLink(url) {
-    const a = document.createElement("a");
-    a.href = url;
-    a.rel = "noopener noreferrer";
-    a.target = "_blank";
-    a.className = "ag-outcome-link ag-secondary";
-    a.textContent = "🔗 Link öffnen";
-    return a;
-  }
-
-  /** Render a link (Spotify embed or generic button) into a container. */
-  function renderLinkInto(container, link) {
-    container.innerHTML = "";
-    if (!link) { container.hidden = true; return; }
-    const safe = safeUrl(link);
-    if (!safe) { container.hidden = true; return; }
-    const spotifyEl = buildSpotifyEmbed(safe);
-    container.appendChild(spotifyEl || buildGenericLink(safe));
-    container.hidden = false;
-  }
-
-  function renderTokenInto(container, pull) {
-    container.innerHTML = "";
-    if (!pull.collectToken) { container.hidden = true; return; }
-    const t = pull.collectToken;
-    const count = readTokens()[t] || 0;
-    const reward = TOKEN_REWARDS[t] || "";
-    const redeemed = count >= TOKEN_GOAL;
-
-    if (redeemed) {
-      // Show redemption screen
-      container.innerHTML = `
-        <div style="text-align:center;padding:16px 0;animation:ag-pop 400ms var(--ag-ease) both">
-          <div style="font-size:2.5rem;margin-bottom:8px">${t.repeat(TOKEN_GOAL)}</div>
-          <p style="font-weight:700;font-size:1.1rem;margin-bottom:4px">5 erreicht — einlösbar!</p>
-          <p style="opacity:0.8;font-size:0.9rem;margin-bottom:12px">${reward}</p>
-          <button class="ag-button" type="button" id="ag-token-redeem">
-            <span class="ag-button-orb" aria-hidden="true"></span>
-            <span>Einlösen</span>
-          </button>
-        </div>`;
-      container.hidden = false;
-      container.querySelector("#ag-token-redeem").addEventListener("click", () => {
-        resetToken(t);
-        backupToSheets(); // persist the reset so other devices don't un-redeem it
-        container.innerHTML = `<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>`;
-        // Also fire it as a wish so Fionn gets notified
-        if (state.wishInbox && state.wishInbox.enabled) {
-          const body = JSON.stringify({ timestamp: new Date().toISOString(), token: getToken(), wish: `🎁 Sammelkapsel eingelöst: ${t} × ${TOKEN_GOAL} — ${reward}`, pageUrl: location.href, userAgent: navigator.userAgent });
-          fetch(state.wishInbox.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
-        }
-      });
-    } else {
-      // Show progress
-      const remaining = TOKEN_GOAL - count;
-      const filled = "🟢".repeat ? t.repeat(count) + "⬜".repeat(TOKEN_GOAL - count) : "";
-      container.innerHTML = `
-        <div style="text-align:center;padding:12px 0">
-          <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px;word-break:break-all;max-width:100%">${t.repeat(count)}${"⬜".repeat(TOKEN_GOAL - count)}</div>
-          <p style="opacity:0.7;font-size:0.85rem">${remaining} × ${t} bis: <em>${reward}</em></p>
-        </div>`;
-      container.hidden = false;
-    }
-  }
-
-  function renderMediaInto(container, photo) {
-    container.innerHTML = "";
-    if (!photo || photo.type === "video") return;
-    const altText = photo.alt || "Foto von uns";
-    const stage = document.createElement("div");
-    stage.className = "ag-media-frame";
-
-    const backdrop = document.createElement("div");
-    backdrop.className = "ag-media-backdrop";
-    backdrop.setAttribute("aria-hidden", "true");
-    if (photo.type !== "video") {
-      backdrop.style.backgroundImage = `url("${photo.url}")`;
-    }
-    stage.appendChild(backdrop);
-
-    let mediaEl;
-    if (photo.type === "video") {
-      const driveId = extractDriveFileId(photo.url);
-      if (driveId) {
-        // Drive-hosted video: show a thumbnail poster with a play button overlay.
-        // Clicking swaps the poster for the Drive /preview iframe (with autoplay=1).
-        // This avoids the all-black initial state of a bare <iframe> embed and gives
-        // users a visible preview before they choose to play.
-        const wrapper = document.createElement("div");
-        wrapper.className = "ag-media-content ag-drive-poster";
-        wrapper.setAttribute("role", "button");
-        wrapper.setAttribute("tabindex", "0");
-        wrapper.setAttribute("aria-label", `${altText} abspielen`);
-
-        const poster = document.createElement("img");
-        poster.src = `https://lh3.googleusercontent.com/d/${driveId}`;
-        poster.alt = altText;
-        poster.className = "ag-drive-poster-img";
-        // Some Drive videos have no still thumbnail on the lh3 CDN — drop the
-        // broken image so the dark backdrop + play button remain (still clickable).
-        poster.addEventListener("error", () => poster.remove(), { once: true });
-        wrapper.appendChild(poster);
-
-        const playBtn = document.createElement("div");
-        playBtn.className = "ag-drive-play-btn";
-        playBtn.setAttribute("aria-hidden", "true");
-        wrapper.appendChild(playBtn);
-
-        const activate = () => {
-          wrapper.removeEventListener("click", activate);
-          wrapper.removeEventListener("keydown", onKey);
-          wrapper.removeAttribute("role");
-          wrapper.removeAttribute("tabindex");
-          wrapper.style.cursor = "";
-          wrapper.innerHTML = "";
-          const iframe = document.createElement("iframe");
-          iframe.src = `https://drive.google.com/file/d/${driveId}/preview?autoplay=1`;
-          iframe.allow = "autoplay";
-          iframe.setAttribute("allowfullscreen", "");
-          iframe.setAttribute("frameborder", "0");
-          iframe.setAttribute("aria-label", altText);
-          iframe.className = "ag-drive-iframe";
-          wrapper.appendChild(iframe);
-        };
-        const onKey = (e) => { if (e.key === "Enter" || e.key === " ") activate(); };
-        wrapper.addEventListener("click", activate);
-        wrapper.addEventListener("keydown", onKey);
-
-        mediaEl = wrapper;
-      } else {
-        mediaEl = document.createElement("video");
-        mediaEl.src = safeUrl(photo.url);
-        mediaEl.controls = true;
-        mediaEl.muted = true;
-        mediaEl.playsInline = true;
-        mediaEl.setAttribute("playsinline", "");
-        mediaEl.setAttribute("preload", "metadata");
-        mediaEl.setAttribute("aria-label", altText);
-        mediaEl.className = "ag-media-content";
-      }
-    } else {
-      mediaEl = document.createElement("img");
-      mediaEl.alt = altText;
-      mediaEl.loading = "eager";
-      mediaEl.decoding = "auto";
-      mediaEl.className = "ag-media-content";
-
-      mediaEl.addEventListener("load", () => {
-        const ratio = mediaEl.naturalWidth && mediaEl.naturalHeight
-          ? mediaEl.naturalWidth / mediaEl.naturalHeight : 1;
-        stage.dataset.orientation = ratio < 0.95 ? "portrait" : ratio > 1.15 ? "landscape" : "square";
-      }, { once: true });
-
-      mediaEl.addEventListener("error", () => {
-        // URL may have expired — refetch photos.json for fresh URLs and retry once.
-        // Only fall back to an image-typed photo so we never assign a video URL
-        // to this <img> (which renders broken).
-        fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
-          const freshPhotos = normalizePhotos(fresh);
-          const match =
-            freshPhotos.find((p) => p.alt === photo.alt && p.type !== "video") ||
-            freshPhotos.find((p) => p.type !== "video") ||
-            null;
-          if (match && match.url) {
-            backdrop.style.backgroundImage = `url("${match.url}")`;
-            mediaEl.src = safeUrl(match.url);
-            state.photos = freshPhotos;
-          } else {
-            const wrap = mediaEl.closest("[data-ag-photo-wrap]");
-            if (wrap) wrap.hidden = true;
-          }
-        }).catch(() => {
-          const wrap = mediaEl.closest("[data-ag-photo-wrap]");
-          if (wrap) wrap.hidden = true;
-        });
-      }, { once: true });
-
-      mediaEl.src = safeUrl(photo.url);
-    }
-
-    stage.appendChild(mediaEl);
-    container.appendChild(stage);
-  }
-
-  function renderPull(pull) {
-    mount.dataset.tone = pull.category.tone;
-    setCapsuleTone(pull.category.tone);
-    $("[data-ag-rarity]").textContent = pull.category.label;
-    $("[data-ag-date]").textContent = pull.day;
-    $("[data-ag-title]").textContent = pull.outcome.title;
-    const msgEl = $("[data-ag-message]");
-    if (!msgEl) return;
-    msgEl.innerHTML = formatMsg(pull.outcome.message);
-    msgEl.hidden = false;
-
-    // Clean up any previous PIN gate
-    const resultEl = $("[data-ag-result]");
-    const oldGate = resultEl ? resultEl.querySelector("[data-ag-pin-gate]") : null;
-    if (oldGate) oldGate.remove();
-
-    if (pull.outcome.pin && !isPinUnlocked(pull.outcome.pin)) {
-      msgEl.hidden = true;
-      const gate = buildPinGate(pull.outcome.pin, () => {
-        gate.remove();
-        msgEl.hidden = false;
-      });
-      gate.setAttribute("data-ag-pin-gate", "");
-      msgEl.parentNode.insertBefore(gate, msgEl.nextSibling);
-    }
-
-    const photoWrap = $("[data-ag-photo-wrap]");
-    const photoMedia = $("[data-ag-photo-media]");
-    const photoCaption = $("[data-ag-photo-caption]");
-
-    const linkWrap = $("[data-ag-link-wrap]");
-    if (pull.outcome.link && pull.unlockTime) {
-      const [h, m] = pull.unlockTime.split(":").map(Number);
-      const now = hmInTimezone(state.theme?.timezone || "UTC");
-      const lpin = pull.outcome.linkPin;
-      if (lpin) {
-        // PIN is required — time alone never unlocks
-        if (isPinUnlocked("link-" + lpin)) {
-          renderLinkInto(linkWrap, pull.outcome.link);
-        } else {
-          const pinAvailable = (() => {
-            if (!pull.outcome.linkPinFrom) return true;
-            const [ph, pm] = pull.outcome.linkPinFrom.split(":").map(Number);
-            return now.h > ph || (now.h === ph && now.m >= pm);
-          })();
-          if (pinAvailable) {
-            const gate = buildLinkPinGate(lpin, linkWrap, pull);
-            linkWrap.innerHTML = "";
-            linkWrap.appendChild(gate);
-            linkWrap.hidden = false;
-          } else {
-            const lockSpan = document.createElement("span");
-            lockSpan.className = "ag-outcome-link-locked";
-            lockSpan.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
-            linkWrap.innerHTML = "";
-            linkWrap.appendChild(lockSpan);
-            linkWrap.hidden = false;
-          }
-        }
-      } else {
-        const unlockedByTime = now.h > h || (now.h === h && now.m >= m);
-        if (unlockedByTime) {
-          renderLinkInto(linkWrap, pull.outcome.link);
-        } else {
-          const lockSpan = document.createElement("span");
-          lockSpan.className = "ag-outcome-link-locked";
-          lockSpan.textContent = `🔒 Ab ${pull.unlockTime} verfügbar`;
-          linkWrap.innerHTML = "";
-          linkWrap.appendChild(lockSpan);
-          linkWrap.hidden = false;
-        }
-      }
-    } else {
-      renderLinkInto(linkWrap, pull.outcome.link || null);
-    }
-
-    renderTokenInto($("[data-ag-token-wrap]"), pull);
-
-    if (pull.photo) {
-      renderMediaInto(photoMedia, pull.photo);
-      const caption = (pull.photo.caption || "").trim();
-      if (caption) {
-        photoCaption.textContent = caption;
-        photoCaption.hidden = false;
-      } else {
-        photoCaption.textContent = "";
-        photoCaption.hidden = true;
-      }
-      photoWrap.hidden = false;
-    } else {
-      photoMedia.innerHTML = "";
-      photoCaption.textContent = "";
-      photoCaption.hidden = true;
-      photoWrap.hidden = true;
-    }
-
-    const text = messageText(pull);
-    const encodedSubject = encodeURIComponent("Mein Gacha-Zug");
-    const encodedBody = encodeURIComponent(text);
-    const sendLink = $("[data-ag-send]");
-    if (state.theme.messageTarget.startsWith("mailto:")) {
-      sendLink.href = `${state.theme.messageTarget}?subject=${encodedSubject}&body=${encodedBody}`;
-    } else {
-      sendLink.href = state.theme.messageTarget.replace("{text}", encodedBody);
-    }
-
-    const saveImgBtn = $("[data-ag-save-img]");
-    if (saveImgBtn) {
-      saveImgBtn.hidden = !(pull.category.id === "rare" || pull.category.id === "jackpot");
-    }
-
-    $("[data-ag-result]").hidden = false;
-    updateStarButton();
-  }
-
-  function readHistory() {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return state.syncedHistory || [];
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return state.syncedHistory || [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return state.syncedHistory || [];
-      const entries = parsed
-        .filter((entry) =>
-          entry && typeof entry.day === "string" && typeof entry.token === "string"
-        )
-        // Normalise token case on ingest. Entries written locally are already
-        // lowercase, but entries merged from the Google Sheet may carry mixed
-        // case ("Lennart"); without this, case-sensitive filters and the
-        // `${day}|${token}` dedup key would skip or duplicate those rows.
-        .map((entry) => (entry.token === entry.token.toLowerCase()
-          ? entry
-          : { ...entry, token: entry.token.toLowerCase() }));
-      return entries.length ? entries : (state.syncedHistory || []);
-    } catch (error) {
-      return state.syncedHistory || [];
-    }
-  }
-
-  function writeHistory(entries) {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return;
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    } catch (error) {
-      /* localStorage unavailable or full — ignore */
-    }
-  }
-
-  function readFavorites() {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return [];
-      const raw = window.localStorage.getItem(FAVORITES_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      const today = typeof dateKeyInTimezone === "function"
-        ? dateKeyInTimezone(state.theme?.timezone || "UTC")
-        : new Date().toISOString().slice(0, 10);
-      return parsed.filter((entry) =>
-        entry && typeof entry.day === "string" && typeof entry.token === "string"
-        && entry.day <= today
-      );
-    } catch (error) {
-      return [];
-    }
-  }
-
-  function writeFavorites(entries) {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return;
-      window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(entries));
-    } catch (error) {
-      /* localStorage unavailable or full — ignore */
-    }
-  }
-
-  function isFavorite(pull) {
-    if (!pull) return false;
-    return readFavorites().some((f) => f.day === pull.day && f.token === pull.token);
-  }
-
-  function isFavoriteEntry(entry) {
-    return readFavorites().some((f) => f.day === entry.day && f.token === entry.token);
-  }
-
-  function toggleFavoriteFromEntry(entry, starBtn) {
-    const favs = readFavorites();
-    const idx = favs.findIndex((f) => f.day === entry.day && f.token === entry.token);
-    if (idx >= 0) {
-      favs.splice(idx, 1);
-    } else {
-      favs.unshift({
-        day: entry.day,
-        token: entry.token,
-        categoryId: entry.categoryId,
-        categoryLabel: entry.categoryLabel,
-        tone: entry.tone,
-        title: entry.title,
-        message: entry.message,
-        link: entry.link || null,
-        unlockTime: entry.unlockTime || null,
-        photo: entry.photo || null,
-        starredAt: Date.now()
-      });
-    }
-    writeFavorites(favs);
-    backupToSheets();
-    const starred = isFavoriteEntry(entry);
-    starBtn.textContent = starred ? "★" : "☆";
-    starBtn.classList.toggle("is-starred", starred);
-    starBtn.title = starred ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
-    if (state.activeTab === "lieblinge") renderLieblinge();
-  }
-
-  function toggleFavorite(pull) {
-    if (!pull) return;
-    const favs = readFavorites();
-    const idx = favs.findIndex((f) => f.day === pull.day && f.token === pull.token);
-    if (idx >= 0) {
-      favs.splice(idx, 1);
-    } else {
-      favs.unshift({
-        day: pull.day,
-        token: pull.token,
-        categoryId: pull.category.id,
-        categoryLabel: pull.category.label,
-        tone: pull.category.tone,
-        title: pull.outcome.title,
-        message: pull.outcome.message,
-        link: pull.outcome.link || null,
-        photo: pull.photo
-          ? {
-              url: pull.photo.url,
-              alt: pull.photo.alt || "",
-              caption: (pull.photo.caption || "").trim(),
-              type: pull.photo.type === "video" ? "video" : "image"
-            }
-          : null,
-        starredAt: Date.now()
-      });
-    }
-    writeFavorites(favs);
-    backupToSheets();
-    updateStarButton();
-    if (state.activeTab === "lieblinge") renderLieblinge();
-  }
-
-  function updateStarButton() {
-    const btn = $("[data-ag-star]");
-    if (!btn) return;
-    const starred = isFavorite(state.todaysPull);
-    btn.textContent = starred ? "★" : "☆";
-    btn.classList.toggle("is-starred", starred);
-    btn.title = starred ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
-  }
-
-  function recordHistoryEntry(pull) {
-    if (!pull) return;
-    const entry = {
-      day: pull.day,
-      token: pull.token,
-      categoryId: pull.category.id,
-      categoryLabel: pull.category.label,
-      tone: pull.category.tone,
-      title: pull.outcome.title,
-      message: pull.outcome.message,
-      link: pull.outcome.link || null,
-      unlockTime: pull.unlockTime || null,
-      photo: pull.photo
-        ? {
-            url: pull.photo.url,
-            alt: pull.photo.alt || "",
-            caption: (pull.photo.caption || "").trim(),
-            type: pull.photo.type === "video" ? "video" : "image"
-          }
-        : null,
-      revealedAt: Date.now()
-    };
-    const existing = readHistory();
-    const seen = new Set();
-    const merged = [entry, ...existing].filter((item) => {
-      if (!item || typeof item.day !== "string" || typeof item.token !== "string") return false;
-      const key = `${item.day}|${item.token}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    merged.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
-    // historyDays only controls the History tab display — storage is unlimited so
-    // the streak can grow without any ceiling.
-    writeHistory(merged);
-    writeStreakCache(0); // history is now authoritative; clear the floor cache
-    backupToSheets();
-  }
-
-  function reveal() {
-    if (!state.todaysPull) state.todaysPull = buildPull();
-    const button = $("[data-ag-draw]");
-    const buttonText = $("[data-ag-button-text]");
-    const steps = state.theme.loadingSteps || ["Maschine rattert"];
-    let stepIndex = 0;
-
-    mount.classList.add("is-revealing");
-    button.disabled = true;
-    buttonText.textContent = steps[stepIndex];
-    const stepTimer = window.setInterval(() => {
-      stepIndex = Math.min(stepIndex + 1, steps.length - 1);
-      buttonText.textContent = steps[stepIndex];
-    }, Math.max(420, Math.floor((state.theme.revealDelayMs || 3200) / steps.length)));
-
-    // Speed up emoji orbits with an increasing rate during the reveal
-    const revealDuration = state.theme.revealDelayMs || 3200;
-    const emojiSpans = Array.from(($("[data-ag-emoji-orbit]") || { children: [] }).children);
-    const originalDurations = emojiSpans.map(
-      (span) => parseFloat(span.style.getPropertyValue("--ag-emoji-duration")) || 20
-    );
-    const startTime = performance.now();
-    let rafId;
-    function rampEmojis(now) {
-      const progress = Math.min((now - startTime) / revealDuration, 1);
-      // Quadratic ramp: starts at 1× speed, reaches ~6× by the end
-      const speedMultiplier = 1 + 5 * progress * progress;
-      emojiSpans.forEach((span, i) => {
-        span.style.setProperty("--ag-emoji-duration", `${(originalDurations[i] / speedMultiplier).toFixed(3)}s`);
-      });
-      if (progress < 1) rafId = requestAnimationFrame(rampEmojis);
-    }
-    rafId = requestAnimationFrame(rampEmojis);
-
-    window.setTimeout(() => {
-      window.clearInterval(stepTimer);
-      cancelAnimationFrame(rafId);
-      emojiSpans.forEach((span, i) => {
-        span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
-      });
-      // Add reward token once — guard prevents double-increment on re-reveal
-      if (state.todaysPull.collectToken) {
-        const alreadyRecorded = readHistory().some(
-          (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
-        );
-        if (!alreadyRecorded) addToken(state.todaysPull.collectToken);
-      }
-      renderPull(state.todaysPull);
-      mount.classList.remove("is-revealing");
-      mount.classList.add("is-revealed");
-      mount.classList.add("has-drawn");
-      button.disabled = false;
-      buttonText.textContent = state.theme.brand.buttonShown;
-      state.revealed = true;
-      if (!getPreviewDay()) recordHistoryEntry(state.todaysPull);
-      scheduleStreakWarning();
-      const streak = computeStreak();
-      renderStreak();
-      renderMilestoneBanner(streak);
-
-      // Confetti burst on good pulls. Special days (birthday etc.) are
-      // identified by category.id — their tone is set to special.tone (often
-      // "jackpot"), so checking the id is what distinguishes them.
-      const pullCategoryId = state.todaysPull?.category?.id;
-      const pullTone = state.todaysPull?.category?.tone;
-      if (pullCategoryId === "special") {
-        // Special day (e.g. birthday) — rainbow burst, two waves
-        const rainbow = ["#ff6b6b","#ffa94d","#ffd43b","#69db7c","#4dabf7","#da77f2","#f783ac","#fff"];
-        triggerConfetti(130, rainbow);
-        setTimeout(() => triggerConfetti(90, rainbow), 700);
-        playPullSound("special");
-      } else if (pullTone === "jackpot") {
-        // Jackpot — gold-heavy burst, two waves
-        const golds = ["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"];
-        triggerConfetti(120, golds);
-        setTimeout(() => triggerConfetti(80, golds), 650);
-        playPullSound("jackpot");
-      } else if (pullTone === "rare") {
-        triggerConfetti(70);
-        playPullSound("rare");
-      } else {
-        playPullSound(pullTone || "common");
-      }
-
-      if (MILESTONE_MESSAGES[streak]) {
-        haptic([30, 20, 30, 20, 60]);
-      } else {
-        haptic([20, 20, 40]);
-      }
-      if (state.activeTab === "history") renderHistory();
-      showNotifPrompt();
-    }, state.theme.revealDelayMs || 3200);
-  }
-
-  function renderOdds() {
-    const oddsList = $("[data-ag-odds]");
-    oddsList.innerHTML = "";
-    const streak = computeStreak();
-    const cats = boostedCategories(streak);
-    const total = cats.reduce((sum, cat) => sum + cat.weight, 0);
-    for (const cat of cats) {
-      const li = document.createElement("li");
-      li.textContent = `${cat.label}: ${(cat.weight / total * 100).toFixed(1)} %`;
-      oddsList.appendChild(li);
-    }
-    if (streak >= 5) {
-      const info = streakInfo(streak);
-      const li = document.createElement("li");
-      li.textContent = `${info.emoji} Streak-Bonus aktiv (${streak} ${streak === 1 ? "Tag" : "Tage"} am Stück)`;
-      li.style.fontWeight = "800";
-      oddsList.appendChild(li);
-    }
-  }
-
-  function formatHistoryDate(dayKey) {
-    const [y, m, d] = dayKey.split("-").map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    try {
-      return new Intl.DateTimeFormat("de-CH", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }).format(date);
-    } catch (error) {
-      return dayKey;
-    }
-  }
-
-  function buildHistoryLink(entry) {
-    if (!entry.link) return null;
-    if (entry.unlockTime) {
-      const now = new Date();
-      const [h, m] = entry.unlockTime.split(":").map(Number);
-      const unlocked = now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
-      if (!unlocked) {
-        const span = document.createElement("span");
-        span.className = "ag-outcome-link-locked";
-        span.textContent = `🔒 Ab ${entry.unlockTime} verfügbar`;
-        return span;
-      }
-    }
-    const safeLink = safeUrl(entry.link);
-    return safeLink ? buildGenericLink(safeLink) : null;
-  }
-
-  function renderHistoryItemEl(entry) {
-    const li = document.createElement("li");
-    li.className = "ag-history-item";
-    li.dataset.tone = entry.tone || "soft";
-
-    const head = document.createElement("div");
-    head.className = "ag-history-head";
-    const date = document.createElement("span");
-    date.className = "ag-history-date";
-    date.textContent = formatHistoryDate(entry.day);
-    const badge = document.createElement("span");
-    badge.className = "ag-history-badge";
-    badge.textContent = entry.categoryLabel || "Kapsel";
-
-    const starBtn = document.createElement("button");
-    starBtn.type = "button";
-    starBtn.className = "ag-history-star" + (isFavoriteEntry(entry) ? " is-starred" : "");
-    starBtn.textContent = isFavoriteEntry(entry) ? "★" : "☆";
-    starBtn.title = isFavoriteEntry(entry) ? "Aus Lieblingen entfernen" : "Als Lieblingspreis speichern";
-    starBtn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      toggleFavoriteFromEntry(entry, starBtn);
-    });
-
-    head.appendChild(date);
-    head.appendChild(badge);
-    head.appendChild(starBtn);
-
-    const title = document.createElement("p");
-    title.className = "ag-history-title";
-    title.textContent = entry.title || "";
-
-    const message = document.createElement("div");
-    message.className = "ag-history-message";
-    message.innerHTML = formatMsg(entry.message || "");
-
-    li.appendChild(head);
-
-    const VIDEO_EXTS_HIST = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
-    const isVideoPhoto = entry.photo &&
-      (entry.photo.type === "video" || VIDEO_EXTS_HIST.test(entry.photo.url || ""));
-
-    if (entry.photo && !isVideoPhoto) {
-      const body = document.createElement("div");
-      body.className = "ag-history-body";
-
-      const thumb = document.createElement("div");
-      thumb.className = "ag-history-thumb";
-      const img = document.createElement("img");
-      img.src = safeUrl(entry.photo.url);
-      img.alt = entry.photo.alt || "Foto-Drop";
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.addEventListener("error", function () {
-        fetchJson("config/photos.json", { photos: [] }).then((fresh) => {
-          const freshPhotos = normalizePhotos(fresh);
-          const match =
-            freshPhotos.find((p) => p.alt === entry.photo.alt && p.type !== "video") ||
-            freshPhotos.find((p) => p.type !== "video") ||
-            null;
-          if (match && match.url) {
-            entry.photo.url = match.url;
-            img.src = safeUrl(match.url);
-            state.photos = freshPhotos;
-          } else {
-            thumb.classList.add("is-broken");
-            img.remove();
-            const icon = document.createElement("span");
-            icon.className = "ag-history-thumb-broken";
-            icon.textContent = "📷";
-            thumb.appendChild(icon);
-          }
-        }).catch(() => {
-          thumb.classList.add("is-broken");
-          img.remove();
-          const icon = document.createElement("span");
-          icon.className = "ag-history-thumb-broken";
-          icon.textContent = "📷";
-          thumb.appendChild(icon);
-        });
-      }, { once: true });
-      thumb.appendChild(img);
-      thumb.style.cursor = "pointer";
-      thumb.title = "Vollansicht";
-      thumb.addEventListener("click", () => openLightbox(entry.photo.url, entry.photo.caption || entry.photo.alt || "", false, entry.photo.alt));
-
-      const text = document.createElement("div");
-      text.className = "ag-history-text";
-      text.appendChild(title);
-      text.appendChild(message);
-      if (entry.link) {
-        const linkEl = buildHistoryLink(entry);
-        if (linkEl) text.appendChild(linkEl);
-      }
-
-      body.appendChild(thumb);
-      body.appendChild(text);
-      li.appendChild(body);
-    } else {
-      li.appendChild(title);
-      li.appendChild(message);
-      if (entry.link) {
-        const linkEl = buildHistoryLink(entry);
-        if (linkEl) li.appendChild(linkEl);
-      }
-    }
-
-    return li;
-  }
-
-  function renderHistory() {
-    const list = $("[data-ag-history]");
-    const empty = $("[data-ag-history-empty]");
-    const note = $("[data-ag-history-note]");
-    list.innerHTML = "";
-
-    const token = getToken();
-    const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    const entries = readHistory()
-      .filter((e) => e.token === token && e.day <= today)
-      .slice()
-      .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
-
-    note.textContent = "Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst.";
-
-    if (!entries.length) {
-      empty.hidden = false;
-      empty.textContent =
-        "Noch keine Kapseln auf diesem Gerät bzw. Browser geöffnet. Zieh heute eine — dann erscheint sie hier.";
-      return;
-    }
-    empty.hidden = true;
-
-    for (const entry of entries) {
-      list.appendChild(renderHistoryItemEl(entry));
-    }
-  }
-
-  function renderLieblinge() {
-    const list = $("[data-ag-lieblinge]");
-    const empty = $("[data-ag-lieblinge-empty]");
-    const note = $("[data-ag-lieblinge-note]");
-    list.innerHTML = "";
-
-    const favs = readFavorites();
-    note.textContent = "Deine gespeicherten Lieblingspreise — per Stern markiert.";
-
-    if (!favs.length) {
-      empty.hidden = false;
-      empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel.";
-      return;
-    }
-    empty.hidden = true;
-
-    for (const entry of favs) {
-      list.appendChild(renderHistoryItemEl(entry));
-    }
-  }
-
-  // ── Wunschkapsel ────────────────────────────────────────────────────────────
-
-  function currentWeekKey() {
-    const d = new Date();
-    const utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    utc.setUTCDate(utc.getUTCDate() + 4 - (utc.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
-    const week = Math.ceil(((utc - yearStart) / 86400000 + 1) / 7);
-    return `${utc.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
-  }
-
-  function readWish() {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return null;
-      const raw = window.localStorage.getItem(WISH_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? parsed : null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function writeWish(entry) {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return;
-      window.localStorage.setItem(WISH_KEY, JSON.stringify(entry));
-    } catch (error) {
-      /* localStorage unavailable — ignore */
-    }
-  }
-
-  function wishMetaText(remoteStatus) {
-    const baseline = "Die Maschine hat es notiert. Ob etwas passiert, bleibt offen.";
-    if (remoteStatus === "sent") {
-      return "Die Maschine hat es notiert und an Fionn weitergeleitet.";
-    }
-    if (remoteStatus === "pending") {
-      return "Die Maschine hat es notiert. Sie versucht, es weiterzuleiten…";
-    }
-    if (remoteStatus === "failed") {
-      return "Die Maschine hat es notiert. Die Weiterleitung hat nicht geklappt – beim nächsten Öffnen wird es erneut versucht.";
-    }
-    return baseline;
-  }
-
-  function renderWunschkapsel() {
-    const idle = $("[data-ag-wish-idle]");
-    const form = $("[data-ag-wish-form]");
-    const done = $("[data-ag-wish-done]");
-    if (!idle || !form || !done) return;
-    const wish = readWish();
-    const wishThisWeek = wish && wish.week === currentWeekKey();
-    if (wishThisWeek) {
-      idle.hidden = true;
-      form.hidden = true;
-      done.hidden = false;
-      $("[data-ag-wish-done-title]").textContent = "✨ Wunsch eingereicht";
-      $("[data-ag-wish-done-note]").textContent = `„${wish.text}"`;
-      $("[data-ag-wish-done-meta]").textContent = wishMetaText(wish.remoteStatus);
-    } else {
-      idle.hidden = false;
-      form.hidden = true;
-      done.hidden = true;
-    }
-  }
-
-  function sendWishToInbox(wish) {
-    const config = state.wishInbox;
-    if (!config || !config.enabled) return;
-    const endpoint = typeof config.endpointUrl === "string" ? config.endpointUrl.trim() : "";
-    if (!endpoint) return;
-
-    const payload = {
-      timestamp: new Date(wish.submittedAt || Date.now()).toISOString(),
-      token: getToken(),
-      wish: wish.text,
-      pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
-      userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
-    };
-
-    const body = JSON.stringify(payload);
-    const setStatus = (status) => {
-      const stored = readWish();
-      if (!stored || stored.week !== wish.week) return;
-      writeWish({ ...stored, remoteStatus: status, remoteUpdatedAt: Date.now() });
-      renderWunschkapsel();
-    };
-
-    setStatus("pending");
-
-    fetch(endpoint, {
-      method: "POST",
-      mode: "cors",
-      credentials: "omit",
-      cache: "no-store",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body
-    })
-      .then((response) => {
-        if (response && response.ok) {
-          setStatus("sent");
-        } else {
-          setStatus("failed");
-        }
-      })
-      .catch(() => {
-        // CORS or network error — try a no-cors fallback so the row still arrives.
-        try {
-          fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            credentials: "omit",
-            cache: "no-store",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body
-          })
-            .then(() => setStatus("sent"))
-            .catch(() => setStatus("failed"));
-        } catch (_error) {
-          setStatus("failed");
-        }
-      });
-  }
-
-  function retryPendingWishSend() {
-    const wish = readWish();
-    if (!wish || wish.week !== currentWeekKey()) return;
-    if (wish.remoteStatus === "sent") return;
-    sendWishToInbox(wish);
-  }
-
-  // ── Notfall-Umarmung ────────────────────────────────────────────────────────
-
-  function setHugStatus(text, hugState) {
-    const el = $("[data-ag-hug-status]");
-    if (!el) return;
-    if (!text) {
-      el.hidden = true;
-      el.textContent = "";
-      delete el.dataset.agHugState;
-      return;
-    }
-    el.hidden = false;
-    el.textContent = text;
-    if (hugState) el.dataset.agHugState = hugState;
-    else delete el.dataset.agHugState;
-  }
-
-  function sendHugToInbox() {
-    const config = state.wishInbox;
-    const button = $("[data-ag-hug-send]");
-    const message = "🫂 Notfall-Umarmung gebraucht";
-    const payload = {
-      timestamp: new Date().toISOString(),
-      token: getToken(),
-      type: "hug",
-      event: "hug",
-      wish: message,
-      message,
-      pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
-      userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
-    };
-
-    if (!config || !config.enabled) {
-      setHugStatus("Fionn wurde angestupst 🫂 (offline notiert)", "ok");
-      return;
-    }
-    const endpoint = typeof config.endpointUrl === "string" ? config.endpointUrl.trim() : "";
-    if (!endpoint) {
-      setHugStatus("Fionn wurde angestupst 🫂 (offline notiert)", "ok");
-      return;
-    }
-
-    if (button) button.disabled = true;
-    setHugStatus("Stups wird gesendet…", "pending");
-
-    const body = JSON.stringify(payload);
-    const onSuccess = () => {
-      setHugStatus("Fionn wurde angestupst 🫂", "ok");
-      if (button) {
-        window.setTimeout(() => { button.disabled = false; }, 4000);
-      }
-    };
-    const onFailure = () => {
-      setHugStatus("Konnte gerade nicht gesendet werden – bitte gleich nochmal.", "error");
-      if (button) button.disabled = false;
-    };
-
-    fetch(endpoint, {
-      method: "POST",
-      mode: "cors",
-      credentials: "omit",
-      cache: "no-store",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body
-    })
-      .then((response) => {
-        if (response && response.ok) {
-          onSuccess();
-        } else {
-          onFailure();
-        }
-      })
-      .catch(() => {
-        // Network/CORS error — retry with no-cors so the ping still arrives.
-        try {
-          fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            credentials: "omit",
-            cache: "no-store",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body
-          }).then(onSuccess).catch(onFailure);
-        } catch (_error) {
-          onFailure();
-        }
-      });
-  }
-
-  // ── Streak milestones ────────────────────────────────────────────────────────
-
-  const DAILY_REMINDER_POOL = [
-    { title: "{name}s Kapsel wartet 🎲", body: "Heute noch keine Kapsel gezogen — zieh jetzt!" },
-    { title: "Guten Morgen, {name} 🌿", body: "Deine tägliche Kapsel ist bereit." },
-    { title: "Die Maschine dreht sich 🎲", body: "Du hast heute noch nicht gezogen — auf geht's!" },
-    { title: "{name}s tägliche Kapsel ✨", body: "Eine neue Chance — die Maschine dreht sich." },
-    { title: "Heute wartet etwas 🎲", body: "Die Kapsel des Tages ist für dich bereit." },
-    { title: "Zeit für die Kapsel 🌿", body: "Zieh heute und sieh, was die Maschine bereithält." },
-    { title: "Die Maschine ruft 🎰", body: "Deine Kapsel läuft nicht weg — aber der Tag schon." },
-  ];
-
-  const STREAK_WARN_POOL = [
-    { title: "{name}s Kapsel läuft ab! 🎲", body: "Noch 3 Stunden — dann ist sie weg für heute." },
-    { title: "Nicht vergessen! 🎲", body: "Deine Kapsel wartet noch. Noch 3 Stunden bis Mitternacht." },
-    { title: "Fast zu spät, {name}! 🌙", body: "21 Uhr — in 3 Stunden ist der Tag vorbei." },
-    { title: "Die Maschine wartet auf dich 🎲", body: "Heute noch nicht gezogen. Auf geht's — es ist gleich zu spät." },
-    { title: "{name}s Streak wackelt! 💎", body: "Noch 3 Stunden — dann ist der Streak in Gefahr." },
-  ];
-
-  function dailyMsgIdx(pool) {
-    const now = new Date();
-    const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
-    return doy % pool.length;
-  }
-
-  const MILESTONE_MESSAGES = {
-    7:   "🌿 Sieben Tage am Stück. Die Maschine nickt anerkennend.",
-    14:  "🔥 Zwei Wochen am Stück. Offiziell notiert im Maschinenregister.",
-    21:  "✨ Drei Wochen. Die Maschine neigt sich leicht. Respekt.",
-    30:  "💎 Dreißig Tage. Die Maschine ist gerührt und würde applaudieren, wenn sie Hände hätte.",
-    50:  "🌿 Fünfzig Tage. Ein kleines Wunder in der Praxis der Beständigkeit.",
-    60:  "🔥 Sechzig Tage. Die Maschine erinnert sich an jeden davon.",
-    75:  "✨ Fünfundsiebzig Tage. Dreiviertel einer Jahreszeit. Unbeirrbar.",
-    100: "💎 Hundert Tage. Die Maschine schweigt kurz aus Respekt. Dann: Bravo.",
-    150: "🌿 Hundertfünfzig Tage. Die meisten Dinge scheitern an weniger.",
-    200: "🔥 Zweihundert Tage. Ein Name, der im Maschinenregister unterstrichen ist.",
-    365: "💎 Ein ganzes Jahr. Die Maschine verbeugt sich tief."
-  };
-
-  function readMilestones() {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return [];
-      const raw = window.localStorage.getItem(MILESTONE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  function writeMilestones(entries) {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return;
-      window.localStorage.setItem(MILESTONE_KEY, JSON.stringify(entries));
-    } catch (error) {
-      /* ignore */
-    }
-  }
-
-  function isMilestoneSeen(token, streak) {
-    return readMilestones().includes(`${token}|${streak}`);
-  }
-
-  function markMilestoneSeen(token, streak) {
-    const key = `${token}|${streak}`;
-    const seen = readMilestones();
-    if (!seen.includes(key)) writeMilestones([...seen, key]);
-  }
-
-  function renderMilestoneBanner(streak) {
-    const el = $("[data-ag-milestone]");
-    if (!el) return;
-    const msg = MILESTONE_MESSAGES[streak];
-    if (!msg) { el.hidden = true; return; }
-    const token = getToken();
-    if (isMilestoneSeen(token, streak)) { el.hidden = true; return; }
-    $("[data-ag-milestone-text]").textContent = msg;
-    el.hidden = false;
-    markMilestoneSeen(token, streak);
-  }
-
-  // ── Gipfelbuch (Berge tab) ───────────────────────────────────────────────────
-
-  function readGipfelbuch() {
-    try {
-      const raw = window.localStorage.getItem(GIPFELBUCH_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) { return []; }
-  }
-
-  function writeGipfelbuch(entries) {
-    try { window.localStorage.setItem(GIPFELBUCH_KEY, JSON.stringify(entries)); } catch (_) {}
-  }
-
-  function postGipfelToSheet(type, payload) {
-    const cfg = state.backup;
-    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-    const body = JSON.stringify({ type, ...payload });
-    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
-    fetch(cfg.endpointUrl, opts).catch(() => fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}));
-  }
-
-  function addGipfelEntry(entry) {
-    const entries = readGipfelbuch();
-    entries.unshift(entry);
-    writeGipfelbuch(entries);
-    postGipfelToSheet("gipfel-upsert", { ...entry, createdAt: new Date().toISOString() });
-  }
-
-  function deleteGipfelEntry(id) {
-    writeGipfelbuch(readGipfelbuch().filter((e) => e.id !== id));
-    postGipfelToSheet("gipfel-delete", { id });
-  }
-
-  function updateGipfelEntry(id, fields) {
-    const entries = readGipfelbuch();
-    const idx = entries.findIndex((e) => e.id === id);
-    if (idx === -1) return;
-    const updated = { ...entries[idx], ...fields };
-    entries[idx] = updated;
-    writeGipfelbuch(entries);
-    postGipfelToSheet("gipfel-upsert", updated);
-  }
-
-  // ── Glossary ─────────────────────────────────────────────────────────────────
-
-  function readGlossary() {
-    try { return JSON.parse(window.localStorage.getItem(GLOSSARY_KEY) || "[]") || []; } catch (_) { return []; }
-  }
-  function writeGlossary(words) {
-    try { window.localStorage.setItem(GLOSSARY_KEY, JSON.stringify(words)); } catch (_) {}
-  }
-  function addGlossaryWord(entry) {
-    const words = readGlossary();
-    words.unshift(entry);
-    writeGlossary(words);
-    postGlossaryToSheet("glossary-upsert", { ...entry, createdAt: new Date().toISOString() });
-  }
-  function updateGlossaryWord(id, fields) {
-    const words = readGlossary();
-    const idx = words.findIndex(w => w.id === id);
-    if (idx === -1) return;
-    const updated = { ...words[idx], ...fields };
-    words[idx] = updated;
-    writeGlossary(words);
-    postGlossaryToSheet("glossary-upsert", updated);
-  }
-  function deleteGlossaryWord(id) {
-    writeGlossary(readGlossary().filter(w => w.id !== id));
-    postGlossaryToSheet("glossary-delete", { id });
-  }
-  function postGlossaryToSheet(type, payload) {
-    const cfg = state.backup;
-    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-    const body = JSON.stringify({ type, token: getToken(), ...payload });
-    fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body })
-      .catch(() => fetch(cfg.endpointUrl, { method: "POST", mode: "no-cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {}));
-  }
-
-  let _glossaryRecorder = null;
-  let _glossaryAudioBlob = null;
-  let _glossaryCurrentLang = "swabian";
-
-  async function _blobToDataUrl(blob) {
-    return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
-  }
-
-  async function uploadGlossaryAudio(blob, wordId) {
-    const cfg = state.backup;
-    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return _blobToDataUrl(blob);
-    try {
-      const dataUrl = await _blobToDataUrl(blob);
-      const base64 = dataUrl.split(",")[1];
-      const mimeType = blob.type || "audio/webm";
-      const body = JSON.stringify({ type: "glossary-audio", token: getToken(), filename: `glossary-${wordId}.webm`, mimeType, data: base64 });
-      const resp = await fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
-      const json = await resp.json();
-      if (json.ok && json.url) return json.url;
-      return dataUrl;
-    } catch (_) {
-      return _blobToDataUrl(blob);
-    }
-  }
-
-  function renderGlossaryWord(word) {
-    const card = document.createElement("div");
-    card.className = "ag-glossary-card";
-    card.dataset.agGlossaryId = word.id;
-    card.innerHTML = `
-      <div class="ag-glossary-card-body">
-        <div class="ag-glossary-card-text">
-          <div class="ag-glossary-word">${word.word || "—"}</div>
-          ${word.meaning ? `<div class="ag-glossary-meaning-text">${word.meaning}</div>` : ""}
-        </div>
-        <div class="ag-glossary-card-btns">
-          ${word.audioUrl ? `<button class="ag-glossary-play-btn" type="button" data-ag-glossary-play="${word.id}" aria-label="Abspielen">▶</button>` : ""}
-          <button class="ag-glossary-edit-btn" type="button" data-ag-glossary-edit="${word.id}" aria-label="Bearbeiten">Bearbeiten</button>
-          <button class="ag-glossary-del-btn" type="button" data-ag-glossary-del="${word.id}" aria-label="Löschen">✕</button>
-        </div>
-      </div>
-    `;
-    const playBtn = card.querySelector("[data-ag-glossary-play]");
-    if (playBtn && word.audioUrl) {
-      playBtn.addEventListener("click", () => {
-        const audio = new Audio(word.audioUrl);
-        audio.play().catch(() => {});
-        haptic(6);
-      });
-    }
-    const editBtn = card.querySelector("[data-ag-glossary-edit]");
-    if (editBtn) {
-      editBtn.addEventListener("click", () => {
-        const form = document.getElementById("ag-glossary-form");
-        const addBtn = document.getElementById("ag-glossary-add");
-        if (!form) return;
-        document.getElementById("ag-glossary-edit-id").value = word.id;
-        document.getElementById("ag-glossary-word-input").value = word.word || "";
-        document.getElementById("ag-glossary-meaning-input").value = word.meaning || "";
-        const titleEl = document.getElementById("ag-glossary-form-title");
-        if (titleEl) titleEl.textContent = "Wort bearbeiten";
-        const labelEl = document.getElementById("ag-glossary-save-label");
-        if (labelEl) labelEl.textContent = "Speichern";
-        const statusEl = document.getElementById("ag-glossary-audio-status");
-        if (statusEl) statusEl.textContent = word.audioUrl ? "Aufnahme vorhanden" : "";
-        _glossaryAudioBlob = null;
-        form.hidden = false;
-        if (addBtn) addBtn.hidden = true;
-        form.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        document.getElementById("ag-glossary-word-input")?.focus();
-        haptic(8);
-      });
-    }
-    const delBtn = card.querySelector("[data-ag-glossary-del]");
-    if (delBtn) {
-      delBtn.addEventListener("click", () => {
-        if (!window.confirm(`„${word.word}" löschen?`)) return;
-        deleteGlossaryWord(word.id);
-        renderGlossaryPanel(_glossaryCurrentLang);
-        haptic(8);
-      });
-    }
-    return card;
-  }
-
-  function renderGlossaryPanel(lang) {
-    _glossaryCurrentLang = lang || "swabian";
-    const list = document.getElementById("ag-glossary-list");
-    const empty = document.getElementById("ag-glossary-empty");
-    if (!list) return;
-    // Update tab active state
-    document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
-      btn.classList.toggle("is-active", btn.dataset.lang === _glossaryCurrentLang);
-    });
-    _glossaryMovePill();
-    const words = readGlossary().filter(w => w.lang === _glossaryCurrentLang);
-    list.innerHTML = "";
-    if (!words.length) {
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-    words.forEach(w => list.appendChild(renderGlossaryWord(w)));
-  }
-
-  function _glossaryMovePill() {
-    const pill = document.getElementById("ag-glossary-pill");
-    const tabs = document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab");
-    if (!pill || !tabs.length) return;
-    const activeBtn = document.querySelector(`#ag-glossary-tabs .ag-glossary-tab.is-active`);
-    if (!activeBtn) return;
-    pill.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
-    pill.style.width = `${activeBtn.offsetWidth}px`;
-  }
-
-  function openGlossaryPanel() {
-    const panel = document.getElementById("ag-glossary-panel");
-    if (!panel) return;
-    panel.hidden = false;
-    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    _glossaryCurrentLang = "swabian";
-    renderGlossaryPanel("swabian");
-    // reset pill after layout
-    window.requestAnimationFrame(() => _glossaryMovePill());
-    haptic(10);
-  }
-
-  function closeGlossaryPanel() {
-    const panel = document.getElementById("ag-glossary-panel");
-    if (panel) panel.hidden = true;
-    const form = document.getElementById("ag-glossary-form");
-    if (form) form.hidden = true;
-    const addBtn = document.getElementById("ag-glossary-add");
-    if (addBtn) addBtn.hidden = false;
-    _glossaryAudioBlob = null;
-    if (_glossaryRecorder && _glossaryRecorder.state !== "inactive") {
-      try { _glossaryRecorder.stop(); } catch (_) {}
-    }
-    _glossaryRecorder = null;
-  }
-
-  function formatElev(m) {
-    if (!m && m !== 0) return "—";
-    return Number(m).toLocaleString("de-CH") + " m";
-  }
-
-  function elevationAnalogy(m) {
-    if (!m || m <= 0) return null;
-    const refs = [
-      [8849,"Everest"],[4478,"Matterhorn"],[3692,"Titlis"],
-      [2415,"Säntis"],[1897,"Pilatus"],[1782,"Rigi"],
-      [869,"Üetliberg"],[668,"Grosse Mythen"]
-    ];
-    for (const [h, name] of refs) {
-      const t = m / h;
-      if (t >= 0.7) {
-        const n = t >= 2 ? Math.round(t) : (Math.round(t * 10) / 10).toString().replace(".", ",");
-        return `≈ ${n}× ${name}`;
-      }
-    }
-    return null;
-  }
-
-  function formatBergeDate(iso) {
-    if (!iso) return "";
-    try {
-      const d = iso.includes("T") ? new Date(iso) : new Date(iso + "T12:00:00");
-      if (isNaN(d.getTime())) return "";
-      return d.toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
-    } catch (_) { return ""; }
-  }
-
-  function extractKomootId(url) {
-    const m = url.match(/komoot\.com(?:\/[a-z-]+)?\/tour\/(\d+)/);
-    return m ? m[1] : null;
-  }
-
-  function extractAllTrailsSlug(url) {
-    if (!url || !url.includes("alltrails.com")) return null;
-    const m = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?([^?#]+)/);
-    if (!m) return null;
-    let slug = m[1].replace(/\/$/, "");
-    slug = slug.replace(/^(?:wanderweg|sentier|sendero|percorso|trilha|rutt|sti|stezka|tura|spor|trase|traseu|wandeling|ruta)\//, "trail/");
-    const COUNTRY = { "schweiz/":"switzerland/","deutschland/":"germany/","österreich/":"austria/",
-      "frankreich/":"france/","italien/":"italy/","spanien/":"spain/","niederlande/":"netherlands/",
-      "suisse/":"switzerland/","svizzera/":"switzerland/","suiza/":"switzerland/" };
-    for (const [loc, en] of Object.entries(COUNTRY)) {
-      if (slug.startsWith("trail/" + loc)) { slug = "trail/" + en + slug.slice(6 + loc.length); break; }
-    }
-    if (!slug.startsWith("trail/") || slug.split("/").length < 3) return null;
-    return slug;
-  }
-
-  // Returns the embed iframe src for an AllTrails URL, or null.
-  // Always forces elevationDiagram=false and scrollZoom=false.
-  function extractAllTrailsEmbed(url) {
-    if (!url || !url.includes("alltrails.com")) return null;
-    function cleanParams(src) {
-      const qIdx = src.indexOf("?");
-      const base = qIdx === -1 ? src : src.slice(0, qIdx);
-      const qs   = qIdx === -1 ? "" : src.slice(qIdx + 1);
-      const p = new URLSearchParams(qs);
-      p.set("scrollZoom", "false");
-      p.set("u", "m");
-      p.set("elevationDiagram", "false");
-      return base + "?" + p.toString();
-    }
-    // Already a widget URL (user pasted from AllTrails embed code)
-    if (url.includes("/widget/")) return cleanParams(url);
-    // Recording URL: /explore/recording/slug or /recording/slug
-    const recM = url.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?recording\/([^?#/]+)/);
-    if (recM) {
-      const shM = url.match(/[?&]sh=([^&#]+)/);
-      const sh = shM ? `&sh=${shM[1]}` : "";
-      return cleanParams(`https://www.alltrails.com/widget/recording/${recM[1]}?scrollZoom=false&u=m${sh}`);
-    }
-    // Trail URL: extract slug
-    const slug = extractAllTrailsSlug(url);
-    return slug ? cleanParams(`https://www.alltrails.com/widget/${slug}?scrollZoom=false&u=m`) : null;
-  }
-
-  function renderGipfelCard(entry) {
-    const card = document.createElement("div");
-    card.className = "ag-card ag-gipfel-card";
-    card.dataset.agGipfelId = entry.id;
-
-    const komootId = entry.activityUrl ? extractKomootId(entry.activityUrl) : null;
-    const isAllTrails = entry.activityUrl && entry.activityUrl.includes("alltrails.com");
-    const allTrailsEmbed = isAllTrails ? extractAllTrailsEmbed(entry.activityUrl) : null;
-    const allTrailsSlug = allTrailsEmbed; // kept for map button data attribute
-
-    const coverHtml = entry.cover
-      ? `<div class="ag-gipfel-cover"><img src="${entry.cover}" alt="${entry.name || ""}" loading="lazy"></div>`
-      : "";
-
-    const distStr = entry.distance ? `${entry.distance} km` : "";
-    const gainStr = entry.elevGain ? `↑ ${entry.elevGain} m` : "";
-    const statsHtml = (distStr || gainStr)
-      ? `<div class="ag-gipfel-stats">${[distStr, gainStr].filter(Boolean).join(" · ")}</div>`
-      : "";
-
-    card.innerHTML = `
-      ${coverHtml}
-      <div class="ag-gipfel-head">
-        <div class="ag-gipfel-head-info">
-          <div class="ag-gipfel-name">${entry.name || "—"}</div>
-          <div class="ag-gipfel-date">${formatBergeDate(entry.date)}</div>
-        </div>
-        <div class="ag-gipfel-elev">${formatElev(entry.elevation)}</div>
-        <div class="ag-gipfel-actions">
-          <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">✏️</button>
-          <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
-        </div>
-      </div>
-      ${statsHtml}
-      ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
-      ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button><a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
-      ${isAllTrails ? `${allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>` : ""}
-      ${entry.activityUrl && !komootId && !isAllTrails ? `<a class="ag-secondary" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>` : ""}
-    `;
-
-    const editBtn = card.querySelector("[data-ag-gipfel-edit]");
-    if (editBtn) {
-      editBtn.addEventListener("click", () => {
-        const bergeForm = $("[data-ag-berge-form]");
-        const bergeAddBtn = $("[data-ag-berge-add]");
-        if (!bergeForm) return;
-        const editIdEl = $("[data-ag-berge-edit-id]");
-        if (editIdEl) editIdEl.value = entry.id;
-        const nameEl = $("[data-ag-berge-name]"); if (nameEl) nameEl.value = entry.name || "";
-        const elevEl = $("[data-ag-berge-elev]"); if (elevEl) elevEl.value = entry.elevation || "";
-        const distEl = $("[data-ag-berge-dist]"); if (distEl) distEl.value = entry.distance || "";
-        const gainEl = $("[data-ag-berge-gain]"); if (gainEl) gainEl.value = entry.elevGain || "";
-        const dateEl = $("[data-ag-berge-date]"); if (dateEl) dateEl.value = entry.date || "";
-        const urlEl = $("[data-ag-berge-url]"); if (urlEl) urlEl.value = entry.activityUrl || "";
-        const coverEl = $("[data-ag-berge-cover]"); if (coverEl) coverEl.value = entry.cover || "";
-        const notesEl = $("[data-ag-berge-notes]"); if (notesEl) notesEl.value = entry.notes || "";
-        const formTitle = $("[data-ag-berge-form-title]");
-        if (formTitle) formTitle.textContent = "Eintrag bearbeiten";
-        const saveSpan = $("[data-ag-berge-save] span:last-child");
-        if (saveSpan) saveSpan.textContent = "Speichern";
-        bergeForm.hidden = false;
-        if (bergeAddBtn) bergeAddBtn.hidden = true;
-        bergeForm.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        if (nameEl) nameEl.focus();
-        haptic(8);
-      });
-    }
-
-    const delBtn = card.querySelector("[data-ag-gipfel-delete]");
-    if (delBtn) {
-      delBtn.addEventListener("click", () => {
-        if (!window.confirm(`„${entry.name}" löschen?`)) return;
-        deleteGipfelEntry(entry.id);
-        renderBergePanel();
-        haptic(8);
-        showToast("Eintrag gelöscht");
-      });
-    }
-
-    const komootMapBtn = card.querySelector("[data-ag-map-komoot]");
-    if (komootMapBtn) {
-      komootMapBtn.addEventListener("click", () => {
-        const wrap = card.querySelector(`[data-ag-map-wrap-komoot="${komootId}"]`);
-        if (!wrap) return;
-        if (!wrap.hidden) { wrap.hidden = true; komootMapBtn.textContent = "🗺 Komoot-Karte"; return; }
-        wrap.innerHTML = `<iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="220" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
-        wrap.hidden = false;
-        komootMapBtn.textContent = "Karte schließen";
-        haptic(4);
-      });
-    }
-
-    return card;
-  }
-
-  function renderBergePanel() {
-    const list = $("[data-ag-berge-list]");
-    const empty = $("[data-ag-berge-empty]");
-    const totalEl = $("[data-ag-berge-total]");
-    const analogyEl = $("[data-ag-berge-analogy]");
-    if (!list) return;
-
-    const entries = readGipfelbuch();
-    list.innerHTML = "";
-
-    const totalElev = entries.reduce((sum, e) => sum + (Number(e.elevation) || 0), 0);
-    if (totalEl) totalEl.textContent = totalElev > 0 ? formatElev(totalElev) : "— m";
-    if (analogyEl) {
-      const analogy = elevationAnalogy(totalElev);
-      if (analogy) { analogyEl.textContent = analogy; analogyEl.hidden = false; }
-      else { analogyEl.hidden = true; }
-    }
-
-    if (!entries.length) {
-      if (empty) empty.hidden = false;
-      return;
-    }
-    if (empty) empty.hidden = true;
-    entries.forEach((entry) => list.appendChild(renderGipfelCard(entry)));
-  }
-
-  // ── Ping (Fionn → Lennart) ───────────────────────────────────────────────────
-
-  function showPingBanner() {
-    const banner = $("[data-ag-ping-banner]");
-    if (!banner) return;
-    banner.hidden = false;
-    window.setTimeout(() => { if (banner) banner.hidden = true; }, 7000);
-  }
-
-  function sendPingToBackend() {
-    const cfg = state.backup;
-    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-    const button = $("[data-ag-ping-send]");
-    const status = $("[data-ag-ping-status]");
-    if (button) button.disabled = true;
-    if (status) { status.hidden = false; status.textContent = "Wird gesendet…"; delete status.dataset.agHugState; }
-    const body = JSON.stringify({
-      type: "ping",
-      token: getToken(),
-      pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
-      userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
-    });
-    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
-    fetch(cfg.endpointUrl, opts)
-      .then((r) => {
-        if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
-        if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
-      })
-      .catch(() => {
-        fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
-        if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
-        if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
-      });
-  }
-
-  // ── Notifications ────────────────────────────────────────────────────────────
-
-  function showNotifPrompt() {
-    const card = document.querySelector('[data-ag-notif-card]');
-    if (!card) return;
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
-  
-    try {
-      if (window.localStorage.getItem(NOTIF_KEY) === 'dismissed') return;
-    } catch {}
-  
-    card.hidden = false;
-    card.removeAttribute('hidden');
-  }
-
-  function nextNotificationTimestamp() {
-    const tz = state.theme?.timezone || "Europe/Zurich";
-    const timeStr = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false
-    }).format(new Date());
-    const [h, m] = timeStr.split(":").map(Number);
-    const minutesSinceMidnight = h * 60 + m;
-    const targetMinutes = 8 * 60;
-    const minutesUntil = minutesSinceMidnight < targetMinutes
-      ? targetMinutes - minutesSinceMidnight
-      : 24 * 60 - minutesSinceMidnight + targetMinutes;
-    return Date.now() + minutesUntil * 60 * 1000;
-  }
-
-  async function scheduleStreakWarning() {
-    if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (!reg.active) return;
-      const tz = state.theme?.timezone || "Europe/Zurich";
-      const token = getToken();
-      const today = dateKeyInTimezone(tz);
-      const alreadyPulled = readHistory().some((e) => e.token === token && e.day === today);
-      if (alreadyPulled) {
-        reg.active.postMessage({ type: "CANCEL_NOTIFICATION", tag: "ag-streak-warn" });
-        return;
-      }
-      const { h, m } = hmInTimezone(tz);
-      if (h >= 21) return;
-      const msUntil21 = ((21 - h) * 60 - m) * 60 * 1000 - new Date().getSeconds() * 1000;
-      const name = displayNameFromToken();
-      const warnMsg = STREAK_WARN_POOL[dailyMsgIdx(STREAK_WARN_POOL)];
-      reg.active.postMessage({
-        type: "SCHEDULE_NOTIFICATION",
-        tag: "ag-streak-warn",
-        targetTime: Date.now() + Math.max(0, msUntil21),
-        title: warnMsg.title.replace("{name}", name),
-        body: warnMsg.body.replace("{name}", name)
-      });
-    } catch (_) {}
-  }
-
-  async function scheduleNotification() {
-    if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const name = displayNameFromToken();
-      const dailyMsg = DAILY_REMINDER_POOL[dailyMsgIdx(DAILY_REMINDER_POOL)];
-      reg.active?.postMessage({
-        type: "SCHEDULE_NOTIFICATION",
-        tag: "ag-daily",
-        targetTime: nextNotificationTimestamp(),
-        title: dailyMsg.title.replace("{name}", name),
-        body: dailyMsg.body.replace("{name}", name)
-      });
-      // Push quest notification if a new period just started and not yet solved
-      if (state.quest?.enabled && isQuestAvailable()) {
-        const qs = readQuestState();
-        const lastNotifPeriod = (() => { try { return parseInt(localStorage.getItem("affektions-gacha:quest-notif:v1") || "-1", 10); } catch (_e) { return -1; } })();
-        if (!qs.solved && lastNotifPeriod !== currentQuestPeriod()) {
-          try { localStorage.setItem("affektions-gacha:quest-notif:v1", String(currentQuestPeriod())); } catch (_e) {}
-          reg.active?.postMessage({
-            type: "SCHEDULE_NOTIFICATION",
-            targetTime: Date.now() + 500,
-            title: state.quest.pushTitle || "Neue Foto-Aufgabe 📷",
-            body: state.quest.pushBody || "Die Maschine hat eine neue Aufgabe für dich."
-          });
-        }
-      }
-    } catch (error) {
-      /* ignore */
-    }
-  }
-
-  async function tryPeriodicSync() {
-    if (!("serviceWorker" in navigator)) return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (!("periodicSync" in reg)) return;
-      await reg.periodicSync.register("ag-daily-reminder", {
-        minInterval: 20 * 60 * 60 * 1000
-      });
-    } catch (error) {
-      /* Periodic Background Sync not supported — ignore */
-    }
-  }
-
-  async function registerServiceWorker() {
-    if (!("serviceWorker" in navigator)) return;
-    try {
-      const swUrl = urlFor("sw.js");
-      if (new URL(swUrl).origin !== window.location.origin) return;
-      await navigator.serviceWorker.register(swUrl, {
-        scope: new URL("./", swUrl).pathname
-      });
-      if (Notification.permission === "granted") {
-        await scheduleNotification();
-        await scheduleStreakWarning();
-        await tryPeriodicSync();
-      }
-    } catch (error) {
-      /* SW not supported or cross-origin — silent fail */
-    }
-  }
-
-  async function enableNotifications() {
-    const notifCard = $("[data-ag-notif-card]");
-    if (!("Notification" in window)) {
-      if (notifCard) notifCard.hidden = true;
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    if (notifCard) notifCard.hidden = true;
-    if (permission !== "granted") {
-      try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
-      return;
-    }
-    try { window.localStorage.setItem(NOTIF_KEY, "granted"); } catch (error) { /* ignore */ }
-    await registerServiceWorker();
-  }
-
-  function setActiveTab(tab) {
-    state.activeTab = tab;
-    const tabs = mount.querySelectorAll("[data-ag-tab]");
-    tabs.forEach((node) => {
-      const isActive = node.dataset.agTab === tab;
-      node.classList.toggle("is-active", isActive);
-      node.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
-    $("[data-ag-panel-today]").hidden = tab !== "today";
-    $("[data-ag-panel-history]").hidden = tab !== "history";
-    $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
-    $("[data-ag-panel-berge]").hidden = tab !== "berge";
-    if (tab === "history") renderHistory();
-    if (tab === "lieblinge") renderLieblinge();
-    if (tab === "berge") { renderBergePanel(); syncFromSheets().then(() => renderBergePanel()).catch(() => {}); }
-    const fab = $("[data-ag-fab]");
-    if (fab) fab.hidden = tab !== "berge";
-  }
-
-  // ── Sound engine (Web Audio API, no external files) ─────────────────────────
-
-  let _audioCtx = null;
-
-  function _getAudioCtx() {
-    if (!_audioCtx) {
-      try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
-    }
-    return _audioCtx;
-  }
-
-  function soundEnabled() {
-    try { return window.localStorage.getItem(SOUND_KEY) !== "off"; } catch (_) { return true; }
-  }
-
-  function setSoundEnabled(on) {
-    try { window.localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch (_) {}
-  }
-
-  function _playNote(ctx, freq, startSec, dur, vol = 0.15, type = "sine") {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = type;
-    osc.frequency.value = freq;
-    const t = ctx.currentTime + startSec;
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(vol, t + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.start(t);
-    osc.stop(t + dur + 0.05);
-  }
-
-  function playPullSound(tone) {
-    if (!soundEnabled()) return;
-    const ctx = _getAudioCtx();
-    if (!ctx) return;
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    const p = (f, s, d, v, t) => _playNote(ctx, f, s, d, v ?? 0.12, t ?? "sine");
-    switch (tone) {
-      case "quiet":
-        p(392, 0,    0.22, 0.07); p(294, 0.16, 0.30, 0.05);
-        break;
-      case "cursed":
-        p(233, 0,    0.14, 0.09, "triangle"); p(175, 0.11, 0.30, 0.07, "triangle");
-        p(117, 0.22, 0.32, 0.05, "triangle");
-        break;
-      case "uncommon":
-        p(523, 0,    0.15, 0.12); p(659, 0.11, 0.20, 0.12); p(784, 0.22, 0.30, 0.10);
-        p(523 * 1.005, 0, 0.15, 0.03); // subtle chorus
-        break;
-      case "rare":
-        p(523, 0,    0.13, 0.13); p(659, 0.09, 0.15, 0.13);
-        p(784, 0.18, 0.15, 0.12); p(1047, 0.27, 0.38, 0.11);
-        p(659 * 1.005, 0.09, 0.15, 0.04);
-        break;
-      case "jackpot":
-        [523, 659, 784, 1047, 1319].forEach((f, i) => {
-          p(f, i * 0.085, 0.22, 0.12); p(f * 1.004, i * 0.085, 0.22, 0.03); // chorus
-        });
-        p(2093, 0.44, 0.55, 0.05); p(2093, 0.54, 0.35, 0.03);
-        break;
-      case "special":
-        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => {
-          p(f, i * 0.075, 0.20, 0.11); p(f * 1.004, i * 0.075, 0.20, 0.03);
-        });
-        p(2093, 0.48, 0.55, 0.05); p(2637, 0.58, 0.42, 0.04);
-        break;
-      default: // common, quest, collect, photo
-        p(523, 0,    0.14, 0.12); p(659, 0.10, 0.22, 0.10);
-        p(523 * 1.005, 0, 0.14, 0.04); // slight warmth
-        break;
-    }
-  }
-
-  // ── Haptic feedback ─────────────────────────────────────────────────────────
-
-  function showToast(msg) {
-    const container = mount.querySelector("[data-ag-toasts]");
-    if (!container) return;
-    const el = document.createElement("div");
-    el.className = "ag-toast";
-    el.textContent = msg;
-    container.appendChild(el);
-    setTimeout(() => {
-      el.classList.add("is-leaving");
-      setTimeout(() => el.remove(), 300);
-    }, 2400);
-  }
-
-  function haptic(pattern) {
-    if (!navigator.vibrate) return;
-    try { navigator.vibrate(pattern); } catch (error) { /* ignore */ }
-  }
-
-  function bindEvents() {
-    // Hold draw button 3 s to reveal hidden letter
-    let letterHoldTimer = null;
-    const drawBtn = $("[data-ag-draw]");
-    drawBtn.addEventListener("pointerdown", () => {
-      letterHoldTimer = setTimeout(openLetter, 3000);
-    });
-    drawBtn.addEventListener("pointerup", () => clearTimeout(letterHoldTimer));
-    drawBtn.addEventListener("pointerleave", () => clearTimeout(letterHoldTimer));
-    drawBtn.addEventListener("pointercancel", () => clearTimeout(letterHoldTimer));
-
-    // Tap title 5 times to reveal hidden letter
-    let titleTapCount = 0, titleTapTimer = null;
-    $("[data-ag-main-title]").addEventListener("click", () => {
-      titleTapCount++;
-      clearTimeout(titleTapTimer);
-      if (titleTapCount >= 5) { titleTapCount = 0; openLetter(); return; }
-      titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 1800);
-    });
-
-    $("[data-ag-draw]").addEventListener("click", () => {
-      haptic(12);
-      reveal();
-    });
-    $("#ag-btn-rave")?.addEventListener("click", () => {
-      window.open("https://rave-board.vercel.app/", "_blank", "noopener");
-    });
-    $("#ag-btn-rave")?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        window.open("https://rave-board.vercel.app/", "_blank", "noopener");
-      }
-    });
-
-    $("#ag-btn-baerlauch")?.addEventListener("click", openBaerlauchGame);
-    $("#ag-baerlauch-close")?.addEventListener("click", closeBaerlauchGame);
-    $("#ag-baerlauch-next")?.addEventListener("click", openBaerlauchGame);
-    $("#ag-btn-baerlauch")?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openBaerlauchGame();
-      }
-    });
-    $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
-
-    // ── Glossary ────────────────────────────────────────────────────────────────
-    $("#ag-btn-glossary")?.addEventListener("click", openGlossaryPanel);
-    $("#ag-btn-glossary")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGlossaryPanel(); }
-    });
-    $("#ag-glossary-close")?.addEventListener("click", closeGlossaryPanel);
-
-    // Language tabs
-    document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
-      btn.addEventListener("click", () => { renderGlossaryPanel(btn.dataset.lang); haptic(4); });
-    });
-
-    // Add button
-    const glossaryAddBtn = document.getElementById("ag-glossary-add");
-    const glossaryForm = document.getElementById("ag-glossary-form");
-    if (glossaryAddBtn) {
-      glossaryAddBtn.addEventListener("click", () => {
-        if (!glossaryForm) return;
-        document.getElementById("ag-glossary-edit-id").value = "";
-        document.getElementById("ag-glossary-word-input").value = "";
-        document.getElementById("ag-glossary-meaning-input").value = "";
-        const titleEl = document.getElementById("ag-glossary-form-title");
-        if (titleEl) titleEl.textContent = "Neues Wort";
-        const labelEl = document.getElementById("ag-glossary-save-label");
-        if (labelEl) labelEl.textContent = "Eintragen";
-        const statusEl = document.getElementById("ag-glossary-audio-status");
-        if (statusEl) statusEl.textContent = "";
-        _glossaryAudioBlob = null;
-        const playPrev = document.getElementById("ag-glossary-play-preview");
-        if (playPrev) playPrev.hidden = true;
-        glossaryForm.hidden = false;
-        glossaryAddBtn.hidden = true;
-        document.getElementById("ag-glossary-word-input")?.focus();
-        haptic(8);
-      });
-    }
-
-    // Form cancel
-    document.getElementById("ag-glossary-form-cancel")?.addEventListener("click", () => {
-      if (glossaryForm) glossaryForm.hidden = true;
-      if (glossaryAddBtn) glossaryAddBtn.hidden = false;
-      document.getElementById("ag-glossary-edit-id").value = "";
-      _glossaryAudioBlob = null;
-      if (_glossaryRecorder && _glossaryRecorder.state !== "inactive") {
-        try { _glossaryRecorder.stop(); } catch (_) {}
-      }
-      _glossaryRecorder = null;
-      haptic(6);
-    });
-
-    // Form save
-    document.getElementById("ag-glossary-form-save")?.addEventListener("click", async () => {
-      const word = (document.getElementById("ag-glossary-word-input")?.value || "").trim();
-      const meaning = (document.getElementById("ag-glossary-meaning-input")?.value || "").trim();
-      const editId = (document.getElementById("ag-glossary-edit-id")?.value || "").trim();
-      if (!word) { document.getElementById("ag-glossary-word-input")?.focus(); return; }
-      const statusEl = document.getElementById("ag-glossary-audio-status");
-      let audioUrl = null;
-      if (_glossaryAudioBlob) {
-        if (statusEl) statusEl.textContent = "Wird hochgeladen…";
-        const newId = editId || `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
-        audioUrl = await uploadGlossaryAudio(_glossaryAudioBlob, newId);
-      }
-      haptic([20, 20, 40]);
-      if (editId) {
-        const fields = { word, meaning: meaning || null };
-        if (audioUrl !== null) fields.audioUrl = audioUrl;
-        updateGlossaryWord(editId, fields);
-      } else {
-        addGlossaryWord({ id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`, lang: _glossaryCurrentLang, word, meaning: meaning || null, audioUrl, token: getToken() });
-      }
-      if (glossaryForm) glossaryForm.hidden = true;
-      if (glossaryAddBtn) glossaryAddBtn.hidden = false;
-      document.getElementById("ag-glossary-edit-id").value = "";
-      _glossaryAudioBlob = null;
-      _glossaryRecorder = null;
-      renderGlossaryPanel(_glossaryCurrentLang);
-      showToast("Wort gespeichert ✓");
-    });
-
-    // Audio record
-    const recordBtn = document.getElementById("ag-glossary-record");
-    if (recordBtn) {
-      recordBtn.addEventListener("click", async () => {
-        if (_glossaryRecorder && _glossaryRecorder.state === "recording") {
-          _glossaryRecorder.stop();
-          return;
-        }
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          const chunks = [];
-          _glossaryRecorder = new MediaRecorder(stream);
-          _glossaryRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-          _glossaryRecorder.onstop = () => {
-            stream.getTracks().forEach(t => t.stop());
-            _glossaryAudioBlob = new Blob(chunks, { type: _glossaryRecorder.mimeType || "audio/webm" });
-            const statusEl = document.getElementById("ag-glossary-audio-status");
-            if (statusEl) statusEl.textContent = "✓ Aufnahme bereit";
-            const playPrev = document.getElementById("ag-glossary-play-preview");
-            if (playPrev) playPrev.hidden = false;
-            recordBtn.textContent = "🎙 Neu aufnehmen";
-          };
-          _glossaryRecorder.start();
-          recordBtn.textContent = "⏹ Stop";
-          const statusEl = document.getElementById("ag-glossary-audio-status");
-          if (statusEl) statusEl.textContent = "● REC";
-          haptic(10);
-        } catch (_) {
-          const statusEl = document.getElementById("ag-glossary-audio-status");
-          if (statusEl) statusEl.textContent = "Mikrofon nicht verfügbar";
-        }
-      });
-    }
-
-    // Preview playback
-    document.getElementById("ag-glossary-play-preview")?.addEventListener("click", () => {
-      if (!_glossaryAudioBlob) return;
-      const url = URL.createObjectURL(_glossaryAudioBlob);
-      const audio = new Audio(url);
-      audio.onended = () => URL.revokeObjectURL(url);
-      audio.play().catch(() => {});
-    });
-
-    $("#ag-btn-mission")?.addEventListener("click", openMissionPanel);
-    $("#ag-btn-mission")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMissionPanel(); }
-    });
-    $("#ag-mission-close")?.addEventListener("click", closeMissionPanel);
-    $("#ag-mission-done")?.addEventListener("click", () => {
-      markMissionDone();
-      const actionsEl = $("#ag-mission-actions");
-      const feedbackEl = $("#ag-mission-feedback");
-      const doneNote = $("#ag-mission-done-note");
-      const chip = $("#ag-btn-mission");
-      if (actionsEl) actionsEl.hidden = true;
-      if (doneNote) doneNote.hidden = false;
-      if (feedbackEl && !isFeedbackSentToday()) feedbackEl.hidden = false;
-      if (chip) chip.classList.remove("ag-chip-mission-active");
-    });
-    $("#ag-mission-panel")?.querySelectorAll(".ag-mission-rate-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        $("#ag-mission-panel")?.querySelectorAll(".ag-mission-rate-btn")
-          .forEach(b => b.classList.remove("is-selected"));
-        btn.classList.add("is-selected");
-      });
-    });
-    $("#ag-mission-feedback-send")?.addEventListener("click", () => {
-      const panel = $("#ag-mission-panel");
-      const selected = panel?.querySelector(".ag-mission-rate-btn.is-selected");
-      const rating = selected?.dataset.rating || null;
-      const comment = ($("#ag-mission-comment")?.value || "").trim();
-      sendMissionFeedback(rating, comment);
-      const sentEl = $("#ag-mission-feedback-sent");
-      panel?.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
-        .forEach(el => { el.hidden = true; });
-      if (sentEl) sentEl.hidden = false;
-    });
-    $("#ag-letter-close")?.addEventListener("click", closeLetter);
-    $("#ag-letter-overlay")?.addEventListener("click", (e) => {
-      if (e.target === e.currentTarget) closeLetter();
-    });
-    $("#ag-lightbox-close")?.addEventListener("click", closeLightbox);
-    $("#ag-lightbox")?.addEventListener("click", (e) => {
-      if (e.target === e.currentTarget) closeLightbox();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") { closeLetter(); closeLightbox(); }
-    });
-
-    $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
-    $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
-    $("#ag-gesprach-wa")?.addEventListener("click", sendGesprachToWhatsApp);
-    $("#ag-btn-gesprach")?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openGesprachPanel();
-      }
-    });
-    $("#ag-btn-quest")?.addEventListener("click", openQuestPanel);
-    $("#ag-quest-close")?.addEventListener("click", closeQuestPanel);
-    $("#ag-btn-quest")?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openQuestPanel();
-      }
-    });
-    $("#ag-quest-file")?.addEventListener("change", (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (file) handleQuestPhoto(file);
-    });
-    $("[data-ag-copy]").addEventListener("click", async () => {
-      if (!state.todaysPull) return;
-      haptic(8);
-      const text = messageText(state.todaysPull);
-      try {
-        await navigator.clipboard.writeText(text);
-        $("[data-ag-copy]").textContent = "Kopiert";
-        window.setTimeout(() => {
-          $("[data-ag-copy]").textContent = "Resultat kopieren";
-        }, 1400);
-      } catch (error) {
-        window.prompt("Resultat kopieren:", text);
-      }
-    });
-    $("[data-ag-save-img]").addEventListener("click", () => {
-      if (!state.todaysPull) return;
-      haptic(8);
-      downloadResultAsImage(state.todaysPull);
-    });
-    $("[data-ag-star]").addEventListener("click", () => {
-      haptic(8);
-      toggleFavorite(state.todaysPull);
-    });
-
-    const recoverBtn = $("[data-ag-recover-btn]");
-    if (recoverBtn) {
-      recoverBtn.addEventListener("click", () => {
-        recoverBtn.textContent = "⏳";
-        recoverBtn.disabled = true;
-        const added = recoverHistory();
-        renderHistory();
-        renderStreak();
-        recoverBtn.textContent = added > 0 ? `↺${added}` : "✓";
-        setTimeout(() => { recoverBtn.textContent = "↺"; recoverBtn.disabled = false; }, 3000);
-      });
-    }
-
-    const restoreBtn = $("[data-ag-streak-restore]");
-    if (restoreBtn) {
-      restoreBtn.addEventListener("click", () => {
-        if (!streakRestoreAvailable()) { renderStreakRestore(); return; }
-        const gapDay = streakRestoreGapDay();
-        const left = streakRestoresLeft();
-        const isBirthdayBonus = birthdayBonusLeft() > 0 && (left - birthdayBonusLeft()) <= 0;
-        const confirmMsg = isBirthdayBonus
-          ? `🎂 Geburtstagsgeschenk! Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen?`
-          : `Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${left - 1} Streak-Retter übrig.`;
-        const ok = window.confirm(confirmMsg);
-        if (!ok) return;
-        restoreBtn.disabled = true;
-        const mended = restoreStreak();
-        renderHistory();
-        renderStreak();
-        if (mended) {
-          const golds = ["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"];
-          triggerConfetti(110, golds);
-          haptic([30, 20, 30, 20, 60]);
-        }
-        renderStreakRestore();
-        restoreBtn.disabled = false;
-      });
-    }
-
-    const syncBtn = $("[data-ag-sync-btn]");
-    if (syncBtn) {
-      syncBtn.addEventListener("click", async () => {
-        syncBtn.textContent = "⏳";
-        syncBtn.disabled = true;
-        const result = await syncFromSheets();
-        renderHistory();
-        syncBtn.textContent = result < 0 ? "✗" : `✓${result}`;
-        setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 3000);
-      });
-    }
-
-    mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
-      node.addEventListener("click", () => {
-        haptic(6);
-        setActiveTab(node.dataset.agTab);
-      });
-    });
-
-    // Berge / Gipfelbuch
-    const bergeAddBtn = $("[data-ag-berge-add]");
-    const bergeForm = $("[data-ag-berge-form]");
-    const bergeCancel = $("[data-ag-berge-cancel]");
-    const bergeSave = $("[data-ag-berge-save]");
-    if (bergeAddBtn) {
-      bergeAddBtn.addEventListener("click", () => {
-        haptic(8);
-        const dateInput = $("[data-ag-berge-date]");
-        if (dateInput && !dateInput.value) dateInput.value = dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
-        bergeForm.hidden = false;
-        bergeAddBtn.hidden = true;
-        $("[data-ag-sheet-backdrop]")?.classList.add("is-open");
-        $("[data-ag-berge-name]").focus();
-      });
-    }
-    if (bergeCancel) {
-      bergeCancel.addEventListener("click", () => {
-        haptic(6);
-        bergeForm.hidden = true;
-        bergeAddBtn.hidden = false;
-        $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
-      });
-    }
-    if (bergeSave) {
-      bergeSave.addEventListener("click", () => {
-        const name = ($("[data-ag-berge-name]")?.value || "").trim();
-        const elev = parseInt($("[data-ag-berge-elev]")?.value || "", 10);
-        const dist = parseFloat($("[data-ag-berge-dist]")?.value || "");
-        const gain = parseInt($("[data-ag-berge-gain]")?.value || "", 10);
-        const date = $("[data-ag-berge-date]")?.value || dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
-        const url   = ($("[data-ag-berge-url]")?.value || "").trim();
-        const cover = ($("[data-ag-berge-cover]")?.value || "").trim();
-        const notes = ($("[data-ag-berge-notes]")?.value || "").trim();
-        const editId = ($("[data-ag-berge-edit-id]")?.value || "").trim();
-        if (!name) { $("[data-ag-berge-name]")?.focus(); return; }
-        haptic([20, 20, 40]);
-        const fields = { name, elevation: isNaN(elev) ? null : elev, distance: isNaN(dist) ? null : dist, elevGain: isNaN(gain) ? null : gain, date, activityUrl: url || null, cover: cover || null, notes: notes || null };
-        if (editId) {
-          updateGipfelEntry(editId, fields);
-        } else {
-          addGipfelEntry({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...fields, token: getToken() });
-        }
-        // reset form
-        ["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach((sel) => {
-          const el = $(sel); if (el) el.value = "";
-        });
-        const formTitle = $("[data-ag-berge-form-title]");
-        if (formTitle) formTitle.textContent = "Neuer Gipfeleintrag";
-        const saveSpan = $("[data-ag-berge-save] span:last-child");
-        if (saveSpan) saveSpan.textContent = "Eintragen";
-        bergeForm.hidden = true;
-        bergeAddBtn.hidden = false;
-        $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
-        renderBergePanel();
-        showToast("Gipfel gespeichert ✓");
-      });
-    }
-
-    // Show Fionn's ping card only for Fionn token (when backup is enabled)
-    const pingCard = $("[data-ag-ping-card]");
-    if (pingCard) {
-      pingCard.hidden = !(getToken() === "fionn" && state.backup?.enabled);
-    }
-
-    // Ping dismiss button
-    const pingDismiss = $("[data-ag-ping-dismiss]");
-    if (pingDismiss) {
-      pingDismiss.addEventListener("click", () => {
-        const banner = $("[data-ag-ping-banner]");
-        if (banner) banner.hidden = true;
-      });
-    }
-
-    // Fionn ping send button
-    const pingSend = $("[data-ag-ping-send]");
-    if (pingSend) {
-      pingSend.addEventListener("click", () => {
-        haptic([20, 30, 20]);
-        try { sendPingToBackend(); } catch (_error) { /* never block UI */ }
-      });
-    }
-
-    // Notfall-Umarmung
-    const hugSend = $("[data-ag-hug-send]");
-    if (hugSend) {
-      hugSend.addEventListener("click", () => {
-        haptic([20, 30, 20]);
-        try { sendHugToInbox(); } catch (_error) { /* never block UI */ }
-      });
-    }
-
-    // Wunschkapsel
-    const wishOpen = $("[data-ag-wish-open]");
-    const wishCancel = $("[data-ag-wish-cancel]");
-    const wishSubmit = $("[data-ag-wish-submit]");
-    if (wishOpen) {
-      wishOpen.addEventListener("click", () => {
-        haptic(8);
-        $("[data-ag-wish-idle]").hidden = true;
-        $("[data-ag-wish-form]").hidden = false;
-        const input = $("[data-ag-wish-input]");
-        if (input) window.setTimeout(() => input.focus(), 60);
-      });
-    }
-    if (wishCancel) {
-      wishCancel.addEventListener("click", () => {
-        haptic(6);
-        $("[data-ag-wish-form]").hidden = true;
-        $("[data-ag-wish-idle]").hidden = false;
-      });
-    }
-    if (wishSubmit) {
-      wishSubmit.addEventListener("click", () => {
-        const input = $("[data-ag-wish-input]");
-        const text = (input?.value || "").trim();
-        if (!text) return;
-        haptic([20, 20, 40]);
-        const entry = { week: currentWeekKey(), text, submittedAt: Date.now(), remoteStatus: "idle" };
-        writeWish(entry);
-        renderWunschkapsel();
-        try { sendWishToInbox(entry); } catch (_error) { /* never block local confirmation */ }
-      });
-    }
-
-    // Notification prompt
-    const notifEnable = $("[data-ag-notif-enable]");
-    const notifDismiss = $("[data-ag-notif-dismiss]");
-    if (notifEnable) {
-      notifEnable.addEventListener("click", () => {
-        haptic(10);
-        enableNotifications();
-      });
-    }
-    if (notifDismiss) {
-      notifDismiss.addEventListener("click", () => {
-        haptic(6);
-        try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
-        const card = $("[data-ag-notif-card]");
-        if (card) card.hidden = true;
-      });
-    }
-
-    // ── Sheet backdrop click → close open form ──────────────────────────────────
-    const backdrop = $("[data-ag-sheet-backdrop]");
-    if (backdrop) {
-      backdrop.addEventListener("click", () => {
-        haptic(6);
-        const bf = $("[data-ag-berge-form]");
-        const ba = $("[data-ag-berge-add]");
-        if (bf && !bf.hidden) { bf.hidden = true; if (ba) ba.hidden = false; }
-        const gf = document.getElementById("ag-glossary-form");
-        const ga = document.getElementById("ag-glossary-add");
-        if (gf && !gf.hidden) { gf.hidden = true; if (ga) ga.hidden = false; }
-        backdrop.classList.remove("is-open");
-      });
-    }
-
-    // ── FAB: open add form for active tab ───────────────────────────────────────
-    const fab = $("[data-ag-fab]");
-    if (fab) {
-      fab.addEventListener("click", () => {
-        haptic(8);
-        const addBtn = $("[data-ag-berge-add]");
-        if (addBtn && !addBtn.hidden) addBtn.click();
-      });
-    }
-
-    // ── Swipe left/right to switch tabs ─────────────────────────────────────────
-    const tabOrder = ["today", "history", "lieblinge", "berge"];
-    let _swipeX = 0, _swipeY = 0;
-    const _swipeTarget = $(".ag-content") || mount;
-    _swipeTarget.addEventListener("touchstart", (e) => {
-      _swipeX = e.touches[0].clientX;
-      _swipeY = e.touches[0].clientY;
-    }, { passive: true });
-    _swipeTarget.addEventListener("touchend", (e) => {
-      const dx = e.changedTouches[0].clientX - _swipeX;
-      const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
-      if (Math.abs(dx) > 52 && dy < 44) {
-        const cur = tabOrder.indexOf(state.activeTab);
-        const next = dx < 0 ? Math.min(cur + 1, tabOrder.length - 1) : Math.max(cur - 1, 0);
-        if (next !== cur) { haptic(6); setActiveTab(tabOrder[next]); }
-      }
-    }, { passive: true });
-
-    // ── Pull-to-refresh ──────────────────────────────────────────────────────────
-    const ptr = $("[data-ag-ptr]");
-    let _ptrStartY = 0, _ptrTriggered = false;
-    document.addEventListener("touchstart", (e) => {
-      if (window.scrollY === 0) _ptrStartY = e.touches[0].clientY;
-    }, { passive: true });
-    document.addEventListener("touchmove", (e) => {
-      if (!_ptrStartY) return;
-      const dy = e.touches[0].clientY - _ptrStartY;
-      if (dy > 64 && !_ptrTriggered && ptr) {
-        _ptrTriggered = true;
-        ptr.classList.add("is-visible");
-      }
-    }, { passive: true });
-    document.addEventListener("touchend", async () => {
-      if (_ptrTriggered && ptr) {
-        ptr.classList.add("is-loading");
-        await syncFromSheets();
-        if (state.activeTab === "berge") renderBergePanel();
-        if (state.activeTab === "history") renderHistory();
-        ptr.classList.remove("is-visible", "is-loading");
-        showToast("Aktualisiert ✓");
-      }
-      _ptrStartY = 0;
-      _ptrTriggered = false;
-    }, { passive: true });
-  }
-
-  function drawRoundRect(ctx, x, y, w, h, r) {
-    if (typeof ctx.roundRect === "function") {
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, r);
-    } else {
-      const radii = Array.isArray(r) ? r : [r, r, r, r];
-      const [tl, tr, br, bl] = radii.map((v) => Math.min(v, w / 2, h / 2));
-      ctx.beginPath();
-      ctx.moveTo(x + tl, y);
-      ctx.lineTo(x + w - tr, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
-      ctx.lineTo(x + w, y + h - br);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
-      ctx.lineTo(x + bl, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
-      ctx.lineTo(x, y + tl);
-      ctx.quadraticCurveTo(x, y, x + tl, y);
-      ctx.closePath();
-    }
-  }
-
-  function downloadResultAsImage(pull) {
-    const W = 640;
-    const H = 340;
-    const PAD = 40;
-    const canvas = document.createElement("canvas");
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
-
-    // Background
-    const isJackpot = pull.category.id === "jackpot";
-    const bg1 = isJackpot ? "#2d1f00" : "#0d2b1c";
-    const bg2 = isJackpot ? "#1a1000" : "#061510";
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, bg1);
-    grad.addColorStop(1, bg2);
-    ctx.fillStyle = grad;
-    drawRoundRect(ctx, 0, 0, W, H, 20);
-    ctx.fill();
-
-    // Accent stripe at top
-    const accentColor = isJackpot ? "#b9782e" : "#2f7a4f";
-    ctx.fillStyle = accentColor;
-    drawRoundRect(ctx, 0, 0, W, 5, [20, 20, 0, 0]);
-    ctx.fill();
-
-    // Badge
-    const badgeText = pull.category.label;
-    const emoji = emojiForTone(pull.category.tone);
-    ctx.font = "bold 13px Satoshi, Inter, system-ui, sans-serif";
-    ctx.fillStyle = isJackpot ? "#d4a24c" : "#5aba7e";
-    ctx.fillText(`${emoji} ${badgeText}`, PAD, PAD + 22);
-
-    // Date
-    const dateText = pull.day;
-    ctx.font = "13px Satoshi, Inter, system-ui, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    const dateW = ctx.measureText(dateText).width;
-    ctx.fillText(dateText, W - PAD - dateW, PAD + 22);
-
-    // Divider
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(PAD, PAD + 36);
-    ctx.lineTo(W - PAD, PAD + 36);
-    ctx.stroke();
-
-    // Title
-    ctx.font = "bold 24px Boska, Georgia, serif";
-    ctx.fillStyle = "#ffffff";
-    const titleLines = wrapText(ctx, pull.outcome.title, W - PAD * 2);
-    let y = PAD + 68;
-    for (const line of titleLines) {
-      ctx.fillText(line, PAD, y);
-      y += 32;
-    }
-
-    // Message
-    ctx.font = "15px Satoshi, Inter, system-ui, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    const msgLines = wrapText(ctx, pull.outcome.message, W - PAD * 2);
-    y += 4;
-    for (const line of msgLines) {
-      if (y > H - PAD - 30) break;
-      ctx.fillText(line, PAD, y);
-      y += 22;
-    }
-
-    // Branding watermark
-    ctx.font = "11px Satoshi, Inter, system-ui, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    const brand = state.theme?.brand?.machineName || "Affektions-Gacha";
-    ctx.fillText(brand, PAD, H - 16);
-
-    const link = document.createElement("a");
-    link.download = `gacha-${pull.category.id}-${pull.day}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  }
-
-  function wrapText(ctx, text, maxWidth) {
-    const words = text.split(" ");
-    const lines = [];
-    let current = "";
-    for (const word of words) {
-      const test = current ? `${current} ${word}` : word;
-      if (ctx.measureText(test).width > maxWidth && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = test;
-      }
-    }
-    if (current) lines.push(current);
-    return lines;
-  }
-
-  function renderError(error) {
-    mount.style.opacity = "1";
-    mount.innerHTML = `
-      <div class="ag-error">
-        <h2>Die Maschine klemmt.</h2>
-        <p>${escapeHtml(error.message || String(error))}</p>
-      </div>
-    `;
-  }
-
-  function escapeHtml(value) {
-    return value.replace(/[&<>"']/g, (character) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[character]));
-  }
-
-  /** Validate a URL is http(s) before assigning to src/href. Returns "" for anything else. */
-  function safeUrl(url) {
-    if (typeof url !== "string") return "";
-    try {
-      const parsed = new URL(url, window.location.href);
-      return (parsed.protocol === "https:" || parsed.protocol === "http:") ? parsed.href : "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-  function extractDriveFileId(url) {
-    if (typeof url !== "string") return null;
-    // drive.google.com/uc?id={id}&... or drive.google.com/file/d/{id}/...
-    const m = /drive\.google\.com\/(?:uc\?(?:[^&]*&)*id=([^&]+)|file\/d\/([^/?]+))/.exec(url);
-    return m ? (m[1] || m[2]) : null;
-  }
-
-  function injectStyles() {
-    if (document.querySelector("[data-ag-styles]")) return;
-    const style = document.createElement("style");
-    style.dataset.agStyles = "true";
-    style.textContent = `
+(function(){"use strict";const d={theme:null,outcomes:null,photos:null,specialDays:null,quest:null,missions:null,todaysPull:null,activeTab:"today",revealed:!1,syncedHistory:null,baerlauch:{level:1,locked:!1,timerId:null,startedAt:null,durationMs:8e3}};let C=null;function Pn(e){C=e}function l(e){return C.querySelector(e)}const xt="affektions-gacha:history:v1",wt="affektions-gacha:favourites:v1",kt="affektions-gacha:tokens:v1",St="affektions-gacha:streak-cache:v1",Et="affektions-gacha:streak-synced:v1",Tt="affektions-gacha:streak-restore:v1",Ct="affektions-gacha:wish:v1",Lt="affektions-gacha:milestones:v1",he="affektions-gacha:notif:v1",At="affektions-gacha:baerlauch-scores:v1",Bn="affektions-gacha:baerlauch-history:v1",It="affektions-gacha:mission-log:v1",Mt="affektions-gacha:gesprach-idx:v1",Un="affektions-gacha:sound:v1",zt="affektions-gacha:gipfelbuch:v1",Dt="affektions-gacha:quest:v1",qe="affektions-gacha:quest-points:v1",qn=20,$t=[100,75,50,25],Nt="affektions-gacha:glossary:v1",jn={"🌿":"Fionn kocht dir ein Abendessen nach Wahl","🔥":"Wochenend-Abenteuer — Ziel nach deiner Wahl","⭐":"Fionns Überraschung — er entscheidet"};function A(e,t){const a=new Intl.DateTimeFormat("de-CH",{timeZone:e,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date),n=i=>a.find(r=>r.type===i).value;return`${n("year")}-${n("month")}-${n("day")}`}function je(e){const t=new Intl.DateTimeFormat("en-US",{timeZone:e,hour:"2-digit",minute:"2-digit",hour12:!1}).formatToParts(new Date),a=n=>Number(t.find(i=>i.type===n).value);return{h:a("hour"),m:a("minute")}}function _n(e){if(!e)return"";try{return new Date(e+"T12:00:00").toLocaleDateString("de-CH",{day:"numeric",month:"long",year:"numeric"})}catch{return e}}function Pt(e){return!e&&e!==0?"—":Number(e).toLocaleString("de-CH")+" m"}function _(e){if(typeof e!="string")return"";try{const t=new URL(e,window.location.href);return t.protocol==="https:"||t.protocol==="http:"?t.href:""}catch{return""}}function On(e){let t=2166136261;for(let a=0;a<e.length;a+=1)t^=e.charCodeAt(a),t=Math.imul(t,16777619);return t>>>0}function Rn(e){return function(){let t=e+=1831565813;return t=Math.imul(t^t>>>15,t|1),t^=t+Math.imul(t^t>>>7,t|61),((t^t>>>14)>>>0)/4294967296}}function O(e){return Rn(On(e))()}function fe(e,t){return t?Math.floor(O(e)*t):0}function Hn(e){const t=e.match(/komoot\.com(?:\/[a-z-]+)?\/tour\/(\d+)/);return t?t[1]:null}function Fn(e){if(typeof e!="string")return null;const t=/drive\.google\.com\/(?:uc\?(?:[^&]*&)*id=([^&]+)|file\/d\/([^/?]+))/.exec(e);return t?t[1]||t[2]:null}function Gn(e,t,a){return new URL(e,a()).toString()}function I(){return U()==="fionn"?"fionn":"lennart"}function U(){try{return new URLSearchParams(window.location.search).get("player")==="fionn"?"fionn":"lennart"}catch{return"lennart"}}function _e(){const t=new URLSearchParams(window.location.search).get("preview-day");return t?/^\d{4}-\d{2}-\d{2}$/.test(t)?t:/^\d{2}-\d{2}$/.test(t)?`${new Date().getFullYear().toString()}-${t}`:null:null}function Wn(){const t=(new URLSearchParams(window.location.search).get("preview-category")||"").trim().toLowerCase();return t||null}function Oe(){const e=new Date,t=new Date(Date.UTC(e.getUTCFullYear(),e.getUTCMonth(),e.getUTCDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));const a=new Date(Date.UTC(t.getUTCFullYear(),0,1)),n=Math.ceil(((t-a)/864e5+1)/7);return`${t.getUTCFullYear()}-W${String(n).padStart(2,"0")}`}function be(e){var s,c;const t=((s=e.theme)==null?void 0:s.timezone)||"UTC",a=A(t),[n,i,r]=a.split("-").map(Number),o=Math.floor(new Date(Date.UTC(n,i-1,r)).getTime()/864e5);return Math.floor(o/(((c=e.quest)==null?void 0:c.periodDays)||2))}function ye(e){var i;const t=(i=e.quest)==null?void 0:i.challenges;if(!Array.isArray(t)||!t.length)return null;const a=be(e),n=t[a%t.length];return typeof n=="string"?{prompt:n,solution:""}:n}function Bt(e){const t=new Date;return Math.floor((t-new Date(t.getFullYear(),0,0))/864e5)%e.length}function Kn(e){const t=String(e||"").trim();if(!t)return"";if(/^\d{4}-\d{2}-\d{2}/.test(t)||/^\d{4}-\d{2}-\d{2}T/.test(t))return t.slice(0,10);const a={Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12"},n=t.match(/([A-Za-z]{3})\s+(\d{1,2})/);return n&&a[n[1]]?`${new Date().getFullYear()}-${a[n[1]]}-${String(n[2]).padStart(2,"0")}`:""}function $(){try{if(typeof window>"u"||!window.localStorage)return d.syncedHistory||[];const e=window.localStorage.getItem(xt);if(!e)return d.syncedHistory||[];const t=JSON.parse(e);if(!Array.isArray(t))return d.syncedHistory||[];const a=t.filter(n=>n&&typeof n.day=="string"&&typeof n.token=="string").map(n=>n.token===n.token.toLowerCase()?n:{...n,token:n.token.toLowerCase()});return a.length?a:d.syncedHistory||[]}catch{return d.syncedHistory||[]}}function ne(e){try{if(typeof window>"u"||!window.localStorage)return;window.localStorage.setItem(xt,JSON.stringify(e))}catch{}}function H(){var e;try{if(typeof window>"u"||!window.localStorage)return[];const t=window.localStorage.getItem(wt);if(!t)return[];const a=JSON.parse(t);if(!Array.isArray(a))return[];const n=(e=d.theme)!=null&&e.timezone?A(d.theme.timezone):new Date().toISOString().slice(0,10);return a.filter(i=>i&&typeof i.day=="string"&&typeof i.token=="string"&&i.day<=n)}catch{return[]}}function ve(e){try{if(typeof window>"u"||!window.localStorage)return;window.localStorage.setItem(wt,JSON.stringify(e))}catch{}}function xe(){try{const e=localStorage.getItem(kt),t=e?JSON.parse(e):{};return typeof t=="object"&&t!==null?t:{}}catch{return{}}}function Re(e){try{localStorage.setItem(kt,JSON.stringify(e))}catch{}}function Yn(e){const t=xe();return t[e]=(t[e]||0)+1,Re(t),t[e]}function Jn(e){const t=xe();t[e]=0,Re(t)}function He(){try{if(typeof window>"u"||!window.localStorage)return null;const e=window.localStorage.getItem(Ct);if(!e)return null;const t=JSON.parse(e);return t&&typeof t=="object"?t:null}catch{return null}}function Ut(e){try{if(typeof window>"u"||!window.localStorage)return;window.localStorage.setItem(Ct,JSON.stringify(e))}catch{}}function re(){try{return JSON.parse(localStorage.getItem(Tt)||"{}")||{}}catch{return{}}}function qt(e){try{localStorage.setItem(Tt,JSON.stringify(e))}catch{}}function Vn(){try{return parseInt(localStorage.getItem(St)||"0",10)||0}catch{return 0}}function ie(e){try{localStorage.setItem(St,String(e))}catch{}}function Zn(){try{return parseInt(localStorage.getItem(Et)||"0",10)||0}catch{return 0}}function Qn(e){try{localStorage.setItem(Et,String(e))}catch{}}function oe(){try{const e=window.localStorage.getItem(zt);if(!e)return[];const t=JSON.parse(e);return Array.isArray(t)?t:[]}catch{return[]}}function we(e){try{window.localStorage.setItem(zt,JSON.stringify(e))}catch{}}function ke(){try{const e=localStorage.getItem(It),t=e?JSON.parse(e):[];return Array.isArray(t)?t:[]}catch{return[]}}function Fe(e){try{localStorage.setItem(It,JSON.stringify(e))}catch{}}function Ge(){try{const e=localStorage.getItem(At),t=e?JSON.parse(e):{};return typeof t=="object"&&t!==null?t:{}}catch{return{}}}function jt(){try{const e=localStorage.getItem(Bn),t=e?JSON.parse(e):[];return Array.isArray(t)?t:[]}catch{return[]}}function se(e){try{const t=localStorage.getItem(Dt),a=t?JSON.parse(t):{},n=e();return a.period!==n?{period:n,solved:!1,attempts:0,hints:[]}:a}catch{return{period:e(),solved:!1,attempts:0,hints:[]}}}function We(e){try{localStorage.setItem(Dt,JSON.stringify(e))}catch{}}function Se(){try{return parseInt(localStorage.getItem(qe)||"0",10)}catch{return 0}}function Xn(e){try{const t=Se()+e;return localStorage.setItem(qe,String(t)),t}catch{return e}}function _t(){try{if(typeof window>"u"||!window.localStorage)return[];const e=window.localStorage.getItem(Lt);if(!e)return[];const t=JSON.parse(e);return Array.isArray(t)?t:[]}catch{return[]}}function er(e){try{if(typeof window>"u"||!window.localStorage)return;window.localStorage.setItem(Lt,JSON.stringify(e))}catch{}}function tr(e,t){return _t().includes(`${e}|${t}`)}function ar(e,t){const a=`${e}|${t}`,n=_t();n.includes(a)||er([...n,a])}function Ot(e){try{return localStorage.getItem("affektions-gacha:pin-unlock:"+e)==="1"}catch{return!1}}function Rt(e){try{localStorage.setItem("affektions-gacha:pin-unlock:"+e,"1")}catch{}}function R(){var f;const e=I(),t=$().filter(b=>b.token===e);if(!t.length)return 0;const a=((f=d.theme)==null?void 0:f.timezone)||"UTC",n=A(a),i=new Set(t.map(b=>b.day)),[r,o,s]=n.split("-").map(Number);let c=new Date(Date.UTC(r,o-1,s)),g=n;i.has(g)||(c.setUTCDate(c.getUTCDate()-1),g=c.toISOString().slice(0,10));let p=0;for(;i.has(g);)p++,c.setUTCDate(c.getUTCDate()-1),g=c.toISOString().slice(0,10);return Math.max(p,Vn(),Zn())}function Ht(e){if(e<=0)return null;const t=e===1?"Tag":"Tage";return e>=20?{emoji:"💎",label:`${e} ${t}`,tier:3}:e>=10?{emoji:"🔥",label:`${e} ${t}`,tier:2}:e>=5?{emoji:"✨",label:`${e} ${t}`,tier:1}:{emoji:"🌱",label:`${e} ${t}`,tier:0}}function Ft(e){if(e<5)return d.outcomes.categories;const t=e>=20?{niete:.4,jackpot:2,rare:1.5,uncommon:1.3}:e>=10?{niete:.6,jackpot:1.5,rare:1.3,uncommon:1.2}:{niete:.8,jackpot:1.2,rare:1.15,uncommon:1.1};return d.outcomes.categories.map(a=>({...a,weight:Math.max(1,Math.round(a.weight*(t[a.id]||1)))}))}function nr(e,t){const a=Ft(t),n=a.reduce((o,s)=>o+s.weight,0),i=Math.floor(O(e)*n);let r=0;for(const o of a)if(r+=o.weight,i<r)return d.outcomes.categories.find(s=>s.id===o.id)||o;return d.outcomes.categories[d.outcomes.categories.length-1]}function Gt(){const e=re();return Math.floor((e.maxStreak||0)/qn)}function Ee(){var n;if(re().birthdayBonus2026Used)return 0;const t=((n=d.theme)==null?void 0:n.timezone)||"UTC";return A(t)==="2026-05-29"?1:0}function Ke(){const e=re();return Math.max(0,Gt()-(e.used||0))+Ee()}function Ye(){var p;const e=I(),t=((p=d.theme)==null?void 0:p.timezone)||"UTC",a=A(t),n=new Set($().filter(f=>f.token===e&&f.day<=a).map(f=>f.day));if(!n.size)return null;const i=[...n].sort()[0],[r,o,s]=a.split("-").map(Number),c=new Date(Date.UTC(r,o-1,s));let g=a;for(n.has(g)||(c.setUTCDate(c.getUTCDate()-1),g=c.toISOString().slice(0,10));n.has(g);)c.setUTCDate(c.getUTCDate()-1),g=c.toISOString().slice(0,10);return g<i?null:g}function Wt(){return Ke()>0&&Ye()!==null}function rr(e){if(Ke()<=0)return null;const t=Ye();if(!t)return null;const a=I(),n={day:t,token:a,categoryId:"niete",categoryLabel:"Streak gerettet",tone:"quiet",title:"Streak gerettet 💎",message:"Dieser Tag wurde mit einem Streak-Retter wiederhergestellt.",link:null,photo:null,unlockTime:null,revealedAt:new Date(t+"T12:00:00").getTime(),restored:!0},i=new Set,r=[n,...$()].filter(g=>{const p=`${g.day}|${g.token}`;return i.has(p)?!1:(i.add(p),!0)}).sort((g,p)=>g.day<p.day?1:g.day>p.day?-1:0);ne(r);const o=re(),c=Math.max(0,Gt()-(o.used||0))===0&&Ee()>0;return qt({...o,used:c?o.used||0:(o.used||0)+1,birthdayBonus2026Used:c?!0:o.birthdayBonus2026Used||!1,usedAt:Date.now()}),ie(R()),t}let Je="",Ve=null;function ir(e,t){Je=e,Ve=t}function Kt(){if(Ve)return Ve();if(!Je)return window.location.href;try{return new URL(Je,window.location.href).toString()}catch{return window.location.href}}function N(e,t=null){const a=new URL(e,Kt()).toString();return fetch(a,{cache:"no-store"}).then(n=>{if(!n.ok){if(t!==null)return t;throw new Error(`${e}: HTTP ${n.status}`)}return n.json()})}async function Te(){var e;try{const t=d.backup;if(!t||!t.enabled||!t.endpointUrl)return!1;const a=I(),n=`${t.endpointUrl}?token=${encodeURIComponent(a)}`,i=new AbortController,r=setTimeout(()=>i.abort(),12e3);let o;try{o=await fetch(n,{cache:"no-store",signal:i.signal})}finally{clearTimeout(r)}if(!o.ok)return!1;const s=await o.json();if(!s.ok)return!1;const c=A(((e=d.theme)==null?void 0:e.timezone)||"UTC"),g=$(),p=g.filter(m=>m.title!=="(wiederhergestellt)"&&m.day<=c);p.length!==g.length&&ne(p);const f=H(),b=f.filter(m=>m.day<=c);if(b.length!==f.length&&ve(b),Array.isArray(s.history)&&s.history.length){const m=$(),y=new Map(m.map(h=>[h.day,h]));for(const h of s.history){if(h.title==="(wiederhergestellt)")continue;const w=Kn(h.day);if(!w||w>c)continue;const L=typeof h.token=="string"?h.token.toLowerCase():h.token;y.set(w,{...h,day:w,token:L})}const v=Array.from(y.values()).sort((h,w)=>w.day.localeCompare(h.day));ne(v),d.syncedHistory=v,ie(R())}if(Array.isArray(s.favourites)&&s.favourites.length){const m=H(),y=new Map(m.map(v=>[v.day,v]));for(const v of s.favourites)v.day<=c&&y.set(v.day,v);ve(Array.from(y.values()).sort((v,h)=>h.day.localeCompare(v.day)))}if(s.tokens&&typeof s.tokens=="object"&&Re(s.tokens),typeof s.questPoints=="number"&&s.questPoints>Se())try{localStorage.setItem(qe,String(s.questPoints))}catch{}if(typeof s.streak=="number"&&s.streak>0&&(Qn(s.streak),s.streak>R()&&ie(s.streak)),s.baerlauchScores&&typeof s.baerlauchScores=="object"){const m=Ge();let y=!1;for(const[v,h]of Object.entries(s.baerlauchScores))typeof h=="number"&&h>(m[v]||0)&&(m[v]=h,y=!0);if(y)try{localStorage.setItem(At,JSON.stringify(m))}catch{}}if(Array.isArray(s.missionLog)&&s.missionLog.length){const m=ke(),y=new Map(m.map(h=>[`${h.day}|${h.player}`,h]));for(const h of s.missionLog)!h.day||!h.player||y.set(`${h.day}|${h.player}`,h);const v=Array.from(y.values()).sort((h,w)=>w.day.localeCompare(h.day));Fe(v)}if(typeof s.latestPing=="string"&&s.latestPing&&I()!=="fionn")try{const m="affektions-gacha:last-ping:v1",y=window.localStorage.getItem(m)||"";s.latestPing>y&&(window.localStorage.setItem(m,s.latestPing),d._newPing=!0)}catch{}if(Array.isArray(s.gipfelbuch)&&s.gipfelbuch.length){const m=oe(),y=new Map(m.map(h=>[h.id,h]));for(const h of s.gipfelbuch)h.id&&y.set(h.id,h);const v=Array.from(y.values()).sort((h,w)=>(w.date||"").localeCompare(h.date||""));we(v)}return C&&C.dispatchEvent(new CustomEvent("ag-synced",{bubbles:!1,detail:{data:s}})),Array.isArray(s.history)?s.history.length:0}catch{return-1}}function Z(){try{const e=d.backup;if(!e||!e.enabled||!e.endpointUrl)return;const t=I(),a=$().filter(s=>(s.token||"").toLowerCase()===t.toLowerCase()),n=se(()=>be(d)),i=n.solved&&n.pointsEarned&&!n._logged?{challenge:ye(d),attempts:n.attempts,points:n.pointsEarned,period:n.period}:void 0;i&&(n._logged=!0,We(n));const r=JSON.stringify({type:"gacha-backup",token:t,history:a,favourites:H(),streak:R(),tokens:xe(),questPoints:Se(),...i?{questLog:i}:{}}),o={method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:r};fetch(e.endpointUrl,o).catch(()=>{fetch(e.endpointUrl,{...o,mode:"no-cors"}).catch(()=>{})})}catch{}}function or(){if(document.querySelector("[data-ag-fonts]"))return;const e=document.createElement("link");e.dataset.agFonts="true",e.rel="stylesheet",e.href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=boska@400,500,700&display=swap",document.head.appendChild(e)}function sr(e){const t=(i,r)=>C.style.setProperty(i,r),a=e.colors||{},n=e.darkColors||a;t("--ag-bg",a.background),t("--ag-surface",a.surface),t("--ag-surface-2",a.surfaceAlt),t("--ag-text",a.text),t("--ag-muted",a.muted),t("--ag-border",a.border),t("--ag-primary",a.primary),t("--ag-primary-dark",a.primaryDark),t("--ag-gold",a.gold),t("--ag-green",a.green),t("--ag-blue",a.blue),t("--ag-sky",a.sky),t("--ag-mountain",a.mountain),t("--ag-dark-bg",n.background),t("--ag-dark-surface",n.surface),t("--ag-dark-surface-2",n.surfaceAlt),t("--ag-dark-text",n.text),t("--ag-dark-muted",n.muted),t("--ag-dark-border",n.border),t("--ag-dark-primary",n.primary),t("--ag-dark-primary-dark",n.primaryDark),t("--ag-dark-gold",n.gold),t("--ag-dark-green",n.green),t("--ag-dark-blue",n.blue),t("--ag-dark-sky",n.sky),t("--ag-dark-mountain",n.mountain)}const Yt={background:"--ag-bg",surface:"--ag-surface",surfaceAlt:"--ag-surface-2",text:"--ag-text",muted:"--ag-muted",border:"--ag-border",primary:"--ag-primary",primaryDark:"--ag-primary-dark",gold:"--ag-gold",green:"--ag-green",blue:"--ag-blue",sky:"--ag-sky",mountain:"--ag-mountain"},Jt={background:"--ag-dark-bg",surface:"--ag-dark-surface",surfaceAlt:"--ag-dark-surface-2",text:"--ag-dark-text",muted:"--ag-dark-muted",border:"--ag-dark-border",primary:"--ag-dark-primary",primaryDark:"--ag-dark-primary-dark",gold:"--ag-dark-gold",green:"--ag-dark-green",blue:"--ag-dark-blue",sky:"--ag-dark-sky",mountain:"--ag-dark-mountain"};function lr(e){const t=dr(e);if(!t)return;const a=(n,i)=>C.style.setProperty(n,i);if(t.colors&&typeof t.colors=="object")for(const[n,i]of Object.entries(t.colors))Yt[n]&&typeof i=="string"&&a(Yt[n],i);if(t.darkColors&&typeof t.darkColors=="object")for(const[n,i]of Object.entries(t.darkColors))Jt[n]&&typeof i=="string"&&a(Jt[n],i)}function dr(e){const t=Array.isArray(d.specialDays&&d.specialDays.days)?d.specialDays.days:[],a=e.slice(5);for(const n of t)if(n.date===e||n.date===a)return n;return null}const cr=`
       .ag-widget,.ag-widget *{box-sizing:border-box}
       .ag-widget [hidden]{display:none!important}
       .ag-widget:not(.is-ready){opacity:0}
@@ -6159,6 +716,12 @@
         display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
       }
       .ag-draw-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+      .ag-sound-toggle{
+        background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;
+        padding:4px;border-radius:6px;color:var(--ag-muted);transition:color 120ms,opacity 120ms;
+        margin-left:auto;
+      }
+      .ag-sound-toggle:hover{color:var(--ag-text)}
       .ag-pill{
         display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
         border-radius:999px;background:var(--ag-surface-2);
@@ -6426,45 +989,34 @@
       .ag-berge-elev-input{font-size:1rem;font-weight:700}
       .ag-berge-notes{resize:vertical;min-height:60px}
 
-      [data-ag-berge-list]{display:flex;flex-direction:column;gap:12px;margin-top:12px}
-
       .ag-gipfel-card{
-        position:relative;overflow:hidden;
+        position:relative;
         animation:ag-enter 350ms var(--ag-ease);
+        overflow:hidden;
       }
-      .ag-gipfel-cover{
-        height:160px;overflow:hidden;margin-bottom:14px;
-        border-radius:calc(var(--ag-radius-md) - 2px);
+      .ag-gipfel-head{
+        display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+        margin-bottom:10px;
       }
-      .ag-gipfel-cover img{width:100%;height:100%;object-fit:cover;display:block}
-      .ag-gipfel-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
-      .ag-gipfel-head-info{flex:1;min-width:0}
       .ag-gipfel-name{font-size:1.15rem;font-weight:800;color:var(--ag-text);line-height:1.2;margin-bottom:3px}
       .ag-gipfel-date{font-size:.82rem;color:var(--ag-muted);font-weight:500}
       .ag-gipfel-elev{
-        font-size:2rem;font-weight:800;
+        font-size:2.2rem;font-weight:800;
         color:var(--ag-primary-dark);
         letter-spacing:-.03em;line-height:1;
-        white-space:nowrap;flex-shrink:0;padding-top:2px;
+        white-space:nowrap;flex-shrink:0;
       }
-      .ag-gipfel-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0;align-items:flex-end}
-      .ag-gipfel-stats{font-size:.82rem;color:var(--ag-muted);font-weight:500;margin-bottom:6px}
-      .ag-gipfel-notes{margin:0 0 10px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
-      .ag-gipfel-embed-wrap{margin-top:10px;margin-bottom:4px}
+      .ag-gipfel-notes{margin:0 0 12px;color:var(--ag-muted);font-size:.9rem;line-height:1.55}
+      .ag-gipfel-embed-wrap{margin-top:10px}
       .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
       .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
-      .ag-gipfel-edit{
-        background:none;border:none;cursor:pointer;font-size:1rem;
-        padding:2px 4px;border-radius:4px;opacity:.5;
-        transition:opacity 120ms;line-height:1;
-      }
-      .ag-gipfel-edit:hover{opacity:1}
       .ag-gipfel-delete{
+        position:absolute;top:10px;right:10px;
         background:none;border:none;cursor:pointer;
-        color:var(--ag-muted);font-size:.85rem;padding:2px 4px;
-        border-radius:4px;opacity:.45;transition:opacity 120ms,color 120ms;line-height:1;
+        color:var(--ag-muted);font-size:.85rem;padding:4px 6px;
+        border-radius:4px;opacity:.5;transition:opacity 120ms;
       }
-      .ag-gipfel-delete:hover{opacity:1;color:#c84a18}
+      .ag-gipfel-delete:hover{opacity:1;color:var(--ag-text)}
       @media (prefers-color-scheme:dark){
         .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
         .ag-berge-input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fffdf2}
@@ -6473,73 +1025,6 @@
         .ag-berge-row{grid-template-columns:1fr}
         .ag-gipfel-elev{font-size:1.7rem}
       }
-      .ag-score-highscores{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--ag-border)}
-
-      /* ── Gipfel card spacing ── */
-      .ag-gipfel-card{padding:12px 14px !important}
-      .ag-gipfel-head{margin-bottom:8px}
-      .ag-gipfel-card .ag-secondary{
-        display:inline-block;min-height:0;line-height:1;
-        font-size:.84rem;padding:6px 12px;border-radius:999px;margin-top:6px;
-      }
-      .ag-gipfel-embed-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-      .ag-gipfel-embed-row .ag-secondary{margin-top:0}
-      .ag-gipfel-map-preview{margin-top:10px;border-radius:8px;overflow:hidden;line-height:0}
-      .ag-gipfel-map-preview iframe{display:block;width:100%;border:0;border-radius:8px}
-
-      /* ── Glossary ── */
-      .ag-glossary-tabs{margin:10px 0 14px}
-      .ag-glossary-tab-track{
-        position:relative;display:inline-flex;align-items:center;
-        background:var(--ag-surface-2);border-radius:999px;padding:3px;gap:0;
-      }
-      .ag-glossary-tab-pill{
-        position:absolute;top:3px;left:3px;height:calc(100% - 6px);
-        background:var(--ag-primary);border-radius:999px;
-        transition:transform 220ms var(--ag-ease),width 220ms var(--ag-ease);
-        pointer-events:none;
-      }
-      .ag-glossary-tab{
-        position:relative;z-index:1;background:none;border:none;cursor:pointer;
-        padding:6px 14px;border-radius:999px;font-size:.82rem;font-weight:700;
-        font-family:inherit;color:var(--ag-muted);transition:color 160ms;
-        white-space:nowrap;
-      }
-      .ag-glossary-tab.is-active{color:#fffdf8}
-      .ag-glossary-list{display:grid;gap:8px;margin-bottom:6px}
-      .ag-glossary-card{
-        background:var(--ag-surface-2);border:1px solid var(--ag-border);
-        border-radius:var(--ag-radius-md);padding:12px 14px;
-        transition:border-color 160ms;
-      }
-      .ag-glossary-card:hover{border-color:rgba(47,122,79,.4)}
-      .ag-glossary-card-body{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-      .ag-glossary-card-text{min-width:0;flex:1}
-      .ag-glossary-word{font-size:1.05rem;font-weight:800;color:var(--ag-text);margin-bottom:3px}
-      .ag-glossary-meaning-text{font-size:.88rem;color:var(--ag-muted);line-height:1.5}
-      .ag-glossary-card-btns{display:flex;align-items:center;gap:4px;flex-shrink:0}
-      .ag-glossary-play-btn{
-        background:var(--ag-primary);border:none;color:#fff;cursor:pointer;
-        width:30px;height:30px;border-radius:999px;font-size:.8rem;
-        display:flex;align-items:center;justify-content:center;
-        transition:transform 120ms,opacity 120ms;
-      }
-      .ag-glossary-play-btn:hover{transform:scale(1.1)}
-      .ag-glossary-edit-btn,.ag-glossary-del-btn{
-        background:none;border:none;cursor:pointer;color:var(--ag-muted);
-        font-size:.72rem;font-weight:700;padding:4px 7px;border-radius:6px;
-        opacity:.5;transition:opacity 120ms,background 120ms;font-family:inherit;
-      }
-      .ag-glossary-edit-btn:hover{opacity:1;background:rgba(47,122,79,.1)}
-      .ag-glossary-del-btn:hover{opacity:1;color:#c84a18}
-      .ag-glossary-form{margin-top:14px;padding-top:14px;border-top:1px solid var(--ag-border)}
-      .ag-glossary-form-fields{display:grid;gap:10px;margin-bottom:12px}
-      .ag-glossary-textarea{resize:vertical;min-height:52px}
-      .ag-glossary-audio-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .ag-glossary-record-btn{display:inline-flex;align-items:center;gap:5px;min-height:36px;font-size:.86rem;padding:0 14px}
-      .ag-glossary-play-preview{min-height:36px;font-size:.86rem;padding:0 14px}
-      .ag-glossary-audio-status{font-size:.8rem;color:var(--ag-muted);font-weight:600}
-      .ag-glossary-add-btn{width:100%;justify-content:center;margin-top:12px}
 
       /* ── Milestone banner ── */
       .ag-milestone{
@@ -6796,7 +1281,7 @@
       .ag-history-item{
         padding:14px 16px;
         border-left-width:3px;
-        border-radius:0 var(--ag-radius-md) var(--ag-radius-md) 0;
+        border-radius:var(--ag-radius-md);
         background:var(--ag-surface);
         box-shadow:0 1px 4px rgba(8,28,18,.06);
       }
@@ -6987,20 +1472,39 @@
           transition:color 180ms var(--ag-ease),background 180ms var(--ag-ease),transform 120ms var(--ag-ease);
           -webkit-tap-highlight-color:transparent;
         }
-        .ag-bottomnav-btn.is-active{
-          color:#fff;
-          background:rgba(255,255,255,.18);
+
+        /* Liquid glass sliding pill */
+        .ag-nav-pill{
+          position:absolute;
+          top:5px;
+          height:calc(100% - 10px);
+          border-radius:20px;
+          background:rgba(255,255,255,.20);
+          backdrop-filter:blur(32px) saturate(2.2) brightness(1.08);
+          -webkit-backdrop-filter:blur(32px) saturate(2.2) brightness(1.08);
+          border:1px solid rgba(255,255,255,.55);
           box-shadow:
-            0 1px 0 rgba(255,255,255,.22) inset,
-            0 2px 10px rgba(0,0,0,.10);
+            0 2px 0 rgba(255,255,255,.40) inset,
+            0 -1px 0 rgba(0,0,0,.06) inset,
+            0 8px 24px rgba(0,0,0,.14),
+            0 1px 3px rgba(0,0,0,.08);
+          pointer-events:none;
+          z-index:0;
+          will-change:left,width;
+          transition:left 340ms cubic-bezier(.34,1.56,.64,1),width 340ms cubic-bezier(.34,1.56,.64,1);
         }
         @media (prefers-color-scheme:dark){
-          .ag-bottomnav-btn.is-active{
-            background:rgba(255,255,255,.12);
-            box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 2px 8px rgba(0,0,0,.25);
+          .ag-nav-pill{
+            background:rgba(255,255,255,.10);
+            border-color:rgba(255,255,255,.28);
+            box-shadow:
+              0 1.5px 0 rgba(255,255,255,.18) inset,
+              0 8px 28px rgba(0,0,0,.40);
           }
         }
+        .ag-bottomnav-btn.is-active{color:#fff}
         .ag-bottomnav-btn:active{transform:scale(.90)}
+        .ag-bottomnav-btn{position:relative;z-index:1}
         .ag-bottomnav-btn-icon{
           font-size:1.3rem;line-height:1;
           filter:drop-shadow(0 1px 3px rgba(0,0,0,.2));
@@ -7021,7 +1525,7 @@
       @media (max-width:640px){
         .ag-fab{
           display:flex;align-items:center;justify-content:center;
-          position:fixed;bottom:calc(78px + env(safe-area-inset-bottom) + 14px);right:20px;
+          position:fixed;bottom:calc(60px + env(safe-area-inset-bottom) + 14px);right:16px;
           z-index:999;width:52px;height:52px;border-radius:999px;
           background:linear-gradient(180deg,var(--ag-primary),var(--ag-primary-dark));
           color:#fffdf8;border:none;cursor:pointer;font-size:1.6rem;font-weight:400;line-height:1;
@@ -7036,7 +1540,7 @@
 
       /* ── Toast ── */
       .ag-toast-container{
-        position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));
+        position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));
         left:50%;transform:translateX(-50%);
         z-index:2000;display:flex;flex-direction:column;align-items:center;gap:8px;
         pointer-events:none;
@@ -7103,9 +1607,593 @@
       .ag-glossary-edit-btn{min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
       .ag-glossary-del-btn{min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}
       .ag-glossary-play-btn{width:36px;height:36px}
-    `;
-    document.head.appendChild(style);
-  }
+    `;function gr(){if(document.querySelector("[data-ag-styles]"))return;const e=document.createElement("style");e.dataset.agStyles="true",e.textContent=cr,document.head.appendChild(e)}function ur(){return`
+      <svg class="ag-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="ag-sky-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ag-scene-sky-top)"/>
+            <stop offset="100%" stop-color="var(--ag-scene-sky-bottom)"/>
+          </linearGradient>
+          <linearGradient id="ag-water" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ag-scene-water-top)"/>
+            <stop offset="100%" stop-color="var(--ag-scene-water-bottom)"/>
+          </linearGradient>
+          <radialGradient id="ag-sun" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="rgba(255,238,180,.95)"/>
+            <stop offset="55%" stop-color="rgba(255,215,140,.35)"/>
+            <stop offset="100%" stop-color="rgba(255,215,140,0)"/>
+          </radialGradient>
+          <pattern id="ag-leaf" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M24 6 C 14 14, 14 30, 24 42 C 34 30, 34 14, 24 6 Z" fill="rgba(255,255,255,.04)"/>
+            <line x1="24" y1="6" x2="24" y2="42" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+          </pattern>
+        </defs>
 
-  init().catch((e) => renderError(e));
-})();
+        <rect width="1200" height="600" fill="url(#ag-sky-grad)"/>
+        <circle class="ag-sun" cx="940" cy="150" r="180" fill="url(#ag-sun)"/>
+
+        <g class="ag-mountains">
+          <polygon points="-40,360 220,170 360,300 540,180 720,330 880,210 1080,340 1240,260 1240,420 -40,420"
+            fill="var(--ag-scene-mountain-far)"/>
+          <polygon points="-40,420 160,300 320,400 500,290 660,400 840,310 1020,420 1240,330 1240,520 -40,520"
+            fill="var(--ag-scene-mountain-mid)"/>
+        </g>
+
+        <g class="ag-forest-back">
+          <path d="M-40 460 C 80 420, 160 470, 240 440 C 320 410, 400 470, 500 450 C 620 430, 720 480, 820 450 C 920 420, 1040 470, 1240 450 L 1240 600 L -40 600 Z"
+            fill="var(--ag-scene-forest-far)"/>
+        </g>
+
+        <g class="ag-water-band">
+          <rect x="-40" y="455" width="1280" height="34" fill="url(#ag-water)" opacity=".9"/>
+          <path class="ag-shimmer" d="M0 470 Q 60 466 120 470 T 240 470 T 360 470 T 480 470 T 600 470 T 720 470 T 840 470 T 960 470 T 1080 470 T 1200 470"
+            stroke="rgba(255,255,255,.55)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <path class="ag-shimmer ag-shimmer-2" d="M0 478 Q 80 474 160 478 T 320 478 T 480 478 T 640 478 T 800 478 T 960 478 T 1120 478 T 1280 478"
+            stroke="rgba(255,255,255,.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </g>
+
+        <g class="ag-city">
+          <rect x="780" y="380" width="14" height="80" fill="var(--ag-scene-city)"/>
+          <rect x="800" y="360" width="20" height="100" fill="var(--ag-scene-city)"/>
+          <polygon points="826,360 836,344 846,360" fill="var(--ag-scene-city)"/>
+          <rect x="828" y="360" width="16" height="100" fill="var(--ag-scene-city)"/>
+          <rect x="850" y="372" width="18" height="88" fill="var(--ag-scene-city)"/>
+          <rect x="872" y="350" width="10" height="110" fill="var(--ag-scene-city)"/>
+          <rect x="886" y="370" width="22" height="90" fill="var(--ag-scene-city)"/>
+          <rect x="912" y="358" width="14" height="102" fill="var(--ag-scene-city)"/>
+          <g fill="rgba(255,236,170,.7)">
+            <rect x="803" y="372" width="3" height="3"/>
+            <rect x="809" y="382" width="3" height="3"/>
+            <rect x="833" y="376" width="3" height="3"/>
+            <rect x="855" y="386" width="3" height="3"/>
+            <rect x="876" y="362" width="3" height="3"/>
+            <rect x="892" y="384" width="3" height="3"/>
+            <rect x="916" y="372" width="3" height="3"/>
+          </g>
+        </g>
+
+        <g class="ag-road">
+          <path d="M-20 588 C 200 520, 360 540, 520 510 C 720 472, 880 500, 1240 460"
+            stroke="var(--ag-scene-road)" stroke-width="22" fill="none" stroke-linecap="round" opacity=".9"/>
+          <path class="ag-road-dash" d="M-20 588 C 200 520, 360 540, 520 510 C 720 472, 880 500, 1240 460"
+            stroke="rgba(255,253,242,.85)" stroke-width="2" fill="none" stroke-linecap="round"
+            stroke-dasharray="10 18"/>
+        </g>
+
+        <g class="ag-trees">
+          <g transform="translate(80,470)"><polygon points="0,0 18,-44 36,0" fill="var(--ag-scene-tree)"/><polygon points="4,-16 18,-58 32,-16" fill="var(--ag-scene-tree-light)"/><rect x="16" y="0" width="4" height="10" fill="#3a2418"/></g>
+          <g transform="translate(150,488)"><polygon points="0,0 14,-32 28,0" fill="var(--ag-scene-tree)"/><rect x="12" y="0" width="4" height="8" fill="#3a2418"/></g>
+          <g transform="translate(220,478)"><polygon points="0,0 22,-52 44,0" fill="var(--ag-scene-tree)"/><polygon points="6,-20 22,-66 38,-20" fill="var(--ag-scene-tree-light)"/><rect x="20" y="0" width="4" height="10" fill="#3a2418"/></g>
+          <g transform="translate(310,498)"><polygon points="0,0 12,-26 24,0" fill="var(--ag-scene-tree)"/></g>
+          <g transform="translate(420,492)"><polygon points="0,0 16,-36 32,0" fill="var(--ag-scene-tree)"/><polygon points="4,-12 16,-46 28,-12" fill="var(--ag-scene-tree-light)"/></g>
+          <g transform="translate(560,494)"><polygon points="0,0 12,-28 24,0" fill="var(--ag-scene-tree)"/></g>
+          <g transform="translate(640,488)"><polygon points="0,0 18,-42 36,0" fill="var(--ag-scene-tree)"/><polygon points="4,-14 18,-54 32,-14" fill="var(--ag-scene-tree-light)"/></g>
+          <g transform="translate(1080,490)"><polygon points="0,0 16,-38 32,0" fill="var(--ag-scene-tree)"/></g>
+          <g transform="translate(1140,500)"><polygon points="0,0 12,-26 24,0" fill="var(--ag-scene-tree)"/></g>
+        </g>
+
+        <g class="ag-baerlauch">
+          <g transform="translate(60,548)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(380,558)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(720,562)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(990,556)"><path d="M0 0 C 6 -16, 18 -16, 24 0 Z" fill="var(--ag-scene-leaf)"/></g>
+          <g transform="translate(160,572)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
+          <g transform="translate(540,572)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
+          <g transform="translate(880,576)"><path d="M0 0 C 4 -10, 14 -10, 18 0 Z" fill="var(--ag-scene-leaf-light)"/></g>
+        </g>
+
+        <g class="ag-fireflies">
+          <circle class="ag-firefly" cx="180" cy="220" r="2.4" fill="rgba(255,236,170,.95)"/>
+          <circle class="ag-firefly ag-firefly-2" cx="430" cy="170" r="1.8" fill="rgba(255,236,170,.85)"/>
+          <circle class="ag-firefly ag-firefly-3" cx="720" cy="240" r="2.2" fill="rgba(255,236,170,.9)"/>
+          <circle class="ag-firefly ag-firefly-4" cx="980" cy="200" r="1.6" fill="rgba(255,236,170,.8)"/>
+          <circle class="ag-firefly ag-firefly-5" cx="320" cy="310" r="1.6" fill="rgba(255,236,170,.7)"/>
+          <circle class="ag-firefly ag-firefly-6" cx="610" cy="320" r="1.4" fill="rgba(255,236,170,.7)"/>
+        </g>
+
+        <rect width="1200" height="600" fill="url(#ag-leaf)"/>
+      </svg>
+    `}function pr(){return`
+      <svg class="ag-machine-svg" viewBox="0 0 280 320" aria-hidden="true">
+        <defs>
+          <linearGradient id="ag-mach-body" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ag-mach-top)"/>
+            <stop offset="100%" stop-color="var(--ag-mach-bottom)"/>
+          </linearGradient>
+          <radialGradient id="ag-mach-glow" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="rgba(255,236,170,.9)"/>
+            <stop offset="55%" stop-color="rgba(255,236,170,.18)"/>
+            <stop offset="100%" stop-color="rgba(255,236,170,0)"/>
+          </radialGradient>
+          <linearGradient id="ag-glass" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
+            <stop offset="50%" stop-color="rgba(255,255,255,.06)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,.18)"/>
+          </linearGradient>
+        </defs>
+        <rect x="20" y="14" width="240" height="292" rx="36" fill="url(#ag-mach-body)" stroke="rgba(255,255,255,.16)"/>
+        <circle class="ag-mach-glow" cx="140" cy="148" r="120" fill="url(#ag-mach-glow)"/>
+        <circle cx="140" cy="148" r="86" fill="rgba(8,28,18,.65)" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
+        <path d="M62 152 a78 78 0 0 1 156 0" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="2"/>
+        <g class="ag-mach-orbit">
+          <circle cx="140" cy="62" r="3" fill="rgba(255,236,170,.95)"/>
+          <circle cx="218" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
+          <circle cx="140" cy="234" r="2" fill="rgba(255,236,170,.6)"/>
+          <circle cx="62" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
+        </g>
+        <ellipse cx="140" cy="148" rx="34" ry="46" fill="url(#ag-glass)" opacity=".85"/>
+        <rect x="64" y="266" width="152" height="20" rx="10" fill="rgba(8,28,18,.55)"/>
+      </svg>
+    `}const mr=`
+      <div class="ag-frame">
+        <div class="ag-stage">
+          ${ur()}
+          <div class="ag-stage-veil" aria-hidden="true"></div>
+          <div class="ag-shell">
+            <header class="ag-hero">
+              <div class="ag-machine-wrap" aria-hidden="true">
+                ${pr()}
+                <div class="ag-machine-capsule" data-capsule>
+                  <span class="ag-capsule-shine"></span>
+                </div>
+                <div class="ag-orbit">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <div class="ag-emoji-orbit" data-ag-emoji-orbit aria-hidden="true"></div>
+              </div>
+              <div class="ag-copy">
+                <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
+                <h1 id="ag-title" data-ag-main-title>Affektions-Gacha</h1>
+                <p class="ag-intro" data-ag-intro></p>
+                <ul class="ag-chips" data-ag-chips></ul>
+                <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
+                  <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">⭐</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">⛰</button>
+                </div>
+              </div>
+            </header>
+          </div>
+        </div>
+
+        <div class="ag-content">
+          <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Bärlauch-Modus</span>
+              <button class="ag-secondary" type="button" id="ag-baerlauch-close">✕</button>
+            </div>
+
+            <h2 class="ag-mini-title">Bärlauch-Sammeln 🌿</h2>
+            <div class="ag-baerlauch-scores" id="ag-baerlauch-scores" hidden></div>
+            <p class="ag-mini-copy" id="ag-baerlauch-instruction">
+              Sammle nur die guten grünen Blätter – aber nicht toten Lauch oder Maiglöckchen, die giftig sind.
+            </p>
+            <p class="ag-mini-level" id="ag-baerlauch-level">Level 1</p>
+
+            <div class="ag-forage-wrap">
+              <div class="ag-forage-timer" id="ag-baerlauch-timer">8.0</div>
+              <div class="ag-forage-field" id="ag-baerlauch-field">
+                <div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>
+              </div>
+            </div>
+
+            <div class="ag-baerlauch-reward" id="ag-baerlauch-reward" hidden>
+              <div class="ag-baerlauch-photo" id="ag-baerlauch-photo"></div>
+              <p class="ag-baerlauch-text" id="ag-baerlauch-text"></p>
+            </div>
+
+            <div class="ag-baerlauch-actions" id="ag-baerlauch-actions" hidden>
+              <button class="ag-secondary" type="button" id="ag-baerlauch-next">
+                Nächstes Level
+              </button>
+            </div>
+
+            <p class="ag-mini-success" id="ag-baerlauch-success" hidden></p>
+
+          </section>
+
+          <section class="ag-card ag-mini-panel" id="ag-gesprach-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Gespräch</span>
+              <button class="ag-secondary" type="button" id="ag-gesprach-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Offene Fragen 💬</h2>
+            <p class="ag-mini-copy" id="ag-gesprach-copy">Eine Frage für euch beide.</p>
+            <div class="ag-gesprach-card" id="ag-gesprach-question"></div>
+            <div class="ag-gesprach-actions">
+              <button class="ag-secondary" type="button" id="ag-gesprach-next">Neue Frage</button>
+              <button class="ag-secondary" type="button" id="ag-gesprach-wa">Mit Fionn besprechen</button>
+            </div>
+          </section>
+
+          <section class="ag-card ag-mini-panel" id="ag-quest-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge" id="ag-quest-badge">Quest</span>
+              <button class="ag-secondary" type="button" id="ag-quest-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title" id="ag-quest-title">Foto-Aufgabe 📷</h2>
+            <p class="ag-mini-copy" id="ag-quest-copy"></p>
+            <div class="ag-quest-challenge" id="ag-quest-challenge"></div>
+            <div class="ag-quest-loading" id="ag-quest-loading" hidden>
+              <div class="ag-quest-spinner"></div>
+              <p class="ag-quest-loading-text">Maschine prüft das Foto…</p>
+            </div>
+            <div class="ag-quest-hint-history" id="ag-quest-hint-history" hidden></div>
+            <div class="ag-quest-actions" id="ag-quest-actions">
+              <label class="ag-primary ag-quest-upload-label" id="ag-quest-upload-label">
+                📷 Foto aufnehmen
+                <input type="file" accept="image/*" capture="environment" id="ag-quest-file" style="display:none">
+              </label>
+            </div>
+            <div class="ag-quest-result" id="ag-quest-result" hidden></div>
+            <div class="ag-quest-points" id="ag-quest-points" hidden></div>
+          </section>
+
+          <section class="ag-card ag-mini-panel" id="ag-mission-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Mission</span>
+              <button class="ag-secondary" type="button" id="ag-mission-close">✕</button>
+            </div>
+            <p class="ag-mini-copy">Deine Aufgabe für heute — Fionn hat eine andere.</p>
+            <div class="ag-mission-card" id="ag-mission-text"></div>
+            <div class="ag-mission-actions" id="ag-mission-actions">
+              <button class="ag-button" type="button" id="ag-mission-done">
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>Erledigt ✓</span>
+              </button>
+            </div>
+            <div class="ag-mission-feedback" id="ag-mission-feedback" hidden>
+              <p class="ag-mission-feedback-label">Wie war's?</p>
+              <div class="ag-mission-rating" id="ag-mission-rating">
+                <button class="ag-mission-rate-btn" type="button" data-rating="fire">🔥</button>
+                <button class="ag-mission-rate-btn" type="button" data-rating="ok">👍</button>
+                <button class="ag-mission-rate-btn" type="button" data-rating="meh">😴</button>
+              </div>
+              <textarea class="ag-mission-comment" id="ag-mission-comment" rows="2" maxlength="200" placeholder="Optional: was hat funktioniert oder nicht?"></textarea>
+              <button class="ag-secondary ag-mission-feedback-send" type="button" id="ag-mission-feedback-send">Feedback senden</button>
+              <p class="ag-mission-feedback-sent" id="ag-mission-feedback-sent" hidden>Danke — die Maschine lernt.</p>
+            </div>
+            <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
+            <div class="ag-mission-log" id="ag-mission-log" hidden></div>
+          </section>
+
+          <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Glossar 📖</span>
+              <button class="ag-secondary" type="button" id="ag-glossary-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Unser Glossar</h2>
+            <div class="ag-glossary-tabs" id="ag-glossary-tabs">
+              <div class="ag-glossary-tab-track">
+                <div class="ag-glossary-tab-pill" id="ag-glossary-pill"></div>
+                <button class="ag-glossary-tab is-active" type="button" data-lang="swabian">Schwäbisch</button>
+                <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
+                <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
+              </div>
+            </div>
+            <div class="ag-glossary-list" id="ag-glossary-list"></div>
+            <p class="ag-history-empty" id="ag-glossary-empty" hidden>Noch kein Wort hier. Füg eins hinzu.</p>
+            <button class="ag-button ag-glossary-add-btn" type="button" id="ag-glossary-add" style="width:100%;justify-content:center;margin-top:12px">
+              <span class="ag-button-orb" aria-hidden="true"></span>
+              <span>Wort hinzufügen</span>
+            </button>
+            <div class="ag-glossary-form" id="ag-glossary-form" hidden>
+              <p class="ag-wish-label" id="ag-glossary-form-title">Neues Wort</p>
+              <input type="hidden" id="ag-glossary-edit-id">
+              <div class="ag-glossary-form-fields">
+                <input class="ag-berge-input" type="text" id="ag-glossary-word-input" placeholder="Wort / Ausdruck" maxlength="80">
+                <textarea class="ag-berge-input ag-glossary-textarea" id="ag-glossary-meaning-input" rows="2" maxlength="300" placeholder="Bedeutung / Erklärung"></textarea>
+                <div class="ag-glossary-audio-row">
+                  <button class="ag-secondary ag-glossary-record-btn" type="button" id="ag-glossary-record">🎙 Aufnehmen</button>
+                  <button class="ag-secondary ag-glossary-play-preview" type="button" id="ag-glossary-play-preview" hidden>▶ Abspielen</button>
+                  <span class="ag-glossary-audio-status" id="ag-glossary-audio-status"></span>
+                </div>
+              </div>
+              <div class="ag-wish-actions">
+                <button class="ag-secondary" type="button" id="ag-glossary-form-cancel">Abbrechen</button>
+                <button class="ag-button" type="button" id="ag-glossary-form-save">
+                  <span class="ag-button-orb" aria-hidden="true"></span>
+                  <span id="ag-glossary-save-label">Eintragen</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="ag-panel" data-ag-panel-today role="tabpanel">
+            <div class="ag-card ag-draw-card">
+              <div class="ag-draw-meta">
+                <span class="ag-pill" data-ag-today-pill>Heute</span>
+                <span class="ag-streak" data-ag-streak hidden></span>
+                <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
+                <span class="ag-draw-hint" data-ag-draw-hint></span>
+              </div>
+              <button class="ag-button" type="button" data-ag-draw>
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span data-ag-button-text>Kapsel ziehen</span>
+              </button>
+            </div>
+
+            <article class="ag-card ag-result" data-ag-result aria-live="polite" hidden>
+              <div class="ag-milestone" data-ag-milestone hidden>
+                <span data-ag-milestone-text></span>
+              </div>
+              <div class="ag-ping-banner" data-ag-ping-banner hidden>
+                <span data-ag-ping-text>👋 Fionn denkt an dich.</span>
+                <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
+              </div>
+              <div class="ag-result-head">
+                <span class="ag-badge" data-ag-rarity></span>
+                <span class="ag-date" data-ag-date></span>
+              </div>
+              <h2 data-ag-title></h2>
+              <div class="ag-message" data-ag-message hidden></div>
+              <div class="ag-link-embed" data-ag-link-wrap hidden></div>
+              <div data-ag-token-wrap hidden></div>
+              <figure class="ag-photo" data-ag-photo-wrap hidden>
+                <div class="ag-media-stage" data-ag-photo-media></div>
+                <figcaption data-ag-photo-caption hidden></figcaption>
+              </figure>
+              <div class="ag-actions">
+                <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
+                <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
+                <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
+                <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
+              </div>
+            </article>
+
+            <details class="ag-card ag-rules">
+              <summary data-ag-rules-title>Maschinenregeln</summary>
+              <p data-ag-rules-text></p>
+              <ul data-ag-odds></ul>
+            </details>
+
+            <div class="ag-card ag-hug-card" data-ag-hug-card>
+              <div class="ag-hug-row">
+                <div class="ag-hug-text">
+                  <p class="ag-wish-label">Notfall-Umarmung</p>
+                  <p class="ag-wish-note" style="margin-bottom:0">Ein Stups an Fionn, wenn dir gerade nach einer Umarmung ist.</p>
+                </div>
+                <button class="ag-hug-button" type="button" data-ag-hug-send aria-label="Notfall-Umarmung an Fionn senden">
+                  <span class="ag-hug-emoji" aria-hidden="true">🫂</span>
+                  <span class="ag-hug-label">Umarmung senden</span>
+                </button>
+              </div>
+              <p class="ag-hug-status" data-ag-hug-status hidden></p>
+            </div>
+
+            <div class="ag-card ag-wish-card" data-ag-wish-card>
+              <div data-ag-wish-idle>
+                <p class="ag-wish-label">Wunschkapsel</p>
+                <p class="ag-wish-note">Einmal pro Woche kannst du einen Wunsch einreichen. Die Maschine nimmt ihn entgegen – ohne Versprechen.</p>
+                <button class="ag-secondary" type="button" data-ag-wish-open>Wunsch einreichen</button>
+              </div>
+              <div data-ag-wish-form hidden>
+                <p class="ag-wish-label">Was wünschst du dir?</p>
+                <textarea class="ag-wish-input" data-ag-wish-input rows="3" maxlength="280" placeholder="Ein Spaziergang, ein Abend, etwas Besonderes..."></textarea>
+                <div class="ag-wish-actions">
+                  <button class="ag-secondary" type="button" data-ag-wish-cancel>Abbrechen</button>
+                  <button class="ag-button" type="button" data-ag-wish-submit>
+                    <span class="ag-button-orb" aria-hidden="true"></span>
+                    <span>Einreichen</span>
+                  </button>
+                </div>
+              </div>
+              <div data-ag-wish-done hidden>
+                <p class="ag-wish-label" data-ag-wish-done-title></p>
+                <p class="ag-wish-note" data-ag-wish-done-note></p>
+                <p class="ag-wish-meta" data-ag-wish-done-meta></p>
+              </div>
+            </div>
+
+            <div class="ag-card ag-ping-card" data-ag-ping-card hidden>
+              <div class="ag-hug-row">
+                <div class="ag-hug-text">
+                  <p class="ag-wish-label">Lennart anstupsen</p>
+                  <p class="ag-wish-note" style="margin-bottom:0">Schick Lennart einen kleinen Stups — er erscheint als kurze Meldung beim nächsten App-Öffnen.</p>
+                </div>
+                <button class="ag-hug-button" type="button" data-ag-ping-send aria-label="Ping an Lennart senden">
+                  <span class="ag-hug-emoji" aria-hidden="true">👋</span>
+                  <span class="ag-hug-label">Stups senden</span>
+                </button>
+              </div>
+              <p class="ag-hug-status" data-ag-ping-status hidden></p>
+            </div>
+
+            <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
+              <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>
+              <div class="ag-notif-actions">
+                <button class="ag-secondary" type="button" data-ag-notif-dismiss>Nicht jetzt</button>
+                <button class="ag-secondary" type="button" data-ag-notif-enable>Erinnern</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
+            <div class="ag-card">
+              <div class="ag-history-header">
+                <p class="ag-history-note" data-ag-history-note></p>
+                <button class="ag-sync-btn" data-ag-recover-btn type="button" title="Mai-Verlauf wiederherstellen">↺</button>
+                <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
+              </div>
+              <ol class="ag-history" data-ag-history></ol>
+              <p class="ag-history-empty" data-ag-history-empty hidden></p>
+            </div>
+          </section>
+          <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
+            <div class="ag-card">
+              <p class="ag-history-note" data-ag-lieblinge-note></p>
+              <ol class="ag-history" data-ag-lieblinge></ol>
+              <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
+            </div>
+          </section>
+          <section class="ag-panel" data-ag-panel-berge role="tabpanel" hidden>
+            <div class="ag-card ag-berge-header" data-ag-berge-header>
+              <div class="ag-berge-stats">
+                <span class="ag-berge-total-label">Gemeinsame Höhenmeter</span>
+                <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
+                <span class="ag-berge-analogy" data-ag-berge-analogy hidden></span>
+              </div>
+              <button class="ag-button ag-berge-add-btn" type="button" data-ag-berge-add>
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>Gipfel eintragen</span>
+              </button>
+            </div>
+            <div class="ag-card ag-berge-form" data-ag-berge-form hidden>
+              <p class="ag-wish-label" data-ag-berge-form-title>Neuer Gipfeleintrag</p>
+              <input type="hidden" data-ag-berge-edit-id>
+              <div class="ag-berge-form-grid">
+                <input class="ag-berge-input" type="text" data-ag-berge-name placeholder="Gipfelname (z.B. Mythen)" maxlength="60">
+                <div class="ag-berge-row">
+                  <input class="ag-berge-input ag-berge-elev-input" type="number" data-ag-berge-elev placeholder="Gipfelhöhe (m)" min="0" max="9000">
+                  <input class="ag-berge-input" type="date" data-ag-berge-date>
+                </div>
+                <div class="ag-berge-row">
+                  <input class="ag-berge-input" type="number" data-ag-berge-dist placeholder="Distanz (km)" min="0" max="500" step="0.1">
+                  <input class="ag-berge-input" type="number" data-ag-berge-gain placeholder="Höhenmeter (↑ m)" min="0" max="9000">
+                </div>
+                <input class="ag-berge-input" type="url" data-ag-berge-url placeholder="Komoot-URL oder AllTrails-Widget-URL (mit sh=…)">
+                <input class="ag-berge-input" type="url" data-ag-berge-cover placeholder="Titelbild-URL (optional)">
+                <textarea class="ag-berge-input ag-berge-notes" data-ag-berge-notes rows="2" maxlength="300" placeholder="Notiz (optional)"></textarea>
+              </div>
+              <div class="ag-wish-actions">
+                <button class="ag-secondary" type="button" data-ag-berge-cancel>Abbrechen</button>
+                <button class="ag-button" type="button" data-ag-berge-save>
+                  <span class="ag-button-orb" aria-hidden="true"></span>
+                  <span>Eintragen</span>
+                </button>
+              </div>
+            </div>
+            <div data-ag-berge-list></div>
+            <p class="ag-history-empty" data-ag-berge-empty hidden>Noch kein Gipfel eingetragen. Der erste wartet.</p>
+          </section>
+          <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
+              <a href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>💡 Lichtsteuerung</span>
+              </a>
+            </div>
+        </div>
+      </div>
+
+      <div class="ag-letter-overlay" id="ag-letter-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="ag-letter-title">
+        <div class="ag-letter-card">
+          <button class="ag-letter-close" type="button" id="ag-letter-close" aria-label="Schließen">✕</button>
+          <img class="ag-letter-photo" id="ag-letter-photo" src="" alt="" hidden>
+          <p class="ag-letter-eyebrow">🍀 Nur für dich</p>
+          <h2 class="ag-letter-title" id="ag-letter-title">Du hast es gefunden.</h2>
+          <div class="ag-letter-body" id="ag-letter-body">
+            <p class="ag-letter-loading">…</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ag-lightbox" id="ag-lightbox" hidden role="dialog" aria-modal="true" aria-label="Foto-Vollansicht">
+        <button class="ag-lightbox-close" id="ag-lightbox-close" type="button" aria-label="Schließen">✕</button>
+        <img class="ag-lightbox-img" id="ag-lightbox-img" src="" alt="">
+        <p class="ag-lightbox-caption" id="ag-lightbox-caption"></p>
+        <a class="ag-lightbox-drive-link" id="ag-lightbox-drive-link" target="_blank" rel="noopener noreferrer" hidden>▶ In Drive öffnen</a>
+      </div>
+
+      <div class="ag-sheet-backdrop" data-ag-sheet-backdrop></div>
+      <div class="ag-ptr" data-ag-ptr aria-hidden="true"><span class="ag-ptr-icon">↓</span></div>
+      <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
+      <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
+      <nav class="ag-bottomnav" aria-label="Navigation">
+        <div class="ag-nav-pill" aria-hidden="true"></div>
+        <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">✦</span>
+          <span class="ag-bottomnav-btn-label">Heute</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="history">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">📋</span>
+          <span class="ag-bottomnav-btn-label">Verlauf</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⭐</span>
+          <span class="ag-bottomnav-btn-label">Lieblinge</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⛰</span>
+          <span class="ag-bottomnav-btn-label">Berge</span>
+        </button>
+      </nav>
+    `;function hr(){C.className="ag-widget",C.setAttribute("aria-labelledby","ag-title"),C.innerHTML=mr}function K(e=80,t){const n=t||["#2f7a4f","#b9782e","#4a9e6b","#e8c87a","#7ec8a0","#f0e6c8"],i=document.createElement("div");i.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:9999;",document.body.appendChild(i);for(let r=0;r<e;r++){const o=document.createElement("div"),s=n[Math.floor(Math.random()*n.length)],c=8+Math.random()*8,g=Math.random()*100,p=Math.random()*.6,f=1.4+Math.random()*.8;o.style.cssText=`position:absolute;top:-20px;left:${g}%;width:${c}px;height:${c*.6}px;background:${s};border-radius:2px;animation:ag-confetti-fall ${f}s ${p}s ease-in forwards;transform-origin:center;`,o.style.setProperty("--r",`${Math.random()*720-360}deg`),i.appendChild(o)}if(!document.getElementById("ag-confetti-style")){const r=document.createElement("style");r.id="ag-confetti-style",r.textContent="@keyframes ag-confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(var(--r,360deg));opacity:0}}",document.head.appendChild(r)}setTimeout(()=>i.remove(),3e3)}function fr(e){const t=Array.isArray(d.specialDays&&d.specialDays.days)?d.specialDays.days:[],a=e.slice(5);for(const n of t)if(n.date===e||n.date===a)return n;return null}function Vt(e){return{quiet:"🌙",soft:"🌿",quest:"🧭",warm:"✨",cursed:"😈",rare:"💫",photo:"📸",jackpot:"🎰"}[e]||"❤️"}function br(e){const t=l("[data-capsule]");if(!t)return;const a={quiet:"linear-gradient(90deg, #9faf9a 0 50%, #e6efdf 50% 100%)",soft:"linear-gradient(90deg, var(--ag-primary) 0 50%, #d8ecbf 50% 100%)",quest:"linear-gradient(90deg, var(--ag-blue) 0 50%, #d8ecbf 50% 100%)",warm:"linear-gradient(90deg, var(--ag-gold) 0 50%, #e1efc8 50% 100%)",cursed:"linear-gradient(90deg, #172018 0 50%, var(--ag-primary) 50% 100%)",rare:"linear-gradient(90deg, var(--ag-green) 0 50%, #f2df9d 50% 100%)",photo:"linear-gradient(90deg, var(--ag-green) 0 50%, var(--ag-sky) 50% 100%)",jackpot:"linear-gradient(90deg, var(--ag-gold) 0 50%, #fff0a8 50% 100%)"};t.style.background=a[e]||a.soft}function le(){return(d.photos||[]).filter(e=>e.type!=="video")}function yr(e,t){const a=I(),n=`${d.theme.secret}|${a}|${e}`,i=fr(e);if(i){const m=Array.isArray(i.outcomes)&&i.outcomes.length?i.outcomes:[{title:i.label,message:""}],y=m[fe(`${n}|special|outcome`,m.length)],v={id:"special",label:i.label,weight:0,tone:i.tone||"jackpot",outcomes:m},h=i.photoAlt&&d.photos.length&&le().find(w=>w.alt===i.photoAlt)||null;return{day:e,token:a,category:v,outcome:y,photo:h,unlockTime:i.unlockTime||null}}let r=nr(`${n}|category`,t||0);const o=Wn();if(o){const m=d.outcomes.categories.find(y=>y.id===o);m&&(r=m)}r.id==="photo"&&!le().length&&(r=d.outcomes.categories.find(m=>m.id==="common")||r);const s=new Set($().filter(m=>m.token===a&&m.day<e&&m.categoryId===r.id).map(m=>m.title)),c=r.outcomes.filter(m=>!s.has(m.title)),g=c.length>0?c:r.outcomes,p=g[fe(`${n}|${r.id}|outcome`,g.length)],f=le(),b=r.id==="photo"&&f.length?f[fe(`${n}|photo`,f.length)]:null;return{day:e,token:a,category:r,outcome:p,photo:b,collectToken:p.token||null}}function vr(){const e=_e()||A(d.theme.timezone),t=R();return yr(e,t)}function k(e){if(navigator.vibrate)try{navigator.vibrate(e)}catch{}}function Zt(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}const Q=["Wenn wir ein Restaurant eröffnen würden — was servieren wir, wie heißt es, und wo steht es?","Was ist eine Sache, die du mit mir noch erleben möchtest, die wir noch nie gemacht haben?","Welcher Moment aus unserer Zeit zusammen würdest du am liebsten noch einmal erleben?","Was ist die seltsamste Eigenschaft von mir, die du heimlich magst?","Wenn wir für ein Jahr irgendwo auf der Welt leben könnten — wo, und was wäre unser Alltag?","In welchem Moment hast du gemerkt, dass ich dir wirklich wichtig bin?","Was ist etwas, das du mir noch nie gesagt hast, mir aber vielleicht heute sagen könntest?","Was macht dich gerade in deinem Leben am stolzesten?","Was ist eine Eigenschaft von mir, die du bewunderst, die ich selbst wahrscheinlich nicht merke?","Wann fühlst du dich bei mir am geborgensten?","Gibt es etwas, das ich öfter machen könnte, das dir gut tun würde?","Was ist ein Ritual, das du gerne mit mir hätte — etwas nur für uns zwei?","Wenn du meine Gedanken lesen könntest, was glaubst du, würde ich gerade denken?","Was ist deine liebste Erinnerung an einen ganz normalen Tag mit mir?","Was würde die Version von uns in 10 Jahren über uns heute denken?","Was ist ein Traum, den du dir noch nicht erlaubt hast, laut auszusprechen?","Wie sieht ein perfekter Tag für dich aus — von morgens bis nachts?","Was ist etwas, das du von mir gelernt hast?","Was fehlt dir gerade, und wie könnte ich helfen?","Was war dein Lieblingsmoment auf unserer Reise nach Lissabon?","Wenn wir spontan ein Wochenende planen würden — wohin, und warum genau dorthin?","Was brauchst du gerade von mir, das du dir vielleicht noch nicht getraut hast zu sagen?","Was ist der Unterschied zwischen dem Lennart von vor einem Jahr und dem heute?","Wie hat sich das Gefühl für mich für dich in den letzten Monaten verändert?","Wenn du einen Brief an dich selbst in einem Jahr schreiben würdest — was würde drin stehen?","Was ist eine kleine Sache, die ich tue, die du magst, ohne dass ich es weiß?","Welchen meiner Züge findest du am lustigsten?","Was ist etwas, das du an Zürich vermissen würdest, wenn wir woanders leben würden?","Wenn ich ein Tier wäre — welches, und warum genau das?","Was wäre dein perfektes Date mit mir, völlig egal ob realistisch oder nicht?"],Qt=[["Du bist mein Lieblingsmensch.","Jeden Tag ein bisschen mehr als am Tag davor.","Pass auf dich auf."],["Manchmal mach ich was und denke sofort: Das muss ich dir zeigen.","Ich find es schön, dass wir so sind. Einfach so."],["Weißt du wie besonders du bist? Nicht weil ich dir das sage — einfach so, grundsätzlich.","Das wollte ich irgendwo festhalten."],["Ich hab diese Maschine gebaut weil ich nicht immer weiß wie ich solche Sachen sage.","Aber hier, wo es niemand sieht: Du machst alles besser."],["Nicht jeder findet seine Geheimverstecke. Du schon.","Danke, dass du so bist wie du bist."],["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.","Kein Drama, kein Aufwand — einfach sehr gut."],["Ich bin froh, dass du in meinem Leben bist.","So einfach ist das."]],Xt="affektions-gacha:mission-done:v1",ea="affektions-gacha:mission-feedback:v1";function Ze(){var r,o;const e=(r=d.missions)==null?void 0:r.pairs;if(!Array.isArray(e)||!e.length)return null;const t=A(((o=d.theme)==null?void 0:o.timezone)||"UTC"),a=fe(`${d.theme.secret}|mission|${t}`,e.length),n=e[a];return U()==="fionn"?n.fionn:n.lennart}function ta(){var e;try{const t=A(((e=d.theme)==null?void 0:e.timezone)||"UTC");return localStorage.getItem(Xt)===t}catch{return!1}}function xr(){var e,t;try{const a=A(((e=d.theme)==null?void 0:e.timezone)||"UTC");localStorage.setItem(Xt,a);const n=U(),i=Ze(),r=new Date().toISOString();Sr({day:a,player:n,mission:i,doneAt:r});const o=(t=d.backup)==null?void 0:t.endpointUrl;o&&i&&fetch(o,{method:"POST",body:JSON.stringify({type:"mission-log",player:n,day:a,mission:i,doneAt:r}),headers:{"Content-Type":"application/json"}}).catch(()=>{})}catch{}}function aa(){var e;try{const t=A(((e=d.theme)==null?void 0:e.timezone)||"UTC");return localStorage.getItem(ea)===t}catch{return!1}}function wr(){var e;try{const t=A(((e=d.theme)==null?void 0:e.timezone)||"UTC");localStorage.setItem(ea,t)}catch{}}function kr(e,t){var o,s;const a=A(((o=d.theme)==null?void 0:o.timezone)||"UTC"),n=U(),i=Ze();Er(a,n,{rating:e,comment:t||""}),wr();const r=(s=d.backup)==null?void 0:s.endpointUrl;r&&fetch(r,{method:"POST",body:JSON.stringify({type:"mission-feedback",player:n,day:a,mission:i,rating:e,comment:t||""}),headers:{"Content-Type":"application/json"}}).catch(()=>{})}function Sr(e){const t=ke(),a=t.findIndex(n=>n.day===e.day&&n.player===e.player);a>=0?t[a]={...t[a],...e}:(t.unshift(e),t.length>60&&t.splice(60)),Fe(t)}function Er(e,t,a){const n=ke(),i=n.findIndex(r=>r.day===e&&r.player===t);i>=0&&(n[i]={...n[i],...a},Fe(n))}function Tr(e,t){var g;if(!e)return;const a=ke(),n=((g=d.theme)==null?void 0:g.timezone)||"UTC",i=A(n),r=new Map;for(const p of a)r.has(p.day)||r.set(p.day,{}),r.get(p.day)[p.player]=p;const o=Array.from(r.keys()).sort((p,f)=>f.localeCompare(p)).slice(0,30);if(!o.length){e.hidden=!0;return}e.hidden=!1;const s={fire:"🔥",ok:"👍",meh:"😴"},c=p=>{try{return new Intl.DateTimeFormat("de-CH",{day:"numeric",month:"short",timeZone:n}).format(new Date(p+"T12:00:00Z"))}catch{return p}};e.innerHTML='<h3 class="ag-mission-log-title">Verlauf</h3>'+o.map(p=>{const f=r.get(p),b=f.lennart,m=f.fionn,y=p===i,v=[];if(b&&t!=="fionn"){const h=b.doneAt?'<span class="ag-log-done">✓</span>':"",w=b.rating?`<span class="ag-log-rating">${s[b.rating]||""}</span>`:"";v.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-lennart">Lennart</span><span class="ag-log-text">${Zt(b.mission||"")}</span>${h}${w}</div>`)}if(m&&t!=="lennart"){const h=m.doneAt?'<span class="ag-log-done">✓</span>':"",w=m.rating?`<span class="ag-log-rating">${s[m.rating]||""}</span>`:"";v.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-fionn">Fionn</span><span class="ag-log-text">${Zt(m.mission||"")}</span>${h}${w}</div>`)}return v.length?`<div class="ag-log-day${y?" ag-log-today":""}"><span class="ag-log-date">${c(p)}</span>${v.join("")}</div>`:""}).filter(Boolean).join("")}function na(){const e=l("#ag-mission-panel");if(!e)return;const t=l("#ag-mission-text"),a=l("#ag-mission-actions"),n=l("#ag-mission-feedback"),i=l("#ag-mission-feedback-sent"),r=l("#ag-mission-done-note"),o=e.querySelector(".ag-mini-copy");o&&(o.hidden=!0);const s=Ze();t&&(t.textContent=s||"Heute keine Mission verfügbar.");const c=ta(),g=aa();a&&(a.hidden=c),n&&(n.hidden=!c,e.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label").forEach(p=>{p.hidden=g})),i&&(i.hidden=!g),r&&(r.hidden=!c),e.querySelectorAll(".ag-mission-rate-btn").forEach(p=>p.classList.remove("is-selected")),Tr(l("#ag-mission-log"),U()),e.hidden=!1,e.scrollIntoView({behavior:"smooth",block:"nearest"})}function Cr(){const e=l("#ag-mission-panel");e&&(e.hidden=!0)}let Ce=-1;function ra(){const e=l("#ag-gesprach-panel");if(e){e.hidden=!1;try{const t=localStorage.getItem(Mt);if(t!==null){const a=parseInt(t,10);if(Number.isFinite(a)&&a>=0&&a<Q.length){Ce=a;const n=l("#ag-gesprach-question");n&&(n.textContent=Q[a]);return}}}catch{}ia()}}function Lr(){const e=l("#ag-gesprach-panel");e&&(e.hidden=!0)}function ia(){let e;do e=Math.floor(Math.random()*Q.length);while(e===Ce&&Q.length>1);Ce=e;try{localStorage.setItem(Mt,String(e))}catch{}const t=l("#ag-gesprach-question");t&&(t.textContent=Q[e])}function Ar(){const e=Q[Ce]||"";if(!e)return;const t=d.theme&&d.theme.messageTarget||"https://wa.me/?text={text}",a=encodeURIComponent(`💬 Gespräch-Frage:
+
+`+e+`
+
+(via Affektions-Gacha)`),n=t.replace("{text}",a);window.location.href=n}function oa(){var e;return!!((e=d.quest)!=null&&e.enabled&&ye(d))}function sa(){const e=l("#ag-quest-panel");e&&(e.hidden=!1,la())}function Ir(){const e=l("#ag-quest-panel");e&&(e.hidden=!0)}function la(){const e=ye(d),t=se(),a=l("#ag-quest-challenge"),n=l("#ag-quest-hint-history"),i=l("#ag-quest-loading"),r=l("#ag-quest-actions"),o=l("#ag-quest-result"),s=l("#ag-quest-points"),c=l("#ag-quest-copy"),g=l("#ag-quest-title"),p=(e==null?void 0:e.prompt)||"";if(!e){g&&(g.textContent="Keine Aufgabe"),c&&(c.textContent="Schau später nochmal vorbei."),a&&(a.textContent=""),r&&(r.hidden=!0);return}if(a&&(a.textContent=p),i&&(i.hidden=!0),n&&(t.hints&&t.hints.length>0?(n.innerHTML=t.hints.map((f,b)=>`<div class="ag-hint-item"><span class="ag-hint-num">${b+1}</span><p>${f}</p></div>`).join(""),n.hidden=!1):n.hidden=!0),t.solved){g&&(g.textContent="Aufgabe gelöst ✓"),c&&(c.textContent="Gut gemacht."),r&&(r.hidden=!0),o&&(o.textContent=t.successMessage||"",o.hidden=!1),s&&(s.textContent=`+${t.pointsEarned} Punkte · Gesamt: ${Se()}`,s.hidden=!1);return}g&&(g.textContent="Foto-Aufgabe 📷"),c&&(c.textContent=t.attempts===0?"Fotografiere und schick mir das Resultat.":`Versuch ${t.attempts+1} — du schaffst das.`),r&&(r.hidden=!1),o&&(o.hidden=!0),s&&(s.hidden=!0)}async function Mr(e){if(!e)return;const t=l("#ag-quest-actions"),a=l("#ag-quest-loading"),n=l("#ag-quest-result"),i=l("#ag-quest-points"),r=l("#ag-quest-copy");t&&(t.hidden=!0),a&&(a.hidden=!1),n&&(n.hidden=!0);const o=await zr(e),s=se(),c=ye(d),g=(c==null?void 0:c.prompt)||"",p=(c==null?void 0:c.solution)||"";try{const f=await Dr(o,g,p,s.attempts+1,s.hints);if(s.attempts+=1,f.success){const b=$t[Math.min(s.attempts-1,$t.length-1)],m=Xn(b);s.solved=!0,s.pointsEarned=b,s.successMessage=f.message||"Perfekt.",We(s),Z(),n&&(n.textContent=f.message||"Perfekt.",n.hidden=!1),i&&(i.textContent=`+${b} Punkte · Gesamt: ${m}`,i.hidden=!1),a&&(a.hidden=!0),r&&(r.textContent="Aufgabe gelöst ✓"),t&&(t.hidden=!0);const y=l("#ag-btn-quest");y&&y.classList.remove("ag-chip-quest-active"),k([20,20,40,20,60])}else a&&(a.hidden=!0),s.hints=[...s.hints||[],f.hint||"Versuch nochmal."],We(s),la()}catch{a&&(a.hidden=!0),n&&(n.textContent="Fehler — versuch nochmal.",n.hidden=!1),t&&(t.hidden=!1)}}function zr(e){return new Promise((t,a)=>{const n=new FileReader;n.onload=()=>t(n.result.split(",")[1]),n.onerror=a,n.readAsDataURL(e)})}async function Dr(e,t,a,n,i){var s;const r=(s=d.quest)==null?void 0:s.proxyUrl;if(!r)throw new Error("no proxy");const o=await fetch(r,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({base64:e,challenge:t,solution:a,attemptNumber:n,previousHints:i})});if(!o.ok)throw new Error("proxy error");return o.json()}function $r(){try{const e=window.AudioContext||window.webkitAudioContext;if(!e)return;const t=new e,a=t.currentTime,n=Math.floor(t.sampleRate*.9),i=t.createBuffer(1,n,t.sampleRate),r=i.getChannelData(0);for(let g=0;g<n;g++)r[g]=Math.random()*2-1;const o=t.createBufferSource();o.buffer=i;const s=t.createBiquadFilter();s.type="bandpass",s.Q.value=1.2,s.frequency.setValueAtTime(500,a),s.frequency.exponentialRampToValueAtTime(2200,a+.55);const c=t.createGain();c.gain.setValueAtTime(0,a),c.gain.linearRampToValueAtTime(.055,a+.06),c.gain.exponentialRampToValueAtTime(.001,a+.85),o.connect(s),s.connect(c),c.connect(t.destination),o.start(a),o.stop(a+.9),[[290,640,0,1.5,.12],[435,870,.07,1.3,.08],[580,1100,.14,1.1,.05]].forEach(([g,p,f,b,m])=>{const y=t.createOscillator();y.type="sine",y.frequency.setValueAtTime(g,a+f),y.frequency.exponentialRampToValueAtTime(p,a+f+b*.55);const v=t.createGain();v.gain.setValueAtTime(0,a+f),v.gain.linearRampToValueAtTime(m,a+f+.09),v.gain.exponentialRampToValueAtTime(.001,a+f+b),y.connect(v),v.connect(t.destination),y.start(a+f),y.stop(a+f+b+.05)})}catch{}}function Nr(e){const t="you didn't see this message coming did you…",a=document.createElement("p");a.className="ag-letter-prelude",t.split(" ").forEach((n,i)=>{const r=document.createElement("span");r.className="ag-letter-word",r.textContent=n,r.style.animationDelay=`${320+i*155}ms`,a.appendChild(r),a.appendChild(document.createTextNode(" "))}),e.innerHTML="",e.appendChild(a)}function da(e,t){e.innerHTML=t.map(a=>`<p>${a}</p>`).join("")+'<p class="ag-letter-sign">— Fionn 🍀</p>',e.style.animation="none",e.getBoundingClientRect(),e.style.animation=""}function ca(){const e=l("#ag-letter-overlay");if(!e)return;e.hidden=!1,e.focus(),k([20,60,20]),$r();const t=l("#ag-letter-photo");if(t&&d.photos&&d.photos.length){const a=le(),n=a.length?a[Math.floor(Math.random()*a.length)]:null;n&&(t.src=n.url,t.hidden=!1)}Pr()}async function Pr(){var n;const e=l("#ag-letter-body");if(!e)return;Nr(e);const t=(n=d.quest)==null?void 0:n.proxyUrl;if(t)try{const i=await fetch(t,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({type:"letter"})});if(i.ok){const r=await i.json();if(r.paragraphs&&r.paragraphs.length){da(e,r.paragraphs);return}}}catch{}const a=Qt[Math.floor(Math.random()*Qt.length)];da(e,a)}function Qe(){const e=l("#ag-letter-overlay");e&&(e.hidden=!0)}let F=null;function Br(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function ga(e){return e?Br(e).split(/\n\n+/).map(a=>`<p>${a.replace(/\n/g,"<br>")}</p>`).join(""):""}function de(){return I().replace(/[-_]+/g," ").trim().split(/\s+/).filter(Boolean).map(t=>t.charAt(0).toLocaleUpperCase("de-CH")+t.slice(1)).join(" ")||d.theme.brand.displayNameDefault||"Lennart"}function Ur(){return["Bärlauch","Rave 🪩","Glossar 📖"]}function qr(){try{const e=new Date;return new Intl.DateTimeFormat("de-CH",{weekday:"long",day:"2-digit",month:"long",timeZone:d.theme.timezone}).format(e)}catch{return A(d.theme.timezone)}}const jr=["🚴","🧄"],_r=["🥾","🌲","🧗‍♂️","✨","📚","💭","🌙","☕","🔥","💛","🫶","🌿","🎿","❄️","😄","🎶","🌊","🚤","🍃","🌍","💌","🥹","🌈","🕊️","😏","💫","🧠","⚡","🍝","🍷","😋","🌆","🎧","🎵","💃","🪩","🌄","🧭","🚶‍♂️","🍂","💬","👀","🤍","🔐","🏔️","🪨","💪","🌤️","😂","🤭","🎯","💥","🛤️","🌌","🕯️","📖","❤️‍🔥","😇","😈","🍓","🍫","😚","🫂","🌻","🌞","🐻","🛌","🎻","👨‍❤️‍👨"];function ua(){const e=A(d.theme.timezone),t=I();return`${d.theme.secret}|${t}|${e}|emoji`}function Or(){const e=ua(),t=3+Math.floor(O(`${e}|count`)*3),a=_r.slice(),n=[];for(let i=0;i<t&&a.length;i+=1){const r=Math.floor(O(`${e}|pick|${i}`)*a.length);n.push(a.splice(r,1)[0])}return[...jr,...n]}function Rr(){const e=l("[data-ag-emoji-orbit]");if(!e)return;e.innerHTML="";const t=Or(),a=t.length,n=ua();t.forEach((i,r)=>{const o=document.createElement("span");o.className="ag-emoji",o.textContent=i;const s=360/a*r,c=(O(`${n}|angle|${r}`)-.5)*28,g=s+c,p=O(`${n}|radius|${r}`)*21-10.5,f=16+O(`${n}|dur|${r}`)*10,b=-O(`${n}|delay|${r}`)*f,m=O(`${n}|dir|${r}`)>.5?1:-1;o.style.setProperty("--ag-emoji-angle",`${g}deg`),o.style.setProperty("--ag-emoji-radius",`${250+p}%`),o.style.setProperty("--ag-emoji-duration",`${f.toFixed(2)}s`),o.style.setProperty("--ag-emoji-delay",`${b.toFixed(2)}s`),o.style.setProperty("--ag-emoji-direction",m===1?"normal":"reverse"),e.appendChild(o)})}function Le(){const e=l("[data-ag-streak]"),t=R(),a=re();if(t>(a.maxStreak||0)&&qt({...a,maxStreak:t}),e){const n=Ht(t);n?(e.hidden=!1,e.textContent=`${n.emoji} ${n.label}`,e.dataset.agStreakTier=n.tier):e.hidden=!0}Xe()}function Xe(){const e=l("[data-ag-streak-restore]");e&&(e.hidden=!Wt())}const pa={7:"🌿 Sieben Tage am Stück. Die Maschine nickt anerkennend.",14:"🔥 Zwei Wochen am Stück. Offiziell notiert im Maschinenregister.",21:"✨ Drei Wochen. Die Maschine neigt sich leicht. Respekt.",30:"💎 Dreißig Tage. Die Maschine ist gerührt und würde applaudieren, wenn sie Hände hätte.",50:"🌿 Fünfzig Tage. Ein kleines Wunder in der Praxis der Beständigkeit.",60:"🔥 Sechzig Tage. Die Maschine erinnert sich an jeden davon.",75:"✨ Fünfundsiebzig Tage. Dreiviertel einer Jahreszeit. Unbeirrbar.",100:"💎 Hundert Tage. Die Maschine schweigt kurz aus Respekt. Dann: Bravo.",150:"🌿 Hundertfünfzig Tage. Die meisten Dinge scheitern an weniger.",200:"🔥 Zweihundert Tage. Ein Name, der im Maschinenregister unterstrichen ist.",365:"💎 Ein ganzes Jahr. Die Maschine verbeugt sich tief."};function Hr(e){const t=l("[data-ag-milestone]");if(!t)return;const a=pa[e];if(!a){t.hidden=!0;return}const n=I();if(tr(n,e)){t.hidden=!0;return}l("[data-ag-milestone-text]").textContent=a,t.hidden=!1,ar(n,e)}function Fr(e,t){const a=document.createElement("div");a.className="ag-pin-gate";const n=document.createElement("p");n.className="ag-pin-hint",n.textContent="🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";const i=document.createElement("div");i.className="ag-pin-row";const r=document.createElement("input");r.type="text",r.inputMode="numeric",r.pattern="[0-9]*",r.maxLength=4,r.className="ag-pin-input",r.placeholder="_ _ _ _",r.autocomplete="off";const o=document.createElement("button");o.type="button",o.className="ag-secondary",o.textContent="Öffnen";const s=document.createElement("p");s.className="ag-pin-err",s.hidden=!0,s.textContent="Falsche Zahl. Noch einmal.";function c(){r.value.trim()===e?(Rt(e),t()):(s.hidden=!1,r.classList.add("ag-pin-shake"),r.value="",setTimeout(()=>r.classList.remove("ag-pin-shake"),450))}return o.addEventListener("click",c),r.addEventListener("keydown",g=>{g.key==="Enter"&&c()}),i.appendChild(r),i.appendChild(o),a.appendChild(n),a.appendChild(i),a.appendChild(s),a}function Gr(e,t,a){const n=document.createElement("div");n.className="ag-pin-gate";const i=document.createElement("span");i.className="ag-outcome-link-locked",i.textContent=`🔒 Ab ${a.unlockTime} verfügbar`;const r=document.createElement("p");r.className="ag-pin-hint",r.style.marginTop="10px",r.textContent="Oder: erste drei Buchstaben deines Ziels 🗺️";const o=document.createElement("div");o.className="ag-pin-row";const s=document.createElement("input");s.type="text",s.maxLength=3,s.className="ag-pin-input",s.placeholder="_ _ _",s.autocomplete="off",s.spellcheck=!1;const c=document.createElement("button");c.type="button",c.className="ag-secondary",c.textContent="Öffnen";const g=document.createElement("p");g.className="ag-pin-err",g.hidden=!0,g.textContent="Nicht ganz. Versuch nochmal.";function p(){s.value.trim().toLowerCase()===e.toLowerCase()?(Rt("link-"+e),n.remove(),Ae(t,a.outcome.link)):(g.hidden=!1,s.classList.add("ag-pin-shake"),s.value="",setTimeout(()=>s.classList.remove("ag-pin-shake"),450))}return c.addEventListener("click",p),s.addEventListener("keydown",f=>{f.key==="Enter"&&p()}),o.appendChild(s),o.appendChild(c),n.appendChild(i),n.appendChild(r),n.appendChild(o),n.appendChild(g),n}function Wr(e){try{const t=new URL(e);if(t.hostname!=="open.spotify.com")return null;const a=t.pathname.split("/").filter(Boolean);if(a.length<2)return null;const n=a[0],i=a[1];if(!["track","album","playlist","artist","episode","show"].includes(n))return null;const o=document.createElement("iframe");return o.src=`https://open.spotify.com/embed/${n}/${i}`,o.width="100%",o.height=n==="track"||n==="episode"?"80":"152",o.setAttribute("frameborder","0"),o.allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture",o.loading="lazy",o.setAttribute("allowtransparency","true"),o.setAttribute("title","Spotify player"),o.className="ag-spotify-iframe",o}catch{return null}}function ma(e){const t=document.createElement("a");return t.href=e,t.rel="noopener noreferrer",t.target="_blank",t.className="ag-outcome-link ag-secondary",t.textContent="🔗 Link öffnen",t}function Ae(e,t){if(e.innerHTML="",!t){e.hidden=!0;return}const a=_(t);if(!a){e.hidden=!0;return}const n=Wr(a);e.appendChild(n||ma(a)),e.hidden=!1}function Kr(e,t){if(e.innerHTML="",!t.collectToken){e.hidden=!0;return}const a=t.collectToken,n=xe()[a]||0,i=jn[a]||"",r=5;if(n>=r)e.innerHTML=`
+      <div style="text-align:center;padding:16px 0;animation:ag-pop 400ms var(--ag-ease) both">
+        <div style="font-size:2.5rem;margin-bottom:8px">${a.repeat(r)}</div>
+        <p style="font-weight:700;font-size:1.1rem;margin-bottom:4px">5 erreicht — einlösbar!</p>
+        <p style="opacity:0.8;font-size:0.9rem;margin-bottom:12px">${i}</p>
+        <button class="ag-button" type="button" id="ag-token-redeem">
+          <span class="ag-button-orb" aria-hidden="true"></span>
+          <span>Einlösen</span>
+        </button>
+      </div>`,e.hidden=!1,e.querySelector("#ag-token-redeem").addEventListener("click",()=>{if(Jn(a),Z(),e.innerHTML='<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>',d.wishInbox&&d.wishInbox.enabled){const s=JSON.stringify({timestamp:new Date().toISOString(),token:I(),wish:`🎁 Sammelkapsel eingelöst: ${a} × ${r} — ${i}`,pageUrl:location.href,userAgent:navigator.userAgent});fetch(d.wishInbox.endpointUrl,{method:"POST",mode:"cors",credentials:"omit",headers:{"Content-Type":"text/plain;charset=utf-8"},body:s}).catch(()=>{})}});else{const s=r-n;e.innerHTML=`
+      <div style="text-align:center;padding:12px 0">
+        <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px;word-break:break-all;max-width:100%">${a.repeat(n)}${"⬜".repeat(r-n)}</div>
+        <p style="opacity:0.7;font-size:0.85rem">${s} × ${a} bis: <em>${i}</em></p>
+      </div>`,e.hidden=!1}}function ha(e,t){if(e.innerHTML="",!t||t.type==="video")return;const a=t.alt||"Foto von uns",n=document.createElement("div");n.className="ag-media-frame";const i=document.createElement("div");i.className="ag-media-backdrop",i.setAttribute("aria-hidden","true"),t.type!=="video"&&(i.style.backgroundImage=`url("${t.url}")`),n.appendChild(i);let r;if(t.type==="video"){const o=Fn(t.url);if(o){const s=document.createElement("div");s.className="ag-media-content ag-drive-poster",s.setAttribute("role","button"),s.setAttribute("tabindex","0"),s.setAttribute("aria-label",`${a} abspielen`);const c=document.createElement("img");c.src=`https://lh3.googleusercontent.com/d/${o}`,c.alt=a,c.className="ag-drive-poster-img",c.addEventListener("error",()=>c.remove(),{once:!0}),s.appendChild(c);const g=document.createElement("div");g.className="ag-drive-play-btn",g.setAttribute("aria-hidden","true"),s.appendChild(g);const p=()=>{s.removeEventListener("click",p),s.removeEventListener("keydown",f),s.removeAttribute("role"),s.removeAttribute("tabindex"),s.style.cursor="",s.innerHTML="";const b=document.createElement("iframe");b.src=`https://drive.google.com/file/d/${o}/preview?autoplay=1`,b.allow="autoplay",b.setAttribute("allowfullscreen",""),b.setAttribute("frameborder","0"),b.setAttribute("aria-label",a),b.className="ag-drive-iframe",s.appendChild(b)},f=b=>{(b.key==="Enter"||b.key===" ")&&p()};s.addEventListener("click",p),s.addEventListener("keydown",f),r=s}else r=document.createElement("video"),r.src=_(t.url),r.controls=!0,r.muted=!0,r.playsInline=!0,r.setAttribute("playsinline",""),r.setAttribute("preload","metadata"),r.setAttribute("aria-label",a),r.className="ag-media-content"}else r=document.createElement("img"),r.alt=a,r.loading="eager",r.decoding="auto",r.className="ag-media-content",r.addEventListener("load",()=>{const o=r.naturalWidth&&r.naturalHeight?r.naturalWidth/r.naturalHeight:1;n.dataset.orientation=o<.95?"portrait":o>1.15?"landscape":"square"},{once:!0}),r.addEventListener("error",()=>{N("config/photos.json",{photos:[]}).then(o=>{const{normalizePhotos:s}=et(),c=s(o),g=c.find(p=>p.alt===t.alt&&p.type!=="video")||c.find(p=>p.type!=="video")||null;if(g&&g.url)i.style.backgroundImage=`url("${g.url}")`,r.src=_(g.url),d.photos=c;else{const p=r.closest("[data-ag-photo-wrap]");p&&(p.hidden=!0)}}).catch(()=>{const o=r.closest("[data-ag-photo-wrap]");o&&(o.hidden=!0)})},{once:!0}),r.src=_(t.url);n.appendChild(r),e.appendChild(n)}function et(){return{normalizePhotos:e=>{const t=/\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;return(Array.isArray(e==null?void 0:e.photos)?e.photos:[]).map(n=>{const i=n.type==="video"||t.test(n.url||"");return{...n,type:i?"video":"image"}}).filter(n=>n.url)}}}function Yr(e,t,a,n){var c,g;const i=l("#ag-lightbox"),r=l("#ag-lightbox-img"),o=l("#ag-lightbox-caption"),s=l("#ag-lightbox-drive-link");if(!(!i||!r)){(c=i.querySelector(".ag-lightbox-iframe"))==null||c.remove(),(g=i.querySelector(".ag-lightbox-video"))==null||g.remove(),F&&(r.removeEventListener("error",F),F=null),r.onerror=null,s&&(s.hidden=!0);{r.hidden=!1;const p=_(e);if(!p)return;r.src=p,r.alt=t||"",F=()=>{const f=n||t;N("config/photos.json",{photos:[]}).then(b=>{const{normalizePhotos:m}=et(),y=m(b),v=y.find(h=>h.alt===f)||null;v&&v.url&&(r.src=_(v.url),d.photos=y)}).catch(()=>{})},r.addEventListener("error",F,{once:!0})}o.textContent=t||"",o.hidden=!t,i.hidden=!1,document.body.style.overflow="hidden"}}function tt(){var a,n;const e=l("#ag-lightbox");if(!e)return;(a=e.querySelector(".ag-lightbox-iframe"))==null||a.remove(),(n=e.querySelector(".ag-lightbox-video"))==null||n.remove();const t=e.querySelector(".ag-lightbox-img");t&&(F&&(t.removeEventListener("error",F),F=null),t.hidden=!1),e.hidden=!0,document.body.style.overflow=""}function fa(e){return[`${Vt(e.category.tone)} ${de()}s ${d.theme.brand.machineName}: ${e.category.label}`,e.outcome.title,e.outcome.message,e.outcome.link&&(!e.unlockTime||(()=>{var r;const[a,n]=e.unlockTime.split(":").map(Number),i=je(((r=d.theme)==null?void 0:r.timezone)||"UTC");return i.h>a||i.h===a&&i.m>=n})())?`🔗 ${e.outcome.link}`:"",e.photo?`📸 ${e.photo.caption||e.photo.alt||"Foto-Drop"}`:"",`Tag: ${e.day}`].filter(Boolean).join(`
+`)}function Jr(e){var m;C.dataset.tone=e.category.tone,br(e.category.tone),l("[data-ag-rarity]").textContent=e.category.label,l("[data-ag-date]").textContent=e.day,l("[data-ag-title]").textContent=e.outcome.title;const t=l("[data-ag-message]");if(!t)return;t.innerHTML=ga(e.outcome.message),t.hidden=!1;const a=l("[data-ag-result]"),n=a?a.querySelector("[data-ag-pin-gate]"):null;if(n&&n.remove(),e.outcome.pin&&!Ot(e.outcome.pin)){t.hidden=!0;const y=Fr(e.outcome.pin,()=>{y.remove(),t.hidden=!1});y.setAttribute("data-ag-pin-gate",""),t.parentNode.insertBefore(y,t.nextSibling)}const i=l("[data-ag-photo-wrap]"),r=l("[data-ag-photo-media]"),o=l("[data-ag-photo-caption]"),s=l("[data-ag-link-wrap]");if(e.outcome.link&&e.unlockTime){const[y,v]=e.unlockTime.split(":").map(Number),h=je(((m=d.theme)==null?void 0:m.timezone)||"UTC"),w=e.outcome.linkPin;if(w)if(Ot("link-"+w))Ae(s,e.outcome.link);else if((()=>{if(!e.outcome.linkPinFrom)return!0;const[S,P]=e.outcome.linkPinFrom.split(":").map(Number);return h.h>S||h.h===S&&h.m>=P})()){const S=Gr(w,s,e);s.innerHTML="",s.appendChild(S),s.hidden=!1}else{const S=document.createElement("span");S.className="ag-outcome-link-locked",S.textContent=`🔒 Ab ${e.unlockTime} verfügbar`,s.innerHTML="",s.appendChild(S),s.hidden=!1}else if(h.h>y||h.h===y&&h.m>=v)Ae(s,e.outcome.link);else{const S=document.createElement("span");S.className="ag-outcome-link-locked",S.textContent=`🔒 Ab ${e.unlockTime} verfügbar`,s.innerHTML="",s.appendChild(S),s.hidden=!1}}else Ae(s,e.outcome.link||null);if(Kr(l("[data-ag-token-wrap]"),e),e.photo){ha(r,e.photo);const y=(e.photo.caption||"").trim();y?(o.textContent=y,o.hidden=!1):(o.textContent="",o.hidden=!0),i.hidden=!1}else r.innerHTML="",o.textContent="",o.hidden=!0,i.hidden=!0;const c=fa(e),g=encodeURIComponent("Mein Gacha-Zug"),p=encodeURIComponent(c),f=l("[data-ag-send]");d.theme.messageTarget.startsWith("mailto:")?f.href=`${d.theme.messageTarget}?subject=${g}&body=${p}`:f.href=d.theme.messageTarget.replace("{text}",p);const b=l("[data-ag-save-img]");b&&(b.hidden=!(e.category.id==="rare"||e.category.id==="jackpot")),l("[data-ag-result]").hidden=!1,ba()}function Vr(e){return e?H().some(t=>t.day===e.day&&t.token===e.token):!1}function Ie(e){return H().some(t=>t.day===e.day&&t.token===e.token)}function ba(){const e=l("[data-ag-star]");if(!e)return;const t=Vr(d.todaysPull);e.textContent=t?"★":"☆",e.classList.toggle("is-starred",t),e.title=t?"Aus Lieblingen entfernen":"Als Lieblingspreis speichern"}function Zr(e,t){const a=H(),n=a.findIndex(r=>r.day===e.day&&r.token===e.token);n>=0?a.splice(n,1):a.unshift({day:e.day,token:e.token,categoryId:e.categoryId,categoryLabel:e.categoryLabel,tone:e.tone,title:e.title,message:e.message,link:e.link||null,unlockTime:e.unlockTime||null,photo:e.photo||null,starredAt:Date.now()}),ve(a),Z();const i=Ie(e);t.textContent=i?"★":"☆",t.classList.toggle("is-starred",i),t.title=i?"Aus Lieblingen entfernen":"Als Lieblingspreis speichern",d.activeTab==="lieblinge"&&at()}function Qr(e){if(!e)return;const t=H(),a=t.findIndex(n=>n.day===e.day&&n.token===e.token);a>=0?t.splice(a,1):t.unshift({day:e.day,token:e.token,categoryId:e.category.id,categoryLabel:e.category.label,tone:e.category.tone,title:e.outcome.title,message:e.outcome.message,link:e.outcome.link||null,photo:e.photo?{url:e.photo.url,alt:e.photo.alt||"",caption:(e.photo.caption||"").trim(),type:e.photo.type==="video"?"video":"image"}:null,starredAt:Date.now()}),ve(t),Z(),ba(),d.activeTab==="lieblinge"&&at()}function Xr(e){if(!e)return;const t={day:e.day,token:e.token,categoryId:e.category.id,categoryLabel:e.category.label,tone:e.category.tone,title:e.outcome.title,message:e.outcome.message,link:e.outcome.link||null,unlockTime:e.unlockTime||null,photo:e.photo?{url:e.photo.url,alt:e.photo.alt||"",caption:(e.photo.caption||"").trim(),type:e.photo.type==="video"?"video":"image"}:null,revealedAt:Date.now()},a=$(),n=new Set,i=[t,...a].filter(r=>{if(!r||typeof r.day!="string"||typeof r.token!="string")return!1;const o=`${r.day}|${r.token}`;return n.has(o)?!1:(n.add(o),!0)});i.sort((r,o)=>r.day<o.day?1:r.day>o.day?-1:0),ne(i),ie(0),Z()}function ya(e){if(!e.link)return null;if(e.unlockTime){const a=new Date,[n,i]=e.unlockTime.split(":").map(Number);if(!(a.getHours()>n||a.getHours()===n&&a.getMinutes()>=i)){const o=document.createElement("span");return o.className="ag-outcome-link-locked",o.textContent=`🔒 Ab ${e.unlockTime} verfügbar`,o}}const t=_(e.link);return t?ma(t):null}function va(e){const t=document.createElement("li");t.className="ag-history-item",t.dataset.tone=e.tone||"soft";const a=document.createElement("div");a.className="ag-history-head";const n=document.createElement("span");n.className="ag-history-date";const{formatHistoryDate:i}=ei();n.textContent=i(e.day);const r=document.createElement("span");r.className="ag-history-badge",r.textContent=e.categoryLabel||"Kapsel";const o=document.createElement("button");o.type="button",o.className="ag-history-star"+(Ie(e)?" is-starred":""),o.textContent=Ie(e)?"★":"☆",o.title=Ie(e)?"Aus Lieblingen entfernen":"Als Lieblingspreis speichern",o.addEventListener("click",f=>{f.stopPropagation(),Zr(e,o)}),a.appendChild(n),a.appendChild(r),a.appendChild(o);const s=document.createElement("p");s.className="ag-history-title",s.textContent=e.title||"";const c=document.createElement("div");c.className="ag-history-message",c.innerHTML=ga(e.message||""),t.appendChild(a);const g=/\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i,p=e.photo&&(e.photo.type==="video"||g.test(e.photo.url||""));if(e.photo&&!p){const f=document.createElement("div");f.className="ag-history-body";const b=document.createElement("div");b.className="ag-history-thumb";const m=document.createElement("img");m.src=_(e.photo.url),m.alt=e.photo.alt||"Foto-Drop",m.loading="lazy",m.decoding="async",m.addEventListener("error",function(){N("config/photos.json",{photos:[]}).then(v=>{const{normalizePhotos:h}=et(),w=h(v),L=w.find(S=>S.alt===e.photo.alt&&S.type!=="video")||w.find(S=>S.type!=="video")||null;if(L&&L.url)e.photo.url=L.url,m.src=_(L.url),d.photos=w;else{b.classList.add("is-broken"),m.remove();const S=document.createElement("span");S.className="ag-history-thumb-broken",S.textContent="📷",b.appendChild(S)}}).catch(()=>{b.classList.add("is-broken"),m.remove();const v=document.createElement("span");v.className="ag-history-thumb-broken",v.textContent="📷",b.appendChild(v)})},{once:!0}),b.appendChild(m),b.style.cursor="pointer",b.title="Vollansicht",b.addEventListener("click",()=>Yr(e.photo.url,e.photo.caption||e.photo.alt||"",!1,e.photo.alt));const y=document.createElement("div");if(y.className="ag-history-text",y.appendChild(s),y.appendChild(c),e.link){const v=ya(e);v&&y.appendChild(v)}f.appendChild(b),f.appendChild(y),t.appendChild(f)}else if(t.appendChild(s),t.appendChild(c),e.link){const f=ya(e);f&&t.appendChild(f)}return t}function ei(){return{formatHistoryDate:e=>{const[t,a,n]=e.split("-").map(Number),i=new Date(Date.UTC(t,a-1,n));try{return new Intl.DateTimeFormat("de-CH",{day:"2-digit",month:"short",year:"numeric"}).format(i)}catch{return e}}}}function X(){var o;const e=l("[data-ag-history]"),t=l("[data-ag-history-empty]"),a=l("[data-ag-history-note]");e.innerHTML="";const n=I(),i=A(((o=d.theme)==null?void 0:o.timezone)||"UTC"),r=$().filter(s=>s.token===n&&s.day<=i).slice().sort((s,c)=>s.day<c.day?1:s.day>c.day?-1:0);if(a.textContent="Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst.",!r.length){t.hidden=!1,t.textContent="Noch keine Kapseln auf diesem Gerät bzw. Browser geöffnet. Zieh heute eine — dann erscheint sie hier.";return}t.hidden=!0;for(const s of r)e.appendChild(va(s))}function at(){const e=l("[data-ag-lieblinge]"),t=l("[data-ag-lieblinge-empty]"),a=l("[data-ag-lieblinge-note]");e.innerHTML="";const n=H();if(a.textContent="Deine gespeicherten Lieblingspreise — per Stern markiert.",!n.length){t.hidden=!1,t.textContent="Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel.";return}t.hidden=!0;for(const i of n)e.appendChild(va(i))}function ti(){const e=l("[data-ag-odds]");e.innerHTML="";const t=R(),a=Ft(t),n=a.reduce((i,r)=>i+r.weight,0);for(const i of a){const r=document.createElement("li");r.textContent=`${i.label}: ${(i.weight/n*100).toFixed(1)} %`,e.appendChild(r)}if(t>=5){const i=Ht(t),r=document.createElement("li");r.textContent=`${i.emoji} Streak-Bonus aktiv (${t} ${t===1?"Tag":"Tage"} am Stück)`,r.style.fontWeight="800",e.appendChild(r)}}function ai(e){const t="Die Maschine hat es notiert. Ob etwas passiert, bleibt offen.";return e==="sent"?"Die Maschine hat es notiert und an Fionn weitergeleitet.":e==="pending"?"Die Maschine hat es notiert. Sie versucht, es weiterzuleiten…":e==="failed"?"Die Maschine hat es notiert. Die Weiterleitung hat nicht geklappt – beim nächsten Öffnen wird es erneut versucht.":t}function nt(){const e=l("[data-ag-wish-idle]"),t=l("[data-ag-wish-form]"),a=l("[data-ag-wish-done]");if(!e||!t||!a)return;const n=He();n&&n.week===Oe()?(e.hidden=!0,t.hidden=!0,a.hidden=!1,l("[data-ag-wish-done-title]").textContent="✨ Wunsch eingereicht",l("[data-ag-wish-done-note]").textContent=`„${n.text}"`,l("[data-ag-wish-done-meta]").textContent=ai(n.remoteStatus)):(e.hidden=!1,t.hidden=!0,a.hidden=!0)}function ni(){var y;const e=U()==="fionn",t=e?d.theme.brand.fromName:de(),a=e?de():d.theme.brand.fromName,n=l("[data-ag-main-title]");n&&(n.textContent=d.theme.brand.titleTemplate.replace("{name}",t));const i=l("[data-ag-kicker]");i&&(i.textContent=`${d.theme.brand.kicker} · ${d.photos.length} Erinnerungen`);const r=l("[data-ag-intro]");r&&(r.textContent=d.theme.brand.intro);const o=l("[data-ag-button-text]");o&&(o.textContent=d.theme.brand.buttonIdle);const s=l("[data-ag-rules-title]");s&&(s.textContent=d.theme.brand.rulesTitle);const c=l("[data-ag-rules-text]");c&&(c.textContent=d.theme.brand.rulesText);const g=l("[data-ag-send]");g&&(g.textContent=`An ${a} schicken`);const p=l("[data-ag-today-pill]");p&&(p.textContent=qr());const f=l("[data-ag-draw-hint]");f&&(f.textContent="Eine Kapsel · ein Tag · ein Souvenir.");const b=l("[data-ag-chips]");b&&(b.innerHTML="");const m=Array.isArray(d.theme.stickers)&&d.theme.stickers.length?d.theme.stickers:Ur();for(const v of b?m:[]){const h=document.createElement("li");h.textContent=v,(v.toLowerCase().includes("bärlauch")||v.toLowerCase().includes("barlauch"))&&(h.id="ag-btn-baerlauch",h.tabIndex=0,h.setAttribute("role","button"),h.setAttribute("aria-label","Bärlauch öffnen"),h.classList.add("ag-chip-clickable")),(v.toLowerCase().includes("gespräch")||v.toLowerCase().includes("gesprach"))&&(h.id="ag-btn-gesprach",h.tabIndex=0,h.setAttribute("role","button"),h.setAttribute("aria-label","Gespräch öffnen"),h.classList.add("ag-chip-clickable")),v.toLowerCase().includes("rave")&&(h.id="ag-btn-rave",h.tabIndex=0,h.setAttribute("role","link"),h.setAttribute("aria-label","Rave Board öffnen"),h.classList.add("ag-chip-clickable")),v.toLowerCase()==="quest"&&(h.id="ag-btn-quest",h.tabIndex=0,h.setAttribute("role","button"),h.setAttribute("aria-label","Quest öffnen"),h.classList.add("ag-chip-clickable"),(y=d.quest)!=null&&y.enabled&&oa()&&(se().solved||h.classList.add("ag-chip-quest-active"))),v.toLowerCase().includes("glossar")&&(h.id="ag-btn-glossary",h.tabIndex=0,h.setAttribute("role","button"),h.setAttribute("aria-label","Glossar öffnen"),h.classList.add("ag-chip-clickable")),v.toLowerCase()==="mission"&&(h.id="ag-btn-mission",h.tabIndex=0,h.setAttribute("role","button"),h.setAttribute("aria-label","Mission öffnen"),h.classList.add("ag-chip-clickable"),ta()||h.classList.add("ag-chip-mission-active")),b.appendChild(h)}Rr(),Le()}let rt=null;function ri(){if(!rt)try{rt=new(window.AudioContext||window.webkitAudioContext)}catch{}return rt}function ii(){try{return window.localStorage.getItem(Un)!=="off"}catch{return!0}}function D(e,t,a,n,i=.15,r="sine"){const o=e.createOscillator(),s=e.createGain();o.connect(s),s.connect(e.destination),o.type=r,o.frequency.value=t;const c=e.currentTime+a;s.gain.setValueAtTime(0,c),s.gain.linearRampToValueAtTime(i,c+.012),s.gain.exponentialRampToValueAtTime(1e-4,c+n),o.start(c),o.stop(c+n+.05)}function Me(e){if(!ii())return;const t=ri();if(t)switch(t.state==="suspended"&&t.resume().catch(()=>{}),e){case"quiet":D(t,280,0,.18,.08,"sine"),D(t,210,.12,.22,.06,"sine");break;case"cursed":D(t,220,0,.12,.1,"triangle"),D(t,170,.09,.28,.07,"triangle");break;case"uncommon":D(t,523,0,.14,.14,"sine"),D(t,784,.1,.22,.12,"sine");break;case"rare":D(t,523,0,.12,.14,"sine"),D(t,659,.09,.12,.14,"sine"),D(t,1047,.18,.3,.12,"sine");break;case"jackpot":[523,659,784,1047,1319].forEach((a,n)=>D(t,a,n*.09,.18,.13,"sine")),D(t,2093,.4,.4,.04,"sine");break;case"special":[523,659,784,1047,1319,1568].forEach((a,n)=>D(t,a,n*.08,.16,.13,"sine")),D(t,2093,.45,.5,.05,"sine");break;default:D(t,523,0,.12,.13,"sine"),D(t,659,.09,.18,.1,"sine");break}}function oi(e){if(!e||e<=0)return null;const t=[[8849,"Everest"],[4478,"Matterhorn"],[3692,"Titlis"],[2415,"Säntis"],[1897,"Pilatus"],[1782,"Rigi"],[869,"Üetliberg"],[668,"Grosse Mythen"]];for(const[a,n]of t){const i=e/a;if(i>=.7)return`≈ ${i>=2?Math.round(i):(Math.round(i*10)/10).toString().replace(".",",")}× ${n}`}return null}function si(e){if(!e||!e.includes("alltrails.com"))return null;const t=e.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?([^?#]+)/);if(!t)return null;let a=t[1].replace(/\/$/,"");a=a.replace(/^(?:wanderweg|sentier|sendero|percorso|trilha|rutt|sti|stezka|tura|spor|trase|traseu|wandeling|ruta)\//,"trail/");const n={"schweiz/":"switzerland/","deutschland/":"germany/","österreich/":"austria/","frankreich/":"france/","italien/":"italy/","spanien/":"spain/","niederlande/":"netherlands/","suisse/":"switzerland/","svizzera/":"switzerland/","suiza/":"switzerland/"};for(const[i,r]of Object.entries(n))if(a.startsWith("trail/"+i)){a="trail/"+r+a.slice(6+i.length);break}return!a.startsWith("trail/")||a.split("/").length<3?null:a}function li(e){if(!e||!e.includes("alltrails.com"))return null;function t(i){const r=i.indexOf("?"),o=r===-1?i:i.slice(0,r),s=r===-1?"":i.slice(r+1),c=new URLSearchParams(s);return c.set("scrollZoom","false"),c.set("u","m"),c.set("elevationDiagram","false"),o+"?"+c.toString()}if(e.includes("/widget/"))return t(e);const a=e.match(/alltrails\.com\/(?:[a-z]{2}\/)?(?:explore\/)?recording\/([^?#/]+)/);if(a){const i=e.match(/[?&]sh=([^&#]+)/),r=i?`&sh=${i[1]}`:"";return t(`https://www.alltrails.com/widget/recording/${a[1]}?scrollZoom=false&u=m${r}`)}const n=si(e);return n?t(`https://www.alltrails.com/widget/${n}?scrollZoom=false&u=m`):null}function it(e,t){const a=d.backup;if(!a||!a.enabled||!a.endpointUrl)return;const n=JSON.stringify({type:e,...t}),i={method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:n};fetch(a.endpointUrl,i).catch(()=>fetch(a.endpointUrl,{...i,mode:"no-cors"}).catch(()=>{}))}function di(e){const t=oe();t.unshift(e),we(t),it("gipfel-upsert",{...e,createdAt:new Date().toISOString()})}function ci(e){we(oe().filter(t=>t.id!==e)),it("gipfel-delete",{id:e})}function gi(e,t){const a=oe(),n=a.findIndex(r=>r.id===e);if(n===-1)return;const i={...a[n],...t};a[n]=i,we(a),it("gipfel-upsert",i)}function ui(e){const t=document.createElement("div");t.className="ag-card ag-gipfel-card",t.dataset.agGipfelId=e.id;const a=e.activityUrl?Hn(e.activityUrl):null,n=e.activityUrl&&e.activityUrl.includes("alltrails.com"),i=n?li(e.activityUrl):null,r=e.cover?`<div class="ag-gipfel-cover"><img src="${e.cover}" alt="${e.name||""}" loading="lazy"></div>`:"",o=e.distance?`${e.distance} km`:"",s=e.elevGain?`↑ ${e.elevGain} m`:"",c=o||s?`<div class="ag-gipfel-stats">${[o,s].filter(Boolean).join(" · ")}</div>`:"";t.innerHTML=`
+    ${r}
+    <div class="ag-gipfel-head">
+      <div class="ag-gipfel-head-info">
+        <div class="ag-gipfel-name">${e.name||"—"}</div>
+        <div class="ag-gipfel-date">${_n(e.date)}</div>
+      </div>
+      <div class="ag-gipfel-elev">${Pt(e.elevation)}</div>
+      <div class="ag-gipfel-actions">
+        <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${e.id}" aria-label="Bearbeiten" title="Bearbeiten">✏️</button>
+        <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${e.id}" aria-label="Löschen" title="Löschen">✕</button>
+      </div>
+    </div>
+    ${c}
+    ${e.notes?`<p class="ag-gipfel-notes">${e.notes}</p>`:""}
+    ${a?`<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${a}">🗺 Komoot-Karte</button><a class="ag-secondary" href="${e.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Komoot öffnen</a></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${a}" hidden></div>`:""}
+    ${n?`${i?`<div class="ag-gipfel-map-preview"><iframe src="${i}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>`:""}<a class="ag-secondary" href="${e.activityUrl}" target="_blank" rel="noopener noreferrer">↗ AllTrails öffnen</a>`:""}
+    ${e.activityUrl&&!a&&!n?`<a class="ag-secondary" href="${e.activityUrl}" target="_blank" rel="noopener noreferrer">↗ Tour öffnen</a>`:""}
+  `;const g=t.querySelector("[data-ag-gipfel-edit]");g&&g.addEventListener("click",()=>{const b=l("[data-ag-berge-form]"),m=l("[data-ag-berge-add]");if(!b)return;const y=l("[data-ag-berge-edit-id]");y&&(y.value=e.id);const v=l("[data-ag-berge-name]");v&&(v.value=e.name||"");const h=l("[data-ag-berge-elev]");h&&(h.value=e.elevation||"");const w=l("[data-ag-berge-dist]");w&&(w.value=e.distance||"");const L=l("[data-ag-berge-gain]");L&&(L.value=e.elevGain||"");const S=l("[data-ag-berge-date]");S&&(S.value=e.date||"");const P=l("[data-ag-berge-url]");P&&(P.value=e.activityUrl||"");const G=l("[data-ag-berge-cover]");G&&(G.value=e.cover||"");const W=l("[data-ag-berge-notes]");W&&(W.value=e.notes||"");const j=l("[data-ag-berge-form-title]");j&&(j.textContent="Eintrag bearbeiten");const ue=l("[data-ag-berge-save] span:last-child");ue&&(ue.textContent="Speichern"),b.hidden=!1,m&&(m.hidden=!0),b.scrollIntoView({behavior:"smooth",block:"nearest"}),v&&v.focus(),k(8)});const p=t.querySelector("[data-ag-gipfel-delete]");p&&p.addEventListener("click",()=>{window.confirm(`„${e.name}" löschen?`)&&(ci(e.id),ce(),k(8),Promise.resolve().then(()=>Ei).then(b=>b.showToast("Eintrag gelöscht")).catch(()=>{}))});const f=t.querySelector("[data-ag-map-komoot]");return f&&f.addEventListener("click",()=>{const b=t.querySelector(`[data-ag-map-wrap-komoot="${a}"]`);if(b){if(!b.hidden){b.hidden=!0,f.textContent="🗺 Komoot-Karte";return}b.innerHTML=`<iframe src="https://www.komoot.com/tour/${a}/embed?profile=1" height="220" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`,b.hidden=!1,f.textContent="Karte schließen",k(4)}}),t}function ce(){const e=l("[data-ag-berge-list]"),t=l("[data-ag-berge-empty]"),a=l("[data-ag-berge-total]"),n=l("[data-ag-berge-analogy]");if(!e)return;const i=oe();e.innerHTML="";const r=i.reduce((o,s)=>o+(Number(s.elevation)||0),0);if(a&&(a.textContent=r>0?Pt(r):"— m"),n){const o=oi(r);o?(n.textContent=o,n.hidden=!1):n.hidden=!0}if(!i.length){t&&(t.hidden=!1);return}t&&(t.hidden=!0),i.forEach(o=>e.appendChild(ui(o)))}const xa=[{timeMs:2e4,good:10,bad:8,speedMin:3.2,speedMax:3.7},{timeMs:17e3,good:10,bad:12,speedMin:3,speedMax:3.7},{timeMs:14500,good:12,bad:18,speedMin:2.8,speedMax:3.6},{timeMs:12200,good:14,bad:20,speedMin:2.6,speedMax:3.3},{timeMs:10200,good:14,bad:25,speedMin:1.45,speedMax:2.05},{timeMs:8500,good:16,bad:25,speedMin:1.3,speedMax:1.85},{timeMs:7e3,good:18,bad:28,speedMin:1.15,speedMax:1.65},{timeMs:5800,good:20,bad:30,speedMin:1,speedMax:1.45},{timeMs:4700,good:22,bad:30,speedMin:.9,speedMax:1.25},{timeMs:3800,good:30,bad:30,speedMin:.4,speedMax:.8}];function wa(e){return xa[Math.min(e-1,xa.length-1)]}function ee(e,t){return e+Math.random()*(t-e)}function ka(){const e=l("#ag-baerlauch-level");e&&(e.textContent=`Level ${d.baerlauch.level}`)}function ge(){d.baerlauch.timerId&&(clearInterval(d.baerlauch.timerId),d.baerlauch.timerId=null)}function Sa(e){const t=l("#ag-baerlauch-field"),a=l("#ag-baerlauch-success"),n=l("#ag-baerlauch-reward"),i=l("#ag-baerlauch-photo"),r=l("#ag-baerlauch-text"),o=l("#ag-baerlauch-actions");o&&(o.hidden=!0),ge(),d.baerlauch.locked=!0,t&&(t.innerHTML='<div class="ag-forage-darkness" id="ag-baerlauch-darkness" style="opacity:.78"></div>'),n&&(n.hidden=!0),i&&(i.innerHTML=""),r&&(r.textContent=""),a&&(a.hidden=!1,a.style.color="#fff",a.textContent=e==="timeout"?"Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei. Jetzt ist es vorbei.":"Oops. Ich fürchte, wir haben toten Lauch oder etwas Giftiges gesammelt und sind tragisch eingegangen. Jetzt ist es vorbei."),Ea(U(),d.baerlauch.level,!1),st()}function pi(){const e=l("#ag-baerlauch-success"),t=l("#ag-baerlauch-reward"),a=l("#ag-baerlauch-photo"),n=l("#ag-baerlauch-text"),i=l("#ag-baerlauch-actions"),r=l("#ag-baerlauch-next");ge(),d.baerlauch.level+=1;const o=fi(U(),d.baerlauch.level);if(Ea(U(),d.baerlauch.level,!0),st(),ka(),o&&K(),e&&(e.hidden=!1,e.textContent="Sehr stark. Du hast nur den guten Bärlauch gesammelt. 💚"),t&&a&&n&&d.photos&&d.photos.length){const s=le(),c=s.length?s[Math.floor(Math.random()*s.length)]:null;ha(a,c),t.hidden=!1;const g=["Du bist eindeutig mein Lieblingsfund.","Mit dir würde ich jederzeit wieder Bärlauch sammeln.","Sehr beruhigend, dass du uns nicht vergiftet hast.","Wald mit dir > fast alles andere.","Das war ausgesprochen sammel-kompetent von dir.","Ich würde mit dir auch poisoned Bärlauch essen. Aber bitte nicht.","Du sammelst Bärlauch so gut wie du alles andere machst.","Nächstes Mal bring ich Käse. Du bringst dich.","Ehrlich gesagt bin ich gekommen wegen dir, nicht wegen dem Lauch.","So stell ich mir perfekte Wochenenden vor — Wald, du, Bärlauch.","Rekord. Und du weißt genau, dass ich damit dich meine.","Botanik-Talent plus gute Gesellschaft. Was will man mehr.","Wenn das hier ein Film wäre, würde jetzt Credit-Musik laufen.","Pesto später? Verdient."];n.textContent=g[Math.floor(Math.random()*g.length)]}r&&(r.textContent=`Level ${d.baerlauch.level} starten`),i&&(i.hidden=!1)}function mi(e){const t=l("#ag-baerlauch-timer"),a=l("#ag-baerlauch-darkness"),i=wa(d.baerlauch.level).timeMs;d.baerlauch.durationMs=i,d.baerlauch.startedAt=performance.now(),ge(),d.baerlauch.timerId=setInterval(()=>{const r=performance.now()-d.baerlauch.startedAt,o=Math.max(0,i-r),s=Math.min(1,r/i);t&&(t.textContent=(o/1e3).toFixed(1)),a&&(a.style.opacity=String(Math.pow(s,1.5)*.92));const c=document.querySelectorAll(".ag-forage-item"),g=Math.pow(s,1.4);c.forEach(p=>{p.style.filter=`brightness(${1-g*.72}) saturate(${1-g*.45}) hue-rotate(${g*8}deg)`,p.style.opacity=String(1-g*.28)}),o<=0&&(ge(),e())},50)}function ot(){const e=l("#ag-baerlauch-panel"),t=l("#ag-baerlauch-field"),a=l("#ag-baerlauch-success"),n=l("#ag-baerlauch-reward"),i=l("#ag-baerlauch-photo"),r=l("#ag-baerlauch-text"),o=l("#ag-baerlauch-actions");if(!e||!t||!a||!n||!i||!r)return;if(e.hidden=!1,st(),e.scrollIntoView({behavior:"smooth",block:"nearest"}),d.baerlauch.locked){a.hidden=!1,a.textContent="Diese Runde ist vorbei. Vielleicht nach einem Neuladen nochmal.";return}t.innerHTML='<div class="ag-forage-darkness" id="ag-baerlauch-darkness"></div>',a.hidden=!0,n.hidden=!0,i.innerHTML="",r.textContent="",o&&(o.hidden=!0),ka();const s=wa(d.baerlauch.level),c=["🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🌿","🌱","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🍀","🌿","🌱","🍃","🌿","🌱","🍀","🍃","🌿","🌱","🍃","🌿","🍀"],g=["🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸","☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂","🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸","☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂","🥀","🌸","☠️","🧄","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","🍂","💀","🪦","🌾","🥀","🌸","🌸","🌸","🌸","🌸","🌸","☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","☠️","☠️","☠️","☠️","☠️","☠️","☠️","🧄","🍂","💀","🪦","🌾","🥀","🌸","☠️","🧄","🍂","💀"],p=[...c.slice(0,s.good).map(m=>({emoji:m,good:!0})),...g.slice(0,s.bad).map(m=>({emoji:m,good:!1}))];let f=0;const b=p.filter(m=>m.good).length;p.forEach(m=>{const y=document.createElement("button");y.type="button",y.className="ag-forage-item",y.textContent=m.emoji,y.dataset.good=m.good?"true":"false",y.style.left=`${ee(8,82)}%`,y.style.top=`${ee(10,72)}%`,y.style.setProperty("--dx",`${ee(-320,320)}px`),y.style.setProperty("--dy",`${ee(-220,220)}px`),y.style.setProperty("--dur",`${ee(s.speedMin,s.speedMax)}s`),y.style.setProperty("--delay",`${ee(-1.8,0)}s`),y.addEventListener("click",()=>{d.baerlauch.locked||(y.dataset.good==="true"?(y.classList.add("is-picked"),y.disabled=!0,f+=1,setTimeout(()=>y.remove(),140),f===b&&pi()):Sa("poison"))}),t.appendChild(y)}),mi(()=>Sa("timeout"))}function hi(){const e=l("#ag-baerlauch-panel");ge(),e&&(e.hidden=!0)}function fi(e,t){var i;const a=Ge(),n=(a[e]||0)<t;if(n){a[e]=t;try{localStorage.setItem("affektions-gacha:baerlauch-scores:v1",JSON.stringify(a))}catch{}const r=(i=d.backup)==null?void 0:i.endpointUrl;r&&fetch(r,{method:"POST",body:JSON.stringify({type:"baerlauch-score",player:e,level:t}),headers:{"Content-Type":"application/json"}}).catch(()=>{})}return n}function Ea(e,t,a){var o;const n=jt(),i=((o=d.theme)==null?void 0:o.timezone)||"UTC",r=A(i);n.unshift({date:r,player:e,level:t,won:a}),n.length>50&&n.splice(50);try{localStorage.setItem("affektions-gacha:baerlauch-history:v1",JSON.stringify(n))}catch{}}function st(){var f;const e=l("#ag-baerlauch-scores");if(!e)return;const a=U()==="fionn"?"fionn":"lennart",n=a==="lennart"?"Fionn":"Lennart",i=Ge(),r=jt(),o=a==="fionn"?"lennart":"fionn",s=a in i||o in i;if(!s&&!r.length){e.hidden=!0;return}e.hidden=!1;const c=((f=d.theme)==null?void 0:f.timezone)||"UTC",g=b=>{try{return new Intl.DateTimeFormat("de-CH",{day:"numeric",month:"short",timeZone:c}).format(new Date(b+"T12:00:00Z"))}catch{return b}};let p="";if(s){const b=i[a]??0,m=i[o]??0;p+=`<div class="ag-score-highscores">
+      <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-mine">Du</span><span class="ag-score-result">Level ${b||"—"}</span></div>
+      <div class="ag-score-row"><span class="ag-score-date">Bestleistung</span><span class="ag-score-pill ag-score-theirs">${n}</span><span class="ag-score-result">Level ${m||"—"}</span></div>
+    </div>`}if(r.length){const b=r.slice(0,8).map(m=>{const y=m.player===a,v=y?"ag-score-mine":"ag-score-theirs",h=y?"Du":n,w=m.won?`✓ Level ${m.level}`:`✗ Level ${m.level-1>=1?m.level-1:"–"}`;return`<div class="ag-score-row"><span class="ag-score-date">${g(m.date)}</span><span class="ag-score-pill ${v}">${h}</span><span class="ag-score-result">${w}</span></div>`}).join("");p+=`<div class="ag-score-table">${b}</div>`}e.innerHTML=p}let z=null,q=null,Y="swabian";function ze(){try{return JSON.parse(window.localStorage.getItem(Nt)||"[]")||[]}catch{return[]}}function lt(e){try{window.localStorage.setItem(Nt,JSON.stringify(e))}catch{}}function bi(e){const t=ze();t.unshift(e),lt(t),dt("glossary-upsert",{...e,createdAt:new Date().toISOString()})}function yi(e,t){const a=ze(),n=a.findIndex(r=>r.id===e);if(n===-1)return;const i={...a[n],...t};a[n]=i,lt(a),dt("glossary-upsert",i)}function vi(e){lt(ze().filter(t=>t.id!==e)),dt("glossary-delete",{id:e})}function dt(e,t){const a=d.backup;if(!a||!a.enabled||!a.endpointUrl)return;const n=JSON.stringify({type:e,token:I(),...t});fetch(a.endpointUrl,{method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:n}).catch(()=>fetch(a.endpointUrl,{method:"POST",mode:"no-cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:n}).catch(()=>{}))}async function ct(e){return new Promise(t=>{const a=new FileReader;a.onload=()=>t(a.result),a.readAsDataURL(e)})}async function xi(e,t){const a=d.backup;if(!a||!a.enabled||!a.endpointUrl)return ct(e);try{const n=await ct(e),i=n.split(",")[1],r=e.type||"audio/webm",o=JSON.stringify({type:"glossary-audio",token:I(),filename:`glossary-${t}.webm`,mimeType:r,data:i}),c=await(await fetch(a.endpointUrl,{method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:o})).json();return c.ok&&c.url?c.url:n}catch{return ct(e)}}function wi(e){const t=document.createElement("div");t.className="ag-glossary-card",t.dataset.agGlossaryId=e.id,t.innerHTML=`
+    <div class="ag-glossary-card-body">
+      <div class="ag-glossary-card-text">
+        <div class="ag-glossary-word">${e.word||"—"}</div>
+        ${e.meaning?`<div class="ag-glossary-meaning-text">${e.meaning}</div>`:""}
+      </div>
+      <div class="ag-glossary-card-btns">
+        ${e.audioUrl?`<button class="ag-glossary-play-btn" type="button" data-ag-glossary-play="${e.id}" aria-label="Abspielen">▶</button>`:""}
+        <button class="ag-glossary-edit-btn" type="button" data-ag-glossary-edit="${e.id}" aria-label="Bearbeiten">Bearbeiten</button>
+        <button class="ag-glossary-del-btn" type="button" data-ag-glossary-del="${e.id}" aria-label="Löschen">✕</button>
+      </div>
+    </div>
+  `;const a=t.querySelector("[data-ag-glossary-play]");a&&e.audioUrl&&a.addEventListener("click",()=>{new Audio(e.audioUrl).play().catch(()=>{}),k(6)});const n=t.querySelector("[data-ag-glossary-edit]");n&&n.addEventListener("click",()=>{var p;const r=document.getElementById("ag-glossary-form"),o=document.getElementById("ag-glossary-add");if(!r)return;document.getElementById("ag-glossary-edit-id").value=e.id,document.getElementById("ag-glossary-word-input").value=e.word||"",document.getElementById("ag-glossary-meaning-input").value=e.meaning||"";const s=document.getElementById("ag-glossary-form-title");s&&(s.textContent="Wort bearbeiten");const c=document.getElementById("ag-glossary-save-label");c&&(c.textContent="Speichern");const g=document.getElementById("ag-glossary-audio-status");g&&(g.textContent=e.audioUrl?"Aufnahme vorhanden":""),q=null,r.hidden=!1,o&&(o.hidden=!0),r.scrollIntoView({behavior:"smooth",block:"nearest"}),(p=document.getElementById("ag-glossary-word-input"))==null||p.focus(),k(8)});const i=t.querySelector("[data-ag-glossary-del]");return i&&i.addEventListener("click",()=>{window.confirm(`„${e.word}" löschen?`)&&(vi(e.id),De(Y),k(8))}),t}function De(e){Y=e||"swabian";const t=document.getElementById("ag-glossary-list"),a=document.getElementById("ag-glossary-empty");if(!t)return;document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(i=>{i.classList.toggle("is-active",i.dataset.lang===Y)}),Ta();const n=ze().filter(i=>i.lang===Y);if(t.innerHTML="",!n.length){a&&(a.hidden=!1);return}a&&(a.hidden=!0),n.forEach(i=>t.appendChild(wi(i)))}function Ta(){const e=document.getElementById("ag-glossary-pill"),t=document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab");if(!e||!t.length)return;const a=document.querySelector("#ag-glossary-tabs .ag-glossary-tab.is-active");a&&(e.style.transform=`translateX(${a.offsetLeft}px)`,e.style.width=`${a.offsetWidth}px`)}function Ca(){const e=document.getElementById("ag-glossary-panel");e&&(e.hidden=!1,e.scrollIntoView({behavior:"smooth",block:"nearest"}),Y="swabian",De("swabian"),window.requestAnimationFrame(()=>Ta()),k(10))}function ki(){const e=document.getElementById("ag-glossary-panel");e&&(e.hidden=!0);const t=document.getElementById("ag-glossary-form");t&&(t.hidden=!0);const a=document.getElementById("ag-glossary-add");if(a&&(a.hidden=!1),q=null,z&&z.state!=="inactive")try{z.stop()}catch{}z=null}const gt=[{title:"{name}s Kapsel wartet 🎲",body:"Heute noch keine Kapsel gezogen — zieh jetzt!"},{title:"Guten Morgen, {name} 🌿",body:"Deine tägliche Kapsel ist bereit."},{title:"Die Maschine dreht sich 🎲",body:"Du hast heute noch nicht gezogen — auf geht's!"},{title:"{name}s tägliche Kapsel ✨",body:"Eine neue Chance — die Maschine dreht sich."},{title:"Heute wartet etwas 🎲",body:"Die Kapsel des Tages ist für dich bereit."},{title:"Zeit für die Kapsel 🌿",body:"Zieh heute und sieh, was die Maschine bereithält."},{title:"Die Maschine ruft 🎰",body:"Deine Kapsel läuft nicht weg — aber der Tag schon."}],ut=[{title:"{name}s Kapsel läuft ab! 🎲",body:"Noch 3 Stunden — dann ist sie weg für heute."},{title:"Nicht vergessen! 🎲",body:"Deine Kapsel wartet noch. Noch 3 Stunden bis Mitternacht."},{title:"Fast zu spät, {name}! 🌙",body:"21 Uhr — in 3 Stunden ist der Tag vorbei."},{title:"Die Maschine wartet auf dich 🎲",body:"Heute noch nicht gezogen. Auf geht's — es ist gleich zu spät."},{title:"{name}s Streak wackelt! 💎",body:"Noch 3 Stunden — dann ist der Streak in Gefahr."}];function $e(e){const t=C.querySelector("[data-ag-toasts]");if(!t)return;const a=document.createElement("div");a.className="ag-toast",a.textContent=e,t.appendChild(a),setTimeout(()=>{a.classList.add("is-leaving"),setTimeout(()=>a.remove(),300)},2400)}function pt(e){d.activeTab=e,C.querySelectorAll("[data-ag-tab]").forEach(r=>{const o=r.dataset.agTab===e;r.classList.toggle("is-active",o),r.setAttribute("aria-selected",o?"true":"false")});const a=C.querySelector(".ag-bottomnav-btn.is-active"),n=C.querySelector(".ag-nav-pill");if(n&&a){const r=a.closest(".ag-bottomnav"),o=r?r.getBoundingClientRect():null,s=a.getBoundingClientRect();o&&s.width&&(n.style.left=`${s.left-o.left}px`,n.style.width=`${s.width}px`)}l("[data-ag-panel-today]").hidden=e!=="today",l("[data-ag-panel-history]").hidden=e!=="history",l("[data-ag-panel-lieblinge]").hidden=e!=="lieblinge",l("[data-ag-panel-berge]").hidden=e!=="berge",e==="history"&&X(),e==="lieblinge"&&at(),e==="berge"&&(ce(),Te().then(()=>ce()).catch(()=>{}));const i=l("[data-ag-fab]");i&&(i.hidden=e!=="berge")}function La(){const e=d.backup;if(!e||!e.enabled||!e.endpointUrl)return;const t=l("[data-ag-ping-send]"),a=l("[data-ag-ping-status]");t&&(t.disabled=!0),a&&(a.hidden=!1,a.textContent="Wird gesendet…",delete a.dataset.agHugState);const n=JSON.stringify({type:"ping",token:I(),pageUrl:typeof window<"u"&&window.location?window.location.href:"",userAgent:typeof navigator<"u"&&navigator.userAgent?navigator.userAgent:""}),i={method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:n};fetch(e.endpointUrl,i).then(r=>{a&&(a.textContent="Stups gesendet 👋",a.dataset.agHugState="ok"),t&&window.setTimeout(()=>{t.disabled=!1},4e3)}).catch(()=>{fetch(e.endpointUrl,{...i,mode:"no-cors"}).catch(()=>{}),a&&(a.textContent="Stups gesendet 👋",a.dataset.agHugState="ok"),t&&window.setTimeout(()=>{t.disabled=!1},4e3)})}function te(e,t){const a=l("[data-ag-hug-status]");if(a){if(!e){a.hidden=!0,a.textContent="",delete a.dataset.agHugState;return}a.hidden=!1,a.textContent=e,t?a.dataset.agHugState=t:delete a.dataset.agHugState}}function Aa(){const e=d.wishInbox,t=l("[data-ag-hug-send]"),a="🫂 Notfall-Umarmung gebraucht",n={timestamp:new Date().toISOString(),token:I(),type:"hug",event:"hug",wish:a,message:a,pageUrl:typeof window<"u"&&window.location?window.location.href:"",userAgent:typeof navigator<"u"&&navigator.userAgent?navigator.userAgent:""};if(!e||!e.enabled){te("Fionn wurde angestupst 🫂 (offline notiert)","ok");return}const i=typeof e.endpointUrl=="string"?e.endpointUrl.trim():"";if(!i){te("Fionn wurde angestupst 🫂 (offline notiert)","ok");return}t&&(t.disabled=!0),te("Stups wird gesendet…","pending");const r=JSON.stringify(n),o=()=>{te("Fionn wurde angestupst 🫂","ok"),t&&window.setTimeout(()=>{t.disabled=!1},4e3)},s=()=>{te("Konnte gerade nicht gesendet werden – bitte gleich nochmal.","error"),t&&(t.disabled=!1)};fetch(i,{method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:r}).then(c=>{c&&c.ok?o():s()}).catch(()=>{try{fetch(i,{method:"POST",mode:"no-cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:r}).then(o).catch(s)}catch{s()}})}function mt(e){const t=d.wishInbox;if(!t||!t.enabled)return;const a=typeof t.endpointUrl=="string"?t.endpointUrl.trim():"";if(!a)return;const n={timestamp:new Date(e.submittedAt||Date.now()).toISOString(),token:I(),wish:e.text,pageUrl:typeof window<"u"&&window.location?window.location.href:"",userAgent:typeof navigator<"u"&&navigator.userAgent?navigator.userAgent:""},i=JSON.stringify(n),r=o=>{const s=He();!s||s.week!==e.week||(Ut({...s,remoteStatus:o,remoteUpdatedAt:Date.now()}),nt())};r("pending"),fetch(a,{method:"POST",mode:"cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:i}).then(o=>{o&&o.ok?r("sent"):r("failed")}).catch(()=>{try{fetch(a,{method:"POST",mode:"no-cors",credentials:"omit",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:i}).then(()=>r("sent")).catch(()=>r("failed"))}catch{r("failed")}})}function Ia(){const e=He();!e||e.week!==Oe()||e.remoteStatus!=="sent"&&mt(e)}function Ma(){const e=document.querySelector("[data-ag-notif-card]");if(e&&"Notification"in window&&!(Notification.permission==="granted"||Notification.permission==="denied")){try{if(window.localStorage.getItem(he)==="dismissed")return}catch{}e.hidden=!1,e.removeAttribute("hidden")}}function Si(){var s;const e=((s=d.theme)==null?void 0:s.timezone)||"Europe/Zurich",t=new Intl.DateTimeFormat("en-US",{timeZone:e,hour:"2-digit",minute:"2-digit",hour12:!1}).format(new Date),[a,n]=t.split(":").map(Number),i=a*60+n,r=8*60,o=i<r?r-i:24*60-i+r;return Date.now()+o*60*1e3}async function Ne(){var e;if(!(!("serviceWorker"in navigator)||!("Notification"in window))&&Notification.permission==="granted")try{const t=await navigator.serviceWorker.ready;if(!t.active)return;const a=((e=d.theme)==null?void 0:e.timezone)||"Europe/Zurich",n=I(),i=A(a);if($().some(f=>f.token===n&&f.day===i)){t.active.postMessage({type:"CANCEL_NOTIFICATION",tag:"ag-streak-warn"});return}const{h:o,m:s}=je(a);if(o>=21)return;const c=((21-o)*60-s)*60*1e3-new Date().getSeconds()*1e3,g=de(),p=ut[Bt(ut)];t.active.postMessage({type:"SCHEDULE_NOTIFICATION",tag:"ag-streak-warn",targetTime:Date.now()+Math.max(0,c),title:p.title.replace("{name}",g),body:p.body.replace("{name}",g)})}catch{}}async function za(){var e,t,a;if(!(!("serviceWorker"in navigator)||!("Notification"in window))&&Notification.permission==="granted")try{const n=await navigator.serviceWorker.ready,i=de(),r=gt[Bt(gt)];if((e=n.active)==null||e.postMessage({type:"SCHEDULE_NOTIFICATION",tag:"ag-daily",targetTime:Si(),title:r.title.replace("{name}",i),body:r.body.replace("{name}",i)}),(t=d.quest)!=null&&t.enabled&&oa()){const o=se(),s=(()=>{try{return parseInt(localStorage.getItem("affektions-gacha:quest-notif:v1")||"-1",10)}catch{return-1}})();if(!o.solved&&s!==be(d)){try{localStorage.setItem("affektions-gacha:quest-notif:v1",String(be(d)))}catch{}(a=n.active)==null||a.postMessage({type:"SCHEDULE_NOTIFICATION",targetTime:Date.now()+500,title:d.quest.pushTitle||"Neue Foto-Aufgabe 📷",body:d.quest.pushBody||"Die Maschine hat eine neue Aufgabe für dich."})}}}catch{}}async function Da(){if("serviceWorker"in navigator)try{const e=await navigator.serviceWorker.ready;if(!("periodicSync"in e))return;await e.periodicSync.register("ag-daily-reminder",{minInterval:20*60*60*1e3})}catch{}}async function ht(){if("serviceWorker"in navigator)try{const e=Gn("sw.js");if(new URL(e).origin!==window.location.origin)return;await navigator.serviceWorker.register(e,{scope:new URL("./",e).pathname}),Notification.permission==="granted"&&(await za(),await Ne(),await Da())}catch{}}async function $a(){const e=l("[data-ag-notif-card]");if(!("Notification"in window)){e&&(e.hidden=!0);return}const t=await Notification.requestPermission();if(e&&(e.hidden=!0),t!=="granted"){try{window.localStorage.setItem(he,"dismissed")}catch{}return}try{window.localStorage.setItem(he,"granted")}catch{}await ht()}function ft(e,t,a,n,i,r){if(typeof e.roundRect=="function")e.beginPath(),e.roundRect(t,a,n,i,r);else{const o=Array.isArray(r)?r:[r,r,r,r],[s,c,g,p]=o.map(f=>Math.min(f,n/2,i/2));e.beginPath(),e.moveTo(t+s,a),e.lineTo(t+n-c,a),e.quadraticCurveTo(t+n,a,t+n,a+c),e.lineTo(t+n,a+i-g),e.quadraticCurveTo(t+n,a+i,t+n-g,a+i),e.lineTo(t+p,a+i),e.quadraticCurveTo(t,a+i,t,a+i-p),e.lineTo(t,a+s),e.quadraticCurveTo(t,a,t+s,a),e.closePath()}}function bt(e,t,a){const n=t.split(" "),i=[];let r="";for(const o of n){const s=r?`${r} ${o}`:o;e.measureText(s).width>a&&r?(i.push(r),r=o):r=s}return r&&i.push(r),i}function Na(e){var G,W;const i=document.createElement("canvas"),r=Math.min(window.devicePixelRatio||1,2);i.width=640*r,i.height=340*r,i.style.width="640px",i.style.height="340px";const o=i.getContext("2d");o.scale(r,r);const s=e.category.id==="jackpot",c=s?"#2d1f00":"#0d2b1c",g=s?"#1a1000":"#061510",p=o.createLinearGradient(0,0,0,340);p.addColorStop(0,c),p.addColorStop(1,g),o.fillStyle=p,ft(o,0,0,640,340,20),o.fill();const f=s?"#b9782e":"#2f7a4f";o.fillStyle=f,ft(o,0,0,640,5,[20,20,0,0]),o.fill();const b=e.category.label,m=Vt(e.category.tone);o.font="bold 13px Satoshi, Inter, system-ui, sans-serif",o.fillStyle=s?"#d4a24c":"#5aba7e",o.fillText(`${m} ${b}`,40,62);const y=e.day;o.font="13px Satoshi, Inter, system-ui, sans-serif",o.fillStyle="rgba(255,255,255,0.45)";const v=o.measureText(y).width;o.fillText(y,600-v,62),o.strokeStyle="rgba(255,255,255,0.1)",o.lineWidth=1,o.beginPath(),o.moveTo(40,76),o.lineTo(600,76),o.stroke(),o.font="bold 24px Boska, Georgia, serif",o.fillStyle="#ffffff";const h=bt(o,e.outcome.title,640-40*2);let w=108;for(const j of h)o.fillText(j,40,w),w+=32;o.font="15px Satoshi, Inter, system-ui, sans-serif",o.fillStyle="rgba(255,255,255,0.72)";const L=bt(o,e.outcome.message,640-40*2);w+=4;for(const j of L){if(w>270)break;o.fillText(j,40,w),w+=22}o.font="11px Satoshi, Inter, system-ui, sans-serif",o.fillStyle="rgba(255,255,255,0.25)";const S=((W=(G=d.theme)==null?void 0:G.brand)==null?void 0:W.machineName)||"Affektions-Gacha";o.fillText(S,40,324);const P=document.createElement("a");P.download=`gacha-${e.category.id}-${e.day}.png`,P.href=i.toDataURL("image/png"),P.click()}function yt(e){C.style.opacity="1",C.innerHTML=`
+    <div class="ag-error">
+      <h2>Die Maschine klemmt.</h2>
+      <p>${Pa(e.message||String(e))}</p>
+    </div>
+  `}function Pa(e){return e.replace(/[&<>"']/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[t])}function Ba(){d.todaysPull||(d.todaysPull=vr());const e=l("[data-ag-draw]"),t=l("[data-ag-button-text]"),a=d.theme.loadingSteps||["Maschine rattert"];let n=0;C.classList.add("is-revealing"),e.disabled=!0,t.textContent=a[n];const i=window.setInterval(()=>{n=Math.min(n+1,a.length-1),t.textContent=a[n]},Math.max(420,Math.floor((d.theme.revealDelayMs||3200)/a.length))),r=d.theme.revealDelayMs||3200,o=Array.from((l("[data-ag-emoji-orbit]")||{children:[]}).children),s=o.map(f=>parseFloat(f.style.getPropertyValue("--ag-emoji-duration"))||20),c=performance.now();let g;function p(f){const b=Math.min((f-c)/r,1),m=1+5*b*b;o.forEach((y,v)=>{y.style.setProperty("--ag-emoji-duration",`${(s[v]/m).toFixed(3)}s`)}),b<1&&(g=requestAnimationFrame(p))}g=requestAnimationFrame(p),window.setTimeout(()=>{var y,v,h,w;window.clearInterval(i),cancelAnimationFrame(g),o.forEach((L,S)=>{L.style.setProperty("--ag-emoji-duration",`${s[S].toFixed(2)}s`)}),d.todaysPull.collectToken&&($().some(S=>S.day===d.todaysPull.day&&S.token===d.todaysPull.token)||Yn(d.todaysPull.collectToken)),Jr(d.todaysPull),C.classList.remove("is-revealing"),C.classList.add("is-revealed"),C.classList.add("has-drawn"),e.disabled=!1,t.textContent=d.theme.brand.buttonShown,d.revealed=!0,_e()||Xr(d.todaysPull),Ne();const f=R();Le(),Hr(f);const b=(v=(y=d.todaysPull)==null?void 0:y.category)==null?void 0:v.id,m=(w=(h=d.todaysPull)==null?void 0:h.category)==null?void 0:w.tone;if(b==="special"){const L=["#ff6b6b","#ffa94d","#ffd43b","#69db7c","#4dabf7","#da77f2","#f783ac","#fff"];K(130,L),setTimeout(()=>K(90,L),700),Me("special")}else if(m==="jackpot"){const L=["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"];K(120,L),setTimeout(()=>K(80,L),650),Me("jackpot")}else m==="rare"?(K(70),Me("rare")):Me(m||"common");pa[f]?k([30,20,30,20,60]):k([20,20,40]),d.activeTab==="history"&&X(),Ma()},d.theme.revealDelayMs||3200)}function Ua(){var Oa,Ra,Ha,Fa,Ga,Wa,Ka,Ya,Ja,Va,Za,Qa,Xa,en,tn,an,nn,rn,on,sn,ln,dn,cn,gn,un,pn,mn,hn,fn,bn,yn,vn;let e=null;const t=l("[data-ag-draw]");t.addEventListener("pointerdown",()=>{e=setTimeout(ca,3e3)}),t.addEventListener("pointerup",()=>clearTimeout(e)),t.addEventListener("pointerleave",()=>clearTimeout(e)),t.addEventListener("pointercancel",()=>clearTimeout(e));let a=0,n=null;l("[data-ag-main-title]").addEventListener("click",()=>{if(a++,clearTimeout(n),a>=5){a=0,ca();return}n=setTimeout(()=>{a=0},1800)}),l("[data-ag-draw]").addEventListener("click",()=>{k(12),Ba()}),(Oa=l("#ag-btn-rave"))==null||Oa.addEventListener("click",()=>{window.open("https://rave-board.vercel.app/","_blank","noopener")}),(Ra=l("#ag-btn-rave"))==null||Ra.addEventListener("keydown",u=>{(u.key==="Enter"||u.key===" ")&&(u.preventDefault(),window.open("https://rave-board.vercel.app/","_blank","noopener"))}),(Ha=l("#ag-btn-baerlauch"))==null||Ha.addEventListener("click",ot),(Fa=l("#ag-baerlauch-close"))==null||Fa.addEventListener("click",hi),(Ga=l("#ag-baerlauch-next"))==null||Ga.addEventListener("click",ot),(Wa=l("#ag-btn-baerlauch"))==null||Wa.addEventListener("keydown",u=>{(u.key==="Enter"||u.key===" ")&&(u.preventDefault(),ot())}),(Ka=l("#ag-btn-gesprach"))==null||Ka.addEventListener("click",ra),(Ya=l("#ag-btn-glossary"))==null||Ya.addEventListener("click",Ca),(Ja=l("#ag-btn-glossary"))==null||Ja.addEventListener("keydown",u=>{(u.key==="Enter"||u.key===" ")&&(u.preventDefault(),Ca())}),(Va=l("#ag-glossary-close"))==null||Va.addEventListener("click",ki),document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(u=>{u.addEventListener("click",()=>{De(u.dataset.lang),k(4)})});const i=document.getElementById("ag-glossary-add"),r=document.getElementById("ag-glossary-form");i&&i.addEventListener("click",()=>{var M;if(!r)return;document.getElementById("ag-glossary-edit-id").value="",document.getElementById("ag-glossary-word-input").value="",document.getElementById("ag-glossary-meaning-input").value="";const u=document.getElementById("ag-glossary-form-title");u&&(u.textContent="Neues Wort");const x=document.getElementById("ag-glossary-save-label");x&&(x.textContent="Eintragen");const E=document.getElementById("ag-glossary-audio-status");E&&(E.textContent=""),q=null;const T=document.getElementById("ag-glossary-play-preview");T&&(T.hidden=!0),r.hidden=!1,i.hidden=!0,(M=document.getElementById("ag-glossary-word-input"))==null||M.focus(),k(8)}),(Za=document.getElementById("ag-glossary-form-cancel"))==null||Za.addEventListener("click",()=>{if(r&&(r.hidden=!0),i&&(i.hidden=!1),document.getElementById("ag-glossary-edit-id").value="",q=null,z&&z.state!=="inactive")try{z.stop()}catch{}z=null,k(6)}),(Qa=document.getElementById("ag-glossary-form-save"))==null||Qa.addEventListener("click",async()=>{var B,J,Ue,me;const u=(((B=document.getElementById("ag-glossary-word-input"))==null?void 0:B.value)||"").trim(),x=(((J=document.getElementById("ag-glossary-meaning-input"))==null?void 0:J.value)||"").trim(),E=(((Ue=document.getElementById("ag-glossary-edit-id"))==null?void 0:Ue.value)||"").trim();if(!u){(me=document.getElementById("ag-glossary-word-input"))==null||me.focus();return}const T=document.getElementById("ag-glossary-audio-status");let M=null;if(q){T&&(T.textContent="Wird hochgeladen…");const V=E||`${Date.now()}-${Math.random().toString(36).slice(2,6)}`;M=await xi(q,V)}if(k([20,20,40]),E){const V={word:u,meaning:x||null};M!==null&&(V.audioUrl=M),yi(E,V)}else bi({id:`${Date.now()}-${Math.random().toString(36).slice(2,6)}`,lang:Y,word:u,meaning:x||null,audioUrl:M,token:I()});r&&(r.hidden=!0),i&&(i.hidden=!1),document.getElementById("ag-glossary-edit-id").value="",q=null,z=null,De(Y),$e("Wort gespeichert ✓")});const o=document.getElementById("ag-glossary-record");o&&o.addEventListener("click",async()=>{if(z&&z.state==="recording"){z.stop();return}try{const u=await navigator.mediaDevices.getUserMedia({audio:!0}),x=[];z=new MediaRecorder(u),z.ondataavailable=T=>{T.data.size>0&&x.push(T.data)},z.onstop=()=>{u.getTracks().forEach(B=>B.stop()),q=new Blob(x,{type:z.mimeType||"audio/webm"});const T=document.getElementById("ag-glossary-audio-status");T&&(T.textContent="✓ Aufnahme bereit");const M=document.getElementById("ag-glossary-play-preview");M&&(M.hidden=!1),o.textContent="🎙 Neu aufnehmen"},z.start(),o.textContent="⏹ Stop";const E=document.getElementById("ag-glossary-audio-status");E&&(E.textContent="● REC"),k(10)}catch{const x=document.getElementById("ag-glossary-audio-status");x&&(x.textContent="Mikrofon nicht verfügbar")}}),(Xa=document.getElementById("ag-glossary-play-preview"))==null||Xa.addEventListener("click",()=>{if(!q)return;const u=URL.createObjectURL(q),x=new Audio(u);x.onended=()=>URL.revokeObjectURL(u),x.play().catch(()=>{})}),(en=l("#ag-btn-mission"))==null||en.addEventListener("click",na),(tn=l("#ag-btn-mission"))==null||tn.addEventListener("keydown",u=>{(u.key==="Enter"||u.key===" ")&&(u.preventDefault(),na())}),(an=l("#ag-mission-close"))==null||an.addEventListener("click",Cr),(nn=l("#ag-mission-done"))==null||nn.addEventListener("click",()=>{xr();const u=l("#ag-mission-actions"),x=l("#ag-mission-feedback"),E=l("#ag-mission-done-note"),T=l("#ag-btn-mission");u&&(u.hidden=!0),E&&(E.hidden=!1),x&&!aa()&&(x.hidden=!1),T&&T.classList.remove("ag-chip-mission-active")}),(rn=l("#ag-mission-panel"))==null||rn.querySelectorAll(".ag-mission-rate-btn").forEach(u=>{u.addEventListener("click",()=>{var x;(x=l("#ag-mission-panel"))==null||x.querySelectorAll(".ag-mission-rate-btn").forEach(E=>E.classList.remove("is-selected")),u.classList.add("is-selected")})}),(on=l("#ag-mission-feedback-send"))==null||on.addEventListener("click",()=>{var B;const u=l("#ag-mission-panel"),x=u==null?void 0:u.querySelector(".ag-mission-rate-btn.is-selected"),E=(x==null?void 0:x.dataset.rating)||null,T=(((B=l("#ag-mission-comment"))==null?void 0:B.value)||"").trim();kr(E,T);const M=l("#ag-mission-feedback-sent");u==null||u.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label").forEach(J=>{J.hidden=!0}),M&&(M.hidden=!1)}),(sn=l("#ag-letter-close"))==null||sn.addEventListener("click",Qe),(ln=l("#ag-letter-overlay"))==null||ln.addEventListener("click",u=>{u.target===u.currentTarget&&Qe()}),(dn=l("#ag-lightbox-close"))==null||dn.addEventListener("click",()=>{tt()}),(cn=l("#ag-lightbox"))==null||cn.addEventListener("click",u=>{u.target===u.currentTarget&&tt()}),document.addEventListener("keydown",u=>{u.key==="Escape"&&(Qe(),tt())}),(gn=l("#ag-gesprach-close"))==null||gn.addEventListener("click",Lr),(un=l("#ag-gesprach-next"))==null||un.addEventListener("click",ia),(pn=l("#ag-gesprach-wa"))==null||pn.addEventListener("click",Ar),(mn=l("#ag-btn-gesprach"))==null||mn.addEventListener("keydown",u=>{(u.key==="Enter"||u.key===" ")&&(u.preventDefault(),ra())}),(hn=l("#ag-btn-quest"))==null||hn.addEventListener("click",sa),(fn=l("#ag-quest-close"))==null||fn.addEventListener("click",Ir),(bn=l("#ag-btn-quest"))==null||bn.addEventListener("keydown",u=>{(u.key==="Enter"||u.key===" ")&&(u.preventDefault(),sa())}),(yn=l("#ag-quest-file"))==null||yn.addEventListener("change",u=>{const x=u.target.files&&u.target.files[0];x&&Mr(x)}),l("[data-ag-copy]").addEventListener("click",async()=>{if(!d.todaysPull)return;k(8);const u=fa(d.todaysPull);try{await navigator.clipboard.writeText(u),l("[data-ag-copy]").textContent="Kopiert",window.setTimeout(()=>{l("[data-ag-copy]").textContent="Resultat kopieren"},1400)}catch{window.prompt("Resultat kopieren:",u)}}),l("[data-ag-save-img]").addEventListener("click",()=>{d.todaysPull&&(k(8),Na(d.todaysPull))}),l("[data-ag-star]").addEventListener("click",()=>{k(8),Qr(d.todaysPull)});const s=l("[data-ag-recover-btn]");s&&s.addEventListener("click",()=>{s.textContent="⏳",s.disabled=!0;const u=Li();X(),Le(),s.textContent=u>0?`↺${u}`:"✓",setTimeout(()=>{s.textContent="↺",s.disabled=!1},3e3)});const c=l("[data-ag-streak-restore]");c&&c.addEventListener("click",()=>{if(!Wt()){Xe();return}const u=Ye(),x=Ke(),T=Ee()>0&&x-Ee()<=0?`🎂 Geburtstagsgeschenk! Verpassten Tag (${u}) auffüllen und deinen Streak wiederherstellen?`:`Verpassten Tag (${u}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${x-1} Streak-Retter übrig.`;if(!window.confirm(T))return;c.disabled=!0;const B=rr();X(),Le(),B&&(K(110,["#ffd700","#ffb300","#ffe066","#fff0a0","#f0a000","#fff","#e8c87a"]),k([30,20,30,20,60])),Xe(),c.disabled=!1});const g=l("[data-ag-sync-btn]");g&&g.addEventListener("click",async()=>{g.textContent="⏳",g.disabled=!0;const u=await Te();X(),g.textContent=u<0?"✗":`✓${u}`,setTimeout(()=>{g.textContent="☁",g.disabled=!1},3e3)}),C.querySelectorAll("[data-ag-tab]").forEach(u=>{u.addEventListener("click",()=>{k(6),pt(u.dataset.agTab)})});const p=l("[data-ag-berge-add]"),f=l("[data-ag-berge-form]"),b=l("[data-ag-berge-cancel]"),m=l("[data-ag-berge-save]");p&&p.addEventListener("click",()=>{var x,E;k(8);const u=l("[data-ag-berge-date]");u&&!u.value&&(u.value=A(((x=d.theme)==null?void 0:x.timezone)||"Europe/Zurich")),f.hidden=!1,p.hidden=!0,(E=l("[data-ag-sheet-backdrop]"))==null||E.classList.add("is-open"),l("[data-ag-berge-name]").focus()}),b&&b.addEventListener("click",()=>{var u;k(6),f.hidden=!0,p.hidden=!1,(u=l("[data-ag-sheet-backdrop]"))==null||u.classList.remove("is-open")}),m&&m.addEventListener("click",()=>{var kn,Sn,En,Tn,Cn,Ln,An,In,Mn,zn,Dn,$n;const u=(((kn=l("[data-ag-berge-name]"))==null?void 0:kn.value)||"").trim(),x=parseInt(((Sn=l("[data-ag-berge-elev]"))==null?void 0:Sn.value)||"",10),E=parseFloat(((En=l("[data-ag-berge-dist]"))==null?void 0:En.value)||""),T=parseInt(((Tn=l("[data-ag-berge-gain]"))==null?void 0:Tn.value)||"",10),M=((Cn=l("[data-ag-berge-date]"))==null?void 0:Cn.value)||A(((Ln=d.theme)==null?void 0:Ln.timezone)||"Europe/Zurich"),B=(((An=l("[data-ag-berge-url]"))==null?void 0:An.value)||"").trim(),J=(((In=l("[data-ag-berge-cover]"))==null?void 0:In.value)||"").trim(),Ue=(((Mn=l("[data-ag-berge-notes]"))==null?void 0:Mn.value)||"").trim(),me=(((zn=l("[data-ag-berge-edit-id]"))==null?void 0:zn.value)||"").trim();if(!u){(Dn=l("[data-ag-berge-name]"))==null||Dn.focus();return}k([20,20,40]);const V={name:u,elevation:isNaN(x)?null:x,distance:isNaN(E)?null:E,elevGain:isNaN(T)?null:T,date:M,activityUrl:B||null,cover:J||null,notes:Ue||null};me?gi(me,V):di({id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,...V,token:I()}),["[data-ag-berge-edit-id]","[data-ag-berge-name]","[data-ag-berge-elev]","[data-ag-berge-dist]","[data-ag-berge-gain]","[data-ag-berge-date]","[data-ag-berge-url]","[data-ag-berge-cover]","[data-ag-berge-notes]"].forEach($i=>{const Nn=l($i);Nn&&(Nn.value="")});const xn=l("[data-ag-berge-form-title]");xn&&(xn.textContent="Neuer Gipfeleintrag");const wn=l("[data-ag-berge-save] span:last-child");wn&&(wn.textContent="Eintragen"),f.hidden=!0,p.hidden=!1,($n=l("[data-ag-sheet-backdrop]"))==null||$n.classList.remove("is-open"),ce(),$e("Gipfel gespeichert ✓")});const y=l("[data-ag-ping-card]");y&&(y.hidden=!(I()==="fionn"&&((vn=d.backup)!=null&&vn.enabled)));const v=l("[data-ag-ping-dismiss]");v&&v.addEventListener("click",()=>{const u=l("[data-ag-ping-banner]");u&&(u.hidden=!0)});const h=l("[data-ag-ping-send]");h&&h.addEventListener("click",()=>{k([20,30,20]);try{La()}catch{}});const w=l("[data-ag-hug-send]");w&&w.addEventListener("click",()=>{k([20,30,20]);try{Aa()}catch{}});const L=l("[data-ag-wish-open]"),S=l("[data-ag-wish-cancel]"),P=l("[data-ag-wish-submit]");L&&L.addEventListener("click",()=>{k(8),l("[data-ag-wish-idle]").hidden=!0,l("[data-ag-wish-form]").hidden=!1;const u=l("[data-ag-wish-input]");u&&window.setTimeout(()=>u.focus(),60)}),S&&S.addEventListener("click",()=>{k(6),l("[data-ag-wish-form]").hidden=!0,l("[data-ag-wish-idle]").hidden=!1}),P&&P.addEventListener("click",()=>{const u=l("[data-ag-wish-input]"),x=((u==null?void 0:u.value)||"").trim();if(!x)return;k([20,20,40]);const E={week:Oe(),text:x,submittedAt:Date.now(),remoteStatus:"idle"};Ut(E),nt();try{mt(E)}catch{}});const G=l("[data-ag-notif-enable]"),W=l("[data-ag-notif-dismiss]");G&&G.addEventListener("click",()=>{k(10),$a()}),W&&W.addEventListener("click",()=>{k(6);try{window.localStorage.setItem(he,"dismissed")}catch{}const u=l("[data-ag-notif-card]");u&&(u.hidden=!0)});const j=l("[data-ag-sheet-backdrop]");j&&j.addEventListener("click",()=>{k(6);const u=l("[data-ag-berge-form]"),x=l("[data-ag-berge-add]");u&&!u.hidden&&(u.hidden=!0,x&&(x.hidden=!1));const E=document.getElementById("ag-glossary-form"),T=document.getElementById("ag-glossary-add");E&&!E.hidden&&(E.hidden=!0,T&&(T.hidden=!1)),j.classList.remove("is-open")});const ue=l("[data-ag-fab]");ue&&ue.addEventListener("click",()=>{k(8);const u=l("[data-ag-berge-add]");u&&!u.hidden&&u.click()});const vt=["today","history","lieblinge","berge"];let qa=0,ja=0;const _a=l(".ag-content")||C;_a.addEventListener("touchstart",u=>{qa=u.touches[0].clientX,ja=u.touches[0].clientY},{passive:!0}),_a.addEventListener("touchend",u=>{const x=u.changedTouches[0].clientX-qa,E=Math.abs(u.changedTouches[0].clientY-ja);if(Math.abs(x)>52&&E<44){const T=vt.indexOf(d.activeTab),M=x<0?Math.min(T+1,vt.length-1):Math.max(T-1,0);M!==T&&(k(6),pt(vt[M]))}},{passive:!0});const pe=l("[data-ag-ptr]");let Pe=0,Be=!1;document.addEventListener("touchstart",u=>{window.scrollY===0&&(Pe=u.touches[0].clientY)},{passive:!0}),document.addEventListener("touchmove",u=>{if(!Pe)return;u.touches[0].clientY-Pe>64&&!Be&&pe&&(Be=!0,pe.classList.add("is-visible"))},{passive:!0}),document.addEventListener("touchend",async()=>{Be&&pe&&(pe.classList.add("is-loading"),await Te(),d.activeTab==="berge"&&ce(),d.activeTab==="history"&&X(),pe.classList.remove("is-visible","is-loading"),$e("Aktualisiert ✓")),Pe=0,Be=!1},{passive:!0})}const Ei=Object.freeze(Object.defineProperty({__proto__:null,DAILY_REMINDER_POOL:gt,STREAK_WARN_POOL:ut,bindEvents:Ua,downloadResultAsImage:Na,drawRoundRect:ft,enableNotifications:$a,escapeHtml:Pa,registerServiceWorker:ht,renderError:yt,retryPendingWishSend:Ia,reveal:Ba,scheduleNotification:za,scheduleStreakWarning:Ne,sendHugToInbox:Aa,sendPingToBackend:La,sendWishToInbox:mt,setActiveTab:pt,setHugStatus:te,showNotifPrompt:Ma,showToast:$e,tryPeriodicSync:Da,wrapText:bt},Symbol.toStringTag,{value:"Module"})),Ti={photos:[]};function Ci(e){const t=/\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i,a=Array.isArray(e==null?void 0:e.photos)?e.photos:[],n=Kt();return a.map(i=>{const r=new URL(i.url,n).toString(),o=i.type==="video"||t.test(r);return{...i,type:o?"video":"image",url:r}}).filter(i=>i.url)}function Li(){var s;const e=I(),t=A(((s=d.theme)==null?void 0:s.timezone)||"UTC"),a=[{day:"2026-05-01",categoryId:"rare",categoryLabel:"Selten",tone:"rare",title:"6a-Belay-Pass",message:"Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."},{day:"2026-05-02",categoryId:"photo",categoryLabel:"Foto-Drop",tone:"photo",title:"Foto-Drop",message:"Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut."},{day:"2026-05-03",categoryId:"rare",categoryLabel:"Selten",tone:"rare",title:"6a-Belay-Pass",message:"Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."},{day:"2026-05-04",categoryId:"jackpot",categoryLabel:"JACKPOT",tone:"jackpot",title:"JACKPOT: Der Fionn-Quest-Sieger",message:"Lennart ist der offizielle Gewinner. 24h lang hast du die absolute Entscheidungsgewalt über alle Freizeitaktivitäten."},{day:"2026-05-05",categoryId:"common",categoryLabel:"Gewöhnlich",tone:"soft",title:"Barróg (IE)",message:"Eine feste Umarmung (20 Sekunden Minimum)."},{day:"2026-05-06",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Sprachnachricht",message:"Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."},{day:"2026-05-07",categoryId:"niete",categoryLabel:"Niete",tone:"quiet",title:"Baugespann-Sperre",message:"Hier entsteht demnächst ein Gewinn. Aktuell sieht man nur die Holzpfosten auf dem Dach."},{day:"2026-05-08",categoryId:"quest",categoryLabel:"Mini-Quest",tone:"quest",title:"Design-Safari",message:"Schick mir ein Foto von einem Gebäude oder Detail, das du heute siehst und das entweder genial oder ein Verbrechen ist."},{day:"2026-05-09",categoryId:"jackpot",categoryLabel:"JACKPOT",tone:"jackpot",title:"JACKPOT: Überraschungs-Wochenende",message:"Fionn plant einen kompletten Tag für dich. Du musst nur sagen, wann du Zeit hast."},{day:"2026-05-10",categoryId:"special",categoryLabel:"Laf Schnell!",tone:"jackpot",title:"🌟 SSR-Speed-Dämon-Pull! 🌟",message:"Hey Lennart! An diesem besonderen Tag in München beim Wings for Life World Run, möge dein Lauf mit deine friends ein legendärer Gacha-Pull sein: epische Speed, Ausdauer-Verlust und alle Kumpels SSR-Rarität (Super Super Rare, die Besten der Besten!) für maximalen Spaß! Rennt wie die Teufel, lacht euch schlapp und erobert die Strecke aus dem Olympiapark wie Bosse. Ich vermisse dich total hier in Zürich, aber freue mich fuer dich!"},{day:"2026-05-11",categoryId:"common",categoryLabel:"Gewöhnlich",tone:"soft",title:"Gedanken-Ping",message:"Du musst jetzt acht Sekunden an mich denken. Die Maschine behauptet, sie könne das überprüfen <3."},{day:"2026-05-12",categoryId:"quest",categoryLabel:"Mini-Quest",tone:"quest",title:"Geräusch-Notiz",message:"Beschreib mir das markanteste Geräusch deines Tages in maximal fünf Wörtern. Poetisch oder komplett nüchtern ist beides erlaubt."},{day:"2026-05-13",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Foto-Anfrage",message:"Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: Alle drei."},{day:"2026-05-14",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Saudades (PT)",message:"Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date."},{day:"2026-05-15",categoryId:"special",categoryLabel:"Abendessen 🍽️",tone:"rare",title:"Fionn lädt zum Abendessen ein 🍽️",message:"Heute Abend geht's auf Fionns Rechnung. Treffpunkt: Stauffacher, 20:00 Uhr."},{day:"2026-05-16",categoryId:"photo",categoryLabel:"Foto-Drop",tone:"photo",title:"Bildkapsel",message:"Heute gibt es kein Gutschein-Drama, nur ein kleines Bild."},{day:"2026-05-17",categoryId:"uncommon",categoryLabel:"Ungewöhnlich",tone:"warm",title:"Tehran & Guatemala Tales",message:"Du darfst eine Geschichte aus deiner Reisezeit einfordern, die du noch nicht kennst."},{day:"2026-05-18",categoryId:"niete",categoryLabel:"Niete",tone:"quiet",title:"Züri-Regen",message:"Grauer Himmel über Wiedikon. Kein Preis, nur das Bedürfnis nach einem sehr großen Tee."},{day:"2026-05-19",categoryId:"quest",categoryLabel:"Mini-Quest",tone:"quest",title:"Drei-Wort-Reisebericht",message:"Schick Fionn deinen Tag in genau drei Worten, als wärst du sehr erschöpft in einem Zug."},{day:"2026-05-20",categoryId:"niete",categoryLabel:"Niete",tone:"quiet",title:"Denkmalschutz",message:"Dieser Slot darf aus historischen Gründen heute nicht verändert oder mit Preisen befüllt werden. Ein Klassiker unter den Nieten."},{day:"2026-05-21",categoryId:"special",categoryLabel:"Packliste 🧳",tone:"quest",title:"Deine Aufgabe: ein Brief 💌",message:`Ich kann es kaum erwarten. Den Rest findest du auf der Liste die ich dir gegeben habe — aber eins noch: deine HiFi-Ohrstöpsel. Vertrau mir.
+
+Und eine Aufgabe von der Maschine: Schreib mir einen kurzen Brief auf Papier. Nicht lang, nicht perfekt — einfach was du gerade denkst. Bring ihn mit. Ich lese ihn wenn wir uns sehen. Bis bald. 🐚`}],n=$(),i=new Set(n.map(c=>c.day)),r=a.filter(c=>!i.has(c.day)&&c.day<=t).map(c=>({...c,token:e,link:null,photo:null,unlockTime:null,revealedAt:new Date(c.day+"T12:00:00").getTime()}));if(!r.length)return 0;const o=[...n,...r].sort((c,g)=>g.day.localeCompare(c.day));return ne(o),d.syncedHistory=o,ie(R()),Z(),r.length}async function Ai(){or(),gr(),hr();try{const[e,t,a,n,i,r,o,s]=await Promise.all([N("config/theme.json"),N("config/outcomes.json"),N("config/photos.json",Ti),N("config/special-days.json",{days:[]}),N("config/wish-inbox.json",{enabled:!1,endpointUrl:""}),N("config/backup.json",{enabled:!1,endpointUrl:""}),N("config/quest.json",{enabled:!1}),N("config/missions.json",{pairs:[]})]);d.theme=e,d.outcomes=t,d.photos=Ci(a),d.specialDays=n,d.wishInbox=i&&typeof i=="object"?i:{enabled:!1,endpointUrl:""},d.backup=r&&typeof r=="object"?r:{enabled:!1,endpointUrl:""},d.quest=o&&typeof o=="object"?o:{enabled:!1},d.missions=s&&Array.isArray(s.pairs)?s:{pairs:[]},sr(e),lr(_e()||A(e.timezone)),ni(),ti(),nt(),Ua(),requestAnimationFrame(()=>{const g=C.querySelector(".ag-nav-pill"),p=C.querySelector(".ag-bottomnav-btn.is-active");if(g&&p){const f=p.closest(".ag-bottomnav"),b=f?f.getBoundingClientRect():null,m=p.getBoundingClientRect();b&&m.width&&(g.style.transition="none",g.style.left=`${m.left-b.left}px`,g.style.width=`${m.width}px`,requestAnimationFrame(()=>{g.style.transition=""}))}});try{Ia()}catch{}ht(),document.addEventListener("visibilitychange",()=>{document.visibilityState==="visible"&&Ne()}),C.classList.add("is-ready"),C.style.transition="opacity .18s ease",C.style.opacity="1";const c=A(e.timezone);$().some(g=>g.token===I()&&g.day===c)&&C.classList.add("has-drawn"),Te().catch(()=>{})}catch(e){yt(e)}}const ae=document.currentScript,Ii=(ae==null?void 0:ae.dataset.mount)||"#affektions-gacha",Mi=(ae==null?void 0:ae.dataset.configBase)||"";function zi(){const e=document.createElement("section");return e.id="affektions-gacha",document.body.appendChild(e),e}const Di=document.querySelector(Ii)||zi();Pn(Di),ir(Mi,null),Ai().catch(e=>yt(e))})();

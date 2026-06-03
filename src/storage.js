@@ -77,6 +77,19 @@ export function writeTokens(tokens) {
   try { localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens)); } catch (_e) {}
 }
 
+export function addToken(token) {
+  const tokens = readTokens();
+  tokens[token] = (tokens[token] || 0) + 1;
+  writeTokens(tokens);
+  return tokens[token];
+}
+
+export function resetToken(token) {
+  const tokens = readTokens();
+  tokens[token] = 0;
+  writeTokens(tokens);
+}
+
 export function readWish() {
   try {
     if (typeof window === "undefined" || !window.localStorage) return null;
