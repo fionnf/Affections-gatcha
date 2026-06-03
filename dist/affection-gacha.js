@@ -6945,43 +6945,75 @@
       /* ── Mobile: bottom nav ── */
       .ag-bottomnav{display:none}
       @media (max-width:640px){
-        /* Hide inline tabs, show bottom nav */
+        /* Hide inline tabs; bottom nav slides up as a floating glass pill */
         .ag-tabs{display:none}
+
+        /* ── Liquid Glass floating pill ── */
         .ag-bottomnav{
           display:flex;
-          position:fixed;bottom:0;left:0;right:0;
+          position:fixed;
+          bottom:calc(12px + env(safe-area-inset-bottom));
+          left:16px;right:16px;
           z-index:1000;
-          background:rgba(8,28,18,.94);
-          backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-          border-top:1px solid rgba(255,255,255,.14);
-          padding-bottom:env(safe-area-inset-bottom);
-          box-shadow:0 -4px 24px rgba(0,0,0,.28);
+          border-radius:26px;
+          background:rgba(255,255,255,.13);
+          backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);
+          -webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);
+          border:1px solid rgba(255,255,255,.32);
+          box-shadow:
+            0 1.5px 0 rgba(255,255,255,.28) inset,
+            0 -1px 0 rgba(0,0,0,.07) inset,
+            0 10px 40px rgba(0,0,0,.22),
+            0 2px 8px rgba(0,0,0,.12);
+          padding:5px;
+          overflow:hidden;
         }
         @media (prefers-color-scheme:dark){
-          .ag-bottomnav{background:rgba(4,14,8,.96)}
+          .ag-bottomnav{
+            background:rgba(14,28,17,.62);
+            border-color:rgba(255,255,255,.18);
+            box-shadow:
+              0 1px 0 rgba(255,255,255,.12) inset,
+              0 10px 44px rgba(0,0,0,.55);
+          }
         }
         .ag-bottomnav-btn{
           flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-          gap:3px;padding:8px 4px;background:none;border:none;cursor:pointer;
-          min-height:54px;color:rgba(180,220,190,.5);font-family:inherit;
-          transition:color 150ms var(--ag-ease),transform 120ms var(--ag-ease);
+          gap:4px;padding:9px 6px;background:none;border:none;cursor:pointer;
+          min-height:50px;
+          color:rgba(255,255,255,.48);
+          font-family:inherit;
+          border-radius:22px;
+          transition:color 180ms var(--ag-ease),background 180ms var(--ag-ease),transform 120ms var(--ag-ease);
           -webkit-tap-highlight-color:transparent;
         }
-        .ag-bottomnav-btn.is-active{color:#fffdf2}
-        .ag-bottomnav-btn:active{transform:scale(.92)}
-        .ag-bottomnav-btn-icon{font-size:1.25rem;line-height:1}
-        .ag-bottomnav-btn-label{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+        .ag-bottomnav-btn.is-active{
+          color:#fff;
+          background:rgba(255,255,255,.18);
+          box-shadow:
+            0 1px 0 rgba(255,255,255,.22) inset,
+            0 2px 10px rgba(0,0,0,.10);
+        }
+        @media (prefers-color-scheme:dark){
+          .ag-bottomnav-btn.is-active{
+            background:rgba(255,255,255,.12);
+            box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 2px 8px rgba(0,0,0,.25);
+          }
+        }
+        .ag-bottomnav-btn:active{transform:scale(.90)}
+        .ag-bottomnav-btn-icon{
+          font-size:1.3rem;line-height:1;
+          filter:drop-shadow(0 1px 3px rgba(0,0,0,.2));
+          transition:transform 180ms var(--ag-ease);
+        }
+        .ag-bottomnav-btn.is-active .ag-bottomnav-btn-icon{transform:scale(1.08)}
+        .ag-bottomnav-btn-label{
+          font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+          opacity:.85;
+        }
 
-        /* Frame: padding to clear bottom nav + safe area */
-        .ag-frame{padding-bottom:calc(62px + env(safe-area-inset-bottom))}
-
-        /* Compact hero once capsule has been pulled */
-        .ag-widget.has-drawn .ag-machine-wrap{max-width:110px;margin:0}
-        .ag-widget.has-drawn .ag-intro{display:none}
-        .ag-widget.has-drawn .ag-kicker{margin-bottom:2px}
-        .ag-widget.has-drawn .ag-copy h1{font-size:clamp(1.55rem,5vw,2rem);margin:4px 0 8px}
-        .ag-widget.has-drawn .ag-hero{gap:12px}
-        .ag-widget.has-drawn .ag-shell{padding:16px 20px}
+        /* Frame: enough padding to clear the floating pill */
+        .ag-frame{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
       }
 
       /* ── FAB ── */
@@ -6989,7 +7021,7 @@
       @media (max-width:640px){
         .ag-fab{
           display:flex;align-items:center;justify-content:center;
-          position:fixed;bottom:calc(60px + env(safe-area-inset-bottom) + 14px);right:16px;
+          position:fixed;bottom:calc(78px + env(safe-area-inset-bottom) + 14px);right:20px;
           z-index:999;width:52px;height:52px;border-radius:999px;
           background:linear-gradient(180deg,var(--ag-primary),var(--ag-primary-dark));
           color:#fffdf8;border:none;cursor:pointer;font-size:1.6rem;font-weight:400;line-height:1;
@@ -7004,7 +7036,7 @@
 
       /* ── Toast ── */
       .ag-toast-container{
-        position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));
+        position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));
         left:50%;transform:translateX(-50%);
         z-index:2000;display:flex;flex-direction:column;align-items:center;gap:8px;
         pointer-events:none;
