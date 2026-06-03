@@ -298,6 +298,10 @@ export function bindBergeEvents() {
 let _map = null;
 let _markerLayer = null;
 
+export function invalidateGipfelMap() {
+  if (_map) setTimeout(() => _map.invalidateSize(), 150);
+}
+
 async function loadLeaflet() {
   if (window.L) return;
   await new Promise((res, rej) => {
@@ -399,7 +403,8 @@ export async function initGipfelMap(entries) {
     _markerLayer.addLayer(marker);
   });
 
-  requestAnimationFrame(() => {
-    _map.invalidateSize();
-  });
+  // Invalidate after layout settles — rAF alone isn't enough when the panel
+  // was hidden during map creation, so we fire again after a short delay.
+  requestAnimationFrame(() => { if (_map) _map.invalidateSize(); });
+  setTimeout(() => { if (_map) _map.invalidateSize(); }, 250);
 }

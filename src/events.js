@@ -12,7 +12,7 @@ import { triggerConfetti } from "./confetti.js";
 import { haptic } from "./haptic.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderOdds, renderWunschkapsel, toggleFavorite, messageText, hydrateCopy, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
-import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents } from "./berge.js";
+import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, _glossaryCurrentLang, _glossaryAudioBlob, _glossaryRecorder } from "./glossary.js";
@@ -83,7 +83,7 @@ export function setActiveTab(tab) {
   $("[data-ag-panel-berge]").hidden = tab !== "berge";
   if (tab === "history") renderHistory();
   if (tab === "lieblinge") renderLieblinge();
-  if (tab === "berge") { renderBergePanel(); syncFromSheets().then(() => renderBergePanel()).catch(() => {}); }
+  if (tab === "berge") { renderBergePanel(); invalidateGipfelMap(); syncFromSheets().then(() => renderBergePanel()).catch(() => {}); }
   const fab = $("[data-ag-fab]");
   if (fab) fab.hidden = tab !== "berge";
 }
