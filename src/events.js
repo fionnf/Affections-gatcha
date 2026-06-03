@@ -958,6 +958,80 @@ export function bindEvents() {
     });
   });
 
+  // ── Drag-to-switch on the floating nav pill ─────────────────────────────────
+  const bottomNav = mount.querySelector(".ag-bottomnav");
+  if (bottomNav) {
+    const pill = bottomNav.querySelector(".ag-nav-pill");
+    const navBtns = [...bottomNav.querySelectorAll(".ag-bottomnav-btn[data-ag-tab]")];
+    let drag = null;
+
+    bottomNav.addEventListener("pointerdown", (e) => {
+      const navRect = bottomNav.getBoundingClientRect();
+      bottomNav.setPointerCapture(e.pointerId);
+      drag = {
+        id: e.pointerId,
+        startX: e.clientX - navRect.left,
+        pillStartLeft: parseFloat(pill?.style.left) || 0,
+        pillWidth: parseFloat(pill?.style.width) || 0,
+        moved: false,
+        suppress: false
+      };
+    });
+
+    bottomNav.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const navRect = bottomNav.getBoundingClientRect();
+      const dx = (e.clientX - navRect.left) - drag.startX;
+      if (!drag.moved && Math.abs(dx) < 6) return;
+      drag.moved = true;
+      drag.suppress = true;
+      if (!pill) return;
+      pill.style.transition = "none";
+      const max = navRect.width - drag.pillWidth;
+      let left = drag.pillStartLeft + dx;
+      if (left < 0) left = left * 0.25;
+      else if (left > max) left = max + (left - max) * 0.25;
+      pill.style.left = `${left}px`;
+    });
+
+    const finishDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const didMove = drag.moved;
+      const suppress = drag.suppress;
+      drag = null;
+      if (pill) pill.style.transition = "";
+      if (!didMove) return;
+
+      // Snap to the tab whose centre is closest to release X
+      const navRect = bottomNav.getBoundingClientRect();
+      const releaseX = e.clientX - navRect.left;
+      let nearest = navBtns[0];
+      let nearestDist = Infinity;
+      navBtns.forEach((btn) => {
+        const r = btn.getBoundingClientRect();
+        const centre = r.left - navRect.left + r.width / 2;
+        const d = Math.abs(releaseX - centre);
+        if (d < nearestDist) { nearestDist = d; nearest = btn; }
+      });
+      haptic(6);
+      setActiveTab(nearest.dataset.agTab);
+
+      // Block the tap that fires on the button after pointerup
+      if (suppress) {
+        const once = (ev) => { ev.stopImmediatePropagation(); ev.preventDefault(); };
+        bottomNav.addEventListener("click", once, { capture: true, once: true });
+      }
+    };
+
+    bottomNav.addEventListener("pointerup", finishDrag);
+    bottomNav.addEventListener("pointercancel", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag = null;
+      if (pill) pill.style.transition = "";
+      setActiveTab(state.activeTab); // re-snap to current
+    });
+  }
+
   // Berge / Gipfelbuch
   const bergeAddBtn = $("[data-ag-berge-add]");
   const bergeForm = $("[data-ag-berge-form]");
