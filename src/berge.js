@@ -202,7 +202,11 @@ export function renderBergePanel() {
   const analogyEl = $("[data-ag-berge-analogy]");
   if (!list) return;
 
-  const entries = readGipfelbuch();
+  const entries = readGipfelbuch().sort((a, b) => {
+    const da = a.date || "";
+    const db = b.date || "";
+    return db < da ? -1 : db > da ? 1 : 0;
+  });
   list.innerHTML = "";
 
   const totalElev = entries.reduce((sum, e) => sum + (Number(e.elevGain) || Number(e.elevation) || 0), 0);
