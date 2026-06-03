@@ -722,6 +722,22 @@
       renderOdds();
       renderWunschkapsel();
       bindEvents();
+      // Position the sliding pill after first layout
+      requestAnimationFrame(() => {
+        const pill = mount.querySelector(".ag-nav-pill");
+        const activeBtn = mount.querySelector(".ag-bottomnav-btn.is-active");
+        if (pill && activeBtn) {
+          const nav = activeBtn.closest(".ag-bottomnav");
+          const navRect = nav ? nav.getBoundingClientRect() : null;
+          const btnRect = activeBtn.getBoundingClientRect();
+          if (navRect && btnRect.width) {
+            pill.style.transition = "none";
+            pill.style.left = `${btnRect.left - navRect.left}px`;
+            pill.style.width = `${btnRect.width}px`;
+            requestAnimationFrame(() => { pill.style.transition = ""; });
+          }
+        }
+      });
       try { retryPendingWishSend(); } catch (_error) { /* never block startup */ }
       registerServiceWorker();
       document.addEventListener("visibilitychange", () => {
@@ -1289,6 +1305,7 @@
       <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
       <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
       <nav class="ag-bottomnav" aria-label="Navigation">
+        <div class="ag-nav-pill" aria-hidden="true"></div>
         <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">
           <span class="ag-bottomnav-btn-icon" aria-hidden="true">✦</span>
           <span class="ag-bottomnav-btn-label">Heute</span>
@@ -4638,6 +4655,18 @@
       node.classList.toggle("is-active", isActive);
       node.setAttribute("aria-selected", isActive ? "true" : "false");
     });
+    // Slide the liquid glass pill to the active button
+    const activeBtn = mount.querySelector(`.ag-bottomnav-btn.is-active`);
+    const pill = mount.querySelector(".ag-nav-pill");
+    if (pill && activeBtn) {
+      const nav = activeBtn.closest(".ag-bottomnav");
+      const navRect = nav ? nav.getBoundingClientRect() : null;
+      const btnRect = activeBtn.getBoundingClientRect();
+      if (navRect) {
+        pill.style.left = `${btnRect.left - navRect.left}px`;
+        pill.style.width = `${btnRect.width}px`;
+      }
+    }
     $("[data-ag-panel-today]").hidden = tab !== "today";
     $("[data-ag-panel-history]").hidden = tab !== "history";
     $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
@@ -6987,20 +7016,38 @@
           transition:color 180ms var(--ag-ease),background 180ms var(--ag-ease),transform 120ms var(--ag-ease);
           -webkit-tap-highlight-color:transparent;
         }
-        .ag-bottomnav-btn.is-active{
-          color:#fff;
-          background:rgba(255,255,255,.18);
+        /* Liquid glass sliding pill */
+        .ag-nav-pill{
+          position:absolute;
+          top:5px;
+          height:calc(100% - 10px);
+          border-radius:20px;
+          background:rgba(255,255,255,.20);
+          backdrop-filter:blur(32px) saturate(2.2) brightness(1.08);
+          -webkit-backdrop-filter:blur(32px) saturate(2.2) brightness(1.08);
+          border:1px solid rgba(255,255,255,.55);
           box-shadow:
-            0 1px 0 rgba(255,255,255,.22) inset,
-            0 2px 10px rgba(0,0,0,.10);
+            0 2px 0 rgba(255,255,255,.40) inset,
+            0 -1px 0 rgba(0,0,0,.06) inset,
+            0 8px 24px rgba(0,0,0,.14),
+            0 1px 3px rgba(0,0,0,.08);
+          pointer-events:none;
+          z-index:0;
+          will-change:left,width;
+          transition:left 340ms cubic-bezier(.34,1.56,.64,1),width 340ms cubic-bezier(.34,1.56,.64,1);
         }
         @media (prefers-color-scheme:dark){
-          .ag-bottomnav-btn.is-active{
-            background:rgba(255,255,255,.12);
-            box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 2px 8px rgba(0,0,0,.25);
+          .ag-nav-pill{
+            background:rgba(255,255,255,.10);
+            border-color:rgba(255,255,255,.28);
+            box-shadow:
+              0 1.5px 0 rgba(255,255,255,.18) inset,
+              0 8px 28px rgba(0,0,0,.40);
           }
         }
+        .ag-bottomnav-btn.is-active{color:#fff}
         .ag-bottomnav-btn:active{transform:scale(.90)}
+        .ag-bottomnav-btn{position:relative;z-index:1}
         .ag-bottomnav-btn-icon{
           font-size:1.3rem;line-height:1;
           filter:drop-shadow(0 1px 3px rgba(0,0,0,.2));
