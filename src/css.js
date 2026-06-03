@@ -1387,6 +1387,28 @@ export const css = `
       .ag-glossary-tab.is-active{color:#fff;font-weight:700}
       .ag-glossary-tab:focus-visible{outline:2px solid var(--ag-primary);outline-offset:2px}
 
+      /* Glossary search */
+      .ag-glossary-search-wrap{position:relative;margin-bottom:10px}
+      .ag-glossary-search-wrap::before{
+        content:"⌕";position:absolute;left:9px;top:50%;transform:translateY(-50%);
+        font-size:1rem;line-height:1;pointer-events:none;opacity:.4;color:var(--ag-text)
+      }
+      .ag-glossary-search{
+        width:100%;box-sizing:border-box;
+        background:var(--ag-surface);border:1px solid var(--ag-border);
+        border-radius:var(--ag-radius-md);padding:7px 10px 7px 28px;
+        font-size:.83rem;color:var(--ag-text);outline:none;
+        transition:border-color 150ms var(--ag-ease);font-family:inherit
+      }
+      .ag-glossary-search::placeholder{color:var(--ag-muted)}
+      .ag-glossary-search:focus{border-color:var(--ag-primary)}
+      .ag-glossary-search::-webkit-search-cancel-button{display:none}
+      .ag-glossary-lang-badge{
+        font-size:.65rem;font-weight:700;letter-spacing:.02em;
+        color:var(--ag-primary);background:rgba(47,122,79,.12);
+        border-radius:4px;padding:1px 5px;vertical-align:middle;margin-left:6px
+      }
+
       /* Glossary cards: elevated hover */
       .ag-glossary-card{
         background:var(--ag-surface);
@@ -1610,6 +1632,13 @@ export const css = `
       [data-ag-berge-form]:not([hidden]),
       #ag-glossary-form:not([hidden]){position:relative;z-index:901}
 
+      /* Glossary form field spacing */
+      .ag-glossary-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+      .ag-glossary-audio-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .ag-glossary-form-actions{display:flex;gap:8px;margin-top:12px}
+      .ag-glossary-form-actions .ag-button{flex:1}
+      .ag-glossary-form-actions .ag-secondary{flex-shrink:0}
+
       /* ── Bottom sheet: berge & glossary forms on mobile ── */
       @media (max-width:640px){
         [data-ag-berge-form]:not([hidden]),
@@ -1618,8 +1647,8 @@ export const css = `
           z-index:901;
           background:var(--ag-surface);
           border-radius:var(--ag-radius-lg) var(--ag-radius-lg) 0 0;
-          padding:24px 20px calc(24px + env(safe-area-inset-bottom));
-          max-height:88vh;overflow-y:auto;
+          padding:24px 20px calc(90px + env(safe-area-inset-bottom));
+          max-height:92vh;overflow-y:auto;
           box-shadow:0 -8px 40px rgba(0,0,0,.28);
           margin:0;
           animation:ag-sheet-in 300ms var(--ag-ease) both;

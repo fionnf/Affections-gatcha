@@ -683,7 +683,17 @@ export function bindEvents() {
 
   // Language tabs
   document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
-    btn.addEventListener("click", () => { renderGlossaryPanel(btn.dataset.lang); haptic(4); });
+    btn.addEventListener("click", () => {
+      const searchEl = document.getElementById("ag-glossary-search");
+      if (searchEl) searchEl.value = "";
+      renderGlossaryPanel(btn.dataset.lang);
+      haptic(4);
+    });
+  });
+
+  // Search
+  document.getElementById("ag-glossary-search")?.addEventListener("input", () => {
+    renderGlossaryPanel(glossaryMod._glossaryCurrentLang);
   });
 
   // Add button
