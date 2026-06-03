@@ -155,6 +155,7 @@ export function renderGipfelCard(entry) {
       if (saveSpan) saveSpan.textContent = "Speichern";
       bergeForm.hidden = false;
       if (bergeAddBtn) bergeAddBtn.hidden = true;
+      $("[data-ag-sheet-backdrop]")?.classList.add("is-open");
       bergeForm.scrollIntoView({ behavior: "smooth", block: "nearest" });
       if (nameEl) nameEl.focus();
       haptic(8);

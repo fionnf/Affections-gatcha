@@ -1560,6 +1560,10 @@ export const css = `
       }
       .ag-sheet-backdrop.is-open{display:block}
 
+      /* Form must always sit above the backdrop on every screen size */
+      [data-ag-berge-form]:not([hidden]),
+      #ag-glossary-form:not([hidden]){position:relative;z-index:901}
+
       /* ── Bottom sheet: berge & glossary forms on mobile ── */
       @media (max-width:640px){
         [data-ag-berge-form]:not([hidden]),
