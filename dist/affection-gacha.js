@@ -730,6 +730,10 @@
       mount.classList.add("is-ready");
       mount.style.transition = "opacity .18s ease";
       mount.style.opacity = "1";
+      const _todayKey = dateKeyInTimezone(theme.timezone);
+      if (readHistory().some(e => e.token === getToken() && e.day === _todayKey)) {
+        mount.classList.add("has-drawn");
+      }
       syncFromSheets().catch(() => {});
     } catch (error) {
       renderError(error);
@@ -1279,6 +1283,29 @@
         <p class="ag-lightbox-caption" id="ag-lightbox-caption"></p>
         <a class="ag-lightbox-drive-link" id="ag-lightbox-drive-link" target="_blank" rel="noopener noreferrer" hidden>▶ In Drive öffnen</a>
       </div>
+
+      <div class="ag-sheet-backdrop" data-ag-sheet-backdrop></div>
+      <div class="ag-ptr" data-ag-ptr aria-hidden="true"><span class="ag-ptr-icon">↓</span></div>
+      <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
+      <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
+      <nav class="ag-bottomnav" aria-label="Navigation">
+        <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">✦</span>
+          <span class="ag-bottomnav-btn-label">Heute</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="history">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">📋</span>
+          <span class="ag-bottomnav-btn-label">Verlauf</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⭐</span>
+          <span class="ag-bottomnav-btn-label">Lieblinge</span>
+        </button>
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">⛰</span>
+          <span class="ag-bottomnav-btn-label">Berge</span>
+        </button>
+      </nav>
     `;
   }
 
@@ -3449,6 +3476,7 @@
       renderPull(state.todaysPull);
       mount.classList.remove("is-revealing");
       mount.classList.add("is-revealed");
+      mount.classList.add("has-drawn");
       button.disabled = false;
       buttonText.textContent = state.theme.brand.buttonShown;
       state.revealed = true;
@@ -4382,6 +4410,7 @@
         deleteGipfelEntry(entry.id);
         renderBergePanel();
         haptic(8);
+        showToast("Eintrag gelöscht");
       });
     }
 
@@ -4616,6 +4645,8 @@
     if (tab === "history") renderHistory();
     if (tab === "lieblinge") renderLieblinge();
     if (tab === "berge") { renderBergePanel(); syncFromSheets().then(() => renderBergePanel()).catch(() => {}); }
+    const fab = $("[data-ag-fab]");
+    if (fab) fab.hidden = tab !== "berge";
   }
 
   // ── Sound engine (Web Audio API, no external files) ─────────────────────────
@@ -4823,6 +4854,7 @@
       _glossaryAudioBlob = null;
       _glossaryRecorder = null;
       renderGlossaryPanel(_glossaryCurrentLang);
+      showToast("Wort gespeichert ✓");
     });
 
     // Audio record
@@ -5029,6 +5061,7 @@
         if (dateInput && !dateInput.value) dateInput.value = dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
         bergeForm.hidden = false;
         bergeAddBtn.hidden = true;
+        $("[data-ag-sheet-backdrop]")?.classList.add("is-open");
         $("[data-ag-berge-name]").focus();
       });
     }
@@ -5037,6 +5070,7 @@
         haptic(6);
         bergeForm.hidden = true;
         bergeAddBtn.hidden = false;
+        $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
       });
     }
     if (bergeSave) {
@@ -5068,7 +5102,9 @@
         if (saveSpan) saveSpan.textContent = "Eintragen";
         bergeForm.hidden = true;
         bergeAddBtn.hidden = false;
+        $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
         renderBergePanel();
+        showToast("Gipfel gespeichert ✓");
       });
     }
 
@@ -5155,6 +5191,76 @@
         if (card) card.hidden = true;
       });
     }
+
+    // ── Sheet backdrop click → close open form ──────────────────────────────────
+    const backdrop = $("[data-ag-sheet-backdrop]");
+    if (backdrop) {
+      backdrop.addEventListener("click", () => {
+        haptic(6);
+        const bf = $("[data-ag-berge-form]");
+        const ba = $("[data-ag-berge-add]");
+        if (bf && !bf.hidden) { bf.hidden = true; if (ba) ba.hidden = false; }
+        const gf = document.getElementById("ag-glossary-form");
+        const ga = document.getElementById("ag-glossary-add");
+        if (gf && !gf.hidden) { gf.hidden = true; if (ga) ga.hidden = false; }
+        backdrop.classList.remove("is-open");
+      });
+    }
+
+    // ── FAB: open add form for active tab ───────────────────────────────────────
+    const fab = $("[data-ag-fab]");
+    if (fab) {
+      fab.addEventListener("click", () => {
+        haptic(8);
+        const addBtn = $("[data-ag-berge-add]");
+        if (addBtn && !addBtn.hidden) addBtn.click();
+      });
+    }
+
+    // ── Swipe left/right to switch tabs ─────────────────────────────────────────
+    const tabOrder = ["today", "history", "lieblinge", "berge"];
+    let _swipeX = 0, _swipeY = 0;
+    const _swipeTarget = $(".ag-content") || mount;
+    _swipeTarget.addEventListener("touchstart", (e) => {
+      _swipeX = e.touches[0].clientX;
+      _swipeY = e.touches[0].clientY;
+    }, { passive: true });
+    _swipeTarget.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - _swipeX;
+      const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
+      if (Math.abs(dx) > 52 && dy < 44) {
+        const cur = tabOrder.indexOf(state.activeTab);
+        const next = dx < 0 ? Math.min(cur + 1, tabOrder.length - 1) : Math.max(cur - 1, 0);
+        if (next !== cur) { haptic(6); setActiveTab(tabOrder[next]); }
+      }
+    }, { passive: true });
+
+    // ── Pull-to-refresh ──────────────────────────────────────────────────────────
+    const ptr = $("[data-ag-ptr]");
+    let _ptrStartY = 0, _ptrTriggered = false;
+    document.addEventListener("touchstart", (e) => {
+      if (window.scrollY === 0) _ptrStartY = e.touches[0].clientY;
+    }, { passive: true });
+    document.addEventListener("touchmove", (e) => {
+      if (!_ptrStartY) return;
+      const dy = e.touches[0].clientY - _ptrStartY;
+      if (dy > 64 && !_ptrTriggered && ptr) {
+        _ptrTriggered = true;
+        ptr.classList.add("is-visible");
+      }
+    }, { passive: true });
+    document.addEventListener("touchend", async () => {
+      if (_ptrTriggered && ptr) {
+        ptr.classList.add("is-loading");
+        await syncFromSheets();
+        if (state.activeTab === "berge") renderBergePanel();
+        if (state.activeTab === "history") renderHistory();
+        ptr.classList.remove("is-visible", "is-loading");
+        showToast("Aktualisiert ✓");
+      }
+      _ptrStartY = 0;
+      _ptrTriggered = false;
+    }, { passive: true });
   }
 
   function drawRoundRect(ctx, x, y, w, h, r) {
