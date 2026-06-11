@@ -175,6 +175,33 @@
       ]
     },
     {
+      "date": "06-13",
+      "label": "Große Radtour 🚴",
+      "tone": "quest",
+      "outcomes": [
+        {
+          "title": "Auf großer Fahrt 🚴‍♂️",
+          "message": "Heute radelst du mit deinem Bruder in die Welt hinaus — und ich finde das eigentlich ziemlich wunderschön. Pedale treten, irgendwo ankommen, auf einem langen Anstieg gemeinsam leiden und danach so tun als wäre es leicht gewesen. Das ist genau die Art von Tag die man nicht vergisst.\n\nIch hoffe ihr habt den besten Wind im Rücken, gute Waden und genug Energie für einen extra Hügel mehr als geplant 🏔️ Und ich hoffe ganz besonders dass du und dein Bruder heute noch ein kleines bisschen näher zusammenwächst. Solche Trips — nur ihr zwei, kein Alltag, einfach Kilometer und Quatsch — sind selten und kostbar. Genieß ihn.\n\nAufgabe von der Maschine: schick mir irgendwann während der Tour ein einziges Foto. Egal was — eine Aussicht, eure Räder irgendwo angelehnt, ein dummer Gesichtsausdruck auf einem Gipfel. Ich will dabei sein auch wenn ich nicht dabei bin. 📸\n\nIch vermisse dich jetzt schon. Fahr sicher, hab einen epischen Tag — und ich freu mich riesig wenn du zurück bist. 🤍"
+        }
+      ],
+      "colors": {
+        "background": "#f2f9f2",
+        "surface": "#e4f4e4",
+        "surfaceAlt": "#ceeace",
+        "primary": "#2d7a3a",
+        "primaryDark": "#1f5a29",
+        "gold": "#4aaa5a"
+      },
+      "darkColors": {
+        "background": "#081209",
+        "surface": "#0d1c0e",
+        "surfaceAlt": "#142616",
+        "primary": "#4aaa5a",
+        "primaryDark": "#5cc46e",
+        "gold": "#5cc46e"
+      }
+    },
+    {
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
