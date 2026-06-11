@@ -199,12 +199,12 @@ export function showPingBanner() {
 
 // ── PIN gates ────────────────────────────────────────────────────────────────
 
-export function buildPinGate(pin, onUnlock) {
+export function buildPinGate(pin, onUnlock, hintText) {
   const wrap = document.createElement("div");
   wrap.className = "ag-pin-gate";
   const hint = document.createElement("p");
   hint.className = "ag-pin-hint";
-  hint.textContent = "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";
+  hint.textContent = hintText || "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";
   const row = document.createElement("div");
   row.className = "ag-pin-row";
   const input = document.createElement("input");
@@ -637,22 +637,43 @@ export function renderPull(pull) {
   const oldGate = resultEl ? resultEl.querySelector("[data-ag-pin-gate]") : null;
   if (oldGate) oldGate.remove();
 
-  if (pull.outcome.pin && !isPinUnlocked(pull.outcome.pin)) {
-    msgEl.hidden = true;
-    const gate = buildPinGate(pull.outcome.pin, () => {
-      gate.remove();
-      msgEl.hidden = false;
-    });
-    gate.setAttribute("data-ag-pin-gate", "");
-    msgEl.parentNode.insertBefore(gate, msgEl.nextSibling);
+  const linkWrap = $("[data-ag-link-wrap]");
+
+  if (pull.outcome.pin) {
+    const hasSeparateMsg = !!pull.outcome.pinMessage;
+    if (!hasSeparateMsg) msgEl.hidden = !isPinUnlocked(pull.outcome.pin);
+
+    if (!isPinUnlocked(pull.outcome.pin)) {
+      let pinMsgEl = null;
+      if (hasSeparateMsg) {
+        pinMsgEl = document.createElement("div");
+        pinMsgEl.className = "ag-message";
+        pinMsgEl.hidden = true;
+        pinMsgEl.innerHTML = formatMsg(pull.outcome.pinMessage);
+        msgEl.parentNode.insertBefore(pinMsgEl, msgEl.nextSibling);
+      }
+      const gate = buildPinGate(pull.outcome.pin, () => {
+        gate.remove();
+        if (hasSeparateMsg) { pinMsgEl.hidden = false; }
+        else { msgEl.hidden = false; }
+        if (pull.outcome.link && linkWrap) renderLinkInto(linkWrap, pull.outcome.link);
+      }, pull.outcome.pinHint);
+      gate.setAttribute("data-ag-pin-gate", "");
+      const anchor = hasSeparateMsg ? pinMsgEl : msgEl;
+      anchor.parentNode.insertBefore(gate, anchor);
+    } else if (hasSeparateMsg) {
+      const pinMsgEl = document.createElement("div");
+      pinMsgEl.className = "ag-message";
+      pinMsgEl.innerHTML = formatMsg(pull.outcome.pinMessage);
+      msgEl.parentNode.insertBefore(pinMsgEl, msgEl.nextSibling);
+    }
   }
 
   const photoWrap = $("[data-ag-photo-wrap]");
   const photoMedia = $("[data-ag-photo-media]");
   const photoCaption = $("[data-ag-photo-caption]");
 
-  const linkWrap = $("[data-ag-link-wrap]");
-  if (pull.outcome.link && pull.unlockTime) {
+  if (pull.outcome.link && (pull.unlockTime || (pull.outcome.pin && isPinUnlocked(pull.outcome.pin)))) {
     const [h, m] = pull.unlockTime.split(":").map(Number);
     const now = hmInTimezone(state.theme?.timezone || "UTC");
     const lpin = pull.outcome.linkPin;

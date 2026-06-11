@@ -94,10 +94,17 @@ export function buildPullForDay(day, streak) {
   ];
 
   const imgs = imagePhotos();
-  const photo =
-    category.id === "photo" && imgs.length
-      ? imgs[seededIndex(`${baseSeed}|photo`, imgs.length)]
-      : null;
+  let photo = null;
+  if (category.id === "photo" && imgs.length) {
+    const seenUrls = new Set(
+      readHistory()
+        .filter((e) => e.token === token && e.photo)
+        .map((e) => e.photo.url)
+    );
+    const unseenImgs = imgs.filter((p) => !seenUrls.has(p.url));
+    const pool = unseenImgs.length > 0 ? unseenImgs : imgs;
+    photo = pool[seededIndex(`${baseSeed}|photo`, pool.length)];
+  }
 
   return { day, token, category, outcome, photo, collectToken: outcome.token || null };
 }
