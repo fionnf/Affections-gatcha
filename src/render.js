@@ -714,7 +714,8 @@ export function renderPull(pull) {
       }
     }
   } else {
-    renderLinkInto(linkWrap, pull.outcome.link || null);
+    const blockedByPin = pull.outcome.pin && !isPinUnlocked(pull.outcome.pin);
+    if (!blockedByPin) renderLinkInto(linkWrap, pull.outcome.link || null);
   }
 
   renderTokenInto($("[data-ag-token-wrap]"), pull);
