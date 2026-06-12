@@ -688,19 +688,21 @@ export function renderPull(pull) {
     msgEl.hidden = true;
     const promptGate = buildPromptGate(pull.outcome.prompt, (answer) => {
       pull.promptAnswer = answer;
-      _firePromptNotification(pull, answer);
       if (!getPreviewDay()) {
+        _firePromptNotification(pull, answer);
         const hist = readHistory();
         const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
         if (idx !== -1) {
           hist[idx] = { ...hist[idx], promptAnswer: answer };
           writeHistory(hist);
+          backupToSheets();
         }
         // If entry not yet in history (edge case), pull.promptAnswer is set and
         // recordHistoryEntry (called from reveal) will persist it correctly.
       }
       promptGate.remove();
       renderPull(pull);
+      if (state.activeTab === "history") renderHistory();
     });
     msgEl.parentNode.insertBefore(promptGate, msgEl);
     return;
@@ -1008,9 +1010,16 @@ export function renderHistoryItemEl(entry) {
 
   let answerEl = null;
   if (entry.promptAnswer) {
-    answerEl = document.createElement("blockquote");
-    answerEl.className = "ag-history-answer";
-    answerEl.textContent = entry.promptAnswer;
+    answerEl = document.createElement("div");
+    answerEl.className = "ag-history-answer-wrap";
+    const label = document.createElement("p");
+    label.className = "ag-history-answer-label";
+    label.textContent = "💭 Antwort";
+    const quote = document.createElement("blockquote");
+    quote.className = "ag-history-answer";
+    quote.textContent = entry.promptAnswer;
+    answerEl.appendChild(label);
+    answerEl.appendChild(quote);
   }
 
   li.appendChild(head);
