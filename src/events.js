@@ -607,6 +607,11 @@ export function reveal() {
       );
       if (!alreadyRecorded) addToken(state.todaysPull.collectToken);
     }
+    // Restore promptAnswer from history so gate doesn't re-appear after page refresh
+    if (!state.todaysPull.promptAnswer) {
+      const prior = readHistory().find(e => e.day === state.todaysPull.day && e.token === state.todaysPull.token);
+      if (prior?.promptAnswer) state.todaysPull.promptAnswer = prior.promptAnswer;
+    }
     renderPull(state.todaysPull);
     mount.classList.remove("is-revealing");
     mount.classList.add("is-revealed");

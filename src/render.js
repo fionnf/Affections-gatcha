@@ -691,8 +691,13 @@ export function renderPull(pull) {
       _firePromptNotification(pull, answer);
       if (!getPreviewDay()) {
         const hist = readHistory();
-        const entry = hist.find(e => e.day === pull.day && e.token === pull.token);
-        if (entry) { entry.promptAnswer = answer; writeHistory(hist); }
+        const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
+        if (idx !== -1) {
+          hist[idx] = { ...hist[idx], promptAnswer: answer };
+          writeHistory(hist);
+        }
+        // If entry not yet in history (edge case), pull.promptAnswer is set and
+        // recordHistoryEntry (called from reveal) will persist it correctly.
       }
       promptGate.remove();
       renderPull(pull);
