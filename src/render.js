@@ -682,8 +682,32 @@ export function renderPull(pull) {
   if (!msgEl) return;
   msgEl.innerHTML = formatMsg(pull.outcome.message);
   msgEl.hidden = false;
-
   const resultEl = $("[data-ag-result]");
+
+  // Prompt gate: inline before message (mirrors pin gate pattern)
+  if (pull.outcome.prompt && !pull.promptAnswer) {
+    msgEl.hidden = true;
+    const oldPromptGate = resultEl ? resultEl.querySelector("[data-ag-prompt-gate]") : null;
+    if (!oldPromptGate) {
+      const promptGate = buildPromptGate(pull.outcome.prompt, (answer) => {
+        pull.promptAnswer = answer;
+        promptGate.remove();
+        if (!getPreviewDay()) {
+          _firePromptNotification(pull, answer);
+          const hist = readHistory();
+          const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
+          if (idx !== -1) { hist[idx] = { ...hist[idx], promptAnswer: answer }; writeHistory(hist); backupToSheets(); }
+        }
+        renderPull(pull);
+        if (state.activeTab === "history") renderHistory();
+      });
+      promptGate.setAttribute("data-ag-prompt-gate", "");
+      msgEl.parentNode.insertBefore(promptGate, msgEl);
+    }
+    $("[data-ag-result]").hidden = false;
+    return;
+  }
+
   const oldGate = resultEl ? resultEl.querySelector("[data-ag-pin-gate]") : null;
   if (oldGate) oldGate.remove();
 
@@ -723,7 +747,7 @@ export function renderPull(pull) {
   const photoMedia = $("[data-ag-photo-media]");
   const photoCaption = $("[data-ag-photo-caption]");
 
-  if (pull.outcome.link && (pull.unlockTime || (pull.outcome.pin && isPinUnlocked(pull.outcome.pin)))) {
+  if (pull.outcome.link && pull.unlockTime) {
     const [h, m] = pull.unlockTime.split(":").map(Number);
     const now = hmInTimezone(state.theme?.timezone || "UTC");
     const lpin = pull.outcome.linkPin;
