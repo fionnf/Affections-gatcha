@@ -18,6 +18,7 @@
  *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
  *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
+ *   "PromptAnswers"  — one row per prompt answer (append-only); triggers email to Fionn
  *
  * Google Drive folder: "Glossar-Audio" — audio recordings for glossary words
  */
@@ -27,8 +28,7 @@ const BACKUP_SHEET_NAME = "Backup";
 const HISTORY_SHEET_NAME = "History";
 const WISH_SHEET_NAME = "Wünsche";
 
-// Email that receives hug + wish alerts — set to the deployer's address.
-const FIONN_EMAIL = Session.getActiveUser().getEmail();
+const FIONN_EMAIL = "fionn@fionnferreira.com";
 
 // ── GET: return full backup for a token ─────────────────────────────────────
 
@@ -58,7 +58,6 @@ function doGet(e) {
     const histSheet = getOrCreateHistorySheet_(ss);
     const histValues = histSheet.getDataRange().getValues();
     const history = [];
-    // Sheets auto-converts date strings to Date objects; use Utilities.formatDate for those.
     function normDay(d) {
       if (!d) return "";
       if (d instanceof Date) return Utilities.formatDate(d, "UTC", "yyyy-MM-dd");
@@ -78,7 +77,8 @@ function doGet(e) {
         link:          row[7] || null,
         unlockTime:    row[8] || null,
         photo:         row[9] ? JSON.parse(row[9]) : null,
-        revealedAt:    row[10] || null
+        revealedAt:    row[10] || null,
+        promptAnswer:  row[11] || null
       });
     }
 
@@ -178,6 +178,28 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+
+    // ── Prompt answer ─────────────────────────────────────────────────────────
+    if (data.type === "prompt-answer") {
+      const sheet = getOrCreatePromptAnswersSheet_(ss);
+      const ts = new Date();
+      const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
+      sheet.appendRow([
+        ts.toISOString(),
+        data.token || "",
+        data.day   || "",
+        data.prompt || "",
+        data.answer || ""
+      ]);
+      try {
+        MailApp.sendEmail({
+          to: FIONN_EMAIL,
+          subject: "💭 Neue Antwort von " + (data.token || "Lennart") + " (" + (data.day || "") + ")",
+          body: "Frage: " + (data.prompt || "") + "\n\nAntwort:\n" + (data.answer || "") + "\n\n" + tsLocal
+        });
+      } catch (_mailErr) { /* answer safe in sheet */ }
+      return jsonOut_({ ok: true });
+    }
 
     // ── Mission log entry ─────────────────────────────────────────────────────
     if (data.type === "mission-log") {
@@ -320,7 +342,6 @@ function doPost(e) {
       const ts      = new Date();
       const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
 
-      // Write to sheet
       const wishSheet = getOrCreateWuenscheSheet_(ss);
       wishSheet.appendRow([
         ts.toISOString(),
@@ -331,18 +352,15 @@ function doPost(e) {
         data.userAgent || ""
       ]);
 
-      // Email Fionn immediately
-      if (FIONN_EMAIL) {
-        try {
-          const subject = isHug
-            ? `🫂 Notfall-Umarmung von ${sender}!`
-            : `💌 Neuer Wunsch von ${sender}`;
-          const body = isHug
-            ? `${sender} braucht gerade eine Umarmung! 🫂\n\n${tsLocal}`
-            : `Neuer Wunsch eingegangen:\n\n„${wishText}"\n\nVon: ${sender}\n${tsLocal}`;
-          MailApp.sendEmail(FIONN_EMAIL, subject, body);
-        } catch (_mailErr) { /* data is safe in sheet */ }
-      }
+      try {
+        const subject = isHug
+          ? `🫂 Notfall-Umarmung von ${sender}!`
+          : `💌 Neuer Wunsch von ${sender}`;
+        const body = isHug
+          ? `${sender} braucht gerade eine Umarmung! 🫂\n\n${tsLocal}`
+          : `Neuer Wunsch eingegangen:\n\n„${wishText}"\n\nVon: ${sender}\n${tsLocal}`;
+        MailApp.sendEmail(FIONN_EMAIL, subject, body);
+      } catch (_mailErr) { /* data is safe in sheet */ }
 
       return jsonOut_({ ok: true });
     }
@@ -365,8 +383,6 @@ function doPost(e) {
     for (let i = 1; i < backupValues.length; i++) {
       if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
     }
-    // Always keep the higher streak — prevents a race where a fresh device
-    // syncs before downloading its history and sends streak=0
     const streak = Math.max(incomingStreak, existingStreak);
     const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp];
     if (metaRow === -1) {
@@ -386,7 +402,6 @@ function doPost(e) {
         return String(d).slice(0, 10);
       }
 
-      // Build index of existing rows for this token (scan backwards; keep last, mark dupes)
       const existingByDay = {};
       const dupeRows = [];
       for (let i = histValues.length - 1; i >= 1; i--) {
@@ -394,13 +409,12 @@ function doPost(e) {
         const day = normDay(histValues[i][1]);
         if (!day) continue;
         if (existingByDay[day] !== undefined) {
-          dupeRows.push(i + 1); // older duplicate — delete
+          dupeRows.push(i + 1);
         } else {
           existingByDay[day] = i + 1;
         }
       }
 
-      // Upsert — only touch rows whose day appears in the incoming payload
       for (const entry of data.history) {
         if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
         const day = String(entry.day || "").slice(0, 10);
@@ -415,20 +429,17 @@ function doPost(e) {
           entry.link          || "",
           entry.unlockTime    || "",
           entry.photo ? JSON.stringify(entry.photo) : "",
-          entry.revealedAt    || ""
+          entry.revealedAt    || "",
+          entry.promptAnswer  || ""
         ];
         if (existingByDay[day]) {
           histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
         } else {
           histSheet.appendRow(row);
-          // Record the real row index so a second same-day entry in this same
-          // payload updates the row instead of calling getRange(-1, …), which
-          // would throw and abort the whole POST.
           existingByDay[day] = histSheet.getLastRow();
         }
       }
 
-      // Remove duplicates (bottom-up so row indices stay valid)
       dupeRows.sort((a, b) => b - a);
       for (const rowNum of dupeRows) {
         histSheet.deleteRow(rowNum);
@@ -465,9 +476,10 @@ function getOrCreateHistorySheet_(ss) {
   let sheet = ss.getSheetByName(HISTORY_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(HISTORY_SHEET_NAME);
-    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt"]);
+    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer"]);
     sheet.setFrozenRows(1);
-    sheet.setColumnWidth(7, 400); // Message column wider
+    sheet.setColumnWidth(7, 400);
+    sheet.setColumnWidth(12, 400);
   }
   return sheet;
 }
@@ -521,6 +533,18 @@ function getOrCreateWuenscheSheet_(ss) {
     sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 400);
+  }
+  return sheet;
+}
+
+function getOrCreatePromptAnswersSheet_(ss) {
+  let sheet = ss.getSheetByName("PromptAnswers");
+  if (!sheet) {
+    sheet = ss.insertSheet("PromptAnswers");
+    sheet.appendRow(["Timestamp", "Token", "Day", "Prompt", "Answer"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(4, 350);
+    sheet.setColumnWidth(5, 450);
   }
   return sheet;
 }
