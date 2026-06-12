@@ -698,8 +698,10 @@ export function bindEvents() {
     haptic(12);
     if (!state.todaysPull) state.todaysPull = buildPull();
     const prompt = state.todaysPull.outcome?.prompt;
-    const alreadyAnswered = state.todaysPull.promptAnswer ||
-      readHistory().some(e => e.day === state.todaysPull.day && e.token === state.todaysPull.token);
+    const alreadyAnswered = !getPreviewDay() && (
+      state.todaysPull.promptAnswer ||
+      readHistory().some(e => e.day === state.todaysPull.day && e.token === state.todaysPull.token)
+    );
     if (prompt && !alreadyAnswered) {
       const button = $("[data-ag-draw]");
       const gate = buildPromptGate(prompt, (answer) => {
