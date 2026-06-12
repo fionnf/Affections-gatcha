@@ -127,8 +127,30 @@ export async function init() {
       mount.classList.add("has-drawn");
     }
     if (new URLSearchParams(location.search).get("radio") === "1") {
-      const radioCard = mount.querySelector("#ag-radio-card");
-      if (radioCard) radioCard.hidden = false;
+      const notifCard = mount.querySelector("[data-ag-notif-card]");
+      if (notifCard) {
+        const radioCard = document.createElement("div");
+        radioCard.className = "ag-card ag-radio-card";
+        radioCard.id = "ag-radio-card";
+        radioCard.innerHTML = `<div class="ag-hug-row"><div class="ag-hug-text"><p class="ag-wish-label">Radio Zweisam 📻</p><p class="ag-wish-note" style="margin-bottom:0">KI-Musik aus euren Glossarwörtern — täglich neu generiert, manchmal chill, manchmal tanzbar.</p></div><button class="ag-hug-button ag-radio-open-btn" type="button" id="ag-radio-open-btn" aria-label="Radio öffnen"><span class="ag-hug-emoji" aria-hidden="true">📻</span><span class="ag-hug-label">Öffnen</span></button></div>`;
+        notifCard.insertAdjacentElement("beforebegin", radioCard);
+
+        const panelAnchor = mount.querySelector("#ag-glossary-panel") || notifCard;
+        const radioPanel = document.createElement("section");
+        radioPanel.className = "ag-card ag-mini-panel";
+        radioPanel.id = "ag-radio-panel";
+        radioPanel.hidden = true;
+        radioPanel.innerHTML = `<div class="ag-mini-head"><span class="ag-badge">Radio Zweisam 📻</span><button class="ag-secondary" type="button" id="ag-radio-close">✕</button></div><h2 class="ag-mini-title">Euer täglicher Soundtrack</h2><p class="ag-mini-copy" id="ag-radio-status">KI-Musik, täglich neu — inspiriert von euren Glossarwörtern.</p><div class="ag-radio-visualizer" id="ag-radio-visualizer" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="ag-radio-words-wrap"><p class="ag-radio-words-label">Inspiriert von:</p><div class="ag-radio-words" id="ag-radio-words"></div></div><div class="ag-radio-controls"><button class="ag-button" type="button" id="ag-radio-play-btn"><span class="ag-button-orb" aria-hidden="true"></span><span>▶ Abspielen</span></button><button class="ag-secondary" type="button" id="ag-radio-download-btn" hidden>⬇ Download</button></div><p class="ag-radio-voice-info" id="ag-radio-voice-info"></p>`;
+        panelAnchor.insertAdjacentElement("beforebegin", radioPanel);
+
+        // Wire up radio events now that elements exist
+        const { openRadioPanel, closeRadioPanel, startOrToggleRadio, downloadRadioTrack } = await import("./radio.js");
+        const { dateKeyInTimezone: dk } = await import("./utils.js");
+        radioCard.querySelector("#ag-radio-open-btn")?.addEventListener("click", openRadioPanel);
+        radioPanel.querySelector("#ag-radio-close")?.addEventListener("click", closeRadioPanel);
+        radioPanel.querySelector("#ag-radio-play-btn")?.addEventListener("click", () => startOrToggleRadio(dk(theme.timezone)));
+        radioPanel.querySelector("#ag-radio-download-btn")?.addEventListener("click", () => downloadRadioTrack(dk(theme.timezone)));
+      }
     }
     syncFromSheets().catch(() => {});
   } catch (error) {
