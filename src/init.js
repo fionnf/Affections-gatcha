@@ -72,7 +72,7 @@ export async function init() {
   injectStyles();
   renderShell();
   try {
-    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions] = await Promise.all([
+    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions, radio] = await Promise.all([
       fetchJson("config/theme.json"),
       fetchJson("config/outcomes.json"),
       fetchJson("config/photos.json", defaultPhotos),
@@ -80,7 +80,8 @@ export async function init() {
       fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/quest.json", { enabled: false }),
-      fetchJson("config/missions.json", { pairs: [] })
+      fetchJson("config/missions.json", { pairs: [] }),
+      fetchJson("config/radio.json", { enabled: false })
     ]);
     state.theme = theme;
     state.outcomes = outcomes;
@@ -90,6 +91,7 @@ export async function init() {
     state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
     state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
     state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
+    state.radio = radio && typeof radio === "object" ? radio : { enabled: false };
     applyTheme(theme);
     applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
     hydrateCopy();

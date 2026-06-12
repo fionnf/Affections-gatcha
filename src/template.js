@@ -327,6 +327,30 @@ export const html = `
             </div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-radio-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Radio Zweisam 📻</span>
+              <button class="ag-secondary" type="button" id="ag-radio-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Euer täglicher Soundtrack</h2>
+            <p class="ag-mini-copy" id="ag-radio-status">KI-Musik, täglich neu — inspiriert von euren Glossarwörtern.</p>
+            <div class="ag-radio-visualizer" id="ag-radio-visualizer" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="ag-radio-words-wrap">
+              <p class="ag-radio-words-label">Inspiriert von:</p>
+              <div class="ag-radio-words" id="ag-radio-words"></div>
+            </div>
+            <div class="ag-radio-controls">
+              <button class="ag-button" type="button" id="ag-radio-play-btn">
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>▶ Abspielen</span>
+              </button>
+              <button class="ag-secondary" type="button" id="ag-radio-download-btn" hidden>⬇ Download</button>
+            </div>
+            <p class="ag-radio-voice-info" id="ag-radio-voice-info"></p>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -425,6 +449,19 @@ export const html = `
                 </button>
               </div>
               <p class="ag-hug-status" data-ag-ping-status hidden></p>
+            </div>
+
+            <div class="ag-card ag-radio-card" id="ag-radio-card">
+              <div class="ag-hug-row">
+                <div class="ag-hug-text">
+                  <p class="ag-wish-label">Radio Zweisam 📻</p>
+                  <p class="ag-wish-note" style="margin-bottom:0">KI-Musik aus euren Glossarwörtern — täglich neu generiert, manchmal chill, manchmal tanzbar.</p>
+                </div>
+                <button class="ag-hug-button ag-radio-open-btn" type="button" id="ag-radio-open-btn" aria-label="Radio öffnen">
+                  <span class="ag-hug-emoji" aria-hidden="true">📻</span>
+                  <span class="ag-hug-label">Öffnen</span>
+                </button>
+              </div>
             </div>
 
             <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
