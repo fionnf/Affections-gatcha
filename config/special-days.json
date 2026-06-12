@@ -175,6 +175,34 @@
       ]
     },
     {
+      "date": "06-14",
+      "label": "Klausenpass 🏔️",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Gipfeltag 🏔️",
+          "prompt": "Bevor die Kapsel sich öffnet: Nenn 3 Dinge die Fionn noch besser machen könnte. Ehrlichkeit wird belohnt ✨",
+          "message": "Heute überquerst du den Klausenpass. Ich sitze hier in Zürich, denke an dich und bin so stolz auf dich dass es eigentlich lächerlich ist.\n\nEs gibt so vieles an dir das ich noch entdecken will. Die Art wie du auf langen Fahrten denkst. Was durch deinen Kopf geht wenn der Anstieg vor dir liegt. Wie sich der Gipfel anfühlt wenn ihr oben ankommt. Ich will das alles wissen, nicht aus Höflichkeit, sondern weil ich echten Hunger darauf habe immer mehr von dir zu verstehen. Du bist jemand den ich wirklich kennenlernen will, nicht nur die Momente die wir teilen, sondern das ganze Innenleben. Die Gedanken, die kleinen Beobachtungen, die Dinge die dir wichtig sind wenn sonst niemand zuschaut. Das alles interessiert mich und ich bin so froh dass du in meinem Leben bist.\n\nSchick mir ein Foto vom Gipfel. Ich will dabei sein auch wenn ich nicht dabei sein kann. 📸\n\nUnd für die Waden gibt es natürlich auch einen Massage-Credit. Einlösbar sofort, am 14. Juni, oder einfach aufbewahren bis du ihn brauchst. Du weißt wo du mich findest. 🤍"
+        }
+      ],
+      "colors": {
+        "background": "#f0f5ff",
+        "surface": "#e2ecff",
+        "surfaceAlt": "#ccdeff",
+        "primary": "#2255cc",
+        "primaryDark": "#1a44aa",
+        "gold": "#4477ee"
+      },
+      "darkColors": {
+        "background": "#080c18",
+        "surface": "#0f1528",
+        "surfaceAlt": "#162038",
+        "primary": "#4477ee",
+        "primaryDark": "#6699ff",
+        "gold": "#6699ff"
+      }
+    },
+    {
       "date": "06-13",
       "label": "Große Radtour 🚴",
       "tone": "quest",

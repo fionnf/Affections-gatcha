@@ -199,6 +199,45 @@ export function showPingBanner() {
 
 // ── PIN gates ────────────────────────────────────────────────────────────────
 
+export function buildPromptGate(prompt, onSubmit) {
+  const wrap = document.createElement("div");
+  wrap.className = "ag-pin-gate ag-prompt-gate";
+  const q = document.createElement("p");
+  q.className = "ag-pin-hint";
+  q.textContent = "💭 " + prompt;
+  const textarea = document.createElement("textarea");
+  textarea.className = "ag-prompt-textarea";
+  textarea.placeholder = "Schreib hier deine Antwort...";
+  textarea.rows = 3;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "ag-secondary";
+  btn.textContent = "Kapsel öffnen ✨";
+  const err = document.createElement("p");
+  err.className = "ag-pin-err";
+  err.hidden = true;
+  err.textContent = "Bitte erst antworten.";
+  function attempt() {
+    const val = textarea.value.trim();
+    if (!val) {
+      err.hidden = false;
+      textarea.classList.add("ag-pin-shake");
+      setTimeout(() => textarea.classList.remove("ag-pin-shake"), 450);
+      return;
+    }
+    onSubmit(val);
+  }
+  btn.addEventListener("click", attempt);
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) attempt();
+  });
+  wrap.appendChild(q);
+  wrap.appendChild(textarea);
+  wrap.appendChild(btn);
+  wrap.appendChild(err);
+  return wrap;
+}
+
 export function buildPinGate(pin, onUnlock, hintText) {
   const wrap = document.createElement("div");
   wrap.className = "ag-pin-gate";
@@ -851,6 +890,7 @@ export function recordHistoryEntry(pull) {
     message: pull.outcome.message,
     link: pull.outcome.link || null,
     unlockTime: pull.unlockTime || null,
+    promptAnswer: pull.promptAnswer || null,
     photo: pull.photo
       ? {
           url: pull.photo.url,
@@ -932,6 +972,13 @@ export function renderHistoryItemEl(entry) {
   message.className = "ag-history-message";
   message.innerHTML = formatMsg(entry.message || "");
 
+  let answerEl = null;
+  if (entry.promptAnswer) {
+    answerEl = document.createElement("blockquote");
+    answerEl.className = "ag-history-answer";
+    answerEl.textContent = entry.promptAnswer;
+  }
+
   li.appendChild(head);
 
   const VIDEO_EXTS_HIST = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
@@ -987,6 +1034,7 @@ export function renderHistoryItemEl(entry) {
     text.className = "ag-history-text";
     text.appendChild(title);
     text.appendChild(message);
+    if (answerEl) text.appendChild(answerEl);
     if (entry.link) {
       const linkEl = buildHistoryLink(entry);
       if (linkEl) text.appendChild(linkEl);
@@ -998,6 +1046,7 @@ export function renderHistoryItemEl(entry) {
   } else {
     li.appendChild(title);
     li.appendChild(message);
+    if (answerEl) li.appendChild(answerEl);
     if (entry.link) {
       const linkEl = buildHistoryLink(entry);
       if (linkEl) li.appendChild(linkEl);

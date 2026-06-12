@@ -140,7 +140,8 @@
         },
         {
           "title": "Treppen-Fakt",
-          "message": "Du darfst mir einen random Fakt über ein Treppendetail schicken. Ich verspreche, interessiert zu wirken."
+          "message": "Du darfst mir einen random Fakt über ein Treppendetail schicken. Ich verspreche, interessiert zu wirken.",
+          "prompt": "Nenn 3 Dinge die ich wirklich gut mache. Sei ehrlich 🌿"
         },
         {
           "title": "Passstempel",
@@ -666,7 +667,8 @@
         },
         {
           "title": "Date-Credit: Komfortabend",
-          "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung."
+          "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung.",
+          "prompt": "Was ist eine Sache die du dir für uns in den nächsten Wochen wünscht? 🌙"
         },
         {
           "title": "Date-Credit: Fionn plant die Route",
