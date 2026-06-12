@@ -563,6 +563,14 @@ export function escapeHtml(value) {
 
 export function reveal() {
   if (!state.todaysPull) state.todaysPull = buildPull();
+
+  // Always gate on prompt before starting animation, regardless of call site
+  const _pull = state.todaysPull;
+  if (_pull?.outcome?.prompt && !_pull.promptAnswer) {
+    _showPromptOverlay(_pull);
+    return;
+  }
+
   const button = $("[data-ag-draw]");
   const buttonText = $("[data-ag-button-text]");
   const steps = state.theme.loadingSteps || ["Maschine rattert"];
@@ -606,11 +614,6 @@ export function reveal() {
         (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
       );
       if (!alreadyRecorded) addToken(state.todaysPull.collectToken);
-    }
-    // Restore promptAnswer from history so gate doesn't re-appear after page refresh
-    if (!state.todaysPull.promptAnswer) {
-      const prior = readHistory().find(e => e.day === state.todaysPull.day && e.token === state.todaysPull.token);
-      if (prior?.promptAnswer) state.todaysPull.promptAnswer = prior.promptAnswer;
     }
     renderPull(state.todaysPull);
     mount.classList.remove("is-revealing");
@@ -740,12 +743,7 @@ export function bindEvents() {
     if (!state.todaysPull) state.todaysPull = buildPull();
 
     const pull = state.todaysPull;
-    const prompt = pull?.outcome?.prompt;
-    if (prompt && !pull.promptAnswer) {
-      const prior = readHistory().find(e => e.day === pull.day && e.token === pull.token);
-      if (prior?.promptAnswer) pull.promptAnswer = prior.promptAnswer;
-    }
-    if (prompt && !pull.promptAnswer) {
+    if (pull?.outcome?.prompt && !pull.promptAnswer) {
       _showPromptOverlay(pull);
       return;
     }
