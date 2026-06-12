@@ -563,6 +563,14 @@ export function escapeHtml(value) {
 
 export function reveal() {
   if (!state.todaysPull) state.todaysPull = buildPull();
+
+  // Always gate on prompt before starting animation, regardless of call site
+  const _pull = state.todaysPull;
+  if (_pull?.outcome?.prompt && !_pull.promptAnswer) {
+    _showPromptOverlay(_pull);
+    return;
+  }
+
   const button = $("[data-ag-draw]");
   const buttonText = $("[data-ag-button-text]");
   const steps = state.theme.loadingSteps || ["Maschine rattert"];
