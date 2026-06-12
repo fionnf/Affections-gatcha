@@ -713,7 +713,7 @@ export function bindEvents() {
         reveal();
       });
       button.hidden = true;
-      drawCard.parentNode.insertBefore(gate, drawCard.nextSibling);
+      document.body.appendChild(gate);
       return;
     }
     reveal();

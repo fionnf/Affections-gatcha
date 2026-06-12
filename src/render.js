@@ -200,18 +200,22 @@ export function showPingBanner() {
 // ── PIN gates ────────────────────────────────────────────────────────────────
 
 export function buildPromptGate(prompt, onSubmit) {
-  const wrap = document.createElement("div");
-  wrap.className = "ag-pin-gate ag-prompt-gate";
+  const overlay = document.createElement("div");
+  overlay.className = "ag-prompt-overlay";
+  const sheet = document.createElement("div");
+  sheet.className = "ag-prompt-sheet";
   const q = document.createElement("p");
   q.className = "ag-pin-hint";
+  q.style.cssText = "margin:0;font-size:.95rem;font-weight:500;color:var(--ag-text)";
   q.textContent = "💭 " + prompt;
   const textarea = document.createElement("textarea");
   textarea.className = "ag-prompt-textarea";
   textarea.placeholder = "Schreib hier deine Antwort...";
-  textarea.rows = 3;
+  textarea.rows = 4;
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "ag-secondary";
+  btn.className = "ag-button";
+  btn.style.cssText = "width:100%";
   btn.textContent = "Kapsel öffnen ✨";
   const err = document.createElement("p");
   err.className = "ag-pin-err";
@@ -231,11 +235,12 @@ export function buildPromptGate(prompt, onSubmit) {
   textarea.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) attempt();
   });
-  wrap.appendChild(q);
-  wrap.appendChild(textarea);
-  wrap.appendChild(btn);
-  wrap.appendChild(err);
-  return wrap;
+  sheet.appendChild(q);
+  sheet.appendChild(textarea);
+  sheet.appendChild(err);
+  sheet.appendChild(btn);
+  overlay.appendChild(sheet);
+  return overlay;
 }
 
 export function buildPinGate(pin, onUnlock, hintText) {
