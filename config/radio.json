@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "hfToken": "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",
+  "model": "facebook/musicgen-small",
+  "durationSeconds": 20
+}

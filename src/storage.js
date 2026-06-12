@@ -234,10 +234,10 @@ export function markMilestoneSeen(token, streak) {
   if (!seen.includes(key)) writeMilestones([...seen, key]);
 }
 
-export function isPinUnlocked(pin) {
-  try { return localStorage.getItem("affektions-gacha:pin-unlock:" + pin) === "1"; } catch (_) { return false; }
+export function isPinUnlocked(_pin) {
+  return false;
 }
 
-export function persistPinUnlock(pin) {
-  try { localStorage.setItem("affektions-gacha:pin-unlock:" + pin, "1"); } catch (_) {}
+export function persistPinUnlock(_pin) {
+  // intentionally not persisted — require unlock every time
 }
