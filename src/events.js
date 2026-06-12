@@ -695,6 +695,22 @@ export function bindEvents() {
   });
   $("#ag-btn-gesprach")?.addEventListener("click", openGesprachPanel);
 
+  // ── Radio Zweisam ───────────────────────────────────────────────────────────
+  document.getElementById("ag-radio-open-btn")?.addEventListener("click", () => {
+    import("./radio.js").then(m => m.openRadioPanel());
+  });
+  document.getElementById("ag-radio-close")?.addEventListener("click", () => {
+    import("./radio.js").then(m => m.closeRadioPanel());
+  });
+  document.getElementById("ag-radio-play-btn")?.addEventListener("click", () => {
+    const dateKey = dateKeyInTimezone(state.theme?.timezone || "UTC");
+    import("./radio.js").then(m => m.startOrToggleRadio(dateKey));
+  });
+  document.getElementById("ag-radio-download-btn")?.addEventListener("click", () => {
+    const dateKey = dateKeyInTimezone(state.theme?.timezone || "UTC");
+    import("./radio.js").then(m => m.downloadRadioTrack(dateKey));
+  });
+
   // ── Glossary ────────────────────────────────────────────────────────────────
   $("#ag-btn-glossary")?.addEventListener("click", openGlossaryPanel);
   $("#ag-btn-glossary")?.addEventListener("keydown", (e) => {
