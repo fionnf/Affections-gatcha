@@ -200,27 +200,24 @@ export function showPingBanner() {
 // ── PIN gates ────────────────────────────────────────────────────────────────
 
 export function buildPromptGate(prompt, onSubmit) {
-  const overlay = document.createElement("div");
-  overlay.className = "ag-prompt-overlay";
-  const sheet = document.createElement("div");
-  sheet.className = "ag-prompt-sheet";
+  const wrap = document.createElement("div");
+  wrap.className = "ag-prompt-gate";
   const q = document.createElement("p");
-  q.className = "ag-pin-hint";
-  q.style.cssText = "margin:0;font-size:.95rem;font-weight:500;color:var(--ag-text)";
+  q.className = "ag-prompt-question";
   q.textContent = "💭 " + prompt;
   const textarea = document.createElement("textarea");
   textarea.className = "ag-prompt-textarea";
   textarea.placeholder = "Schreib hier deine Antwort...";
   textarea.rows = 4;
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "ag-button";
-  btn.style.cssText = "width:100%";
-  btn.textContent = "Kapsel öffnen ✨";
   const err = document.createElement("p");
   err.className = "ag-pin-err";
   err.hidden = true;
   err.textContent = "Bitte erst antworten.";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "ag-button";
+  btn.style.cssText = "width:100%;margin-top:4px";
+  btn.textContent = "Kapsel öffnen ✨";
   function attempt() {
     const val = textarea.value.trim();
     if (!val) {
@@ -235,12 +232,21 @@ export function buildPromptGate(prompt, onSubmit) {
   textarea.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) attempt();
   });
-  sheet.appendChild(q);
-  sheet.appendChild(textarea);
-  sheet.appendChild(err);
-  sheet.appendChild(btn);
-  overlay.appendChild(sheet);
-  return overlay;
+  wrap.appendChild(q);
+  wrap.appendChild(textarea);
+  wrap.appendChild(err);
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+function _firePromptNotification(pull, answer) {
+  try {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const body = JSON.stringify({ type: "prompt-answer", token: pull.token, day: pull.day, prompt: pull.outcome.prompt, answer });
+    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+    fetch(cfg.endpointUrl, opts).catch(() => { fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}); });
+  } catch (_e) {}
 }
 
 export function buildPinGate(pin, onUnlock, hintText) {
@@ -676,6 +682,24 @@ export function renderPull(pull) {
   if (!msgEl) return;
   msgEl.innerHTML = formatMsg(pull.outcome.message);
   msgEl.hidden = false;
+
+  // Prompt gate: shown after animation, hides content until answered
+  if (pull.outcome.prompt && !pull.promptAnswer) {
+    msgEl.hidden = true;
+    const promptGate = buildPromptGate(pull.outcome.prompt, (answer) => {
+      pull.promptAnswer = answer;
+      _firePromptNotification(pull, answer);
+      if (!getPreviewDay()) {
+        const hist = readHistory();
+        const entry = hist.find(e => e.day === pull.day && e.token === pull.token);
+        if (entry) { entry.promptAnswer = answer; writeHistory(hist); }
+      }
+      promptGate.remove();
+      renderPull(pull);
+    });
+    msgEl.parentNode.insertBefore(promptGate, msgEl);
+    return;
+  }
 
   const resultEl = $("[data-ag-result]");
   const oldGate = resultEl ? resultEl.querySelector("[data-ag-pin-gate]") : null;

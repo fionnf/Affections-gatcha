@@ -10,7 +10,7 @@ import { syncFromSheets, backupToSheets } from "./sync.js";
 import { NOTIF_KEY } from "./constants.js";
 import { triggerConfetti } from "./confetti.js";
 import { haptic } from "./haptic.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderOdds, renderWunschkapsel, toggleFavorite, messageText, hydrateCopy, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, MILESTONE_MESSAGES, buildPromptGate } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderOdds, renderWunschkapsel, toggleFavorite, messageText, hydrateCopy, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
@@ -560,31 +560,6 @@ export function escapeHtml(value) {
   }[character]));
 }
 
-function notifyPromptAnswer(prompt, answer) {
-  try {
-    const cfg = state.backup;
-    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-    const pull = state.todaysPull;
-    const body = JSON.stringify({
-      type: "prompt-answer",
-      token: pull.token,
-      day: pull.day,
-      prompt,
-      answer
-    });
-    const opts = {
-      method: "POST",
-      mode: "cors",
-      credentials: "omit",
-      cache: "no-store",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body
-    };
-    fetch(cfg.endpointUrl, opts).catch(() => {
-      fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
-    });
-  } catch (_e) {}
-}
 
 export function reveal() {
   if (!state.todaysPull) state.todaysPull = buildPull();
@@ -697,25 +672,6 @@ export function bindEvents() {
   $("[data-ag-draw]").addEventListener("click", () => {
     haptic(12);
     if (!state.todaysPull) state.todaysPull = buildPull();
-    const prompt = state.todaysPull.outcome?.prompt;
-    const alreadyAnswered = !getPreviewDay() && (
-      state.todaysPull.promptAnswer ||
-      readHistory().some(e => e.day === state.todaysPull.day && e.token === state.todaysPull.token)
-    );
-    if (prompt && !alreadyAnswered) {
-      const button = $("[data-ag-draw]");
-      const drawCard = button.closest(".ag-draw-card") || button.parentNode;
-      const gate = buildPromptGate(prompt, (answer) => {
-        state.todaysPull.promptAnswer = answer;
-        gate.remove();
-        button.hidden = false;
-        notifyPromptAnswer(prompt, answer);
-        reveal();
-      });
-      button.hidden = true;
-      document.body.appendChild(gate);
-      return;
-    }
     reveal();
   });
   $("#ag-btn-rave")?.addEventListener("click", () => {
