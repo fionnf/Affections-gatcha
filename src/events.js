@@ -654,6 +654,67 @@ export function reveal() {
   }, state.theme.revealDelayMs || 3200);
 }
 
+function _notifyPromptAnswer(pull, answer) {
+  try {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const body = JSON.stringify({ type: "prompt-answer", token: pull.token, day: pull.day, prompt: pull.outcome.prompt, answer });
+    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+    fetch(cfg.endpointUrl, opts).catch(() => { fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}); });
+  } catch (_e) {}
+}
+
+function _showPromptOverlay(pull) {
+  const prompt = pull.outcome.prompt;
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);padding:16px";
+
+  const sheet = document.createElement("div");
+  sheet.style.cssText = "width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:28px 20px 40px;box-shadow:0 -8px 40px rgba(0,0,0,.25)";
+
+  const q = document.createElement("p");
+  q.style.cssText = "margin:0 0 18px;font-size:1rem;font-weight:600;line-height:1.5;color:#111";
+  q.textContent = "💭 " + prompt;
+
+  const textarea = document.createElement("textarea");
+  textarea.style.cssText = "display:block;width:100%;box-sizing:border-box;min-height:90px;padding:10px 12px;border:1.5px solid #bbb;border-radius:10px;font-size:.95rem;font-family:inherit;line-height:1.5;resize:none;margin-bottom:8px;color:#111;background:#fafafa;outline:none";
+  textarea.placeholder = "Schreib hier deine Antwort...";
+  textarea.rows = 4;
+
+  const err = document.createElement("p");
+  err.style.cssText = "color:#c00;font-size:.83rem;margin:0 0 10px;display:none";
+  err.textContent = "Bitte erst antworten.";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.style.cssText = "display:block;width:100%;padding:13px;background:#4a8c5c;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer";
+  btn.textContent = "Kapsel öffnen ✨";
+
+  function attempt() {
+    const val = textarea.value.trim();
+    if (!val) {
+      err.style.display = "block";
+      textarea.style.borderColor = "#e03";
+      return;
+    }
+    pull.promptAnswer = val;
+    overlay.remove();
+    if (!getPreviewDay()) _notifyPromptAnswer(pull, val);
+    reveal();
+  }
+
+  btn.addEventListener("click", attempt);
+  textarea.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) attempt(); });
+
+  sheet.appendChild(q);
+  sheet.appendChild(textarea);
+  sheet.appendChild(err);
+  sheet.appendChild(btn);
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+  setTimeout(() => textarea.focus(), 80);
+}
+
 export function bindEvents() {
   // Hold draw button 3 s to reveal hidden letter
   let letterHoldTimer = null;
@@ -677,6 +738,17 @@ export function bindEvents() {
   $("[data-ag-draw]").addEventListener("click", () => {
     haptic(12);
     if (!state.todaysPull) state.todaysPull = buildPull();
+
+    const pull = state.todaysPull;
+    const prompt = pull?.outcome?.prompt;
+    if (prompt && !pull.promptAnswer) {
+      const prior = readHistory().find(e => e.day === pull.day && e.token === pull.token);
+      if (prior?.promptAnswer) pull.promptAnswer = prior.promptAnswer;
+    }
+    if (prompt && !pull.promptAnswer) {
+      _showPromptOverlay(pull);
+      return;
+    }
     reveal();
   });
   $("#ag-btn-rave")?.addEventListener("click", () => {

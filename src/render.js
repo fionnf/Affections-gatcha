@@ -683,32 +683,6 @@ export function renderPull(pull) {
   msgEl.innerHTML = formatMsg(pull.outcome.message);
   msgEl.hidden = false;
 
-  // Prompt gate: shown after animation, hides content until answered
-  if (pull.outcome.prompt && !pull.promptAnswer) {
-    msgEl.hidden = true;
-    const promptGate = buildPromptGate(pull.outcome.prompt, (answer) => {
-      pull.promptAnswer = answer;
-      if (!getPreviewDay()) {
-        _firePromptNotification(pull, answer);
-        const hist = readHistory();
-        const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
-        if (idx !== -1) {
-          hist[idx] = { ...hist[idx], promptAnswer: answer };
-          writeHistory(hist);
-          backupToSheets();
-        }
-        // If entry not yet in history (edge case), pull.promptAnswer is set and
-        // recordHistoryEntry (called from reveal) will persist it correctly.
-      }
-      promptGate.remove();
-      renderPull(pull);
-      if (state.activeTab === "history") renderHistory();
-    });
-    msgEl.parentNode.insertBefore(promptGate, msgEl);
-    $("[data-ag-result]").hidden = false;
-    return;
-  }
-
   const resultEl = $("[data-ag-result]");
   const oldGate = resultEl ? resultEl.querySelector("[data-ag-pin-gate]") : null;
   if (oldGate) oldGate.remove();
