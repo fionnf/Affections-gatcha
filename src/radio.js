@@ -39,9 +39,12 @@ export function getInspirationWords(max = 5) {
 export function buildMusicPrompt(dateKey) {
   const energyIdx = dayEnergy(dateKey);
   const cfg = ENERGY_CONFIGS[energyIdx];
-  const words = getInspirationWords(5);
-  const meanings = words.filter(w => w.meaning).map(w => w.meaning).join("; ");
-  const wordPart = meanings ? `. Mood inspired by: ${meanings}` : "";
+  const words = getInspirationWords(3);
+  // Only use short English meanings to keep the prompt clean for the model
+  const meanings = words
+    .filter(w => w.meaning && w.meaning.length < 60 && /^[\x00-\x7F]*$/.test(w.meaning))
+    .map(w => w.meaning).join(", ");
+  const wordPart = meanings ? `, ${meanings}` : "";
   return { prompt: cfg.prompt + wordPart, energyLabel: cfg.label, energyIdx, inspirationWords: words };
 }
 
@@ -186,9 +189,11 @@ export async function startOrToggleRadio(dateKey) {
       if (voiceInfo) voiceInfo.textContent = `${voiceWords.length} Stimmaufnahme${voiceWords.length !== 1 ? "n" : ""} aus dem Glossar`;
       setTimeout(playNextVoice, 6000);
     }
-  } catch (_err) {
+  } catch (err) {
+    console.error("[Radio Zweisam]", err);
     if (playBtn) { playBtn.disabled = false; playBtn.textContent = "▶ Nochmal versuchen"; }
-    if (statusEl) statusEl.textContent = "Fehler — nochmal versuchen?";
+    const msg = err?.message ? err.message.slice(0, 120) : "Unbekannter Fehler";
+    if (statusEl) statusEl.textContent = `Fehler: ${msg}`;
   }
 }
 
