@@ -39,6 +39,33 @@ export function deleteGlossaryWord(id) {
   postGlossaryToSheet("glossary-delete", { id });
 }
 
+export async function fetchGlossaryFromSheet() {
+  const cfg = state.backup;
+  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return 0;
+  try {
+    const token = getToken();
+    const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 12000);
+    let res;
+    try {
+      res = await fetch(url, { cache: "no-store", signal: controller.signal });
+    } finally {
+      clearTimeout(tid);
+    }
+    if (!res.ok) return 0;
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.glossary) || !data.glossary.length) return 0;
+    const local = readGlossary();
+    const byId = new Map(local.map((e) => [e.id, e]));
+    for (const entry of data.glossary) {
+      if (entry.id) byId.set(entry.id, entry);
+    }
+    writeGlossary(Array.from(byId.values()));
+    return data.glossary.length;
+  } catch (_) { return 0; }
+}
+
 export function postGlossaryToSheet(type, payload) {
   const cfg = state.backup;
   if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;

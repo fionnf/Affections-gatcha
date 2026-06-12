@@ -15,7 +15,7 @@ import { emojiForTone } from "./pull.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
-import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, _glossaryCurrentLang, _glossaryAudioBlob, _glossaryRecorder } from "./glossary.js";
+import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, _glossaryCurrentLang, _glossaryAudioBlob, _glossaryRecorder } from "./glossary.js";
 import * as glossaryMod from "./glossary.js";
 import { urlFor } from "./utils.js";
 import { readQuestState } from "./storage.js";
@@ -701,6 +701,20 @@ export function bindEvents() {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGlossaryPanel(); }
   });
   $("#ag-glossary-close")?.addEventListener("click", closeGlossaryPanel);
+
+  // Glossary refresh from Google Sheets
+  document.getElementById("ag-glossary-refresh")?.addEventListener("click", async () => {
+    const btn = document.getElementById("ag-glossary-refresh");
+    if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+    haptic(6);
+    const count = await fetchGlossaryFromSheet();
+    renderGlossaryPanel(glossaryMod._glossaryCurrentLang);
+    if (btn) {
+      btn.textContent = count > 0 ? `↻${count}` : "↻";
+      setTimeout(() => { btn.textContent = "↻"; btn.disabled = false; }, 3000);
+    }
+    if (count > 0) showToast(`${count} Wörter aktualisiert ✓`);
+  });
 
   // Language tabs
   document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
