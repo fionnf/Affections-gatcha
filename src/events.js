@@ -704,6 +704,7 @@ export function bindEvents() {
     );
     if (prompt && !alreadyAnswered) {
       const button = $("[data-ag-draw]");
+      const drawCard = button.closest(".ag-draw-card") || button.parentNode;
       const gate = buildPromptGate(prompt, (answer) => {
         state.todaysPull.promptAnswer = answer;
         gate.remove();
@@ -712,7 +713,7 @@ export function bindEvents() {
         reveal();
       });
       button.hidden = true;
-      button.parentNode.insertBefore(gate, button);
+      drawCard.parentNode.insertBefore(gate, drawCard.nextSibling);
       return;
     }
     reveal();
