@@ -293,6 +293,7 @@ export const html = `
                 <button class="ag-glossary-tab is-active" type="button" data-lang="swabian">Schwäbisch</button>
                 <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
                 <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
+                <button class="ag-glossary-tab" type="button" data-lang="deutsch-slang">Deutsch Slang</button>
               </div>
             </div>
             <div class="ag-glossary-search-wrap">
