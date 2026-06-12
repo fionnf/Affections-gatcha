@@ -72,33 +72,48 @@ export async function generateTrack(prompt) {
   const headers = { "Authorization": `Bearer ${cfg.hfToken}`, "Content-Type": "application/json" };
   const body = JSON.stringify({ inputs: prompt });
 
-  const tryFetch = async (attempt = 0) => {
+  // Try new HF router first, fall back to legacy endpoint
+  const endpoints = [
+    `https://router.huggingface.co/hf-inference/models/${model}`,
+    `https://api-inference.huggingface.co/models/${model}`,
+  ];
+
+  const tryFetch = async (attempt = 0, endpointIdx = 0) => {
+    const url = endpoints[endpointIdx] || endpoints[0];
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 180000);
     let resp;
     try {
-      resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-        method: "POST", headers, body, signal: controller.signal
-      });
-    } finally {
+      resp = await fetch(url, { method: "POST", headers, body, signal: controller.signal });
+    } catch (fetchErr) {
       clearTimeout(tid);
+      // Network error — try other endpoint once
+      if (endpointIdx === 0) return tryFetch(attempt, 1);
+      throw new Error(`Netzwerkfehler: ${fetchErr.message}`);
     }
+    clearTimeout(tid);
+
     if (resp.status === 503 && attempt < 6) {
       const j = await resp.json().catch(() => ({}));
       const wait = Math.min((j.estimated_time || 30) * 1000, 90000);
       const statusEl = document.getElementById("ag-radio-status");
       if (statusEl) statusEl.textContent = `Modell lädt — noch ca. ${Math.round(wait / 1000)}s...`;
       await new Promise(r => setTimeout(r, wait));
-      return tryFetch(attempt + 1);
+      return tryFetch(attempt + 1, endpointIdx);
     }
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => resp.status);
-      throw new Error(`HF ${resp.status}: ${String(errText).slice(0, 120)}`);
+      const errText = await resp.text().catch(() => String(resp.status));
+      // Try fallback endpoint on 4xx if we haven't yet
+      if (endpointIdx === 0 && resp.status >= 400 && resp.status < 500) {
+        console.warn(`[Radio] ${url} returned ${resp.status}, trying fallback`);
+        return tryFetch(0, 1);
+      }
+      throw new Error(`HF ${resp.status}: ${String(errText).slice(0, 150)}`);
     }
     const contentType = resp.headers.get("content-type") || "";
     if (!contentType.includes("audio") && !contentType.includes("octet")) {
       const text = await resp.text();
-      throw new Error(`Kein Audio zurück: ${text.slice(0, 120)}`);
+      throw new Error(`Kein Audio: ${text.slice(0, 150)}`);
     }
     return resp.blob();
   };
