@@ -735,17 +735,9 @@ export function bindEvents() {
     if (!state.todaysPull) state.todaysPull = buildPull();
 
     const pull = state.todaysPull;
-    const prompt = pull?.outcome?.prompt;
-    if (prompt) {
-      // In preview mode always show gate; in real mode restore saved answer to skip gate
-      if (!getPreviewDay() && !pull.promptAnswer) {
-        const prior = readHistory().find(e => e.day === pull.day && e.token === pull.token);
-        if (prior?.promptAnswer) pull.promptAnswer = prior.promptAnswer;
-      }
-      if (getPreviewDay() || !pull.promptAnswer) {
-        _showPromptOverlay(pull);
-        return;
-      }
+    if (pull?.outcome?.prompt && !pull.promptAnswer) {
+      _showPromptOverlay(pull);
+      return;
     }
     reveal();
   });
