@@ -607,11 +607,6 @@ export function reveal() {
       );
       if (!alreadyRecorded) addToken(state.todaysPull.collectToken);
     }
-    // Restore promptAnswer from history so gate doesn't re-appear after page refresh
-    if (!state.todaysPull.promptAnswer) {
-      const prior = readHistory().find(e => e.day === state.todaysPull.day && e.token === state.todaysPull.token);
-      if (prior?.promptAnswer) state.todaysPull.promptAnswer = prior.promptAnswer;
-    }
     renderPull(state.todaysPull);
     mount.classList.remove("is-revealing");
     mount.classList.add("is-revealed");
@@ -741,13 +736,16 @@ export function bindEvents() {
 
     const pull = state.todaysPull;
     const prompt = pull?.outcome?.prompt;
-    if (prompt && !pull.promptAnswer) {
-      const prior = readHistory().find(e => e.day === pull.day && e.token === pull.token);
-      if (prior?.promptAnswer) pull.promptAnswer = prior.promptAnswer;
-    }
-    if (prompt && !pull.promptAnswer) {
-      _showPromptOverlay(pull);
-      return;
+    if (prompt) {
+      // In preview mode always show gate; in real mode restore saved answer to skip gate
+      if (!getPreviewDay() && !pull.promptAnswer) {
+        const prior = readHistory().find(e => e.day === pull.day && e.token === pull.token);
+        if (prior?.promptAnswer) pull.promptAnswer = prior.promptAnswer;
+      }
+      if (getPreviewDay() || !pull.promptAnswer) {
+        _showPromptOverlay(pull);
+        return;
+      }
     }
     reveal();
   });
