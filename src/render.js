@@ -705,6 +705,7 @@ export function renderPull(pull) {
       if (state.activeTab === "history") renderHistory();
     });
     msgEl.parentNode.insertBefore(promptGate, msgEl);
+    $("[data-ag-result]").hidden = false;
     return;
   }
 
