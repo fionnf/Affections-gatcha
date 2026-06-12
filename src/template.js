@@ -451,7 +451,7 @@ export const html = `
               <p class="ag-hug-status" data-ag-ping-status hidden></p>
             </div>
 
-            <div class="ag-card ag-radio-card" id="ag-radio-card">
+            <div class="ag-card ag-radio-card" id="ag-radio-card" hidden>
               <div class="ag-hug-row">
                 <div class="ag-hug-text">
                   <p class="ag-wish-label">Radio Zweisam 📻</p>

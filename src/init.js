@@ -126,6 +126,10 @@ export async function init() {
     if (readHistory().some(e => e.token === getToken() && e.day === todayKey)) {
       mount.classList.add("has-drawn");
     }
+    if (new URLSearchParams(location.search).get("radio") === "1") {
+      const radioCard = mount.querySelector("#ag-radio-card");
+      if (radioCard) radioCard.hidden = false;
+    }
     syncFromSheets().catch(() => {});
   } catch (error) {
     renderError(error);

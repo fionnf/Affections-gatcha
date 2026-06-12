@@ -66,13 +66,21 @@ export async function generateTrack(prompt) {
   const cfg = state.radio;
   if (!cfg?.enabled || !cfg?.hfToken) throw new Error("Radio nicht konfiguriert");
   const model = cfg.model || "facebook/musicgen-small";
-  const duration = cfg.durationSeconds || 20;
   const headers = { "Authorization": `Bearer ${cfg.hfToken}`, "Content-Type": "application/json" };
-  const body = JSON.stringify({ inputs: prompt, parameters: { duration } });
+  const body = JSON.stringify({ inputs: prompt });
 
   const tryFetch = async (attempt = 0) => {
-    const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, { method: "POST", headers, body });
-    if (resp.status === 503 && attempt < 5) {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 180000);
+    let resp;
+    try {
+      resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST", headers, body, signal: controller.signal
+      });
+    } finally {
+      clearTimeout(tid);
+    }
+    if (resp.status === 503 && attempt < 6) {
       const j = await resp.json().catch(() => ({}));
       const wait = Math.min((j.estimated_time || 30) * 1000, 90000);
       const statusEl = document.getElementById("ag-radio-status");
@@ -80,7 +88,15 @@ export async function generateTrack(prompt) {
       await new Promise(r => setTimeout(r, wait));
       return tryFetch(attempt + 1);
     }
-    if (!resp.ok) throw new Error(`HF API ${resp.status}`);
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => resp.status);
+      throw new Error(`HF ${resp.status}: ${String(errText).slice(0, 120)}`);
+    }
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("audio") && !contentType.includes("octet")) {
+      const text = await resp.text();
+      throw new Error(`Kein Audio zurück: ${text.slice(0, 120)}`);
+    }
     return resp.blob();
   };
   return tryFetch();
