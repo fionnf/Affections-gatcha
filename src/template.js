@@ -283,6 +283,7 @@ export const html = `
           <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Glossar 📖</span>
+              <button class="ag-secondary" type="button" id="ag-glossary-refresh" title="Glossar aus Google Sheets aktualisieren" style="margin-left:auto;margin-right:6px">↻</button>
               <button class="ag-secondary" type="button" id="ag-glossary-close">✕</button>
             </div>
             <h2 class="ag-mini-title">Unser Glossar</h2>
