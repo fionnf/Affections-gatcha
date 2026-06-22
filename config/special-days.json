@@ -260,6 +260,34 @@
         "primaryDark": "#f0b830",
         "gold": "#f0b830"
       }
+    },
+    {
+      "date": "06-23",
+      "label": "Geheimabend 🌙",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Heute Abend passiert was ✨",
+          "prompt": "Was ist etwas, das du noch nie jemandem erzählt hast, aber eigentlich gerne würdest? 👀",
+          "message": "Gut gemacht dass du geantwortet hast. Ich will das Gespräch dazu übrigens wirklich führen — merk dir was du geschrieben hast.\n\nAber jetzt zum eigentlichen: heute Abend hab ich was organisiert. Ich sag noch nicht was — das ist der Sinn der Sache. Wir treffen uns nachher, nach deinem Call, und dann zeig ich dir was ich geplant hab.\n\nEin Hinweis den du brauchst: wir müssen um 21:30 Uhr am Bucheggplatz sein. Nicht kurz danach. Nicht so-ungefähr. 21:30. Also kein Trödeln heute Abend.\n\nIch freu mich sehr. Bis später. 🤍"
+        }
+      ],
+      "colors": {
+        "background": "#0e0a1a",
+        "surface": "#18122e",
+        "surfaceAlt": "#231a42",
+        "primary": "#9b7fe8",
+        "primaryDark": "#7c5fd4",
+        "gold": "#c4a8ff"
+      },
+      "darkColors": {
+        "background": "#0e0a1a",
+        "surface": "#18122e",
+        "surfaceAlt": "#231a42",
+        "primary": "#9b7fe8",
+        "primaryDark": "#7c5fd4",
+        "gold": "#c4a8ff"
+      }
     }
   ]
 }
