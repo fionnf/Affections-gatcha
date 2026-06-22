@@ -39,9 +39,12 @@ export function getInspirationWords(max = 5) {
 export function buildMusicPrompt(dateKey) {
   const energyIdx = dayEnergy(dateKey);
   const cfg = ENERGY_CONFIGS[energyIdx];
-  const words = getInspirationWords(5);
-  const meanings = words.filter(w => w.meaning).map(w => w.meaning).join("; ");
-  const wordPart = meanings ? `. Mood inspired by: ${meanings}` : "";
+  const words = getInspirationWords(3);
+  // Only use short English meanings to keep the prompt clean for the model
+  const meanings = words
+    .filter(w => w.meaning && w.meaning.length < 60 && /^[\x00-\x7F]*$/.test(w.meaning))
+    .map(w => w.meaning).join(", ");
+  const wordPart = meanings ? `, ${meanings}` : "";
   return { prompt: cfg.prompt + wordPart, energyLabel: cfg.label, energyIdx, inspirationWords: words };
 }
 
@@ -66,21 +69,52 @@ export async function generateTrack(prompt) {
   const cfg = state.radio;
   if (!cfg?.enabled || !cfg?.hfToken) throw new Error("Radio nicht konfiguriert");
   const model = cfg.model || "facebook/musicgen-small";
-  const duration = cfg.durationSeconds || 20;
   const headers = { "Authorization": `Bearer ${cfg.hfToken}`, "Content-Type": "application/json" };
-  const body = JSON.stringify({ inputs: prompt, parameters: { duration } });
+  const body = JSON.stringify({ inputs: prompt });
 
-  const tryFetch = async (attempt = 0) => {
-    const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, { method: "POST", headers, body });
-    if (resp.status === 503 && attempt < 5) {
+  // Try new HF router first, fall back to legacy endpoint
+  const endpoints = [
+    `https://router.huggingface.co/hf-inference/models/${model}`,
+    `https://api-inference.huggingface.co/models/${model}`,
+  ];
+
+  const tryFetch = async (attempt = 0, endpointIdx = 0) => {
+    const url = endpoints[endpointIdx] || endpoints[0];
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 180000);
+    let resp;
+    try {
+      resp = await fetch(url, { method: "POST", headers, body, signal: controller.signal });
+    } catch (fetchErr) {
+      clearTimeout(tid);
+      // Network error — try other endpoint once
+      if (endpointIdx === 0) return tryFetch(attempt, 1);
+      throw new Error(`Netzwerkfehler: ${fetchErr.message}`);
+    }
+    clearTimeout(tid);
+
+    if (resp.status === 503 && attempt < 6) {
       const j = await resp.json().catch(() => ({}));
       const wait = Math.min((j.estimated_time || 30) * 1000, 90000);
       const statusEl = document.getElementById("ag-radio-status");
       if (statusEl) statusEl.textContent = `Modell lädt — noch ca. ${Math.round(wait / 1000)}s...`;
       await new Promise(r => setTimeout(r, wait));
-      return tryFetch(attempt + 1);
+      return tryFetch(attempt + 1, endpointIdx);
     }
-    if (!resp.ok) throw new Error(`HF API ${resp.status}`);
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => String(resp.status));
+      // Try fallback endpoint on 4xx if we haven't yet
+      if (endpointIdx === 0 && resp.status >= 400 && resp.status < 500) {
+        console.warn(`[Radio] ${url} returned ${resp.status}, trying fallback`);
+        return tryFetch(0, 1);
+      }
+      throw new Error(`HF ${resp.status}: ${String(errText).slice(0, 150)}`);
+    }
+    const contentType = resp.headers.get("content-type") || "";
+    if (!contentType.includes("audio") && !contentType.includes("octet")) {
+      const text = await resp.text();
+      throw new Error(`Kein Audio: ${text.slice(0, 150)}`);
+    }
     return resp.blob();
   };
   return tryFetch();
@@ -170,9 +204,11 @@ export async function startOrToggleRadio(dateKey) {
       if (voiceInfo) voiceInfo.textContent = `${voiceWords.length} Stimmaufnahme${voiceWords.length !== 1 ? "n" : ""} aus dem Glossar`;
       setTimeout(playNextVoice, 6000);
     }
-  } catch (_err) {
+  } catch (err) {
+    console.error("[Radio Zweisam]", err);
     if (playBtn) { playBtn.disabled = false; playBtn.textContent = "▶ Nochmal versuchen"; }
-    if (statusEl) statusEl.textContent = "Fehler — nochmal versuchen?";
+    const msg = err?.message ? err.message.slice(0, 120) : "Unbekannter Fehler";
+    if (statusEl) statusEl.textContent = `Fehler: ${msg}`;
   }
 }
 

@@ -182,7 +182,7 @@
         {
           "title": "Gipfeltag 🏔️",
           "prompt": "Bevor die Kapsel sich öffnet: Nenn 3 Dinge die Fionn noch besser machen könnte. Ehrlichkeit wird belohnt ✨",
-          "message": "Heute überquerst du den Klausenpass. Ich sitze hier in Zürich, denke an dich und bin so stolz auf dich dass es eigentlich lächerlich ist.\n\nEs gibt so vieles an dir das ich noch entdecken will. Die Art wie du auf langen Fahrten denkst. Was durch deinen Kopf geht wenn der Anstieg vor dir liegt. Wie sich der Gipfel anfühlt wenn ihr oben ankommt. Ich will das alles wissen, nicht aus Höflichkeit, sondern weil ich echten Hunger darauf habe immer mehr von dir zu verstehen. Du bist jemand den ich wirklich kennenlernen will, nicht nur die Momente die wir teilen, sondern das ganze Innenleben. Die Gedanken, die kleinen Beobachtungen, die Dinge die dir wichtig sind wenn sonst niemand zuschaut. Das alles interessiert mich und ich bin so froh dass du in meinem Leben bist.\n\nSchick mir ein Foto vom Gipfel. Ich will dabei sein auch wenn ich nicht dabei sein kann. 📸\n\nUnd für die Waden gibt es natürlich auch einen Massage-Credit. Einlösbar sofort, am 14. Juni, oder einfach aufbewahren bis du ihn brauchst. Du weißt wo du mich findest. 🤍"
+          "message": "Heute überquerst du den Klausenpass. Ich sitze hier in Zürich, denke an dich und bin so stolz auf dich dass es eigentlich lächerlich ist.\n\nEs gibt so vieles an dir das ich noch entdecken will. Die Art wie du auf langen Fahrten denkst. Was durch deinen Kopf geht wenn der Anstieg vor dir liegt. Wie sich der Gipfel anfühlt wenn ihr oben ankommt. Ich will das alles wissen, nicht aus Höflichkeit, sondern weil ich echten Hunger darauf habe immer mehr von dir zu verstehen. Du bist jemand den ich wirklich kennenlernen will, nicht nur die Momente die wir teilen, sondern das ganze Innenleben. Die Gedanken, die kleinen Beobachtungen, die Dinge die dir wichtig sind wenn sonst niemand zuschaut. Das alles interessiert mich und ich bin so froh dass du in meinem Leben bist.\n\nSchick mir ein Foto vom Gipfel. Ich will dabei sein auch wenn ich nicht dabei sein kann. 📸\n\nUnd dein Preis für heute: ich setze ein Datum. Wir fahren einen Pass zusammen — du wählst welchen, ich trainiere ordentlich, und ich komme. Kein vages Versprechen, ein echtes Datum. Wir klären das wenn du zurück bist.\n\nUnd apropos zurück — falls du heute Abend wieder in Zürich bist: ich bin am Bellevue. Ich hab vielleicht noch was für dich. Ich geh gerade erst um 7 Uhr früh ins Bett — ja, genau jetzt — aber ich bin für dich da wenn du zurückkommst. 🤍"
         }
       ],
       "colors": {
@@ -259,6 +259,34 @@
         "primary": "#e8a020",
         "primaryDark": "#f0b830",
         "gold": "#f0b830"
+      }
+    },
+    {
+      "date": "06-23",
+      "label": "Geheimabend 🌙",
+      "tone": "jackpot",
+      "outcomes": [
+        {
+          "title": "Heute Abend passiert was ✨",
+          "prompt": "Was ist etwas, das du noch nie jemandem erzählt hast, aber eigentlich gerne würdest? 👀",
+          "message": "Gut gemacht dass du geantwortet hast. Ich will das Gespräch dazu übrigens wirklich führen — merk dir was du geschrieben hast.\n\nAber jetzt zum eigentlichen: heute Abend hab ich was organisiert. Ich sag noch nicht was — das ist der Sinn der Sache. Wir treffen uns nachher, nach deinem Call, und dann zeig ich dir was ich geplant hab.\n\nEin Hinweis den du brauchst: wir müssen um 21:30 Uhr am Bucheggplatz sein. Nicht kurz danach. Nicht so-ungefähr. 21:30. Also kein Trödeln heute Abend.\n\nIch freu mich sehr. Bis später. 🤍"
+        }
+      ],
+      "colors": {
+        "background": "#0e0a1a",
+        "surface": "#18122e",
+        "surfaceAlt": "#231a42",
+        "primary": "#9b7fe8",
+        "primaryDark": "#7c5fd4",
+        "gold": "#c4a8ff"
+      },
+      "darkColors": {
+        "background": "#0e0a1a",
+        "surface": "#18122e",
+        "surfaceAlt": "#231a42",
+        "primary": "#9b7fe8",
+        "primaryDark": "#7c5fd4",
+        "gold": "#c4a8ff"
       }
     }
   ]
