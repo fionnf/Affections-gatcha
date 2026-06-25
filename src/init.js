@@ -10,8 +10,137 @@ import { renderShell } from "./template.js";
 import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
 import { bindEvents, retryPendingWishSend, registerServiceWorker, scheduleStreakWarning, renderError } from "./events.js";
+import { pickLoadingSteps } from "./loading-steps.js";
 
 const defaultPhotos = { photos: [] };
+
+// ── Loading overlay ───────────────────────────────────────────────────────────
+
+let _loadingEl = null;
+let _loadingTextEl = null;
+let _loadingSteps = [];
+let _loadingIndex = 0;
+let _loadingTimer = null;
+
+function createLoadingOverlay() {
+  const el = document.createElement("div");
+  el.id = "ag-loading-overlay";
+  el.setAttribute("aria-live", "polite");
+  el.setAttribute("aria-label", "Laden…");
+  el.innerHTML = `
+    <div class="ag-loading-inner">
+      <div class="ag-loading-spinner" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <p class="ag-loading-step" id="ag-loading-step">Maschine wird aufgewärmt…</p>
+      <div class="ag-loading-bar-track" aria-hidden="true">
+        <div class="ag-loading-bar" id="ag-loading-bar"></div>
+      </div>
+    </div>
+  `;
+  // Inline styles so the overlay works before CSS is injected
+  el.style.cssText = [
+    "position:fixed","inset:0","z-index:9999",
+    "display:flex","align-items:center","justify-content:center",
+    "background:var(--ag-bg, #0d1a12)",
+    "transition:opacity .35s ease",
+    "opacity:1",
+  ].join(";");
+  document.body.appendChild(el);
+
+  _loadingEl = el;
+  _loadingTextEl = el.querySelector("#ag-loading-step");
+
+  // Inject minimal overlay styles
+  const style = document.createElement("style");
+  style.textContent = `
+    #ag-loading-overlay { font-family: system-ui, sans-serif; }
+    .ag-loading-inner {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 18px; padding: 32px 24px; text-align: center; max-width: 320px;
+    }
+    .ag-loading-spinner {
+      display: flex; gap: 10px; align-items: flex-end; height: 32px;
+    }
+    .ag-loading-spinner span {
+      display: block; width: 8px; border-radius: 4px;
+      background: var(--ag-accent, rgba(255,220,140,.85));
+      animation: ag-loader-bounce 1.1s ease-in-out infinite;
+    }
+    .ag-loading-spinner span:nth-child(1) { animation-delay: 0s; }
+    .ag-loading-spinner span:nth-child(2) { animation-delay: .18s; }
+    .ag-loading-spinner span:nth-child(3) { animation-delay: .36s; }
+    @keyframes ag-loader-bounce {
+      0%, 100% { height: 12px; opacity: .5; }
+      50%       { height: 28px; opacity: 1; }
+    }
+    .ag-loading-step {
+      font-size: 15px; line-height: 1.5;
+      color: var(--ag-text-muted, rgba(255,255,255,.65));
+      min-height: 2em;
+      transition: opacity .25s ease;
+    }
+    .ag-loading-bar-track {
+      width: 180px; height: 3px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.12);
+      overflow: hidden;
+    }
+    .ag-loading-bar {
+      height: 100%; border-radius: 99px;
+      background: var(--ag-accent, rgba(255,220,140,.75));
+      width: 0%;
+      transition: width .45s cubic-bezier(.4,0,.2,1);
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function advanceLoadingStep() {
+  if (!_loadingTextEl) return;
+  _loadingIndex++;
+  const total = _loadingSteps.length;
+  const step = _loadingSteps[Math.min(_loadingIndex, total - 1)];
+
+  // Fade out → update text → fade in
+  _loadingTextEl.style.opacity = "0";
+  setTimeout(() => {
+    _loadingTextEl.textContent = step;
+    _loadingTextEl.style.opacity = "1";
+  }, 160);
+
+  // Advance progress bar
+  const bar = document.getElementById("ag-loading-bar");
+  if (bar) bar.style.width = `${Math.min(90, Math.round((_loadingIndex / (total - 1)) * 90))}%`;
+}
+
+function startLoadingSteps(stepCount = 5) {
+  _loadingSteps = pickLoadingSteps(stepCount);
+  _loadingIndex = 0;
+
+  if (_loadingTextEl) _loadingTextEl.textContent = _loadingSteps[0];
+
+  // Advance through the picked steps at a random-ish interval
+  const interval = Math.floor(520 + Math.random() * 300); // 520–820 ms per step
+  _loadingTimer = setInterval(advanceLoadingStep, interval);
+}
+
+function finishLoading() {
+  clearInterval(_loadingTimer);
+
+  // Fill bar to 100 %
+  const bar = document.getElementById("ag-loading-bar");
+  if (bar) bar.style.width = "100%";
+
+  // Fade overlay out and remove
+  setTimeout(() => {
+    if (!_loadingEl) return;
+    _loadingEl.style.opacity = "0";
+    _loadingEl.addEventListener("transitionend", () => _loadingEl?.remove(), { once: true });
+  }, 350);
+}
+
+// ── History recovery ──────────────────────────────────────────────────────────
 
 export function normalizePhotos(photosConfig) {
   const VIDEO_EXTS = /\.(mp4|mov|webm|m4v|avi|mkv)(\?|$)/i;
@@ -67,9 +196,16 @@ export function recoverHistory() {
   return toAdd.length;
 }
 
+// ── Main init ─────────────────────────────────────────────────────────────────
+
 export async function init() {
   injectFonts();
   injectStyles();
+
+  // Show loading overlay before anything else
+  createLoadingOverlay();
+  startLoadingSteps(5);
+
   renderShell();
   try {
     const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions, radio] = await Promise.all([
@@ -153,7 +289,11 @@ export async function init() {
       }
     }
     syncFromSheets().catch(() => {});
+
+    // All done — dismiss the loading overlay
+    finishLoading();
   } catch (error) {
+    finishLoading();
     renderError(error);
   }
 }
