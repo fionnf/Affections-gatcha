@@ -106,7 +106,7 @@ export function buildPullForDay(day, streak) {
     photo = pool[seededIndex(`${baseSeed}|photo`, pool.length)];
   }
 
-  return { day, token, category, outcome, photo, collectToken: outcome.token || null };
+  return { day, token, category, outcome, photo, collectToken: outcome.token || null, voucher: outcome.voucher || false };
 }
 
 export function buildPull() {

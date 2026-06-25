@@ -507,7 +507,8 @@
         },
         {
           "title": "Saudades (PT)",
-          "message": "Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date."
+          "message": "Wenn man sich mal einen Tag vermisst: Ein Gutschein für ein spontanes Facetime-Date.",
+          "voucher": true
         },
         {
           "title": "Gezellig (NL)",
@@ -527,7 +528,8 @@
         },
         {
           "title": "Kletter-Gutschein: Fionn sichert",
-          "message": "Du darfst eine Kletter-Session einfordern, bei der ich sichere und ausschließlich Aufbauendes rufe."
+          "message": "Du darfst eine Kletter-Session einfordern, bei der ich sichere und ausschließlich Aufbauendes rufe.",
+          "voucher": true
         },
         {
           "title": "Reise-Rezept",
@@ -539,7 +541,8 @@
         },
         {
           "title": "Gute-Nacht-Voicenote",
-          "message": "Ein Gutschein für eine Sprachnachricht zum Einschlafen. Themenwahl bei dir."
+          "message": "Ein Gutschein für eine Sprachnachricht zum Einschlafen. Themenwahl bei dir.",
+          "voucher": true
         },
         {
           "title": "35mm-Date",
@@ -676,7 +679,8 @@
         },
         {
           "title": "Date-Credit: Mythen-Revival",
-          "message": "Ein Gutschein für einen Sunset-Ausritt oder eine Wanderung. Das Wetter bestimmen wir gemeinsam."
+          "message": "Ein Gutschein für einen Sunset-Ausritt oder eine Wanderung. Das Wetter bestimmen wir gemeinsam.",
+          "voucher": true
         },
         {
           "title": "DJ Fionn Set",
@@ -693,7 +697,8 @@
         },
         {
           "title": "Thermalbad-Fantasie",
-          "message": "Wir stellen uns vor, wir wären auf dem Dach im Thermalbad. Gutschein für einen Wellnesstag."
+          "message": "Wir stellen uns vor, wir wären auf dem Dach im Thermalbad. Gutschein für einen Wellnesstag.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Jules Verne Bar",
@@ -792,7 +797,8 @@
         },
         {
           "title": "JACKPOT: Mo anamchara (IE)",
-          "message": "Mein Seelenfreund. Ein Gutschein für eine Nacht ohne Wecker, nur wir."
+          "message": "Mein Seelenfreund. Ein Gutschein für eine Nacht ohne Wecker, nur wir.",
+          "voucher": true
         },
         {
           "title": "JACKPOT: Nacht mit Aussicht",

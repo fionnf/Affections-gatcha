@@ -1,6 +1,6 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, seededIndex, getPreviewDay, getMissionPlayer } from "./utils.js";
+import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, seededIndex, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
 import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen } from "./storage.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore } from "./streak.js";
 import { fetchJson } from "./sync.js";
@@ -10,9 +10,20 @@ import { TOKEN_REWARDS } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { extractDriveFileId } from "./utils.js";
 import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
+import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
+
+// Verlauf voucher filter: "all" | "vouchers" | "open" (unredeemed only)
+let historyFilter = "all";
+export function setHistoryFilter(value) {
+  historyFilter = value === "vouchers" || value === "open" ? value : "all";
+  renderHistory();
+}
+export function getHistoryFilter() {
+  return historyFilter;
+}
 
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
@@ -934,6 +945,7 @@ export function recordHistoryEntry(pull) {
           type: pull.photo.type === "video" ? "video" : "image"
         }
       : null,
+    voucher: pull.voucher || false,
     revealedAt: Date.now()
   };
   const existing = readHistory();
@@ -949,6 +961,38 @@ export function recordHistoryEntry(pull) {
   writeHistory(merged);
   writeStreakCache(0);
   backupToSheets();
+}
+
+// Mark a voucher history entry as redeemed (single-use, one-way).
+export function redeemVoucher(entry, btnEl) {
+  if (!entry || entry.used) return;
+  const ok = typeof window === "undefined" || !window.confirm
+    ? true
+    : window.confirm("Diesen Gutschein jetzt einlösen? Das lässt sich nicht rückgängig machen.");
+  if (!ok) return;
+
+  const usedAt = dateKeyInTimezone(state.theme?.timezone || "UTC");
+  entry.used = true;
+  entry.usedAt = usedAt;
+
+  // Persist on the matching stored record.
+  const history = readHistory();
+  const match = history.find((e) => e.day === entry.day && e.token === entry.token);
+  if (match) {
+    match.used = true;
+    match.usedAt = usedAt;
+    writeHistory(history);
+  }
+  backupToSheets();
+
+  // Cute extras: celebrate + nudge the partner.
+  try { triggerConfetti(60); } catch (_e) {}
+  try { showToast("Eingelöst 💛"); } catch (_e) {}
+  try { notifyPartnerVoucherRedeemed(entry); } catch (_e) {}
+
+  if (btnEl) btnEl.disabled = true;
+  renderHistory();
+  if (state.activeTab === "lieblinge") renderLieblinge();
 }
 
 // ── History items ────────────────────────────────────────────────────────────
@@ -1095,6 +1139,29 @@ export function renderHistoryItemEl(entry) {
     }
   }
 
+  if (isVoucherEntry(entry)) {
+    const actions = document.createElement("div");
+    actions.className = "ag-voucher-actions";
+    if (entry.used) {
+      const used = document.createElement("span");
+      used.className = "ag-voucher-used";
+      const { formatHistoryDate } = _getFormatHistoryDate();
+      used.textContent = `✓ Benutzt am ${entry.usedAt ? formatHistoryDate(entry.usedAt) : "–"}`;
+      actions.appendChild(used);
+    } else {
+      const useBtn = document.createElement("button");
+      useBtn.type = "button";
+      useBtn.className = "ag-voucher-use";
+      useBtn.textContent = "🎟️ Benutzen";
+      useBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        redeemVoucher(entry, useBtn);
+      });
+      actions.appendChild(useBtn);
+    }
+    li.appendChild(actions);
+  }
+
   return li;
 }
 
@@ -1116,6 +1183,20 @@ function _getFormatHistoryDate() {
   };
 }
 
+function updateVoucherFilterUi(openVouchers) {
+  const wrap = $("[data-ag-history-filter]");
+  if (!wrap) return;
+  const buttons = wrap.querySelectorAll("[data-ag-filter]");
+  buttons.forEach((btn) => {
+    const key = btn.dataset.agFilter;
+    btn.classList.toggle("is-active", key === historyFilter);
+    btn.setAttribute("aria-selected", key === historyFilter ? "true" : "false");
+    if (key === "open") {
+      btn.textContent = openVouchers > 0 ? `Offen (${openVouchers})` : "Offen";
+    }
+  });
+}
+
 export function renderHistory() {
   const list = $("[data-ag-history]");
   const empty = $("[data-ag-history-empty]");
@@ -1124,17 +1205,38 @@ export function renderHistory() {
 
   const token = getToken();
   const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
-  const entries = readHistory()
+  const allEntries = readHistory()
     .filter((e) => e.token === token && e.day <= today)
     .slice()
     .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
 
-  note.textContent = "Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst.";
+  // Open (unredeemed) voucher count — used for the badge on the "Offen" chip.
+  const openVouchers = allEntries.filter((e) => isVoucherEntry(e) && !e.used).length;
+  updateVoucherFilterUi(openVouchers);
+
+  const entries = allEntries.filter((e) => {
+    if (historyFilter === "vouchers") return isVoucherEntry(e);
+    if (historyFilter === "open") return isVoucherEntry(e) && !e.used;
+    return true;
+  });
+
+  if (historyFilter === "open") {
+    note.textContent = openVouchers
+      ? `Du hast ${openVouchers} offene${openVouchers === 1 ? "n" : ""} Gutschein${openVouchers === 1 ? "" : "e"} zum Einlösen 🎟️`
+      : "Alle Gutscheine sind eingelöst. 💛";
+  } else if (historyFilter === "vouchers") {
+    note.textContent = "Alle deine Gutscheine — eingelöst und offen.";
+  } else {
+    note.textContent = "Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst.";
+  }
 
   if (!entries.length) {
     empty.hidden = false;
-    empty.textContent =
-      "Noch keine Kapseln auf diesem Gerät bzw. Browser geöffnet. Zieh heute eine — dann erscheint sie hier.";
+    empty.textContent = historyFilter === "all"
+      ? "Noch keine Kapseln auf diesem Gerät bzw. Browser geöffnet. Zieh heute eine — dann erscheint sie hier."
+      : (historyFilter === "open"
+          ? "Keine offenen Gutscheine — alles eingelöst. 💛"
+          : "Noch keine Gutscheine gezogen.");
     return;
   }
   empty.hidden = true;

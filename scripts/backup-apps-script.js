@@ -78,7 +78,9 @@ function doGet(e) {
         unlockTime:    row[8] || null,
         photo:         row[9] ? JSON.parse(row[9]) : null,
         revealedAt:    row[10] || null,
-        promptAnswer:  row[11] || null
+        promptAnswer:  row[11] || null,
+        used:          row[12] === "yes" || row[12] === true,
+        usedAt:        row[13] || null
       });
     }
 
@@ -430,7 +432,9 @@ function doPost(e) {
           entry.unlockTime    || "",
           entry.photo ? JSON.stringify(entry.photo) : "",
           entry.revealedAt    || "",
-          entry.promptAnswer  || ""
+          entry.promptAnswer  || "",
+          entry.used ? "yes" : "",
+          entry.usedAt        || ""
         ];
         if (existingByDay[day]) {
           histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
@@ -476,7 +480,7 @@ function getOrCreateHistorySheet_(ss) {
   let sheet = ss.getSheetByName(HISTORY_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(HISTORY_SHEET_NAME);
-    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer"]);
+    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer", "Used", "UsedAt"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(7, 400);
     sheet.setColumnWidth(12, 400);

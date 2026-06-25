@@ -10,7 +10,7 @@ import { syncFromSheets, backupToSheets } from "./sync.js";
 import { NOTIF_KEY } from "./constants.js";
 import { triggerConfetti } from "./confetti.js";
 import { haptic } from "./haptic.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderOdds, renderWunschkapsel, toggleFavorite, messageText, hydrateCopy, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, MILESTONE_MESSAGES } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderOdds, renderWunschkapsel, toggleFavorite, messageText, hydrateCopy, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
@@ -198,6 +198,35 @@ export function sendHugToInbox() {
         onFailure();
       }
     });
+}
+
+// Nudge the partner (via the wish-inbox endpoint, which emails Fionn) when a
+// voucher is redeemed. Best-effort, never blocks the UI.
+export function notifyPartnerVoucherRedeemed(entry) {
+  const token = getToken();
+  if (token === "fionn") return; // avoid Fionn emailing himself
+  const config = state.wishInbox;
+  if (!config || !config.enabled) return;
+  const endpoint = typeof config.endpointUrl === "string" ? config.endpointUrl.trim() : "";
+  if (!endpoint) return;
+
+  const title = (entry && entry.title) ? entry.title : "Gutschein";
+  const message = `🎟️ Gutschein eingelöst: ${title}`;
+  const payload = {
+    timestamp: new Date().toISOString(),
+    token,
+    type: "voucher",
+    event: "voucher-redeemed",
+    wish: message,
+    message,
+    pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
+    userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
+  };
+  const body = JSON.stringify(payload);
+  const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+  fetch(endpoint, opts).catch(() => {
+    fetch(endpoint, { ...opts, mode: "no-cors" }).catch(() => {});
+  });
 }
 
 export function sendWishToInbox(wish) {
@@ -985,6 +1014,13 @@ export function bindEvents() {
       setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 3000);
     });
   }
+
+  mount.querySelectorAll("[data-ag-history-filter] [data-ag-filter]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      haptic(5);
+      setHistoryFilter(chip.dataset.agFilter);
+    });
+  });
 
   mount.querySelectorAll("[data-ag-tab]").forEach((node) => {
     node.addEventListener("click", () => {

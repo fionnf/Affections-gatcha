@@ -182,3 +182,18 @@ export function normaliseDay(raw) {
   }
   return "";
 }
+
+// Decide whether a history entry is a redeemable voucher (Gutschein).
+// Explicit flag wins; otherwise fall back to keyword detection so older
+// entries (recorded before the flag existed) still get a Benutzen button.
+const VOUCHER_KEYWORDS = /gutschein|lädt\s+(dich\s+)?(zum|zur|ein)|einladung|voucher/i;
+const VOUCHER_NEGATIVE = /nicht\s+einlös|kein\s+gutschein/i;
+const VOUCHER_SKIP_CATEGORIES = new Set(["photo", "collect", "niete"]);
+export function isVoucherEntry(entry) {
+  if (!entry) return false;
+  if (entry.voucher === true) return true;
+  if (VOUCHER_SKIP_CATEGORIES.has(entry.categoryId)) return false;
+  const text = `${entry.title || ""} ${entry.message || ""}`;
+  if (VOUCHER_NEGATIVE.test(text)) return false;
+  return VOUCHER_KEYWORDS.test(text);
+}
