@@ -443,6 +443,11 @@ export const html = `
                 <button class="ag-sync-btn" data-ag-recover-btn type="button" title="Mai-Verlauf wiederherstellen">↺</button>
                 <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
               </div>
+              <div class="ag-history-filter" data-ag-history-filter role="tablist" aria-label="Verlauf filtern">
+                <button class="ag-history-filter-chip is-active" type="button" data-ag-filter="all" role="tab" aria-selected="true">Alle</button>
+                <button class="ag-history-filter-chip" type="button" data-ag-filter="vouchers" role="tab" aria-selected="false">Gutscheine</button>
+                <button class="ag-history-filter-chip" type="button" data-ag-filter="open" role="tab" aria-selected="false">Offen</button>
+              </div>
               <ol class="ag-history" data-ag-history></ol>
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
             </div>

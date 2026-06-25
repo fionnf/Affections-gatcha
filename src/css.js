@@ -871,6 +871,15 @@ export const css = `
       .ag-sync-btn:hover:not(:disabled){border-color:var(--ag-green);color:var(--ag-green)}
       .ag-sync-btn:disabled{cursor:default;opacity:.5}
       .ag-history-note{margin:0 0 14px;color:var(--ag-muted);font-size:.92rem;line-height:1.55}
+      .ag-history-filter{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
+      .ag-history-filter-chip{background:none;border:1px solid var(--ag-border);border-radius:999px;padding:4px 12px;font-size:.82rem;cursor:pointer;color:var(--ag-muted);transition:all .15s;line-height:1.5}
+      .ag-history-filter-chip:hover{border-color:var(--ag-green);color:var(--ag-green)}
+      .ag-history-filter-chip.is-active{background:var(--ag-green);border-color:var(--ag-green);color:#fff;font-weight:600}
+      .ag-voucher-actions{margin-top:10px;display:flex;align-items:center;gap:8px}
+      .ag-voucher-use{background:var(--ag-gold,#caa45a);border:none;border-radius:8px;padding:6px 14px;font-size:.86rem;font-weight:600;color:#1a1a1a;cursor:pointer;transition:transform .15s,filter .15s;line-height:1.3}
+      .ag-voucher-use:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+      .ag-voucher-use:disabled{opacity:.5;cursor:default}
+      .ag-voucher-used{display:inline-flex;align-items:center;gap:4px;font-size:.84rem;color:var(--ag-muted);font-style:italic}
       .ag-history{list-style:none;padding:0;margin:0;display:grid;gap:10px}
       .ag-history-empty{
         margin:8px 0 0;padding:16px;border:1px dashed var(--ag-border);border-radius:var(--ag-radius-md);
