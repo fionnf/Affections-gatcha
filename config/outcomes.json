@@ -153,15 +153,18 @@
         },
         {
           "title": "Portugiesisches Wort: Beijo",
-          "message": "Ein einziger, süßer Kuss. Sofort einlösbar."
+          "message": "Ein einziger, süßer Kuss. Sofort einlösbar.",
+          "voucher": true
         },
         {
           "title": "Barróg (IE)",
-          "message": "Eine feste Umarmung (20 Sekunden Minimum)."
+          "message": "Eine feste Umarmung (20 Sekunden Minimum).",
+          "voucher": true
         },
         {
           "title": "Petisco (PT)",
-          "message": "Ein kleiner Snack, den Fionn für Lennart nach der Arbeit zubereitet."
+          "message": "Ein kleiner Snack, den Fionn für Lennart nach der Arbeit zubereitet.",
+          "voucher": true
         },
         {
           "title": "Português: Amor",
@@ -503,7 +506,8 @@
       "outcomes": [
         {
           "title": "Sprachnachricht",
-          "message": "Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz."
+          "message": "Du darfst eine kleine Sprachnachricht anfordern. Thema frei, Länge wie eine gute Aussicht: nicht zu kurz.",
+          "voucher": true
         },
         {
           "title": "Saudades (PT)",
@@ -512,19 +516,23 @@
         },
         {
           "title": "Gezellig (NL)",
-          "message": "Ein Abend mit Kerzen, Wein und ohne Handys."
+          "message": "Ein Abend mit Kerzen, Wein und ohne Handys.",
+          "voucher": true
         },
         {
           "title": "Foto-Anfrage",
-          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: Alle drei."
+          "message": "Du darfst ein süßes, schönes oder dummes Foto anfordern. Die Maschine empfiehlt: Alle drei.",
+          "voucher": true
         },
         {
           "title": "Tehran & Guatemala Tales",
-          "message": "Du darfst eine Geschichte aus deiner Reisezeit einfordern, die du noch nicht kennst."
+          "message": "Du darfst eine Geschichte aus deiner Reisezeit einfordern, die du noch nicht kennst.",
+          "voucher": true
         },
         {
           "title": "Meal-Prep Buddy",
-          "message": "Fionn hilft Lennart dabei, das Essen für die ganze nächste Woche vorzubereiten. Fionn erfindet das Mealprep-Rezept."
+          "message": "Fionn hilft Lennart dabei, das Essen für die ganze nächste Woche vorzubereiten. Fionn erfindet das Mealprep-Rezept.",
+          "voucher": true
         },
         {
           "title": "Kletter-Gutschein: Fionn sichert",
@@ -533,11 +541,13 @@
         },
         {
           "title": "Reise-Rezept",
-          "message": "Bestell ein Gericht aus Fionns Reisezeit in Tehran. Wird für dich nachgekocht."
+          "message": "Bestell ein Gericht aus Fionns Reisezeit in Tehran. Wird für dich nachgekocht.",
+          "voucher": true
         },
         {
           "title": "Playlist nach Maß",
-          "message": "Du darfst eine Playlist zu einer Stimmung bestellen: Fokus, Fernweh, Feierabend oder Faulenzen."
+          "message": "Du darfst eine Playlist zu einer Stimmung bestellen: Fokus, Fernweh, Feierabend oder Faulenzen.",
+          "voucher": true
         },
         {
           "title": "Gute-Nacht-Voicenote",
@@ -546,7 +556,8 @@
         },
         {
           "title": "35mm-Date",
-          "message": "Wir gehen raus mit einer Kamera und dem einzigen Ziel, schöne Dinge auf Film festzuhalten. Keine Agenda sonst."
+          "message": "Wir gehen raus mit einer Kamera und dem einzigen Ziel, schöne Dinge auf Film festzuhalten. Keine Agenda sonst.",
+          "voucher": true
         },
         {
           "title": "Schlaf-Briefing",
@@ -666,16 +677,19 @@
       "outcomes": [
         {
           "title": "Date-Credit: Kaffee-Spaziergang",
-          "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt."
+          "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Komfortabend",
           "message": "Ein sehr gemütlicher Abend wurde freigeschaltet. Mit Tee, Decke oder kulinarischer Forschung.",
-          "prompt": "Was ist eine Sache die du dir für uns in den nächsten Wochen wünscht? 🌙"
+          "prompt": "Was ist eine Sache die du dir für uns in den nächsten Wochen wünscht? 🌙",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Fionn plant die Route",
-          "message": "Du musst nichts entscheiden. Fionn plant ein kleines Date mit mindestens einem schönen Detail."
+          "message": "Du musst nichts entscheiden. Fionn plant ein kleines Date mit mindestens einem schönen Detail.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Mythen-Revival",
@@ -685,15 +699,18 @@
         {
           "title": "DJ Fionn Set",
           "message": "Ich erstelle dir eine kleine Playlist für dein nächstes Solo-Training.",
-          "link": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+          "link": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M",
+          "voucher": true
         },
         {
           "title": "Architecture of Us",
-          "message": "Ein Abend mit Fokus auf 'Fine Living'. Wir suchen uns das schönste Restaurant der Stadt aus."
+          "message": "Ein Abend mit Fokus auf 'Fine Living'. Wir suchen uns das schönste Restaurant der Stadt aus.",
+          "voucher": true
         },
         {
           "title": "6a-Belay-Pass",
-          "message": "Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top."
+          "message": "Ich bin dein persönlicher Coach beim nächsten Klettern und motiviere dich bis zum Top.",
+          "voucher": true
         },
         {
           "title": "Thermalbad-Fantasie",
@@ -702,35 +719,43 @@
         },
         {
           "title": "Date-Credit: Jules Verne Bar",
-          "message": "Ein Drink über den Dächern von Zürich. Die Aussicht ist fast so gut wie du."
+          "message": "Ein Drink über den Dächern von Zürich. Die Aussicht ist fast so gut wie du.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Rote Fabrik",
-          "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft."
+          "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Frühschwimmen",
-          "message": "Morgenbaden im See, mit heißem Kaffee danach. Du musst nur den Wecker überleben."
+          "message": "Morgenbaden im See, mit heißem Kaffee danach. Du musst nur den Wecker überleben.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Sternennacht",
-          "message": "Wir fahren raus, wo's dunkel ist, und zählen Sternbilder. Decke bringt Fionn."
+          "message": "Wir fahren raus, wo's dunkel ist, und zählen Sternbilder. Decke bringt Fionn.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Höhenwanderung",
-          "message": "Eine Tour mit Gipfel und Picknick. Aussicht inklusive, Wetter auf Bestellung."
+          "message": "Eine Tour mit Gipfel und Picknick. Aussicht inklusive, Wetter auf Bestellung.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Buchhandlung + Kaffee",
-          "message": "Ihr geht zusammen in eine Buchhandlung. Jeder wählt ein Buch für den anderen aus. Danach Kaffee."
+          "message": "Ihr geht zusammen in eine Buchhandlung. Jeder wählt ein Buch für den anderen aus. Danach Kaffee.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Zug ins Blaue",
-          "message": "Ihr nehmt den nächsten verfügbaren Regionalzug in eine unbekannte Richtung. Mal sehen, was kommt."
+          "message": "Ihr nehmt den nächsten verfügbaren Regionalzug in eine unbekannte Richtung. Mal sehen, was kommt.",
+          "voucher": true
         },
         {
           "title": "Date-Credit: Zeichnen & Dasein",
-          "message": "Zwei Skizzenblöcke, Stifte, eine Stunde. Nebeneinander sitzen, keine Agenda."
+          "message": "Zwei Skizzenblöcke, Stifte, eine Stunde. Nebeneinander sitzen, keine Agenda.",
+          "voucher": true
         }
       ]
     },
@@ -785,15 +810,18 @@
       "outcomes": [
         {
           "title": "JACKPOT: Vollständige kleine Expedition",
-          "message": "Fionn plant ein ganzes Mini-Date: Weg, Essen, schöner Ort. Du musst nur auftauchen und süß sein."
+          "message": "Fionn plant ein ganzes Mini-Date: Weg, Essen, schöner Ort. Du musst nur auftauchen und süß sein.",
+          "voucher": true
         },
         {
           "title": "JACKPOT: Der Fionn-Quest-Sieger",
-          "message": "Lennart ist der offizielle Gewinner. 24h lang hast du die absolute Entscheidungsgewalt über alle Freizeitaktivitäten."
+          "message": "Lennart ist der offizielle Gewinner. 24h lang hast du die absolute Entscheidungsgewalt über alle Freizeitaktivitäten.",
+          "voucher": true
         },
         {
           "title": "JACKPOT: Überraschungs-Wochenende",
-          "message": "Fionn plant einen kompletten Tag für dich. Du musst nur sagen, wann du Zeit hast."
+          "message": "Fionn plant einen kompletten Tag für dich. Du musst nur sagen, wann du Zeit hast.",
+          "voucher": true
         },
         {
           "title": "JACKPOT: Mo anamchara (IE)",
@@ -802,7 +830,8 @@
         },
         {
           "title": "JACKPOT: Nacht mit Aussicht",
-          "message": "Eine Übernachtung irgendwo mit Berg- oder Stadtpanorama. Fionn organisiert alles, du packst nur die Zahnbürste."
+          "message": "Eine Übernachtung irgendwo mit Berg- oder Stadtpanorama. Fionn organisiert alles, du packst nur die Zahnbürste.",
+          "voucher": true
         }
       ]
     }
