@@ -288,6 +288,17 @@
         "primaryDark": "#7c5fd4",
         "gold": "#c4a8ff"
       }
+    },
+    {
+      "date": "07-01",
+      "label": "Verflucht",
+      "tone": "cursed",
+      "outcomes": [
+        {
+          "title": "Fionn einladen",
+          "message": "Du hast diese Woche noch ein Event geplant, bei dem Fionn nicht im Plan war. Jetzt ist deine Aufgabe: Lade ihn einfach ein."
+        }
+      ]
     }
   ]
 }
