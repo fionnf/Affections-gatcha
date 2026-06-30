@@ -153,6 +153,68 @@ function doGet(e) {
       });
     }
 
+    // Activity feed for the Fionn admin app (only when explicitly requested,
+    // so normal client syncs stay lightweight). Merges recent hugs/wishes,
+    // prompt answers and quest solves into one time-sorted list.
+    let activity = [];
+    if (e.parameter && e.parameter.feed === "activity") {
+      function tsStr(v) {
+        if (!v) return "";
+        if (v instanceof Date) return v.toISOString();
+        return String(v);
+      }
+      const FEED_LIMIT = 80;
+
+      const wuenscheSheet = getOrCreateWuenscheSheet_(ss);
+      const wVals = wuenscheSheet.getDataRange().getValues();
+      for (let i = 1; i < wVals.length; i++) {
+        const row = wVals[i];
+        if (!row[0]) continue;
+        const type = (row[2] || "wish").toString().toLowerCase();
+        activity.push({
+          timestamp: tsStr(row[0]),
+          token: row[1] || "",
+          type: type === "hug" || type === "voucher" ? type : "wish",
+          message: row[3] || "",
+          wish: row[3] || ""
+        });
+      }
+
+      const paSheet = getOrCreatePromptAnswersSheet_(ss);
+      const paVals = paSheet.getDataRange().getValues();
+      for (let i = 1; i < paVals.length; i++) {
+        const row = paVals[i];
+        if (!row[0]) continue;
+        activity.push({
+          timestamp: tsStr(row[0]),
+          token: row[1] || "",
+          type: "answer",
+          day: normDay(row[2]),
+          prompt: row[3] || "",
+          answer: row[4] || ""
+        });
+      }
+
+      const qSheet = getOrCreateQuestSheet_(ss);
+      const qVals = qSheet.getDataRange().getValues();
+      for (let i = 1; i < qVals.length; i++) {
+        const row = qVals[i];
+        if (!row[0]) continue;
+        activity.push({
+          timestamp: tsStr(row[0]),
+          token: row[1] || "",
+          type: "quest",
+          challenge: row[2] || "",
+          points: row[4] || 0
+        });
+      }
+
+      activity.sort(function (a, b) {
+        return (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0);
+      });
+      if (activity.length > FEED_LIMIT) activity = activity.slice(0, FEED_LIMIT);
+    }
+
     return jsonOut_({
       ok: true,
       history,
@@ -165,7 +227,8 @@ function doGet(e) {
       missionLog,
       latestPing,
       gipfelbuch,
-      glossary
+      glossary,
+      activity
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
