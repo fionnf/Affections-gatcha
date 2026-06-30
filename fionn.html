@@ -4,27 +4,37 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Affektions-Gacha · Fionn</title>
-    <meta name="description" content="Fionns Kuratoren-App für die Affektions-Gacha." />
+    <meta name="description" content="Kuratoren-App für das Affektions-Gacha." />
     <meta name="theme-color" content="#1a3a2c" />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" href="./media/icon-192.png" type="image/png" />
     <link rel="manifest" href="./manifest-fionn.json" />
     <link rel="apple-touch-icon" href="./media/apple-touch-icon.png" />
     <style>
-      html, body {
+      body {
         margin: 0;
         min-height: 100vh;
-        background: #11181a;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #eef5ea;
       }
     </style>
   </head>
   <body>
-    <section id="fionn-admin"></section>
+    <section id="affektions-gacha" style="opacity:0"></section>
+    <script>
+      // Ensure ?player=fionn is always present so the main app renders in Fionn mode.
+      if (!new URLSearchParams(location.search).has("player")) {
+        history.replaceState({}, "", location.pathname + "?player=fionn");
+      }
+    </script>
     <script
-      src="./dist/fionn-admin.js?v=1"
-      data-mount="#fionn-admin"
+      src="./dist/affection-gacha.js?v=20"
+      data-mount="#affektions-gacha"
       data-config-base="./"
       defer
     ></script>
+    <script src="./dist/fionn-admin.js?v=1" data-mode="tab" defer></script>
   </body>
 </html>
