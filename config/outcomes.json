@@ -666,6 +666,10 @@
         {
           "title": "Soundbite-Pflicht",
           "message": "Sprachnachricht auf Portugiesisch oder Irisch. Fehler sind ausdrücklich erlaubt."
+        },
+        {
+          "title": "Fionn einladen",
+          "message": "Du hast diese Woche noch ein Event geplant, bei dem Fionn nicht im Plan war. Jetzt ist deine Aufgabe: Lade ihn einfach ein."
         }
       ]
     },
