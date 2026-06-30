@@ -1,0 +1,11 @@
+{
+  "comment": "Fionn admin app config. pinHash = sha256(salt + ':' + PIN). Regenerate with: node scripts/hash-admin-pin.js <new-pin>",
+  "salt": "fionn-gacha-2026",
+  "pinHash": "3e2b71225373c1b7c89cf622a1a0b93bfec0d8911a7b2c046907ad18d1b2201a",
+  "repo": {
+    "owner": "fionnf",
+    "name": "Affections-gatcha",
+    "branch": "master"
+  },
+  "pollMinutes": 30
+}
