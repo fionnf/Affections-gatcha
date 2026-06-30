@@ -293,6 +293,7 @@
       "date": "07-01",
       "label": "Verflucht",
       "tone": "cursed",
+      "confetti": false,
       "outcomes": [
         {
           "title": "Fionn einladen",
