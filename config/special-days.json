@@ -288,6 +288,17 @@
         "primaryDark": "#7c5fd4",
         "gold": "#c4a8ff"
       }
+    },
+    {
+      "date": "07-01",
+      "label": "Überraschungs-Gast 🎫",
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Fionn zum Abenteuer einladen 💫",
+          "message": "Du hast diese Woche noch etwas Schönes geplant — etwas, das Fionn noch nicht kennt. Jetzt ist deine Chance: laden Sie sie/ihn ein, dabei zu sein. Die beste Planung ist die, die sich spontan teilen lässt."
+        }
+      ]
     }
   ]
 }
