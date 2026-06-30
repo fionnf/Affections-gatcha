@@ -670,6 +670,30 @@
         {
           "title": "Fionn einladen",
           "message": "Du hast diese Woche noch ein Event geplant, bei dem Fionn nicht im Plan war. Jetzt ist deine Aufgabe: Lade ihn einfach ein."
+        },
+        {
+          "title": "Geheimnis lüften",
+          "message": "Es gibt etwas, das du Fionn noch nicht erzählt hast. Die Maschine fordert dich auf: Sag es ihm jetzt. Geheimnisse haben ein Ablaufdatum."
+        },
+        {
+          "title": "Überraschungs-Übernahme",
+          "message": "Du planst eine Überraschung für Fionn — ohne mit ihm darüber zu sprechen. Die Maschine vertraut dir. Versuch nicht, es zu vermasseln."
+        },
+        {
+          "title": "Video-Liebesbotschaft",
+          "message": "Schreib und sprich eine kurze Voicenote an Fionn auf — ein paar Sätze über etwas das du an ihm magst. Aber ohne herumzudrucksen!"
+        },
+        {
+          "title": "Empfehlungs-Pflicht",
+          "message": "Du musst Fionn ein Buch, einen Song oder einen Ort empfehlen, den er unbedingt kennen sollte. Mit ausführlicher Begründung."
+        },
+        {
+          "title": "Dauer-Termin blockieren",
+          "message": "Sperr dir einen festen Termin diese Woche für Fionn — etwas Regelmäßiges, das ihr zusammen machen könnt. Und sag es ihm."
+        },
+        {
+          "title": "Lieblingsmoment teilen",
+          "message": "Beschreib Fionn deinen liebsten Moment mit ihm bisher. Achte auf Details, Gefühle, das ganze Drama."
         }
       ]
     },
