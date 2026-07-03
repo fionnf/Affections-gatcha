@@ -10,6 +10,7 @@ import { renderShell } from "./template.js";
 import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
 import { bindEvents, retryPendingWishSend, registerServiceWorker, scheduleStreakWarning, renderError } from "./events.js";
+import { restoreStimmung } from "./stimmung.js";
 
 const defaultPhotos = { photos: [] };
 
@@ -94,6 +95,7 @@ export async function init() {
     state.radio = radio && typeof radio === "object" ? radio : { enabled: false };
     applyTheme(theme);
     applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
+    restoreStimmung();
     hydrateCopy();
     renderOdds();
     renderWunschkapsel();

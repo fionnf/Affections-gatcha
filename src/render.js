@@ -11,6 +11,7 @@ import { backupToSheets } from "./sync.js";
 import { extractDriveFileId } from "./utils.js";
 import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
+import { readStimmung } from "./stimmung.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -1406,6 +1407,19 @@ export function hydrateCopy() {
       li.setAttribute("aria-label", "Mission öffnen");
       li.classList.add("ag-chip-clickable");
       if (!isMissionDoneToday()) li.classList.add("ag-chip-mission-active");
+    }
+
+    if (chip.toLowerCase().includes("stimmung")) {
+      li.id = "ag-btn-stimmung";
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      li.setAttribute("aria-label", "Farbe des Tages wählen");
+      li.classList.add("ag-chip-clickable");
+      const savedHex = readStimmung();
+      if (savedHex) {
+        li.classList.add("ag-chip-stimmung-set");
+        li.style.setProperty("--chip-dot-color", savedHex);
+      }
     }
 
     chips.appendChild(li);

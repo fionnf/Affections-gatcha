@@ -391,6 +391,55 @@ export const css = `
         background: var(--ag-gold);
         animation: ag-pulse 1.8s ease-in-out infinite;
       }
+      .ag-chip-stimmung-set {
+        position: relative;
+        box-shadow: 0 0 0 2px var(--chip-dot-color, var(--ag-primary));
+      }
+      .ag-chip-stimmung-set::after {
+        content: '';
+        position: absolute;
+        top: -3px; right: -3px;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--chip-dot-color, var(--ag-primary));
+      }
+      .ag-stimmung-picker-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 14px 0;
+      }
+      .ag-stimmung-color-input {
+        width: 56px;
+        height: 44px;
+        border: none;
+        border-radius: var(--ag-radius-sm);
+        padding: 2px;
+        cursor: pointer;
+        background: var(--ag-surface);
+        flex-shrink: 0;
+      }
+      .ag-stimmung-hex-input {
+        flex: 1;
+        background: var(--ag-surface);
+        color: var(--ag-text);
+        border: 1px solid var(--ag-border);
+        border-radius: var(--ag-radius-sm);
+        padding: 10px 14px;
+        font-size: .95rem;
+        font-family: "Satoshi","Inter",system-ui,sans-serif;
+        letter-spacing: .05em;
+      }
+      .ag-stimmung-hex-input:focus {
+        outline: 2px solid var(--ag-primary);
+        border-color: var(--ag-primary);
+      }
+      .ag-mini-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
       .ag-mission-card {
         margin: 14px 0;
         padding: 18px 20px;
