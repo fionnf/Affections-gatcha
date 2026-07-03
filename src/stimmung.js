@@ -1,58 +1,13 @@
 import { STIMMUNG_KEY } from "./constants.js";
 
-function hexToRgb(hex) {
-  const h = hex.replace("#", "");
-  return [
-    parseInt(h.slice(0, 2), 16),
-    parseInt(h.slice(2, 4), 16),
-    parseInt(h.slice(4, 6), 16),
-  ];
-}
-
-function rgbToHex(r, g, b) {
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-}
-
-function mixColor(hex, base, t) {
-  const [r1, g1, b1] = hexToRgb(hex);
-  const [r2, g2, b2] = hexToRgb(base);
-  return rgbToHex(
-    Math.round(r1 * t + r2 * (1 - t)),
-    Math.round(g1 * t + g2 * (1 - t)),
-    Math.round(b1 * t + b2 * (1 - t)),
-  );
-}
-
-function darken(hex, amount) {
-  return mixColor(hex, "#000000", 1 - amount);
-}
-
 // Vars cleared on reset — keep in sync with applyStimmung
-const STIMMUNG_VARS = [
-  "--ag-primary", "--ag-dark-primary",
-  "--ag-primary-dark", "--ag-dark-primary-dark",
-  "--ag-bg", "--ag-dark-bg",
-  "--ag-surface", "--ag-dark-surface",
-  "--ag-surface-2", "--ag-dark-surface-2",
-];
+const STIMMUNG_VARS = ["--ag-bg", "--ag-dark-bg"];
 
 export function applyStimmung(hex) {
   const mount = document.querySelector(".ag-widget");
   if (!mount) return;
-  const primaryDark = darken(hex, 0.75);
-  const bg = mixColor(hex, "#0a1410", 0.12);
-  const surface = mixColor(hex, "#111c18", 0.10);
-  const surface2 = mixColor(hex, "#162119", 0.09);
-  mount.style.setProperty("--ag-primary", hex);
-  mount.style.setProperty("--ag-dark-primary", hex);
-  mount.style.setProperty("--ag-primary-dark", primaryDark);
-  mount.style.setProperty("--ag-dark-primary-dark", primaryDark);
-  mount.style.setProperty("--ag-bg", bg);
-  mount.style.setProperty("--ag-dark-bg", bg);
-  mount.style.setProperty("--ag-surface", surface);
-  mount.style.setProperty("--ag-dark-surface", surface);
-  mount.style.setProperty("--ag-surface-2", surface2);
-  mount.style.setProperty("--ag-dark-surface-2", surface2);
+  mount.style.setProperty("--ag-bg", hex);
+  mount.style.setProperty("--ag-dark-bg", hex);
   updateStimmungChip(hex);
 }
 
