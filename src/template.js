@@ -327,6 +327,26 @@ export const html = `
             </div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-stimmung-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Stimmung 🎨</span>
+              <button class="ag-secondary" type="button" id="ag-stimmung-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Farbe des Tages</h2>
+            <p class="ag-mini-copy">Wähle eine Farbe — die Seite passt sich an, bis Mitternacht.</p>
+            <div class="ag-stimmung-picker-row">
+              <input type="color" id="ag-stimmung-picker" class="ag-stimmung-color-input" value="#4aaa5a" title="Farbe wählen">
+              <input type="text" id="ag-stimmung-hex" class="ag-stimmung-hex-input" placeholder="#4aaa5a" maxlength="7" spellcheck="false" autocomplete="off">
+            </div>
+            <div class="ag-mini-actions">
+              <button class="ag-button" type="button" id="ag-stimmung-apply">
+                <span class="ag-button-orb" aria-hidden="true"></span>
+                <span>Anwenden</span>
+              </button>
+              <button class="ag-secondary" type="button" id="ag-stimmung-reset">Zurücksetzen</button>
+            </div>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">

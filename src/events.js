@@ -16,6 +16,7 @@ import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, i
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, _glossaryCurrentLang, _glossaryAudioBlob, _glossaryRecorder } from "./glossary.js";
+import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
 import * as glossaryMod from "./glossary.js";
 import { urlFor } from "./utils.js";
 import { readQuestState } from "./storage.js";
@@ -1105,6 +1106,14 @@ export function bindEvents() {
       setActiveTab(state.activeTab); // re-snap to current
     });
   }
+
+  // ── Stimmung ─────────────────────────────────────────────────────────────────
+  $("#ag-btn-stimmung")?.addEventListener("click", openStimmungPanel);
+  $("#ag-btn-stimmung")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openStimmungPanel(); }
+  });
+  $("#ag-stimmung-close")?.addEventListener("click", closeStimmungPanel);
+  bindStimmungPanel();
 
   // Berge / Gipfelbuch
   const bergeAddBtn = $("[data-ag-berge-add]");
