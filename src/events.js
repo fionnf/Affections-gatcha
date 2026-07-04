@@ -84,7 +84,12 @@ export function setActiveTab(tab) {
   $("[data-ag-panel-berge]").hidden = tab !== "berge";
   if (tab === "history") renderHistory();
   if (tab === "lieblinge") renderLieblinge();
-  if (tab === "berge") { renderBergePanel(); invalidateGipfelMap(); syncFromSheets().then(() => renderBergePanel()).catch(() => {}); }
+  if (tab === "berge") {
+    invalidateGipfelMap();
+    syncFromSheets()
+      .then(() => { renderBergePanel(); invalidateGipfelMap(); })
+      .catch(() => renderBergePanel());
+  }
   const fab = $("[data-ag-fab]");
   if (fab) fab.hidden = tab !== "berge";
 }
@@ -1345,4 +1350,9 @@ export function bindEvents() {
     _ptrStartY = 0;
     _ptrTriggered = false;
   }, { passive: true });
+
+  document.addEventListener("visibilitychange", () => {
+    const mount = document.querySelector(".ag-widget");
+    mount?.classList.toggle("ag-paused", document.hidden);
+  });
 }

@@ -98,7 +98,7 @@ export function buildPullForDay(day, streak) {
   if (category.id === "photo" && imgs.length) {
     const seenUrls = new Set(
       readHistory()
-        .filter((e) => e.token === token && e.photo)
+        .filter((e) => e.token === token && e.day < day && e.photo)
         .map((e) => e.photo.url)
     );
     const unseenImgs = imgs.filter((p) => !seenUrls.has(p.url));
