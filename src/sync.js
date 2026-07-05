@@ -157,14 +157,11 @@ export async function syncFromSheets() {
       } catch (_le) {}
     }
 
-    if (Array.isArray(data.gipfelbuch) && data.gipfelbuch.length) {
-      const local = readGipfelbuch();
-      const byId = new Map(local.map((e) => [e.id, e]));
-      for (const entry of data.gipfelbuch) {
-        if (entry.id) byId.set(entry.id, entry);
-      }
-      const merged = Array.from(byId.values()).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-      writeGipfelbuch(merged);
+    if (Array.isArray(data.gipfelbuch)) {
+      const sorted = data.gipfelbuch
+        .filter((e) => e.id)
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+      writeGipfelbuch(sorted);
     }
 
     // Dispatch event instead of calling render functions directly
