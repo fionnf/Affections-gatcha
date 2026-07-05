@@ -165,7 +165,6 @@ export const css = `
         animation-direction:var(--ag-emoji-direction,normal);
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
         opacity:.9;
-        will-change:transform;
       }
       @keyframes ag-emoji-spin{
         0%{
@@ -212,6 +211,7 @@ export const css = `
 
      .ag-chip-clickable {
         cursor: pointer;
+        touch-action: manipulation;
       }
       
       .ag-chip-clickable:hover {
@@ -440,6 +440,7 @@ export const css = `
         flex-wrap: wrap;
         margin-top: 14px;
       }
+      .ag-paused * { animation-play-state: paused !important; }
       .ag-mission-card {
         margin: 14px 0;
         padding: 18px 20px;
@@ -1592,7 +1593,7 @@ export const css = `
 
       /* ── Mobile: bottom nav ── */
       .ag-bottomnav{display:none}
-      @media (max-width:640px){
+      @media (max-width:900px){
         /* Hide inline tabs; bottom nav slides up as a floating glass pill */
         .ag-tabs{display:none}
 
@@ -1691,7 +1692,7 @@ export const css = `
 
       /* ── FAB ── */
       .ag-fab{display:none}
-      @media (max-width:640px){
+      @media (max-width:900px){
         .ag-fab{
           display:flex;align-items:center;justify-content:center;
           position:fixed;bottom:calc(60px + env(safe-area-inset-bottom) + 14px);right:16px;
@@ -1747,7 +1748,7 @@ export const css = `
       .ag-glossary-form-actions .ag-secondary{flex-shrink:0}
 
       /* ── Bottom sheet: berge & glossary forms on mobile ── */
-      @media (max-width:640px){
+      @media (max-width:900px){
         [data-ag-berge-form]:not([hidden]),
         #ag-glossary-form:not([hidden]){
           position:fixed;bottom:0;left:0;right:0;
@@ -1884,6 +1885,7 @@ export function injectStyles() {
   if (document.querySelector("[data-ag-styles]")) return;
   const style = document.createElement("style");
   style.dataset.agStyles = "true";
-  style.textContent = css;
+  // Force dark mode unconditionally by treating the dark media query as always-on
+  style.textContent = css.replace(/@media\s*\(prefers-color-scheme:dark\)/g, "@media all");
   document.head.appendChild(style);
 }
