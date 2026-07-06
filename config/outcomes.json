@@ -121,13 +121,57 @@
         {
           "title": "Leerfahrt",
           "message": "Zug ist pünktlich, aber der Preis hatte keinen Platz reserviert. Nächste Abfahrt: morgen."
+        },
+        {
+          "title": "Wolke verhangen",
+          "message": "Der Uetliberg zeigt heute nur Nebel. Kein Preis, nur die Ahnung einer Aussicht."
+        },
+        {
+          "title": "Fassade eingerüstet",
+          "message": "Hinter dem Baugerüst versteckt sich vielleicht ein Gewinn. Vielleicht auch nur Beton. Heute erfährst du es nicht."
+        },
+        {
+          "title": "Steinbock im Weg",
+          "message": "Ein imaginärer Steinbock blockiert stur den Pfad. Man diskutiert nicht mit Steinböcken. Heute leider nichts."
+        },
+        {
+          "title": "Falscher Knopf",
+          "message": "Die Maschine hat kurz geblinzelt und den Gewinn verschluckt. Sie entschuldigt sich mit einem stillen Nicken."
+        },
+        {
+          "title": "Grau in Grau",
+          "message": "Hochnebeltag über der Limmat. Kein Preis, nur das Recht auf einen sehr langen Seufzer."
+        },
+        {
+          "title": "Batterie leer",
+          "message": "Die Stirnlampe der Maschine ist ausgegangen. Im Dunkeln vergibt sie keine Preise. Sicherheit geht vor."
+        },
+        {
+          "title": "Zu früh",
+          "message": "Der Gewinn ist noch nicht ausgehärtet. Wie frischer Beton braucht er 28 Tage. Heute nur eine leere Schalung."
+        },
+        {
+          "title": "Restlos ausverkauft",
+          "message": "Der Kiosk am Bahnhof hat den letzten Preis gerade weggegeben. An jemand anderen. Frechheit."
+        },
+        {
+          "title": "Umleitung",
+          "message": "Baustelle auf der Preisstrecke. Bitte folgen Sie der orangen Signalisation ins Nichts."
+        },
+        {
+          "title": "Ruhetag",
+          "message": "Die Maschine hat heute Betriebsferien. Ein handgeschriebenes Schild hängt schief an der Tür."
+        },
+        {
+          "title": "Verpasste Seilbahn",
+          "message": "Die letzte Gondel ist ohne dich talwärts gefahren. Du stehst oben, ohne Preis, aber mit guter Aussicht."
         }
       ]
     },
     {
       "id": "common",
       "label": "Gewöhnlich",
-      "weight": 180,
+      "weight": 210,
       "tone": "soft",
       "outcomes": [
         {
@@ -396,6 +440,137 @@
         {
           "title": "Tee-Moment",
           "message": "Heiß, mit allem was du willst. Kein Anlass nötig."
+        },
+        {
+          "title": "Póg (IE)",
+          "message": "Ein Kuss auf die Stirn. Sofort einlösbar, kein Ablaufdatum.",
+          "voucher": true
+        },
+        {
+          "title": "Abraço (PT)",
+          "message": "Eine lange Umarmung von hinten. Mindestens ein tiefes Ausatmen lang.",
+          "voucher": true
+        },
+        {
+          "title": "Nackenkuss",
+          "message": "Ein Kuss in den Nacken, genau da, wo es einen Schauer gibt. Jetzt einlösbar.",
+          "voucher": true
+        },
+        {
+          "title": "Hand-Haltung",
+          "message": "Gutschein fürs Händchenhalten auf dem ganzen nächsten Spaziergang. Auch bergauf.",
+          "voucher": true
+        },
+        {
+          "title": "Rückenkraulen",
+          "message": "Fünf Minuten Rücken kraulen, langsam, mit Nachdruck. Auf Abruf.",
+          "voucher": true
+        },
+        {
+          "title": "Stirn an Stirn",
+          "message": "Einen Moment Stirn an Stirn, Augen zu, nichts sagen. Einlösbar bei Bedarf.",
+          "voucher": true
+        },
+        {
+          "title": "Carinho (PT)",
+          "message": "Ein bisschen Zärtlichkeit auf Vorrat. Wird bei nächster Gelegenheit ausgeschüttet.",
+          "voucher": true
+        },
+        {
+          "title": "Treppen-Rangliste",
+          "message": "Nenn mir deine drei Lieblingstreppen in Zürich. Ich führe insgeheim Buch.",
+          "prompt": "Welche Treppe würdest du für uns bauen, wenn du könntest? 🌿"
+        },
+        {
+          "title": "Song des Tages",
+          "message": "Schick mir den Song, der heute in deinem Kopf klebt. Ich hör ihn heimlich auch.",
+          "prompt": "Welches Lied erinnert dich an mich? 🎧"
+        },
+        {
+          "title": "Fenster-Blick",
+          "message": "Beschreib mir in einem Satz, was du gerade aus dem nächsten Fenster siehst.",
+          "prompt": "Was war heute der schönste Moment für die Augen? 🌤"
+        },
+        {
+          "title": "Drei gute Dinge",
+          "message": "Zähl mir drei kleine Dinge auf, die heute gut waren. Auch winzige zählen.",
+          "prompt": "Was hat dich heute zum Lächeln gebracht? 🌱"
+        },
+        {
+          "title": "Guten-Morgen-Depesche",
+          "message": "Die Maschine notiert: Du bist heute schon jemandes erster schöner Gedanke gewesen."
+        },
+        {
+          "title": "Komplimentkapsel",
+          "message": "Aktenkundig und amtlich bestätigt: Dein Lachen hat statisch einwandfreie Eigenschaften."
+        },
+        {
+          "title": "Wärmflasche",
+          "message": "Ein imaginäres, aber sehr warmes Etwas wird an deine kalten Füße geliefert. Frei Haus."
+        },
+        {
+          "title": "Kleiner Mut",
+          "message": "Für heute ausgestellt: eine Portion Rückenwind. Trag sie in der Innentasche."
+        },
+        {
+          "title": "Zärtlichkeits-Beleg",
+          "message": "Quittung über eine nicht näher bezifferte Menge Zuneigung. Aufbewahren empfohlen."
+        },
+        {
+          "title": "Tee-Ritual",
+          "message": "Setz Wasser auf. Die Maschine trinkt heimlich mit dir mit. Zwei Tassen, ein Gedanke."
+        },
+        {
+          "title": "Umweg-Erlaubnis",
+          "message": "Heute darfst du den schöneren, längeren Weg nehmen. Die Maschine deckt dich."
+        },
+        {
+          "title": "Pausenschein",
+          "message": "Offiziell freigegeben: fünf Minuten nichts tun, ohne schlechtes Gewissen. Unterschrift: die Maschine."
+        },
+        {
+          "title": "Leuchtturm",
+          "message": "Egal wie der Tag war: Da ist ein Licht, das für dich anbleibt. Kein Gutschein, nur wahr."
+        },
+        {
+          "title": "Frühzug-Sound",
+          "message": "Ein Lied für den ersten Zug am Morgen, wenn die Stadt noch leise ist.",
+          "link": "https://open.spotify.com/track/4vqGbw4mVQER38Cajz6JMK?si=2031ee10c06e4752"
+        },
+        {
+          "title": "Regentag-Beitrag",
+          "message": "Für Tage, an denen der Himmel weint und man trotzdem tanzen will.",
+          "link": "https://open.spotify.com/track/6GgWI2t7G0bgUzVoZDlM6R?si=7b853484298f46cb"
+        },
+        {
+          "title": "Fernweh-Lied",
+          "message": "Ein Song, der nach einem Ort klingt, an dem wir noch nicht gemeinsam waren.",
+          "link": "https://open.spotify.com/track/4sNG6zQBmtq7M8aeeKJRMQ?si=c4ce17cdd4c0400b"
+        },
+        {
+          "title": "Gute-Nacht-Track",
+          "message": "Der letzte Song des Tages. Kopfhörer rein, Augen zu.",
+          "link": "https://open.spotify.com/track/2SDqyh7zT4kG6b2iwQkbo3?si=dfb438adb5dd4f87"
+        },
+        {
+          "title": "Sonntagmorgen-Sound",
+          "message": "Für lange Frühstücke und noch längere Gespräche.",
+          "link": "https://open.spotify.com/track/7pPMx57fvpINMYGE0eZFhp?si=d9aa55bd8fa44f06"
+        },
+        {
+          "title": "Ohrwurm-Transfer",
+          "message": "Ein Lied, das nach Bergluft klingt. Kopfhörer auf und lauter als nötig.",
+          "link": "https://open.spotify.com/track/2HbmLbfMj0m3gMd9E5c9iu?si=5aea08b95fd54718"
+        },
+        {
+          "title": "Nachtspaziergang-Sound",
+          "message": "Ein Track für den Heimweg im Dunkeln.",
+          "link": "https://open.spotify.com/track/7kIDMuaQ1JNJuEWjKLMLhM?si=604dbcb37afa49c4"
+        },
+        {
+          "title": "Wegbegleiter",
+          "message": "Ein Song für unterwegs, egal in welche Richtung es gerade geht.",
+          "link": "https://open.spotify.com/track/7lB3cohjMggs7Q3hk8RuwW?si=f565088f77784c92"
         }
       ]
     },
@@ -504,6 +679,62 @@
         {
           "title": "Beste Stelle",
           "message": "Finde heute den einen Ort, an dem du am liebsten stehst. Foto schicken."
+        },
+        {
+          "title": "Beton-Safari",
+          "message": "Ein Foto von der brutalsten Fassade, die dir heute begegnet. Je grauer, desto besser."
+        },
+        {
+          "title": "Himmelsfarbe",
+          "message": "Fotografier den Himmel genau jetzt. Egal wie er aussieht, ich will genau dieses Blau (oder Grau)."
+        },
+        {
+          "title": "Kaffee-Mission",
+          "message": "Trink heute einen Kaffee an einem Ort, an dem du noch nie warst. Schick mir den Ort."
+        },
+        {
+          "title": "Ein-Wort-Tagebuch",
+          "message": "Fass deinen ganzen Tag in genau einem Wort zusammen und schick es mir. Nur eins."
+        },
+        {
+          "title": "Sammler-Auftrag",
+          "message": "Bring von deinem nächsten Spaziergang etwas Kleines mit: Blatt, Stein, Ticket. Für die gemeinsame Schublade."
+        },
+        {
+          "title": "Sprachlektion",
+          "message": "Frag mich nach einem irischen Wort. Wenn du es dir bis morgen merkst, gibt's ein Küsschen."
+        },
+        {
+          "title": "Aussichts-Jagd",
+          "message": "Finde heute einen erhöhten Punkt mit Aussicht. Dach, Hügel, Brücke. Foto als Beweis."
+        },
+        {
+          "title": "Geräusch-Postkarte",
+          "message": "Nimm 10 Sekunden vom Klang deines Tages auf. Tram, Regen, Kaffeemaschine. Schick's mir."
+        },
+        {
+          "title": "Umweg-Quest",
+          "message": "Nimm heute bewusst einen anderen Heimweg als sonst. Erzähl mir, was neu war."
+        },
+        {
+          "title": "Lieblingsdetail",
+          "message": "Zeig mir ein architektonisches Detail, das die meisten übersehen würden. Du siehst so was ja."
+        },
+        {
+          "title": "Frühstücks-Beweis",
+          "message": "Schick mir ein Foto von deinem Frühstück. Auch wenn es nur Kaffee im Stehen ist."
+        },
+        {
+          "title": "Kleiner Gefallen",
+          "message": "Tu heute jemandem einen winzigen, unerwarteten Gefallen. Berichte mir davon."
+        },
+        {
+          "title": "Wolken-Deutung",
+          "message": "Schau kurz hoch und sag mir, an was dich die Wolken gerade erinnern. Freie Assoziation."
+        },
+        {
+          "title": "Handschrift-Quest",
+          "message": "Schreib einen Satz von Hand und schick ein Foto. Egal was, ich will deine Handschrift sehen."
         }
       ]
     },
@@ -579,6 +810,51 @@
         {
           "title": "Zukunfts-Skizze",
           "message": "Schreib in 3 Sätzen, wo du in 2 Jahren sein willst. Schick’s Fionn."
+        },
+        {
+          "title": "Sprachnachricht auf Bestellung",
+          "message": "Gutschein für eine Sprachnachricht deiner Wahl. Gute-Nacht-Geschichte inklusive, wenn du willst.",
+          "voucher": true
+        },
+        {
+          "title": "Facetime-Fenster",
+          "message": "Ein spontanes Video-Date, wann immer du es einlöst. Pyjama ausdrücklich erlaubt.",
+          "voucher": true
+        },
+        {
+          "title": "Aconchego (PT)",
+          "message": "Gutschein für einen ganzen Abend Einkuscheln unter einer Decke. Ohne Zeitlimit.",
+          "voucher": true
+        },
+        {
+          "title": "Kopf-Massage",
+          "message": "Zehn Minuten Kopfhaut-Massage, bis du fast einschläfst. Auf Abruf einlösbar.",
+          "voucher": true
+        },
+        {
+          "title": "Frühstück ans Bett",
+          "message": "Ein Frühstück wird dir gebracht. Du bleibst liegen, das ist die Bedingung.",
+          "voucher": true
+        },
+        {
+          "title": "Vorleser-Gutschein",
+          "message": "Ich lese dir ein Kapitel vor. Buch nach deiner Wahl, Stimme inklusive Betonung.",
+          "voucher": true
+        },
+        {
+          "title": "Ombro amigo (PT)",
+          "message": "Eine Schulter zum Anlehnen, so lange du brauchst. Kein Reden nötig.",
+          "voucher": true
+        },
+        {
+          "title": "Warm-Halten-Dienst",
+          "message": "Gutschein: Ich wärme dir vorab das Bett, die Seite oder die Hände. Auf Vorbestellung.",
+          "voucher": true
+        },
+        {
+          "title": "Ungestörte Stunde",
+          "message": "Eine Stunde nur wir, Handys in einem anderen Raum. Du bestimmst wann.",
+          "voucher": true
         }
       ]
     },
@@ -703,6 +979,42 @@
         {
           "title": "Lieblingsmoment teilen",
           "message": "Beschreib Fionn deinen liebsten Moment mit ihm bisher. Achte auf Details, Gefühle, das ganze Drama."
+        },
+        {
+          "title": "Kitzel-Zoll",
+          "message": "Verfluchte Kapsel: Beim nächsten Treffen sind fünf Sekunden Kitzeln fällig. Kein Entkommen."
+        },
+        {
+          "title": "Selfie-Schuld",
+          "message": "Du schuldest mir sofort ein Selfie mit dem dümmstmöglichen Gesicht. Für die Akten."
+        },
+        {
+          "title": "Komplimentpflicht",
+          "message": "Du musst mir drei ehrliche Komplimente machen, bevor der Tag endet. Die Maschine zählt mit."
+        },
+        {
+          "title": "Kalte-Füße-Klausel",
+          "message": "Beim nächsten Kuscheln legst du deine kalten Füße NICHT an mich. Verfluchte Selbstbeherrschung."
+        },
+        {
+          "title": "Voicenote-Fluch",
+          "message": "Sprich einen ganzen Satz auf Irisch nach, per Sprachnachricht. Aussprache egal, Mut zählt."
+        },
+        {
+          "title": "Geständnis-Kapsel",
+          "message": "Verrate mir eine peinliche Kleinigkeit von heute. Klein reicht. Aber wahr muss es sein."
+        },
+        {
+          "title": "Snack-Teilung",
+          "message": "Der nächste Snack, den du isst, wird geteilt. Auch der gute. Besonders der gute."
+        },
+        {
+          "title": "Nachsitzen",
+          "message": "Fluch: Du darfst heute erst schlafen, wenn du mir 'Gute Nacht' geschrieben hast. Streng."
+        },
+        {
+          "title": "Umarmungs-Steuer",
+          "message": "Bei der nächsten Begrüßung ist eine Umarmung von mindestens zehn Sekunden fällig. Vertraglich bindend."
         }
       ]
     },
@@ -793,6 +1105,44 @@
           "title": "Date-Credit: Zeichnen & Dasein",
           "message": "Zwei Skizzenblöcke, Stifte, eine Stunde. Nebeneinander sitzen, keine Agenda.",
           "voucher": true
+        },
+        {
+          "title": "Date-Credit: Bergtag",
+          "message": "Ein gemeinsamer Wandertag wurde freigeschaltet. Gipfel, Emaille-Tasse, Aussicht inklusive.",
+          "voucher": true,
+          "prompt": "Welchen Berg willst du als Nächstes mit mir sehen? 🏔"
+        },
+        {
+          "title": "Date-Credit: Koch-Experiment",
+          "message": "Wir kochen gemeinsam etwas, das wir noch nie gemacht haben. Chaos erlaubt.",
+          "voucher": true,
+          "prompt": "Was wolltest du schon immer mal kochen? 🍲"
+        },
+        {
+          "title": "Date-Credit: Museums-Streifzug",
+          "message": "Ein Museum deiner Wahl, in unserem eigenen Tempo. Danach Kaffee und Diskussion.",
+          "voucher": true
+        },
+        {
+          "title": "Date-Credit: Sternenabend",
+          "message": "Ein Abend draußen, warm eingepackt, Sterne suchen. Bei Wolken: Sterne erfinden.",
+          "voucher": true,
+          "prompt": "Wenn du einem Stern etwas anvertrauen könntest — was? 🌙"
+        },
+        {
+          "title": "Date-Credit: Badi-Tag",
+          "message": "Ein Tag am Wasser wurde freigeschaltet. Limmat, See oder Badi, du entscheidest.",
+          "voucher": true
+        },
+        {
+          "title": "Date-Credit: Langes Frühstück",
+          "message": "Ein Vormittag, der nie richtig anfängt. Kaffee, Croissants, keine Uhr.",
+          "voucher": true
+        },
+        {
+          "title": "Unser Lied",
+          "message": "Ein Lied, das ab jetzt uns gehört. Hör es dir an und denk an nichts Ernstes.",
+          "link": "https://open.spotify.com/track/3N03iAHTSTWm3TLUiEFYnI?si=384ecb02c0974c66"
         }
       ]
     },
@@ -816,13 +1166,33 @@
           "title": "Stern-Kapsel ⭐",
           "message": "Du sammelst ein ⭐. Bring 5 davon zusammen und Fionn entscheidet was ihr macht. Überraschung garantiert.",
           "token": "⭐"
+        },
+        {
+          "title": "Wolken-Kapsel ☁️",
+          "message": "Du sammelst ein ☁️. Bring 5 davon zusammen und wir verbringen einen ganzen faulen Tag ohne Pläne.",
+          "token": "☁️"
+        },
+        {
+          "title": "Berg-Kapsel 🏔",
+          "message": "Du sammelst ein 🏔. Bring 5 davon zusammen und wir planen eine richtige Bergtour, Hütte inklusive.",
+          "token": "🏔"
+        },
+        {
+          "title": "Kaffee-Kapsel ☕",
+          "message": "Du sammelst ein ☕. Bring 5 davon zusammen und ich lade dich in dein Traumcafé ein, egal wo.",
+          "token": "☕"
+        },
+        {
+          "title": "Herz-Kapsel 💚",
+          "message": "Du sammelst ein 💚. Bring 5 davon zusammen und du bekommst einen langen, handgeschriebenen Brief von mir.",
+          "token": "💚"
         }
       ]
     },
     {
       "id": "photo",
       "label": "Foto-Drop",
-      "weight": 350,
+      "weight": 380,
       "tone": "photo",
       "outcomes": [
         {
@@ -836,6 +1206,30 @@
         {
           "title": "Archivfund",
           "message": "Die Maschine hat im geheimen Fotoarchiv gekramt."
+        },
+        {
+          "title": "Erinnerungs-Auswurf",
+          "message": "Die Maschine kramt ein Foto hervor, das sie eigentlich für sich behalten wollte."
+        },
+        {
+          "title": "Dia-Projektor",
+          "message": "Klack. Ein Bild aus dem geheimen Archiv erscheint an der imaginären Wand."
+        },
+        {
+          "title": "Doppelbelichtung",
+          "message": "Zwei Momente auf einem Bild. Die Maschine nennt es Kunst, wir nennen es uns."
+        },
+        {
+          "title": "Sofortbild",
+          "message": "Es surrt, es klickt, ein Polaroid rutscht heraus. Noch leicht verschwommen, wie die Erinnerung."
+        },
+        {
+          "title": "Fundstück",
+          "message": "Beim Aufräumen im Datenarchiv gefunden: dieses eine Bild. Zufall? Die Maschine schweigt."
+        },
+        {
+          "title": "Fenster in einen Tag",
+          "message": "Ein Foto von einem Tag, der schön war. Die Maschine schenkt ihn dir nochmal."
         }
       ]
     },
@@ -868,6 +1262,21 @@
         {
           "title": "JACKPOT: Nacht mit Aussicht",
           "message": "Eine Übernachtung irgendwo mit Berg- oder Stadtpanorama. Fionn organisiert alles, du packst nur die Zahnbürste.",
+          "voucher": true
+        },
+        {
+          "title": "JACKPOT: Wunsch frei",
+          "message": "Ein echter Wunsch, in vernünftigem Rahmen, wird erfüllt. Sag ihn, ich mach ihn möglich.",
+          "voucher": true
+        },
+        {
+          "title": "JACKPOT: Der große Brief",
+          "message": "Ein langer, handgeschriebener Brief über alles, was ich sonst nicht laut sage.",
+          "voucher": true
+        },
+        {
+          "title": "JACKPOT: Freifahrtschein",
+          "message": "Ein Gutschein ohne Kleingedrucktes. Was immer du dir am meisten wünschst — wir reden darüber und machen's wahr.",
           "voucher": true
         }
       ]
