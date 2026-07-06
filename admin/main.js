@@ -181,6 +181,11 @@ function injectAdminTab() {
 
     adminPanel.hidden = false;
     showAdminContent(adminPanel);
+    // Short admin tabs (e.g. Einstellungen) can end above the fixed floating
+    // bottom nav on first render, since that pill is positioned independent
+    // of scroll and the decorative hero above eats most of a phone viewport.
+    // Scrolling the panel to the top clears it and gives the tools more room.
+    adminPanel.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   adminBtn.addEventListener("click", activateAdminTab);
