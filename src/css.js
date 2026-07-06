@@ -1,4 +1,5 @@
 export const css = `
+      body{transition:background .55s ease}
       .ag-widget,.ag-widget *{box-sizing:border-box}
       .ag-widget [hidden]{display:none!important}
       .ag-widget:not(.is-ready){opacity:0}
@@ -394,6 +395,7 @@ export const css = `
       .ag-chip-stimmung-set {
         position: relative;
         box-shadow: 0 0 0 2px var(--chip-dot-color, var(--ag-primary));
+        transition: box-shadow .3s ease;
       }
       .ag-chip-stimmung-set::after {
         content: '';
@@ -402,6 +404,27 @@ export const css = `
         width: 8px; height: 8px;
         border-radius: 50%;
         background: var(--chip-dot-color, var(--ag-primary));
+        transition: background .3s ease;
+      }
+      .ag-stimmung-preview {
+        height: 54px;
+        border-radius: var(--ag-radius-md);
+        background: #0a1410;
+        margin: 12px 0;
+        transition: background .3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.06);
+      }
+      .ag-stimmung-preview-label {
+        font-size: .68rem;
+        color: rgba(255,255,255,.28);
+        font-weight: 700;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        user-select: none;
       }
       .ag-stimmung-picker-row {
         display: flex;
@@ -758,9 +781,11 @@ export const css = `
           background:linear-gradient(180deg, rgba(28,42,32,.96), rgba(18,30,22,.94));
           border-color:rgba(255,255,255,.08);
           color:var(--ag-text);
-          box-shadow:0 12px 36px rgba(0,0,0,.4);
+          box-shadow:0 12px 40px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.07) inset;
         }
       }
+      .ag-mini-panel:not([hidden]){animation:ag-panel-enter .28s var(--ag-ease) both}
+      @keyframes ag-panel-enter{from{opacity:0;transform:translateY(8px)}}
 
       .ag-draw-card{
         display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;

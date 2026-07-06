@@ -333,7 +333,10 @@ export const html = `
               <button class="ag-secondary" type="button" id="ag-stimmung-close">✕</button>
             </div>
             <h2 class="ag-mini-title">Farbe des Tages</h2>
-            <p class="ag-mini-copy">Wähle eine Farbe — die Seite passt sich an, bis Mitternacht.</p>
+            <p class="ag-mini-copy">Wähle eine Farbe — der Hintergrund passt sich an, bis Mitternacht.</p>
+            <div class="ag-stimmung-preview" aria-hidden="true">
+              <span class="ag-stimmung-preview-label">Vorschau</span>
+            </div>
             <div class="ag-stimmung-picker-row">
               <input type="color" id="ag-stimmung-picker" class="ag-stimmung-color-input" value="#4aaa5a" title="Farbe wählen">
               <input type="text" id="ag-stimmung-hex" class="ag-stimmung-hex-input" placeholder="#4aaa5a" maxlength="7" spellcheck="false" autocomplete="off">
