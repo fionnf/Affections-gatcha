@@ -1,19 +1,21 @@
 import { STIMMUNG_KEY } from "./constants.js";
 
-// Vars cleared on reset — keep in sync with applyStimmung
-const STIMMUNG_VARS = ["--ag-bg", "--ag-dark-bg"];
+// Mix the chosen colour (30%) into the dark base #0a1410
+function _tintBg(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+  const mix = (c, base) => Math.round(base + (c - base) * 0.30);
+  return `rgb(${mix(r, 10)},${mix(g, 20)},${mix(b, 16)})`;
+}
 
 export function applyStimmung(hex) {
-  const mount = document.querySelector(".ag-widget");
-  if (!mount) return;
-  mount.style.setProperty("--ag-bg", hex);
-  mount.style.setProperty("--ag-dark-bg", hex);
+  document.body.style.background = _tintBg(hex);
   updateStimmungChip(hex);
 }
 
 export function resetStimmung() {
-  const mount = document.querySelector(".ag-widget");
-  if (mount) STIMMUNG_VARS.forEach((v) => mount.style.removeProperty(v));
+  document.body.style.removeProperty("background");
   updateStimmungChip(null);
 }
 
@@ -59,16 +61,20 @@ export function openStimmungPanel() {
   if (!panel) return;
   panel.hidden = false;
   const savedHex = readStimmung() || "#4aaa5a";
-  syncInputs(panel, savedHex);
+  _syncInputs(panel, savedHex);
+  _updatePreview(panel, savedHex);
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+// X button: hide the panel and revert any live preview to the last saved colour.
 export function closeStimmungPanel() {
   const panel = document.getElementById("ag-stimmung-panel");
   if (panel) panel.hidden = true;
+  const saved = readStimmung();
+  if (saved) applyStimmung(saved);
+  else resetStimmung();
 }
 
-// Called once by bindEvents to wire the panel's internal controls
 export function bindStimmungPanel() {
   const panel = document.getElementById("ag-stimmung-panel");
   if (!panel) return;
@@ -77,25 +83,34 @@ export function bindStimmungPanel() {
   const applyBtn = panel.querySelector("#ag-stimmung-apply");
   const resetBtn = panel.querySelector("#ag-stimmung-reset");
 
+  function livePreview(hex) {
+    _updatePreview(panel, hex);
+    applyStimmung(hex);
+  }
+
   if (picker) {
     picker.addEventListener("input", () => {
       if (hexInput) hexInput.value = picker.value;
+      livePreview(picker.value);
     });
   }
 
   if (hexInput) {
     hexInput.addEventListener("input", () => {
-      const val = normaliseHex(hexInput.value);
-      if (val && picker) picker.value = val;
+      const val = _normaliseHex(hexInput.value);
+      if (val) {
+        if (picker) picker.value = val;
+        livePreview(val);
+      }
     });
   }
 
   if (applyBtn) {
     applyBtn.addEventListener("click", () => {
-      const val = picker?.value || normaliseHex(hexInput?.value || "") || "#4aaa5a";
-      applyStimmung(val);
+      const val = picker?.value || _normaliseHex(hexInput?.value || "") || "#4aaa5a";
       writeStimmung(val);
-      closeStimmungPanel();
+      applyStimmung(val);
+      if (panel) panel.hidden = true;
     });
   }
 
@@ -103,18 +118,25 @@ export function bindStimmungPanel() {
     resetBtn.addEventListener("click", () => {
       clearStimmung();
       resetStimmung();
+      _syncInputs(panel, "#4aaa5a");
+      _updatePreview(panel, "#4aaa5a");
     });
   }
 }
 
-function syncInputs(panel, hex) {
+function _syncInputs(panel, hex) {
   const picker = panel.querySelector("#ag-stimmung-picker");
   const hexInput = panel.querySelector("#ag-stimmung-hex");
   if (picker) picker.value = hex;
   if (hexInput) hexInput.value = hex;
 }
 
-function normaliseHex(raw) {
+function _updatePreview(panel, hex) {
+  const preview = panel.querySelector(".ag-stimmung-preview");
+  if (preview) preview.style.background = _tintBg(hex);
+}
+
+function _normaliseHex(raw) {
   const s = raw.trim();
   const long = s.startsWith("#") ? s : `#${s}`;
   if (/^#[0-9a-fA-F]{6}$/.test(long)) return long.toLowerCase();

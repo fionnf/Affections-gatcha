@@ -132,7 +132,7 @@ export function renderGipfelCard(entry) {
     ${statsHtml}
     ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
     ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
-    ${isAllTrails && allTrailsEmbed ? `<div class="ag-gipfel-map-preview"><iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" loading="lazy" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe></div>` : ""}
+    ${isAllTrails && allTrailsEmbed ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-alltrails="true">🗺 AllTrails-Karte</button></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-alltrails="true" hidden></div>` : ""}
   `;
 
   const editBtn = card.querySelector("[data-ag-gipfel-edit]");
@@ -188,6 +188,19 @@ export function renderGipfelCard(entry) {
       wrap.innerHTML = `<iframe src="https://www.komoot.com/tour/${komootId}/embed?profile=1" height="220" frameborder="0" scrolling="no" loading="lazy" title="Komoot Tour" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
       wrap.hidden = false;
       komootMapBtn.textContent = "Karte schließen";
+      haptic(4);
+    });
+  }
+
+  const alltrailsMapBtn = card.querySelector("[data-ag-map-alltrails]");
+  if (alltrailsMapBtn && allTrailsEmbed) {
+    alltrailsMapBtn.addEventListener("click", () => {
+      const wrap = card.querySelector("[data-ag-map-wrap-alltrails]");
+      if (!wrap) return;
+      if (!wrap.hidden) { wrap.hidden = true; alltrailsMapBtn.textContent = "🗺 AllTrails-Karte"; return; }
+      wrap.innerHTML = `<iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
+      wrap.hidden = false;
+      alltrailsMapBtn.textContent = "Karte schließen";
       haptic(4);
     });
   }

@@ -577,10 +577,17 @@ export function downloadResultAsImage(pull) {
 
 export function renderError(error) {
   mount.style.opacity = "1";
+  mount.style.background = "#0a1410";
+  mount.style.minHeight = "100vh";
+  mount.style.display = "flex";
+  mount.style.alignItems = "center";
+  mount.style.justifyContent = "center";
+  mount.style.padding = "24px";
   mount.innerHTML = `
-    <div class="ag-error">
-      <h2>Die Maschine klemmt.</h2>
-      <p>${escapeHtml(error.message || String(error))}</p>
+    <div class="ag-error" style="background:#122018;border:1px solid #2a4a35;border-radius:18px;padding:24px;color:#c8e6c9;max-width:400px;width:100%">
+      <h2 style="margin:0 0 8px;font-size:1.1rem">Die Maschine klemmt.</h2>
+      <p style="margin:0 0 16px;opacity:.7;font-size:.9rem">${escapeHtml(error.message || String(error))}</p>
+      <button onclick="location.reload()" style="background:#1e3d2a;border:1px solid #3a6a48;color:#8ecf9e;border-radius:10px;padding:8px 18px;cursor:pointer;font-size:.9rem">Neu laden</button>
     </div>
   `;
 }
