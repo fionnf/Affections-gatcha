@@ -571,6 +571,36 @@
           "title": "Wegbegleiter",
           "message": "Ein Song für unterwegs, egal in welche Richtung es gerade geht.",
           "link": "https://open.spotify.com/track/7lB3cohjMggs7Q3hk8RuwW?si=f565088f77784c92"
+        },
+        {
+          "title": "Aufwach-Song",
+          "message": "Ein Lied, das sanfter ist als ein Wecker. Zum Wachwerden ohne Schreck.",
+          "link": "https://open.spotify.com/track/4A5x3SuJdoP56UR3qXV3Dp?si=65d358e6d7334113"
+        },
+        {
+          "title": "Feierabend-Track",
+          "message": "Der Moment, in dem der Tag endlich runterfährt. Kopfhörer, Sofa, Ruhe.",
+          "link": "https://open.spotify.com/track/6S26xuxdQStdHJFPHAtfWw?si=bd175aa2b178421f"
+        },
+        {
+          "title": "Mitten-im-Tag-Lied",
+          "message": "Kein besonderer Anlass, nur ein Song für irgendwann zwischendurch.",
+          "link": "https://open.spotify.com/track/3g7fzHY2ieDM7RaAYbItLK?si=848742a8e09d4f53"
+        },
+        {
+          "title": "Gedankenverloren-Sound",
+          "message": "Für die Momente, in denen man aus dem Fenster starrt und nichts denkt.",
+          "link": "https://open.spotify.com/track/2TT9zEh3p5VQajBC5xuhnv?si=73e7747b4c6a4953"
+        },
+        {
+          "title": "Wärme-Track",
+          "message": "Ein Lied, das sich anfühlt wie eine Decke, auch wenn draußen kalt ist.",
+          "link": "https://open.spotify.com/track/4Ve0Jx7MXjU4aPrFHJRZK7?si=31e7caff7bae430e"
+        },
+        {
+          "title": "Kleiner-Mut-Song",
+          "message": "Für Tage, an denen ein bisschen Rückenwind fehlt. Laut aufdrehen erlaubt.",
+          "link": "https://open.spotify.com/track/2PHMNg5e3xMGR0oTLmdj0U?si=8d64ae45f31b4844"
         }
       ]
     },

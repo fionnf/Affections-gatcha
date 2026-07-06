@@ -1051,7 +1051,6 @@ export function bindEvents() {
 
     bottomNav.addEventListener("pointerdown", (e) => {
       const navRect = bottomNav.getBoundingClientRect();
-      bottomNav.setPointerCapture(e.pointerId);
       const pw = parseFloat(pill?.style.width) || 54;
       drag = {
         id: e.pointerId,
@@ -1059,7 +1058,8 @@ export function bindEvents() {
         pillStartCentre: (parseFloat(pill?.style.left) || 0) + pw / 2,
         pillWidth: pw,
         moved: false,
-        suppress: false
+        suppress: false,
+        captured: false
       };
     });
 
@@ -1068,6 +1068,14 @@ export function bindEvents() {
       const navRect = bottomNav.getBoundingClientRect();
       const dx = (e.clientX - navRect.left) - drag.startX;
       if (!drag.moved && Math.abs(dx) < 6) return;
+      // Only capture the pointer once real dragging is confirmed — capturing
+      // on every tap retargets the resulting click event to bottomNav instead
+      // of the tapped button, silently breaking plain taps (incl. any button
+      // injected later, like the Fionn admin tab).
+      if (!drag.captured) {
+        bottomNav.setPointerCapture(e.pointerId);
+        drag.captured = true;
+      }
       drag.moved = true;
       drag.suppress = true;
       if (!pill) return;
