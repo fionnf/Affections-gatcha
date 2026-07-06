@@ -171,7 +171,7 @@
     {
       "id": "common",
       "label": "Gewöhnlich",
-      "weight": 180,
+      "weight": 210,
       "tone": "soft",
       "outcomes": [
         {
@@ -1147,7 +1147,7 @@
     {
       "id": "photo",
       "label": "Foto-Drop",
-      "weight": 350,
+      "weight": 380,
       "tone": "photo",
       "outcomes": [
         {
