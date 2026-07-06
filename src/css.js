@@ -1180,41 +1180,6 @@ export const css = `
         .ag-hug-button{background:linear-gradient(135deg,rgba(232,164,164,.18),rgba(185,120,46,.22));border-color:rgba(255,255,255,.14)}
       }
 
-      /* ── Radio Zweisam ── */
-      .ag-radio-visualizer{
-        display:flex;align-items:flex-end;justify-content:center;gap:5px;
-        height:40px;margin:14px 0 10px;
-      }
-      .ag-radio-visualizer span{
-        display:block;width:5px;border-radius:3px;
-        background:var(--ag-primary);opacity:.35;
-        height:6px;transition:height .1s ease;
-      }
-      .ag-radio-visualizer.is-playing span{opacity:.75}
-      .ag-radio-visualizer.is-playing span:nth-child(1){animation:ag-bar 1.1s ease-in-out infinite}
-      .ag-radio-visualizer.is-playing span:nth-child(2){animation:ag-bar 0.9s ease-in-out infinite .15s}
-      .ag-radio-visualizer.is-playing span:nth-child(3){animation:ag-bar 1.3s ease-in-out infinite .05s}
-      .ag-radio-visualizer.is-playing span:nth-child(4){animation:ag-bar 0.8s ease-in-out infinite .3s}
-      .ag-radio-visualizer.is-playing span:nth-child(5){animation:ag-bar 1.2s ease-in-out infinite .1s}
-      .ag-radio-visualizer.is-playing span:nth-child(6){animation:ag-bar 1.0s ease-in-out infinite .25s}
-      .ag-radio-visualizer.is-playing span:nth-child(7){animation:ag-bar 0.95s ease-in-out infinite .2s}
-      .ag-radio-visualizer.is-playing span:nth-child(8){animation:ag-bar 1.15s ease-in-out infinite .08s}
-      @keyframes ag-bar{
-        0%,100%{height:6px}
-        50%{height:32px}
-      }
-      .ag-radio-words-wrap{margin:8px 0 12px}
-      .ag-radio-words-label{font-size:.8rem;opacity:.55;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em}
-      .ag-radio-words{display:flex;flex-wrap:wrap;gap:6px}
-      .ag-radio-word{
-        display:inline-block;padding:3px 10px;border-radius:999px;
-        background:rgba(126,207,163,.15);border:1px solid rgba(126,207,163,.25);
-        font-size:.82rem;color:var(--ag-text);
-      }
-      .ag-radio-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px}
-      .ag-radio-voice-info{font-size:.78rem;opacity:.5;margin:8px 0 0}
-      .ag-radio-open-btn{background:linear-gradient(135deg,rgba(126,207,163,.22),rgba(82,160,255,.18))!important}
-      .ag-radio-open-btn:hover{box-shadow:0 4px 14px rgba(126,207,163,.25)!important}
       @media (max-width:380px){
         .ag-hug-row{flex-direction:column;align-items:stretch}
         .ag-hug-button{justify-content:center;width:100%}

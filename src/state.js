@@ -7,7 +7,6 @@ export const state = {
   specialDays: null,
   quest: null,
   missions: null,
-  radio: null,
   todaysPull: null,
   activeTab: "today",
   revealed: false,

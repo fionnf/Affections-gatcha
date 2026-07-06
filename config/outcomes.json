@@ -531,6 +531,46 @@
         {
           "title": "Leuchtturm",
           "message": "Egal wie der Tag war: Da ist ein Licht, das für dich anbleibt. Kein Gutschein, nur wahr."
+        },
+        {
+          "title": "Frühzug-Sound",
+          "message": "Ein Lied für den ersten Zug am Morgen, wenn die Stadt noch leise ist.",
+          "link": "https://open.spotify.com/track/4vqGbw4mVQER38Cajz6JMK?si=2031ee10c06e4752"
+        },
+        {
+          "title": "Regentag-Beitrag",
+          "message": "Für Tage, an denen der Himmel weint und man trotzdem tanzen will.",
+          "link": "https://open.spotify.com/track/6GgWI2t7G0bgUzVoZDlM6R?si=7b853484298f46cb"
+        },
+        {
+          "title": "Fernweh-Lied",
+          "message": "Ein Song, der nach einem Ort klingt, an dem wir noch nicht gemeinsam waren.",
+          "link": "https://open.spotify.com/track/4sNG6zQBmtq7M8aeeKJRMQ?si=c4ce17cdd4c0400b"
+        },
+        {
+          "title": "Gute-Nacht-Track",
+          "message": "Der letzte Song des Tages. Kopfhörer rein, Augen zu.",
+          "link": "https://open.spotify.com/track/2SDqyh7zT4kG6b2iwQkbo3?si=dfb438adb5dd4f87"
+        },
+        {
+          "title": "Sonntagmorgen-Sound",
+          "message": "Für lange Frühstücke und noch längere Gespräche.",
+          "link": "https://open.spotify.com/track/7pPMx57fvpINMYGE0eZFhp?si=d9aa55bd8fa44f06"
+        },
+        {
+          "title": "Ohrwurm-Transfer",
+          "message": "Ein Lied, das nach Bergluft klingt. Kopfhörer auf und lauter als nötig.",
+          "link": "https://open.spotify.com/track/2HbmLbfMj0m3gMd9E5c9iu?si=5aea08b95fd54718"
+        },
+        {
+          "title": "Nachtspaziergang-Sound",
+          "message": "Ein Track für den Heimweg im Dunkeln.",
+          "link": "https://open.spotify.com/track/7kIDMuaQ1JNJuEWjKLMLhM?si=604dbcb37afa49c4"
+        },
+        {
+          "title": "Wegbegleiter",
+          "message": "Ein Song für unterwegs, egal in welche Richtung es gerade geht.",
+          "link": "https://open.spotify.com/track/7lB3cohjMggs7Q3hk8RuwW?si=f565088f77784c92"
         }
       ]
     },
@@ -1098,6 +1138,11 @@
           "title": "Date-Credit: Langes Frühstück",
           "message": "Ein Vormittag, der nie richtig anfängt. Kaffee, Croissants, keine Uhr.",
           "voucher": true
+        },
+        {
+          "title": "Unser Lied",
+          "message": "Ein Lied, das ab jetzt uns gehört. Hör es dir an und denk an nichts Ernstes.",
+          "link": "https://open.spotify.com/track/3N03iAHTSTWm3TLUiEFYnI?si=384ecb02c0974c66"
         }
       ]
     },
