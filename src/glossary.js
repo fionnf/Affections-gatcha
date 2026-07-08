@@ -55,13 +55,11 @@ export async function fetchGlossaryFromSheet() {
     }
     if (!res.ok) return 0;
     const data = await res.json();
-    if (!data.ok || !Array.isArray(data.glossary) || !data.glossary.length) return 0;
-    const local = readGlossary();
-    const byId = new Map(local.map((e) => [e.id, e]));
-    for (const entry of data.glossary) {
-      if (entry.id) byId.set(entry.id, entry);
-    }
-    writeGlossary(Array.from(byId.values()));
+    if (!data.ok || !Array.isArray(data.glossary)) return 0;
+    // The sheet is authoritative: overwrite local state so deletions and
+    // edits made on another device actually propagate, instead of merging
+    // and letting stale local entries linger.
+    writeGlossary(data.glossary.filter((e) => e.id));
     return data.glossary.length;
   } catch (_) { return 0; }
 }
@@ -205,10 +203,14 @@ export function openGlossaryPanel() {
   _glossaryCurrentLang = "swabian";
   const searchEl = document.getElementById("ag-glossary-search");
   if (searchEl) searchEl.value = "";
+  // Render instantly from local cache, then refresh from the sheet in the
+  // background so the panel always reflects words added on another device.
   renderGlossaryPanel("swabian");
-  // reset pill after layout
   window.requestAnimationFrame(() => _glossaryMovePill());
   haptic(10);
+  fetchGlossaryFromSheet().then((count) => {
+    if (count > 0) renderGlossaryPanel(_glossaryCurrentLang);
+  });
 }
 
 export function closeGlossaryPanel() {
