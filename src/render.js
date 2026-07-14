@@ -1,7 +1,7 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, seededIndex, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen } from "./storage.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount } from "./storage.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
@@ -695,6 +695,12 @@ export function renderPull(pull) {
   msgEl.innerHTML = formatMsg(pull.outcome.message);
   msgEl.hidden = false;
   const resultEl = $("[data-ag-result]");
+
+  const freikarteWrap = $("[data-ag-freikarte-wrap]");
+  if (freikarteWrap) {
+    const isBadPull = pull.category.tone === "quiet" || pull.category.tone === "cursed";
+    freikarteWrap.hidden = !(isBadPull && freikarteCount(pull.token) > 0 && !getPreviewDay());
+  }
 
   // Prompt gate: inline before message (mirrors pin gate pattern)
   if (pull.outcome.prompt && !pull.promptAnswer) {

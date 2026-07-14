@@ -29,6 +29,8 @@ export const STREAK_RESTORE_THRESHOLD = 20;
 export const QUEST_POINTS_SCHEDULE   = [100, 75, 50, 25];
 export const GLOSSARY_KEY            = "affektions-gacha:glossary:v1";
 export const STIMMUNG_KEY            = "affektions-gacha:stimmung:v1";
+export const FREIKARTE_KEY           = "affektions-gacha:freikarte:v1";
+export const FREIKARTE_REROLL_KEY    = "affektions-gacha:freikarte-reroll:v1";
 
 export const TOKEN_REWARDS = {
   "🌿": "Fionn kocht dir ein Abendessen nach Wahl",

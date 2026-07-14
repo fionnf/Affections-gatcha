@@ -1308,6 +1308,11 @@
           "title": "JACKPOT: Freifahrtschein",
           "message": "Ein Gutschein ohne Kleingedrucktes. Was immer du dir am meisten wünschst — wir reden darüber und machen's wahr.",
           "voucher": true
+        },
+        {
+          "title": "JACKPOT: Freikarte 🎟️",
+          "message": "Eine Freikarte für schlechte Tage. Beim nächsten Nieten- oder Verflucht-Zug darfst du nochmal ziehen — die Maschine drückt dann ein Auge zu.",
+          "freikarte": true
         }
       ]
     }

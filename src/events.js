@@ -1,9 +1,9 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, currentQuestPeriod, dailyMsgIdx } from "./utils.js";
-import { readHistory, writeWish, readWish, addToken } from "./storage.js";
+import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, freikarteCount, writeFreikarteReroll } from "./storage.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak } from "./streak.js";
-import { buildPull, imagePhotos } from "./pull.js";
+import { buildPull, rerollPullForDay, imagePhotos } from "./pull.js";
 import { playPullSound } from "./sound.js";
 import { getPreviewDay } from "./utils.js";
 import { syncFromSheets, backupToSheets } from "./sync.js";
@@ -643,12 +643,15 @@ export function reveal() {
     emojiSpans.forEach((span, i) => {
       span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
     });
-    // Add reward token once — guard prevents double-increment on re-reveal
-    if (state.todaysPull.collectToken) {
-      const alreadyRecorded = readHistory().some(
-        (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
-      );
-      if (!alreadyRecorded) addToken(state.todaysPull.collectToken);
+    // Add reward token / Freikarte once — guard prevents double-increment on re-reveal
+    const alreadyRecordedToday = readHistory().some(
+      (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
+    );
+    if (state.todaysPull.collectToken && !alreadyRecordedToday) {
+      addToken(state.todaysPull.collectToken);
+    }
+    if (state.todaysPull.freikarte && !alreadyRecordedToday) {
+      addFreikarte(state.todaysPull.token);
     }
     renderPull(state.todaysPull);
     mount.classList.remove("is-revealing");
@@ -975,6 +978,69 @@ export function bindEvents() {
   $("[data-ag-star]").addEventListener("click", () => {
     haptic(8);
     toggleFavorite(state.todaysPull);
+  });
+
+  $("[data-ag-freikarte-redeem]")?.addEventListener("click", () => {
+    const pull = state.todaysPull;
+    if (!pull) return;
+    const tone = pull.category.tone;
+    if (tone !== "quiet" && tone !== "cursed") return;
+    if (!spendFreikarte(pull.token)) return;
+
+    const streak = computeStreak();
+    const rerolled = rerollPullForDay(pull.day, streak);
+    writeFreikarteReroll(pull.token, pull.day, {
+      categoryId: rerolled.category.id,
+      outcomeTitle: rerolled.outcome.title
+    });
+
+    state.todaysPull = {
+      ...pull,
+      category: rerolled.category,
+      outcome: rerolled.outcome,
+      photo: rerolled.photo,
+      collectToken: rerolled.collectToken,
+      voucher: rerolled.voucher,
+      freikarte: rerolled.freikarte,
+      unlockTime: null,
+      promptAnswer: null
+    };
+
+    const history = readHistory();
+    const idx = history.findIndex((e) => e.day === pull.day && e.token === pull.token);
+    if (idx !== -1) {
+      history[idx] = {
+        ...history[idx],
+        categoryId: rerolled.category.id,
+        categoryLabel: rerolled.category.label,
+        tone: rerolled.category.tone,
+        title: rerolled.outcome.title,
+        message: rerolled.outcome.message,
+        link: rerolled.outcome.link || null,
+        unlockTime: null,
+        promptAnswer: null,
+        photo: rerolled.photo
+          ? {
+              url: rerolled.photo.url,
+              alt: rerolled.photo.alt || "",
+              caption: (rerolled.photo.caption || "").trim(),
+              type: rerolled.photo.type === "video" ? "video" : "image"
+            }
+          : null,
+        voucher: rerolled.voucher || false
+      };
+      writeHistory(history);
+    }
+    backupToSheets();
+
+    if (state.todaysPull.collectToken) addToken(state.todaysPull.collectToken);
+    if (state.todaysPull.freikarte) addFreikarte(state.todaysPull.token);
+
+    renderPull(state.todaysPull);
+    if (state.activeTab === "history") renderHistory();
+    triggerConfetti(50);
+    showToast("Freikarte eingelöst — nochmal gezogen! 🎟️✨");
+    haptic([20, 20, 40]);
   });
 
   const recoverBtn = $("[data-ag-recover-btn]");
