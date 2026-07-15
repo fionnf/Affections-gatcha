@@ -57,12 +57,14 @@ export function boostedCategories(streak) {
   }));
 }
 
-export function pickWeightedWithStreak(seedText, streak) {
-  const cats = boostedCategories(streak);
-  const total = cats.reduce((sum, cat) => sum + cat.weight, 0);
+export function pickWeightedWithStreak(seedText, streak, excludeIds = []) {
+  const allCats = boostedCategories(streak);
+  const cats = excludeIds.length ? allCats.filter((c) => !excludeIds.includes(c.id)) : allCats;
+  const pool = cats.length ? cats : allCats;
+  const total = pool.reduce((sum, cat) => sum + cat.weight, 0);
   const roll = Math.floor(seededRandom(seedText) * total);
   let cursor = 0;
-  for (const cat of cats) {
+  for (const cat of pool) {
     cursor += cat.weight;
     if (roll < cursor) {
       return state.outcomes.categories.find((c) => c.id === cat.id) || cat;

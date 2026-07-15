@@ -9,6 +9,7 @@ import {
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
 import { BAERLAUCH_SCORE_KEY, QUEST_POINTS_KEY } from "./constants.js";
+import { withinGracePeriod } from "./sheetSync.js";
 
 let _baseUrl = "";
 let _resolveBase = null;
@@ -157,7 +158,7 @@ export async function syncFromSheets() {
       } catch (_le) {}
     }
 
-    if (Array.isArray(data.gipfelbuch)) {
+    if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch")) {
       const sorted = data.gipfelbuch
         .filter((e) => e.id)
         .sort((a, b) => (b.date || "").localeCompare(a.date || ""));

@@ -3,6 +3,7 @@ import { state } from "./state.js";
 import { getToken } from "./utils.js";
 import { haptic } from "./haptic.js";
 import { GLOSSARY_KEY } from "./constants.js";
+import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
 
 // Module-level state
 export let _glossaryRecorder = null;
@@ -21,6 +22,7 @@ export function addGlossaryWord(entry) {
   const words = readGlossary();
   words.unshift(entry);
   writeGlossary(words);
+  markRecentWrite("glossary");
   postGlossaryToSheet("glossary-upsert", { ...entry, createdAt: new Date().toISOString() });
 }
 
@@ -31,11 +33,13 @@ export function updateGlossaryWord(id, fields) {
   const updated = { ...words[idx], ...fields };
   words[idx] = updated;
   writeGlossary(words);
+  markRecentWrite("glossary");
   postGlossaryToSheet("glossary-upsert", updated);
 }
 
 export function deleteGlossaryWord(id) {
   writeGlossary(readGlossary().filter(w => w.id !== id));
+  markRecentWrite("glossary");
   postGlossaryToSheet("glossary-delete", { id });
 }
 
@@ -58,7 +62,10 @@ export async function fetchGlossaryFromSheet() {
     if (!data.ok || !Array.isArray(data.glossary)) return 0;
     // The sheet is authoritative: overwrite local state so deletions and
     // edits made on another device actually propagate, instead of merging
-    // and letting stale local entries linger.
+    // and letting stale local entries linger. Skip the overwrite once if a
+    // word was just added/edited here — this GET may have raced ahead of
+    // that write actually landing in the sheet; the next sync picks it up.
+    if (withinGracePeriod("glossary")) return data.glossary.length;
     writeGlossary(data.glossary.filter((e) => e.id));
     return data.glossary.length;
   } catch (_) { return 0; }

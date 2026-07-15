@@ -3,6 +3,7 @@ import { state, mount, $ } from "./state.js";
 import { getToken, formatElev, formatBergeDate, extractKomootId } from "./utils.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
+import { markRecentWrite } from "./sheetSync.js";
 
 export function elevationAnalogy(m) {
   if (!m || m <= 0) return null;
@@ -75,11 +76,13 @@ export function addGipfelEntry(entry) {
   const entries = readGipfelbuch();
   entries.unshift(entry);
   writeGipfelbuch(entries);
+  markRecentWrite("gipfelbuch");
   postGipfelToSheet("gipfel-upsert", { ...entry, createdAt: new Date().toISOString() });
 }
 
 export function deleteGipfelEntry(id) {
   writeGipfelbuch(readGipfelbuch().filter((e) => e.id !== id));
+  markRecentWrite("gipfelbuch");
   postGipfelToSheet("gipfel-delete", { id });
 }
 
@@ -90,6 +93,7 @@ export function updateGipfelEntry(id, fields) {
   const updated = { ...entries[idx], ...fields };
   entries[idx] = updated;
   writeGipfelbuch(entries);
+  markRecentWrite("gipfelbuch");
   postGipfelToSheet("gipfel-upsert", updated);
 }
 

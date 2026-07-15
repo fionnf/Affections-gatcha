@@ -3,7 +3,8 @@ import {
   STORAGE_KEY, FAVORITES_KEY, TOKENS_KEY, STREAK_CACHE_KEY, STREAK_SYNCED_KEY,
   STREAK_RESTORE_KEY, WISH_KEY, MILESTONE_KEY,
   BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY, MISSION_LOG_KEY,
-  GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY
+  GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY,
+  FREIKARTE_KEY, FREIKARTE_REROLL_KEY
 } from "./constants.js";
 import { state } from "./state.js";
 import { dateKeyInTimezone } from "./utils.js";
@@ -88,6 +89,60 @@ export function resetToken(token) {
   const tokens = readTokens();
   tokens[token] = 0;
   writeTokens(tokens);
+}
+
+export function readFreikarten() {
+  try {
+    const raw = localStorage.getItem(FREIKARTE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch (_e) { return {}; }
+}
+
+export function writeFreikarten(entries) {
+  try { localStorage.setItem(FREIKARTE_KEY, JSON.stringify(entries)); } catch (_e) {}
+}
+
+export function freikarteCount(token) {
+  return readFreikarten()[token] || 0;
+}
+
+export function addFreikarte(token) {
+  const entries = readFreikarten();
+  entries[token] = (entries[token] || 0) + 1;
+  writeFreikarten(entries);
+  return entries[token];
+}
+
+// Spends one Freikarte for `token`. Returns false (and spends nothing) if
+// none are available.
+export function spendFreikarte(token) {
+  const entries = readFreikarten();
+  if (!(entries[token] > 0)) return false;
+  entries[token] -= 1;
+  writeFreikarten(entries);
+  return true;
+}
+
+// Freikarte reroll record: once a bad day's pull is rerolled, remember which
+// category/outcome won so reloading the page reproduces the same result
+// instead of recomputing the original (deterministic) niete/cursed pull.
+export function readFreikarteReroll(token, day) {
+  try {
+    const raw = localStorage.getItem(FREIKARTE_REROLL_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return (parsed && typeof parsed === "object" && parsed[`${token}|${day}`]) || null;
+  } catch (_e) { return null; }
+}
+
+export function writeFreikarteReroll(token, day, record) {
+  try {
+    const raw = localStorage.getItem(FREIKARTE_REROLL_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const all = parsed && typeof parsed === "object" ? parsed : {};
+    all[`${token}|${day}`] = record;
+    localStorage.setItem(FREIKARTE_REROLL_KEY, JSON.stringify(all));
+  } catch (_e) {}
 }
 
 export function readWish() {

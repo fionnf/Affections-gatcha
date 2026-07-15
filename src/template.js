@@ -380,6 +380,10 @@ export const html = `
               <div class="ag-message" data-ag-message hidden></div>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
               <div data-ag-token-wrap hidden></div>
+              <div class="ag-freikarte-wrap" data-ag-freikarte-wrap hidden>
+                <p class="ag-freikarte-hint">🎟️ Du hast eine Freikarte. Nochmal ziehen?</p>
+                <button class="ag-secondary ag-freikarte-btn" type="button" data-ag-freikarte-redeem>Freikarte einlösen</button>
+              </div>
               <figure class="ag-photo" data-ag-photo-wrap hidden>
                 <div class="ag-media-stage" data-ag-photo-media></div>
                 <figcaption data-ag-photo-caption hidden></figcaption>

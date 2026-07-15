@@ -1,7 +1,7 @@
 // ── Pull building ─────────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
 import { getToken, seededRandom, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone } from "./utils.js";
-import { readHistory } from "./storage.js";
+import { readHistory, readFreikarteReroll } from "./storage.js";
 import { computeStreak, boostedCategories, pickWeightedWithStreak } from "./streak.js";
 
 export function checkSpecialDay(day) {
@@ -47,12 +47,13 @@ export function imagePhotos() {
   return (state.photos || []).filter((p) => p.type !== "video");
 }
 
-export function buildPullForDay(day, streak) {
+export function buildPullForDay(day, streak, opts = {}) {
+  const { excludeCategoryIds = [], seedSuffix = "" } = opts;
   const token = getToken();
-  const baseSeed = `${state.theme.secret}|${token}|${day}`;
+  const baseSeed = `${state.theme.secret}|${token}|${day}${seedSuffix ? "|" + seedSuffix : ""}`;
 
   const special = checkSpecialDay(day);
-  if (special) {
+  if (special && !seedSuffix) {
     const specialOutcomes = Array.isArray(special.outcomes) && special.outcomes.length
       ? special.outcomes
       : [{ title: special.label, message: "" }];
@@ -70,7 +71,18 @@ export function buildPullForDay(day, streak) {
     return { day, token, category, outcome, photo: specialPhoto, unlockTime: special.unlockTime || null };
   }
 
-  let category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0);
+  // A Freikarte reroll already happened for this day — reproduce the same
+  // result on every subsequent call (e.g. after a page reload) instead of
+  // recomputing the original deterministic (and now-discarded) pull.
+  const rerollRecord = !seedSuffix ? readFreikarteReroll(token, day) : null;
+
+  let category;
+  if (rerollRecord) {
+    category = state.outcomes.categories.find((c) => c.id === rerollRecord.categoryId);
+  }
+  if (!category) {
+    category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0, excludeCategoryIds);
+  }
 
   const previewCategory = getPreviewCategory();
   if (previewCategory) {
@@ -89,9 +101,8 @@ export function buildPullForDay(day, streak) {
   );
   const availableOutcomes = category.outcomes.filter((o) => !usedTitles.has(o.title));
   const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : category.outcomes;
-  const outcome = outcomePool[
-    seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)
-  ];
+  const outcome = (rerollRecord && category.outcomes.find((o) => o.title === rerollRecord.outcomeTitle))
+    || outcomePool[seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)];
 
   const imgs = imagePhotos();
   let photo = null;
@@ -106,11 +117,23 @@ export function buildPullForDay(day, streak) {
     photo = pool[seededIndex(`${baseSeed}|photo`, pool.length)];
   }
 
-  return { day, token, category, outcome, photo, collectToken: outcome.token || null, voucher: outcome.voucher || false };
+  return {
+    day, token, category, outcome, photo,
+    collectToken: outcome.token || null,
+    voucher: outcome.voucher || false,
+    freikarte: outcome.freikarte === true
+  };
 }
 
 export function buildPull() {
   const day = getPreviewDay() || dateKeyInTimezone(state.theme.timezone);
   const streak = computeStreak();
   return buildPullForDay(day, streak);
+}
+
+// Rerolls today's pull excluding Niete/Verflucht, for spending a Freikarte
+// on a bad day. Deterministic per day (a Freikarte redemption always lands
+// on the same alternate result), independent of the original pull's seed.
+export function rerollPullForDay(day, streak) {
+  return buildPullForDay(day, streak, { excludeCategoryIds: ["niete", "cursed"], seedSuffix: "freikarte" });
 }

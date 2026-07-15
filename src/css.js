@@ -1140,6 +1140,22 @@ export const css = `
         .ag-milestone span{color:#d4c07a}
       }
 
+      /* ── Freikarte redeem ── */
+      .ag-freikarte-wrap{
+        display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+        padding:12px 16px;border-radius:var(--ag-radius-md);
+        background:linear-gradient(135deg,rgba(185,120,46,.14),rgba(47,122,79,.12));
+        border:1px solid rgba(185,120,46,.3);
+        margin-bottom:14px;
+        animation:ag-enter 500ms var(--ag-ease);
+      }
+      .ag-freikarte-hint{margin:0;font-size:.9rem;font-weight:600;color:var(--ag-primary-dark);line-height:1.4}
+      .ag-freikarte-btn{white-space:nowrap;flex:none}
+      @media (prefers-color-scheme:dark){
+        .ag-freikarte-wrap{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
+        .ag-freikarte-hint{color:#d4c07a}
+      }
+
       /* ── Ping banner ── */
       .ag-ping-banner{
         display:flex;align-items:center;justify-content:space-between;gap:10px;
