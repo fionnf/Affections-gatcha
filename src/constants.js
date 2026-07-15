@@ -35,5 +35,9 @@ export const FREIKARTE_REROLL_KEY    = "affektions-gacha:freikarte-reroll:v1";
 export const TOKEN_REWARDS = {
   "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
   "🔥": "Wochenend-Abenteuer — Ziel nach deiner Wahl",
-  "⭐": "Fionns Überraschung — er entscheidet"
+  "⭐": "Fionns Überraschung — er entscheidet",
+  "☁️": "Ein ganzer fauler Tag ohne Pläne",
+  "🏔": "Eine richtige Bergtour, Hütte inklusive",
+  "☕": "Ein Ausflug in dein Traumcafé, egal wo",
+  "💚": "Ein langer, handgeschriebener Brief"
 };

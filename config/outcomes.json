@@ -8,7 +8,8 @@
       "outcomes": [
         {
           "title": "Leere Souvenirbox",
-          "message": "Heute kein Preis. Nur ein imaginärer Kassenzettel aus einem sehr hübschen Museumsshop."
+          "message": "Heute kein Preis. Nur ein imaginärer Kassenzettel aus einem sehr hübschen Museumsshop.",
+          "token": "☁️"
         },
         {
           "title": "Baustelle",
@@ -193,7 +194,8 @@
         },
         {
           "title": "Wasser am Brunnen",
-          "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang."
+          "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang.",
+          "token": "🌿"
         },
         {
           "title": "Portugiesisches Wort: Beijo",
@@ -628,7 +630,8 @@
         },
         {
           "title": "Tagesfund",
-          "message": "Nenne eine kleine gute Sache von heute. Sie darf sehr klein sein. Krümel und gute Kaffeetassen zählen."
+          "message": "Nenne eine kleine gute Sache von heute. Sie darf sehr klein sein. Krümel und gute Kaffeetassen zählen.",
+          "token": "🏔"
         },
         {
           "title": "Restaurant-Orakel",
@@ -839,7 +842,8 @@
         },
         {
           "title": "Zukunfts-Skizze",
-          "message": "Schreib in 3 Sätzen, wo du in 2 Jahren sein willst. Schick’s Fionn."
+          "message": "Schreib in 3 Sätzen, wo du in 2 Jahren sein willst. Schick’s Fionn.",
+          "token": "🔥"
         },
         {
           "title": "Sprachnachricht auf Bestellung",
@@ -896,7 +900,8 @@
       "outcomes": [
         {
           "title": "Snack-Steuer",
-          "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden."
+          "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden.",
+          "token": "☕"
         },
         {
           "title": "Jogging-Zoll",
@@ -1084,7 +1089,8 @@
         {
           "title": "Architecture of Us",
           "message": "Ein Abend mit Fokus auf 'Fine Living'. Wir suchen uns das schönste Restaurant der Stadt aus.",
-          "voucher": true
+          "voucher": true,
+          "token": "💚"
         },
         {
           "title": "6a-Belay-Pass",
@@ -1235,7 +1241,8 @@
         },
         {
           "title": "Archivfund",
-          "message": "Die Maschine hat im geheimen Fotoarchiv gekramt."
+          "message": "Die Maschine hat im geheimen Fotoarchiv gekramt.",
+          "token": "⭐"
         },
         {
           "title": "Erinnerungs-Auswurf",
@@ -1287,7 +1294,8 @@
         {
           "title": "JACKPOT: Mo anamchara (IE)",
           "message": "Mein Seelenfreund. Ein Gutschein für eine Nacht ohne Wecker, nur wir.",
-          "voucher": true
+          "voucher": true,
+          "token": "🌿"
         },
         {
           "title": "JACKPOT: Nacht mit Aussicht",
