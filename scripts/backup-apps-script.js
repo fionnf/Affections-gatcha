@@ -131,7 +131,8 @@ function doGet(e) {
         elevGain:    row[9] || null,
         lat:         row[10] || null,
         lng:         row[11] || null,
-        locLabel:    row[12] || null
+        locLabel:    row[12] || null,
+        cover:       row[13] || null
       });
     }
 
@@ -330,7 +331,7 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (values[i][0] === id) { rowIdx = i + 1; break; }
       }
-      const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString(), data.distance || "", data.elevGain || "", data.lat || "", data.lng || "", data.locLabel || ""];
+      const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString(), data.distance || "", data.elevGain || "", data.lat || "", data.lng || "", data.locLabel || "", data.cover || ""];
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
       return jsonOut_({ ok: true });
@@ -346,7 +347,9 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (values[i][0] === id) { rowIdx = i + 1; break; }
       }
-      const row = [id, data.word || "", data.meaning || "", data.lang || "swabian", data.audioUrl || "", data.createdBy || "", data.createdAt || new Date().toISOString()];
+      // Client sends the author as `token` (matching the Gipfelbuch payload
+      // convention); accept `createdBy` too in case that ever changes.
+      const row = [id, data.word || "", data.meaning || "", data.lang || "swabian", data.audioUrl || "", data.createdBy || data.token || "", data.createdAt || new Date().toISOString()];
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
       return jsonOut_({ ok: true });
@@ -633,7 +636,7 @@ function getOrCreateGipfelbuchSheet_(ss) {
   let sheet = ss.getSheetByName("Gipfelbuch");
   if (!sheet) {
     sheet = ss.insertSheet("Gipfelbuch");
-    sheet.appendRow(["ID", "Name", "Elevation", "Date", "ActivityURL", "Notes", "Token", "CreatedAt", "Distance", "ElevGain", "Lat", "Lng", "LocLabel"]);
+    sheet.appendRow(["ID", "Name", "Elevation", "Date", "ActivityURL", "Notes", "Token", "CreatedAt", "Distance", "ElevGain", "Lat", "Lng", "LocLabel", "Cover"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
