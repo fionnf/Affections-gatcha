@@ -4,11 +4,11 @@ import {
   readHistory, writeHistory, readFavorites, writeFavorites,
   writeTokens, readTokens, readGipfelbuch, writeGipfelbuch,
   readBaerlauchScores, readMissionLog, writeMissionLog,
-  readQuestState, writeQuestState, readQuestPoints
+  readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
-import { BAERLAUCH_SCORE_KEY, QUEST_POINTS_KEY } from "./constants.js";
+import { BAERLAUCH_SCORE_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
 
 let _baseUrl = "";
@@ -85,13 +85,17 @@ export async function syncFromSheets() {
 
     if (Array.isArray(data.history) && data.history.length) {
       const local = readHistory();
-      const localByDay = new Map(local.map((e) => [e.day, e]));
+      // Keyed by day+token, not day alone — a day-only key would let one
+      // player's entry silently replace the other's the moment local
+      // storage ever holds both (shared device, testing), even though the
+      // backend already filters History by the requesting token itself.
+      const localByDay = new Map(local.map((e) => [`${e.day}|${e.token}`, e]));
       for (const entry of data.history) {
         if (entry.title === "(wiederhergestellt)") continue;
         const day = normaliseDay(entry.day);
         if (!day || day > today) continue;
         const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
-        localByDay.set(day, { ...entry, day, token: normToken });
+        localByDay.set(`${day}|${normToken}`, { ...entry, day, token: normToken });
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
       writeHistory(merged);
@@ -101,9 +105,11 @@ export async function syncFromSheets() {
 
     if (Array.isArray(data.favourites) && data.favourites.length) {
       const localFavs = readFavorites();
-      const favsByDay = new Map(localFavs.map((e) => [e.day, e]));
+      const favsByDay = new Map(localFavs.map((e) => [`${e.day}|${e.token}`, e]));
       for (const entry of data.favourites) {
-        if (entry.day <= today) favsByDay.set(entry.day, entry);
+        if (entry.day > today) continue;
+        const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
+        favsByDay.set(`${entry.day}|${normToken}`, { ...entry, token: normToken });
       }
       writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
     }
@@ -113,7 +119,7 @@ export async function syncFromSheets() {
     }
 
     if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
-      try { localStorage.setItem(QUEST_POINTS_KEY, String(data.questPoints)); } catch (_e) {}
+      writeQuestPoints(data.questPoints);
     }
 
     if (typeof data.streak === "number" && data.streak > 0) {
@@ -183,6 +189,11 @@ export function backupToSheets() {
     if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
     const token = getToken();
     const history = readHistory().filter((e) => (e.token || "").toLowerCase() === token.toLowerCase());
+    // Favourites need the same filter as history — otherwise, the moment
+    // local storage ever holds both players' favourites (shared device,
+    // testing), a sync would tag the other player's entries under this
+    // player's backup row on the server.
+    const favourites = readFavorites().filter((e) => (e.token || "").toLowerCase() === token.toLowerCase());
     const qs = readQuestState(() => currentQuestPeriod(state));
     const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
       challenge: currentChallenge(state),
@@ -195,7 +206,7 @@ export function backupToSheets() {
       type: "gacha-backup",
       token,
       history,
-      favourites: readFavorites(),
+      favourites,
       streak: computeStreak(),
       tokens: readTokens(),
       questPoints: readQuestPoints(),

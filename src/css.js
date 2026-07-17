@@ -1156,6 +1156,31 @@ export const css = `
         .ag-freikarte-hint{color:#d4c07a}
       }
 
+      /* ── Install-to-home-screen nudge ── */
+      .ag-install-nudge{
+        display:flex;align-items:center;justify-content:space-between;gap:12px;
+        padding:12px 14px;border-radius:var(--ag-radius-md);
+        background:linear-gradient(135deg,rgba(100,160,255,.12),rgba(47,122,79,.1));
+        border:1px solid rgba(100,160,255,.28);
+        margin-bottom:14px;
+        animation:ag-enter 400ms var(--ag-ease);
+      }
+      .ag-install-nudge[data-ag-install-nudge]:not([hidden]){display:flex}
+      .ag-install-nudge-text{min-width:0;flex:1}
+      .ag-install-nudge-title{margin:0 0 2px;font-size:.9rem;font-weight:700;color:var(--ag-primary-dark)}
+      .ag-install-nudge-copy{margin:0;font-size:.82rem;color:var(--ag-muted);line-height:1.4}
+      .ag-install-nudge-actions{display:flex;align-items:center;gap:8px;flex:none}
+      .ag-install-nudge-dismiss{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1rem;padding:2px 4px;line-height:1;border-radius:4px}
+      .ag-install-nudge-dismiss:hover{color:var(--ag-text)}
+      @media (prefers-color-scheme:dark){
+        .ag-install-nudge{background:linear-gradient(135deg,rgba(100,160,255,.14),rgba(47,122,79,.12));border-color:rgba(100,160,255,.32)}
+        .ag-install-nudge-title{color:#9ec8ff}
+      }
+      @media (max-width:400px){
+        .ag-install-nudge{flex-direction:column;align-items:stretch}
+        .ag-install-nudge-actions{justify-content:flex-end}
+      }
+
       /* ── Ping banner ── */
       .ag-ping-banner{
         display:flex;align-items:center;justify-content:space-between;gap:10px;

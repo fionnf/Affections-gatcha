@@ -180,6 +180,17 @@ export const html = `
         </div>
 
         <div class="ag-content">
+          <div class="ag-install-nudge" data-ag-install-nudge hidden>
+            <div class="ag-install-nudge-text">
+              <p class="ag-install-nudge-title">App installieren 📲</p>
+              <p class="ag-install-nudge-copy" data-ag-install-copy></p>
+            </div>
+            <div class="ag-install-nudge-actions">
+              <button class="ag-secondary" type="button" data-ag-install-action hidden>Installieren</button>
+              <button class="ag-install-nudge-dismiss" type="button" data-ag-install-dismiss aria-label="Schließen">✕</button>
+            </div>
+          </div>
+
           <section class="ag-card ag-mini-panel" id="ag-baerlauch-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Bärlauch-Modus</span>

@@ -27,6 +27,19 @@
   </head>
   <body>
     <section id="affektions-gacha" style="opacity:0"></section>
+    <script>
+      // Ensure ?player=lennart is always present, mirroring fionn.html's
+      // pattern — this is Lennart's dedicated entry point, not an implicit
+      // default. (getMissionPlayer() would still fall back to lennart
+      // without this, but making it explicit keeps the two entry points
+      // symmetric and keeps identity resolution independent of that
+      // fallback ever changing.)
+      if (!new URLSearchParams(location.search).has("player")) {
+        const params = new URLSearchParams(location.search);
+        params.set("player", "lennart");
+        history.replaceState({}, "", location.pathname + "?" + params.toString());
+      }
+    </script>
     <script
       src="./dist/affection-gacha.js?v=21"
       data-mount="#affektions-gacha"

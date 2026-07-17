@@ -72,14 +72,14 @@ export function getTodaysMission() {
 export function isMissionDoneToday() {
   try {
     const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    return localStorage.getItem(MISSION_DONE_KEY) === day;
+    return localStorage.getItem(`${MISSION_DONE_KEY}:${getMissionPlayer()}`) === day;
   } catch (_) { return false; }
 }
 
 export function markMissionDone() {
   try {
     const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    localStorage.setItem(MISSION_DONE_KEY, day);
+    localStorage.setItem(`${MISSION_DONE_KEY}:${getMissionPlayer()}`, day);
     const player = getMissionPlayer();
     const mission = getTodaysMission();
     const doneAt = new Date().toISOString();
@@ -98,14 +98,14 @@ export function markMissionDone() {
 export function isFeedbackSentToday() {
   try {
     const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    return localStorage.getItem(MISSION_FEEDBACK_KEY) === day;
+    return localStorage.getItem(`${MISSION_FEEDBACK_KEY}:${getMissionPlayer()}`) === day;
   } catch (_) { return false; }
 }
 
 export function markFeedbackSent() {
   try {
     const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    localStorage.setItem(MISSION_FEEDBACK_KEY, day);
+    localStorage.setItem(`${MISSION_FEEDBACK_KEY}:${getMissionPlayer()}`, day);
   } catch (_) {}
 }
 

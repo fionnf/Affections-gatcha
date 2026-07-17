@@ -1050,6 +1050,38 @@
         {
           "title": "Umarmungs-Steuer",
           "message": "Bei der nächsten Begrüßung ist eine Umarmung von mindestens zehn Sekunden fällig. Vertraglich bindend."
+        },
+        {
+          "title": "Treppen-Zoll",
+          "message": "Fluch: Beim nächsten Treffen zählst du beim Treppensteigen laut mit. Egal wer zuschaut."
+        },
+        {
+          "title": "Karaoke-Pflicht",
+          "message": "Schick mir eine Sprachnachricht, in der du eine Strophe deines peinlichsten Lieblingslieds singst. Kein Räuspern erlaubt."
+        },
+        {
+          "title": "Ehrliche-Meinung-Steuer",
+          "message": "Du musst mir jetzt ehrlich sagen, was du an mir nervig findest. Nur eine Sache. Die Maschine verzeiht."
+        },
+        {
+          "title": "Spontan-Anruf-Fluch",
+          "message": "Ruf mich in den nächsten zwei Stunden ohne Vorwarnung an. Kein „Hast du kurz Zeit?“ vorher."
+        },
+        {
+          "title": "Wortwörtlich-Klausel",
+          "message": "Beim nächsten Streit-Anflug musst du mit „Du hast recht, aber“ anfangen. Verfluchte Deeskalation."
+        },
+        {
+          "title": "Erinnerungsstrafe",
+          "message": "Erzähl mir eine Erinnerung, die dir peinlich ist. Details werden nicht erlassen."
+        },
+        {
+          "title": "Foto-ohne-Filter-Zoll",
+          "message": "Schick mir ein Foto von dir, genau jetzt, ohne es anzuschauen bevor du es abschickst."
+        },
+        {
+          "title": "Tanzverpflichtung",
+          "message": "Beim nächsten Song, der dir gefällt, filmst du dich fünf Sekunden beim Tanzen. Die Maschine sammelt Beweise."
         }
       ]
     },

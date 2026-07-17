@@ -7,7 +7,45 @@ import {
   FREIKARTE_KEY, FREIKARTE_REROLL_KEY
 } from "./constants.js";
 import { state } from "./state.js";
-import { dateKeyInTimezone } from "./utils.js";
+import { dateKeyInTimezone, getToken } from "./utils.js";
+
+// Several pieces of state (Sammelkapsel tokens, streak caches, quest
+// state/points, the in-flight wish) used to live under one shared
+// localStorage key with no player dimension at all. Lennart's and Fionn's
+// devices stayed independent in practice (separate localStorage), but any
+// value under these keys would silently clobber the other player's if the
+// app were ever opened on one shared device/browser — and a sync always
+// overwrote the whole key regardless. Nest these under the current
+// player's slot instead, migrating a pre-existing flat value into this
+// device's current player once, on first read after the change ships.
+function readPlayerSlot(baseKey, emptyValue) {
+  try {
+    const raw = localStorage.getItem(baseKey);
+    if (raw === null) return emptyValue;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        && ("lennart" in parsed || "fionn" in parsed)) {
+      const val = parsed[getToken()];
+      return val === undefined ? emptyValue : val;
+    }
+    // Pre-migration flat value — replace the key outright with the nested
+    // shape (a plain merge-write would treat the still-flat value as the
+    // outer per-player map and leave its keys stranded at the top level).
+    localStorage.setItem(baseKey, JSON.stringify({ [getToken()]: parsed }));
+    return parsed;
+  } catch (_e) { return emptyValue; }
+}
+
+function writePlayerSlot(baseKey, value) {
+  try {
+    const raw = localStorage.getItem(baseKey);
+    let parsed = null;
+    try { parsed = raw !== null ? JSON.parse(raw) : null; } catch (_e) { parsed = null; }
+    const all = (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : {};
+    all[getToken()] = value;
+    localStorage.setItem(baseKey, JSON.stringify(all));
+  } catch (_e) {}
+}
 
 export function readHistory() {
   try {
@@ -67,15 +105,12 @@ export function writeFavorites(entries) {
 }
 
 export function readTokens() {
-  try {
-    const raw = localStorage.getItem(TOKENS_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return typeof parsed === "object" && parsed !== null ? parsed : {};
-  } catch (_e) { return {}; }
+  const val = readPlayerSlot(TOKENS_KEY, {});
+  return val && typeof val === "object" && !Array.isArray(val) ? val : {};
 }
 
 export function writeTokens(tokens) {
-  try { localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens)); } catch (_e) {}
+  writePlayerSlot(TOKENS_KEY, tokens);
 }
 
 export function addToken(token) {
@@ -146,49 +181,41 @@ export function writeFreikarteReroll(token, day, record) {
 }
 
 export function readWish() {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return null;
-    const raw = window.localStorage.getItem(WISH_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch (error) {
-    return null;
-  }
+  if (typeof window === "undefined" || !window.localStorage) return null;
+  const val = readPlayerSlot(WISH_KEY, null);
+  return val && typeof val === "object" ? val : null;
 }
 
 export function writeWish(entry) {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) return;
-    window.localStorage.setItem(WISH_KEY, JSON.stringify(entry));
-  } catch (error) {
-    /* localStorage unavailable — ignore */
-  }
+  if (typeof window === "undefined" || !window.localStorage) return;
+  writePlayerSlot(WISH_KEY, entry);
 }
 
 export function readStreakRestore() {
-  try { return JSON.parse(localStorage.getItem(STREAK_RESTORE_KEY) || "{}") || {}; }
-  catch (_) { return {}; }
+  const val = readPlayerSlot(STREAK_RESTORE_KEY, {});
+  return val && typeof val === "object" && !Array.isArray(val) ? val : {};
 }
 
 export function writeStreakRestore(obj) {
-  try { localStorage.setItem(STREAK_RESTORE_KEY, JSON.stringify(obj)); } catch (_) {}
+  writePlayerSlot(STREAK_RESTORE_KEY, obj);
 }
 
 export function readStreakCache() {
-  try { return parseInt(localStorage.getItem(STREAK_CACHE_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+  const val = readPlayerSlot(STREAK_CACHE_KEY, 0);
+  return typeof val === "number" ? val : parseInt(val, 10) || 0;
 }
 
 export function writeStreakCache(n) {
-  try { localStorage.setItem(STREAK_CACHE_KEY, String(n)); } catch (_) {}
+  writePlayerSlot(STREAK_CACHE_KEY, n);
 }
 
 export function readSyncedStreak() {
-  try { return parseInt(localStorage.getItem(STREAK_SYNCED_KEY) || "0", 10) || 0; } catch (_) { return 0; }
+  const val = readPlayerSlot(STREAK_SYNCED_KEY, 0);
+  return typeof val === "number" ? val : parseInt(val, 10) || 0;
 }
 
 export function writeSyncedStreak(n) {
-  try { localStorage.setItem(STREAK_SYNCED_KEY, String(n)); } catch (_) {}
+  writePlayerSlot(STREAK_SYNCED_KEY, n);
 }
 
 export function readGipfelbuch() {
@@ -234,28 +261,32 @@ export function readBaerlauchHistory() {
 
 export function readQuestState(currentQuestPeriodFn) {
   try {
-    const raw = localStorage.getItem(QUEST_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
+    const parsed = readPlayerSlot(QUEST_STORAGE_KEY, {});
     const period = currentQuestPeriodFn();
-    if (parsed.period !== period) return { period, solved: false, attempts: 0, hints: [] };
+    if (!parsed || parsed.period !== period) return { period, solved: false, attempts: 0, hints: [] };
     return parsed;
   } catch (_e) { return { period: currentQuestPeriodFn(), solved: false, attempts: 0, hints: [] }; }
 }
 
 export function writeQuestState(qs) {
-  try { localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(qs)); } catch (_e) {}
+  writePlayerSlot(QUEST_STORAGE_KEY, qs);
 }
 
 export function readQuestPoints() {
-  try { return parseInt(localStorage.getItem(QUEST_POINTS_KEY) || "0", 10); } catch (_e) { return 0; }
+  const val = readPlayerSlot(QUEST_POINTS_KEY, 0);
+  return typeof val === "number" ? val : parseInt(val, 10) || 0;
 }
 
 export function addQuestPoints(pts) {
   try {
     const total = readQuestPoints() + pts;
-    localStorage.setItem(QUEST_POINTS_KEY, String(total));
+    writePlayerSlot(QUEST_POINTS_KEY, total);
     return total;
   } catch (_e) { return pts; }
+}
+
+export function writeQuestPoints(total) {
+  writePlayerSlot(QUEST_POINTS_KEY, total);
 }
 
 export function readMilestones() {

@@ -11,6 +11,7 @@ import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
 import { bindEvents, retryPendingWishSend, registerServiceWorker, scheduleStreakWarning, renderError } from "./events.js";
 import { restoreStimmung } from "./stimmung.js";
+import { initInstallPrompt } from "./installPrompt.js";
 
 const defaultPhotos = { photos: [] };
 
@@ -98,6 +99,7 @@ export async function init() {
     renderOdds();
     renderWunschkapsel();
     bindEvents();
+    initInstallPrompt();
     // Position the sliding pill after first layout
     requestAnimationFrame(() => {
       const pill = mount.querySelector(".ag-nav-pill");
