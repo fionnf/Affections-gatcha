@@ -105,7 +105,7 @@
         {
           "title": "Eine Aufgabe wartet 🗝️",
           "pin": "0065",
-        "message": "Heute gibt es eine Aufgabe: 10 Filmfotos in Lissabon. Kein Löschen, kein Nachschauen — einmal drücken, weitergehen.\n\n📋 Die Liste:\n1. Fionn, von hinten, irgendwo mit Aussicht\n2. Eine Straßenbahn in Bewegung, nah\n3. Ihr zwei zusammen — Selbstauslöser oder Fremde fragen\n4. Kacheln (Azulejos) in extremer Nahaufnahme\n5. Ein Schatten von dir auf dem Boden\n6. Jemand der irgendwo sitzt und nichts tut\n7. Fionn lacht — echter Moment, nicht gestellt\n8. Blick durch eine Tür oder ein Fenster nach draußen\n9. Deine Schuhe auf Lissaboner Pflaster\n10. Das letzte Licht des Nachmittags — irgendwas, irgendwo\n\nAlle 10 oder es zählt nicht. 🎞️\n\n🔐 Bonus-Mission: Weißt du noch genau, wie viele Tage es her ist, seit wir uns zum ersten Mal getroffen haben? Nicht nachschauen — rechne selbst nach. Diese Zahl ist kein Zufall. Sie führt dich zu etwas in diesem Zimmer — Dingen die den Tag leichter machen, und zu Aktivitäten die ihr zusammen ausprobieren könnt. Such gut. 🗝️\n\nAber das ist noch nicht alles. Dieselbe Zahl versteckt sich auch irgendwo in diesem Zimmer — und was sie verbirgt gehört ebenfalls zu heute. 👀"
+          "message": "Heute gibt es eine Aufgabe: 10 Filmfotos in Lissabon. Kein Löschen, kein Nachschauen — einmal drücken, weitergehen.\n\n📋 Die Liste:\n1. Fionn, von hinten, irgendwo mit Aussicht\n2. Eine Straßenbahn in Bewegung, nah\n3. Ihr zwei zusammen — Selbstauslöser oder Fremde fragen\n4. Kacheln (Azulejos) in extremer Nahaufnahme\n5. Ein Schatten von dir auf dem Boden\n6. Jemand der irgendwo sitzt und nichts tut\n7. Fionn lacht — echter Moment, nicht gestellt\n8. Blick durch eine Tür oder ein Fenster nach draußen\n9. Deine Schuhe auf Lissaboner Pflaster\n10. Das letzte Licht des Nachmittags — irgendwas, irgendwo\n\nAlle 10 oder es zählt nicht. 🎞️\n\n🔐 Bonus-Mission: Weißt du noch genau, wie viele Tage es her ist, seit wir uns zum ersten Mal getroffen haben? Nicht nachschauen — rechne selbst nach. Diese Zahl ist kein Zufall. Sie führt dich zu etwas in diesem Zimmer — Dingen die den Tag leichter machen, und zu Aktivitäten die ihr zusammen ausprobieren könnt. Such gut. 🗝️\n\nAber das ist noch nicht alles. Dieselbe Zahl versteckt sich auch irgendwo in diesem Zimmer — und was sie verbirgt gehört ebenfalls zu heute. 👀"
         }
       ],
       "colors": {
@@ -298,6 +298,17 @@
         {
           "title": "Fionn einladen",
           "message": "Du hast diese Woche noch ein Event geplant, bei dem Fionn nicht im Plan war. Jetzt ist deine Aufgabe: Lade ihn einfach ein."
+        }
+      ]
+    },
+    {
+      "date": "2026-07-19",
+      "label": "Vier Monate 🌿",
+      "tone": "warm",
+      "outcomes": [
+        {
+          "title": "Vier Monate heute 🌿",
+          "message": "Vier Monate heute. 🌿\n\nIch sitze in Portugal in der Sonne und du bist trotzdem der lauteste Gedanke in meinem Kopf. Nicht auf eine schwere Art… einfach so, als ob das normal wäre. Als ob das dazugehört.\n\nDiese vier Monate waren nicht immer einfach. Aber sie haben mich etwas gelehrt, das ich nicht erwartet hatte, dass ich jemanden so nah ran lassen kann. Dass ich das überhaupt will. Und ich bin sehr froh, dass dieser Jemand du bist.\n\nMein Ansatz beim Daten war immer, komplett ich selbst zu sein — ehrlich, unverfälscht, auch wenn das manchmal Risiken mitbringt. Ich danke dir dafür, dass du das annimmst. Du bekommst keinen erfundenen Fionn. Du bekommst den echten — genau so, wie ich den echten Lennart vor mir zu haben schätze.\n\nUnd was mich daran so berührt: wir lernen ständig, wie wir miteinander sein können. Wie wir füreinander da sein können, wenn wir das brauchen. Dieser Wille, Energie reinzustecken und gemeinsam zu wachsen, das ist nicht selbstverständlich. Das ist etwas, das ich wirklich schön finde.\n\nMontag Abend… magst du? 🥺 Ich freu mich schon jetzt so darauf, einfach neben dir zu sitzen, irgendwas zu essen und gar nichts Besonderes zu tun. Bei dir ist das irgendwie immer genug. 💚"
         }
       ]
     }
