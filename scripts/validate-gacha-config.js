@@ -63,6 +63,7 @@ if (Array.isArray(outcomes.categories)) {
     if (Number.isInteger(category.weight)) totalWeight += category.weight;
 
     if (Array.isArray(category.outcomes)) {
+      const seenTitles = new Set();
       category.outcomes.forEach((outcome, index) => {
         assert(typeof outcome.title === "string" && outcome.title.trim(), `Outcome ${category.id}[${index}] needs a title.`);
         assert(typeof outcome.message === "string" && outcome.message.trim(), `Outcome ${category.id}[${index}] needs a message.`);
@@ -72,7 +73,36 @@ if (Array.isArray(outcomes.categories)) {
         if (typeof outcome.message === "string" && outcome.message.length > 260) {
           addWarning(`Outcome ${category.id}[${index}] is long (${outcome.message.length} chars). Consider shortening for phone screens.`);
         }
+        // The pull's anti-repeat logic (src/pull.js buildPullForDay) filters
+        // by category + exact title to avoid repeating a flavor text before
+        // the whole category is exhausted — an in-category duplicate title
+        // silently breaks that guarantee (both entries look identical to
+        // that filter, so the "no repeats until exhausted" promise shrinks
+        // by one slot without anyone noticing).
+        if (typeof outcome.title === "string" && outcome.title.trim()) {
+          const title = outcome.title.trim();
+          if (seenTitles.has(title)) {
+            addError(`Duplicate outcome title within ${category.id}: "${title}" — the anti-repeat pool can't tell these apart.`);
+          }
+          seenTitles.add(title);
+        }
       });
+    }
+  }
+
+  const titleToCategories = new Map();
+  for (const category of outcomes.categories) {
+    if (!Array.isArray(category.outcomes)) continue;
+    for (const outcome of category.outcomes) {
+      const title = typeof outcome.title === "string" ? outcome.title.trim() : "";
+      if (!title) continue;
+      if (!titleToCategories.has(title)) titleToCategories.set(title, []);
+      titleToCategories.get(title).push(category.id);
+    }
+  }
+  for (const [title, categoryIds] of titleToCategories) {
+    if (categoryIds.length > 1) {
+      addWarning(`Outcome title "${title}" appears in multiple categories (${categoryIds.join(", ")}) — probably a copy-paste, not intentional.`);
     }
   }
 

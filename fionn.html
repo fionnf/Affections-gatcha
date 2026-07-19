@@ -28,7 +28,9 @@
     <script>
       // Ensure ?player=fionn is always present so the main app renders in Fionn mode.
       if (!new URLSearchParams(location.search).has("player")) {
-        history.replaceState({}, "", location.pathname + "?player=fionn");
+        const params = new URLSearchParams(location.search);
+        params.set("player", "fionn");
+        history.replaceState({}, "", location.pathname + "?" + params.toString());
       }
     </script>
     <script

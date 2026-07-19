@@ -1,10 +1,12 @@
 {
+  "id": "/fionn",
   "name": "Affektions-Gacha · Fionn",
   "short_name": "Gacha · Fionn",
   "description": "Fionns Kuratoren-App: Outcomes & Special Days bearbeiten, Eingänge sehen.",
   "start_url": "./fionn.html",
   "scope": "./",
   "display": "standalone",
+  "lang": "de",
   "background_color": "#11181a",
   "theme_color": "#1a3a2c",
   "icons": [

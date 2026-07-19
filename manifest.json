@@ -1,9 +1,11 @@
 {
+  "id": "/lennart",
   "name": "Lennarts Affektions-Gacha",
   "short_name": "Affektions-Gacha",
   "description": "Eine tägliche Gacha-Maschine für Lennart.",
-  "start_url": "./?token=Lennart",
+  "start_url": "./?player=lennart",
   "display": "standalone",
+  "lang": "de",
   "background_color": "#eef5ea",
   "theme_color": "#1a3a2c",
   "icons": [
