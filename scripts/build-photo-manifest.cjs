@@ -4,7 +4,7 @@
   Build photos.json from an exported Apple Photos album.
 
   Usage:
-    node scripts/build-photo-manifest.js photos "https://USERNAME.github.io/REPO/photos/"
+    node scripts/build-photo-manifest.cjs photos "https://USERNAME.github.io/REPO/photos/"
 
   The first argument is the folder containing exported images.
   The second argument is the public base URL where that folder will be served.

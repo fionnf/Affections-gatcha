@@ -21,7 +21,7 @@ Edits are committed straight to GitHub via the Contents API and go live in ~1 mi
 The page is gated by a PIN. Generate a hash and paste it into `config/admin.json`:
 
 ```bash
-node scripts/hash-admin-pin.js <your-pin>
+node scripts/hash-admin-pin.cjs <your-pin>
 # → prints { "salt": "...", "pinHash": "..." }
 ```
 

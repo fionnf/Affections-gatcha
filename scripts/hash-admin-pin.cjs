@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generate a PIN hash for the Fionn admin app.
-// Usage: node scripts/hash-admin-pin.js <pin> [salt]
+// Usage: node scripts/hash-admin-pin.cjs <pin> [salt]
 // Then paste the printed "pinHash" (and "salt") into config/admin.json.
 
 const crypto = require("crypto");
@@ -9,7 +9,7 @@ const pin = process.argv[2];
 const salt = process.argv[3] || "fionn-gacha-2026";
 
 if (!pin) {
-  console.error("Usage: node scripts/hash-admin-pin.js <pin> [salt]");
+  console.error("Usage: node scripts/hash-admin-pin.cjs <pin> [salt]");
   process.exit(1);
 }
 

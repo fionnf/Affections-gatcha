@@ -3,7 +3,7 @@
   One-time setup: authorise Google Drive and write token.json.
 
   Usage:
-    node scripts/auth-drive.js [path/to/oauth_client.json]
+    node scripts/auth-drive.cjs [path/to/oauth_client.json]
 
   Reads oauth_client.json (downloaded from Google Cloud Console).
   Opens a browser for the OAuth consent screen.

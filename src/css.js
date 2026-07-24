@@ -923,6 +923,11 @@ export const css = `
       .ag-history-star:hover{color:var(--ag-gold);transform:scale(1.2)}
       .ag-history-star.is-starred{color:var(--ag-gold)}
       .ag-lighting-link-wrap{display:flex;justify-content:center;padding:12px 0 4px}
+      .ag-sync-status{
+        text-align:center;font-size:.72rem;color:var(--ag-muted);opacity:.65;
+        margin:2px 0 0;letter-spacing:.02em;
+      }
+      .ag-sync-status[data-ag-sync-state="error"]{color:#c9825f;opacity:.85}
       .ag-lighting-link{font-size:.92rem}
 
       .ag-rules{color:var(--ag-text)}
@@ -994,6 +999,32 @@ export const css = `
       .ag-history-video-icon{font-size:1.1rem;line-height:1}
       .ag-history-video-label{font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
       .ag-history-text{min-width:0;flex:1}
+
+      /* ── Kapsel-Kalender ── */
+      .ag-kalender{margin:4px 0 14px;padding:12px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+      .ag-kalender-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+      .ag-kalender-label{font-size:.8rem;font-weight:700;color:var(--ag-muted);letter-spacing:.03em}
+      .ag-kalender-nav{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1.15rem;line-height:1;padding:2px 10px;border-radius:8px}
+      .ag-kalender-nav:hover{color:var(--ag-text);background:rgba(255,255,255,.06)}
+      .ag-kalender-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;justify-items:center}
+      .ag-kalender-wd{font-size:.6rem;font-weight:800;color:var(--ag-muted);opacity:.55;letter-spacing:.05em}
+      .ag-kalender-day{
+        width:28px;height:28px;display:grid;place-items:center;
+        font-size:.68rem;color:var(--ag-muted);opacity:.55;border-radius:50%;
+        font-variant-numeric:tabular-nums;
+      }
+      .ag-kalender-day.is-future{opacity:.22}
+      .ag-kalender-day.is-today{box-shadow:0 0 0 1.5px var(--ag-primary) inset;opacity:1}
+      .ag-kalender-day.has-pull{opacity:1;color:#fffdf8;font-weight:700;background:var(--ag-primary)}
+      .ag-kalender-day.has-pull[data-tone="quiet"]{background:rgba(150,165,150,.55)}
+      .ag-kalender-day.has-pull[data-tone="quest"]{background:var(--ag-blue)}
+      .ag-kalender-day.has-pull[data-tone="warm"],
+      .ag-kalender-day.has-pull[data-tone="jackpot"]{background:var(--ag-gold)}
+      .ag-kalender-day.has-pull[data-tone="cursed"]{background:#3a2a4a}
+      .ag-kalender-day.has-pull[data-tone="rare"],
+      .ag-kalender-day.has-pull[data-tone="photo"]{background:var(--ag-green)}
+
+      .ag-history-more{display:block;width:100%;margin-top:12px;text-align:center}
 
       .ag-history-item[data-tone="quiet"] .ag-history-badge{color:var(--ag-muted)}
       .ag-history-item[data-tone="quest"] .ag-history-badge{color:var(--ag-blue)}
