@@ -1,6 +1,6 @@
 // ── Berge / Gipfelbuch ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, formatElev, formatBergeDate, extractKomootId, escapeHtml } from "./utils.js";
+import { formatElev, formatBergeDate, extractKomootId, escapeHtml } from "./utils.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
 import { markRecentWrite } from "./sheetSync.js";

@@ -1,11 +1,11 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, seededIndex, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount } from "./storage.js";
+import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen } from "./storage.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
-import { setCapsuleTone, emojiForTone, buildPull, imagePhotos, checkSpecialDay } from "./pull.js";
+import { setCapsuleTone, emojiForTone } from "./pull.js";
 import { TOKEN_REWARDS } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { extractDriveFileId } from "./utils.js";
@@ -23,10 +23,6 @@ export function setHistoryFilter(value) {
   historyShownCount = HISTORY_PAGE_SIZE; // new filter starts from the first page
   renderHistory();
 }
-export function getHistoryFilter() {
-  return historyFilter;
-}
-
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
 import { escapeHtml as escHtml } from "./utils.js";
@@ -201,13 +197,6 @@ export function renderMilestoneBanner(streak) {
 }
 
 // ── Ping banner ──────────────────────────────────────────────────────────────
-
-export function showPingBanner() {
-  const banner = $("[data-ag-ping-banner]");
-  if (!banner) return;
-  banner.hidden = false;
-  window.setTimeout(() => { if (banner) banner.hidden = true; }, 7000);
-}
 
 // ── PIN gates ────────────────────────────────────────────────────────────────
 
@@ -1396,7 +1385,7 @@ export function renderOdds() {
 
 // ── Wunschkapsel ──────────────────────────────────────────────────────────────
 
-import { readWish, writeWish } from "./storage.js";
+import { readWish } from "./storage.js";
 import { currentWeekKey } from "./utils.js";
 
 function wishMetaText(remoteStatus) {

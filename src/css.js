@@ -943,7 +943,6 @@ export const css = `
       .ag-history-star{background:none;border:none;padding:0 0 0 6px;margin-left:auto;font-size:1rem;line-height:1;cursor:pointer;color:var(--ag-muted);transition:color .15s,transform .15s;flex-shrink:0}
       .ag-history-star:hover{color:var(--ag-gold);transform:scale(1.2)}
       .ag-history-star.is-starred{color:var(--ag-gold)}
-      .ag-lighting-link-wrap{display:flex;justify-content:center;padding:12px 0 4px}
       .ag-sync-status{
         text-align:center;font-size:.72rem;color:var(--ag-muted);opacity:.65;
         margin:2px 0 0;letter-spacing:.02em;
@@ -1717,7 +1716,7 @@ export const css = `
           gap:4px;padding:9px 6px;background:none;border:none;cursor:pointer;
           min-height:50px;
           color:rgba(255,255,255,.48);
-          font-family:inherit;
+          font-family:inherit;text-decoration:none;
           border-radius:22px;
           transition:color 180ms var(--ag-ease),background 180ms var(--ag-ease),transform 120ms var(--ag-ease);
           -webkit-tap-highlight-color:transparent;

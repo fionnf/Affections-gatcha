@@ -1,8 +1,8 @@
 // ── Pull building ─────────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
-import { getToken, seededRandom, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone } from "./utils.js";
+import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone } from "./utils.js";
 import { readHistory, readFreikarteReroll } from "./storage.js";
-import { computeStreak, boostedCategories, pickWeightedWithStreak } from "./streak.js";
+import { computeStreak, pickWeightedWithStreak } from "./streak.js";
 
 export function checkSpecialDay(day) {
   const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
