@@ -55,6 +55,28 @@ export async function loadAllConfig() {
   return { theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions };
 }
 
+// Quiet one-line sync indicator at the bottom of the page. Failures used to
+// be completely invisible — data just silently didn't arrive. Now the app
+// always shows when it last heard from the sheet, or that it's offline.
+function setSyncStatus(ok) {
+  try {
+    const el = mount && mount.querySelector("[data-ag-sync-status]");
+    if (!el) return;
+    el.hidden = false;
+    if (ok) {
+      const t = new Intl.DateTimeFormat("de-CH", {
+        timeZone: state.theme?.timezone || "Europe/Zurich",
+        hour: "2-digit", minute: "2-digit"
+      }).format(new Date());
+      el.textContent = `Synchronisiert ${t} ✓`;
+      el.dataset.agSyncState = "ok";
+    } else {
+      el.textContent = "Offline — zeigt lokalen Stand";
+      el.dataset.agSyncState = "error";
+    }
+  } catch (_e) {}
+}
+
 export async function syncFromSheets() {
   try {
     const cfg = state.backup;
@@ -69,9 +91,9 @@ export async function syncFromSheets() {
     } finally {
       clearTimeout(tid);
     }
-    if (!res.ok) return false;
+    if (!res.ok) { setSyncStatus(false); return false; }
     const data = await res.json();
-    if (!data.ok) return false;
+    if (!data.ok) { setSyncStatus(false); return false; }
 
     const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
 
@@ -179,8 +201,9 @@ export async function syncFromSheets() {
       }));
     }
 
+    setSyncStatus(true);
     return Array.isArray(data.history) ? data.history.length : 0;
-  } catch (_e) { return -1; }
+  } catch (_e) { setSyncStatus(false); return -1; }
 }
 
 export function backupToSheets() {

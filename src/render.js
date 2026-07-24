@@ -20,6 +20,7 @@ let lightboxImgErrorHandler = null;
 let historyFilter = "all";
 export function setHistoryFilter(value) {
   historyFilter = value === "vouchers" || value === "open" ? value : "all";
+  historyShownCount = HISTORY_PAGE_SIZE; // new filter starts from the first page
   renderHistory();
 }
 export function getHistoryFilter() {
@@ -1204,6 +1205,81 @@ function updateVoucherFilterUi(openVouchers) {
   });
 }
 
+// ── Kapsel-Kalender ──────────────────────────────────────────────────────────
+// Month dot-grid above the Verlauf list: one cell per day, filled and tinted
+// by tone on days a capsule was pulled. Makes the streak feel physical.
+let _calMonthKey = null; // "YYYY-MM" currently displayed
+
+function renderKapselKalender(allEntries) {
+  const wrap = $("[data-ag-history-calendar]");
+  if (!wrap) return;
+  if (historyFilter !== "all") { wrap.hidden = true; return; }
+  wrap.hidden = false;
+
+  const tz = state.theme?.timezone || "UTC";
+  const today = dateKeyInTimezone(tz);
+  if (!_calMonthKey) _calMonthKey = today.slice(0, 7);
+  const byDay = new Map(allEntries.map((e) => [e.day, e]));
+
+  const [y, m] = _calMonthKey.split("-").map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1));
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const startCol = (first.getUTCDay() + 6) % 7; // Monday-first grid
+  const monthLabel = new Intl.DateTimeFormat("de-CH", { month: "long", year: "numeric", timeZone: "UTC" }).format(first);
+  const pulledInMonth = allEntries.filter((e) => e.day.startsWith(_calMonthKey)).length;
+
+  wrap.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "ag-kalender-head";
+  const prev = document.createElement("button");
+  prev.type = "button"; prev.className = "ag-kalender-nav"; prev.textContent = "‹";
+  prev.setAttribute("aria-label", "Vorheriger Monat");
+  const label = document.createElement("span");
+  label.className = "ag-kalender-label";
+  label.textContent = pulledInMonth ? `${monthLabel} · ${pulledInMonth} Kapseln` : monthLabel;
+  const next = document.createElement("button");
+  next.type = "button"; next.className = "ag-kalender-nav"; next.textContent = "›";
+  next.setAttribute("aria-label", "Nächster Monat");
+  const step = (delta) => {
+    const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+    _calMonthKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    renderKapselKalender(allEntries);
+  };
+  prev.addEventListener("click", () => step(-1));
+  next.addEventListener("click", () => step(1));
+  head.appendChild(prev); head.appendChild(label); head.appendChild(next);
+  wrap.appendChild(head);
+
+  const grid = document.createElement("div");
+  grid.className = "ag-kalender-grid";
+  for (const wd of ["M", "D", "M", "D", "F", "S", "S"]) {
+    const h = document.createElement("span");
+    h.className = "ag-kalender-wd";
+    h.textContent = wd;
+    grid.appendChild(h);
+  }
+  for (let i = 0; i < startCol; i++) grid.appendChild(document.createElement("span"));
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${_calMonthKey}-${String(d).padStart(2, "0")}`;
+    const entry = byDay.get(key);
+    const cell = document.createElement("span");
+    cell.className = "ag-kalender-day";
+    cell.textContent = d;
+    if (entry) {
+      cell.classList.add("has-pull");
+      cell.dataset.tone = entry.tone || "soft";
+      cell.title = `${entry.title || "Kapsel"} (${entry.categoryLabel || ""})`;
+    }
+    if (key === today) cell.classList.add("is-today");
+    if (key > today) cell.classList.add("is-future");
+    grid.appendChild(cell);
+  }
+  wrap.appendChild(grid);
+}
+
+const HISTORY_PAGE_SIZE = 60;
+let historyShownCount = HISTORY_PAGE_SIZE;
+
 export function renderHistory() {
   const list = $("[data-ag-history]");
   const empty = $("[data-ag-history-empty]");
@@ -1216,6 +1292,8 @@ export function renderHistory() {
     .filter((e) => e.token === token && e.day <= today)
     .slice()
     .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+
+  renderKapselKalender(allEntries);
 
   // Open (unredeemed) voucher count — used for the badge on the "Offen" chip.
   const openVouchers = allEntries.filter((e) => isVoucherEntry(e) && !e.used).length;
@@ -1237,6 +1315,8 @@ export function renderHistory() {
     note.textContent = "Tatsächlich geöffnete Kapseln auf diesem Gerät, neueste zuerst.";
   }
 
+  const moreBtn = $("[data-ag-history-more]");
+
   if (!entries.length) {
     empty.hidden = false;
     empty.textContent = historyFilter === "all"
@@ -1244,12 +1324,29 @@ export function renderHistory() {
       : (historyFilter === "open"
           ? "Keine offenen Gutscheine — alles eingelöst. 💛"
           : "Noch keine Gutscheine gezogen.");
+    if (moreBtn) moreBtn.hidden = true;
     return;
   }
   empty.hidden = true;
 
-  for (const entry of entries) {
+  // Render one page at a time — the full list re-renders on every tab visit,
+  // and at a-year-plus of daily entries building every card eagerly makes the
+  // tab switch visibly sluggish on a phone.
+  const visible = entries.slice(0, historyShownCount);
+  for (const entry of visible) {
     list.appendChild(renderHistoryItemEl(entry));
+  }
+
+  if (moreBtn) {
+    const remaining = entries.length - visible.length;
+    moreBtn.hidden = remaining <= 0;
+    if (remaining > 0) {
+      moreBtn.textContent = `Mehr anzeigen (${remaining} weitere)`;
+      moreBtn.onclick = () => {
+        historyShownCount += HISTORY_PAGE_SIZE;
+        renderHistory();
+      };
+    }
   }
 }
 

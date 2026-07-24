@@ -88,6 +88,52 @@ async function fireNotification(title, body, notifTag = "ag-daily") {
   }
 }
 
-// Minimal install/activate — no caching needed (assets are served from GitHub Pages).
+// ── Offline app shell ────────────────────────────────────────────────────────
+// Network-first with cache fallback for same-origin GETs: online behaviour is
+// identical to no service worker at all (every request hits the network and
+// refreshes the cache), but an offline open still gets the last-seen shell,
+// bundle and config — the day's pull is computed locally and deterministically,
+// so the app genuinely works in airplane mode. Cross-origin requests (Apps
+// Script, Google Photos) are never touched.
+const SHELL_CACHE = "ag-shell-v1";
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(SHELL_CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(async () => {
+        // Ignore the query string for bundles (?v= cache-bust) and navigations
+        // (?player=/... identity params) — offline, the last-seen copy wins.
+        const cached = await caches.match(req, { ignoreSearch: url.pathname.endsWith(".js") || req.mode === "navigate" });
+        if (cached) return cached;
+        // Navigations fall back to the cached entry page so a cold offline
+        // open still boots instead of showing the browser error page.
+        if (req.mode === "navigate") {
+          const shell = await caches.match("./index.html", { ignoreSearch: true });
+          if (shell) return shell;
+        }
+        return Response.error();
+      })
+  );
+});
+
 self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("activate", (event) => event.waitUntil(
+  (async () => {
+    // Drop caches from older shell versions, then take over open clients.
+    const names = await caches.keys();
+    await Promise.all(names.filter((n) => n !== SHELL_CACHE).map((n) => caches.delete(n)));
+    await self.clients.claim();
+  })()
+));

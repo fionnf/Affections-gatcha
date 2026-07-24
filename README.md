@@ -38,10 +38,10 @@ config/
   wish-inbox.json           Wunschkapsel → Google Sheet endpoint
   backup.json               Full backup → Google Sheet endpoint
 scripts/
-  validate-gacha-config.js  Validates JSON and weight totals
-  simulate-odds.js          Simulates draws to verify statistics
-  sync-shared-album.js      Reads album-source.json, writes photos.json
-  build-photo-manifest.js   Builds photos.json from an exported Apple Photos folder
+  validate-gacha-config.cjs  Validates JSON and weight totals
+  simulate-odds.cjs          Simulates draws to verify statistics
+  sync-shared-album.cjs      Reads album-source.json, writes photos.json
+  build-photo-manifest.cjs   Builds photos.json from an exported Apple Photos folder
   backup-apps-script.js     Google Apps Script source for the Sheets web app
 media-preview.html          Preview page for all synced photos and videos
 EDITING.md                  Quick-reference for no-code edits

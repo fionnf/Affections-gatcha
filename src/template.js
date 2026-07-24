@@ -478,7 +478,6 @@ export const html = `
             <div class="ag-card">
               <div class="ag-history-header">
                 <p class="ag-history-note" data-ag-history-note></p>
-                <button class="ag-sync-btn" data-ag-recover-btn type="button" title="Mai-Verlauf wiederherstellen">↺</button>
                 <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
               </div>
               <div class="ag-history-filter" data-ag-history-filter role="tablist" aria-label="Verlauf filtern">
@@ -486,8 +485,10 @@ export const html = `
                 <button class="ag-history-filter-chip" type="button" data-ag-filter="vouchers" role="tab" aria-selected="false">Gutscheine</button>
                 <button class="ag-history-filter-chip" type="button" data-ag-filter="open" role="tab" aria-selected="false">Offen</button>
               </div>
+              <div class="ag-kalender" data-ag-history-calendar hidden></div>
               <ol class="ag-history" data-ag-history></ol>
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
+              <button class="ag-secondary ag-history-more" type="button" data-ag-history-more hidden>Mehr anzeigen</button>
             </div>
           </section>
           <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
@@ -557,6 +558,7 @@ export const html = `
                 <span>💡 Lichtsteuerung</span>
               </a>
             </div>
+          <p class="ag-sync-status" data-ag-sync-status hidden></p>
         </div>
       </div>
 

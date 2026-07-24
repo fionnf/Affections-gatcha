@@ -6,9 +6,10 @@ import { GLOSSARY_KEY } from "./constants.js";
 import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
 
 // Module-level state
-export let _glossaryRecorder = null;
-export let _glossaryAudioBlob = null;
-export let _glossaryCurrentLang = "swabian";
+// Mutable UI state shared with events.js. A single object whose properties
+// are mutated (never reassigning an exported binding, which ES modules forbid
+// from the importing side and Rollup flags on every build).
+export const glossaryUI = { recorder: null, audioBlob: null, lang: "swabian" };
 
 export function readGlossary() {
   try { return JSON.parse(window.localStorage.getItem(GLOSSARY_KEY) || "[]") || []; } catch (_) { return []; }
@@ -145,7 +146,7 @@ export function renderGlossaryWord(word, showLang = false) {
       if (labelEl) labelEl.textContent = "Speichern";
       const statusEl = document.getElementById("ag-glossary-audio-status");
       if (statusEl) statusEl.textContent = word.audioUrl ? "Aufnahme vorhanden" : "";
-      _glossaryAudioBlob = null;
+      glossaryUI.audioBlob = null;
       form.hidden = false;
       if (addBtn) addBtn.hidden = true;
       form.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -158,7 +159,7 @@ export function renderGlossaryWord(word, showLang = false) {
     delBtn.addEventListener("click", () => {
       if (!window.confirm(`„${word.word}" löschen?`)) return;
       deleteGlossaryWord(word.id);
-      renderGlossaryPanel(_glossaryCurrentLang);
+      renderGlossaryPanel(glossaryUI.lang);
       haptic(8);
     });
   }
@@ -166,13 +167,13 @@ export function renderGlossaryWord(word, showLang = false) {
 }
 
 export function renderGlossaryPanel(lang) {
-  _glossaryCurrentLang = lang || "swabian";
+  glossaryUI.lang = lang || "swabian";
   const list = document.getElementById("ag-glossary-list");
   const empty = document.getElementById("ag-glossary-empty");
   if (!list) return;
   // Update tab active state
   document.querySelectorAll("#ag-glossary-tabs .ag-glossary-tab").forEach(btn => {
-    btn.classList.toggle("is-active", btn.dataset.lang === _glossaryCurrentLang);
+    btn.classList.toggle("is-active", btn.dataset.lang === glossaryUI.lang);
   });
   _glossaryMovePill();
   const query = (document.getElementById("ag-glossary-search")?.value || "").trim().toLowerCase();
@@ -182,7 +183,7 @@ export function renderGlossaryPanel(lang) {
         (w.word || "").toLowerCase().includes(query) ||
         (w.meaning || "").toLowerCase().includes(query)
       )
-    : allWords.filter(w => w.lang === _glossaryCurrentLang);
+    : allWords.filter(w => w.lang === glossaryUI.lang);
   list.innerHTML = "";
   if (!words.length) {
     if (empty) { empty.textContent = query ? "Kein Treffer." : "Noch kein Wort hier. Füg eins hinzu."; empty.hidden = false; }
@@ -207,7 +208,7 @@ export function openGlossaryPanel() {
   if (!panel) return;
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  _glossaryCurrentLang = "swabian";
+  glossaryUI.lang = "swabian";
   const searchEl = document.getElementById("ag-glossary-search");
   if (searchEl) searchEl.value = "";
   // Render instantly from local cache, then refresh from the sheet in the
@@ -216,7 +217,7 @@ export function openGlossaryPanel() {
   window.requestAnimationFrame(() => _glossaryMovePill());
   haptic(10);
   fetchGlossaryFromSheet().then((count) => {
-    if (count > 0) renderGlossaryPanel(_glossaryCurrentLang);
+    if (count > 0) renderGlossaryPanel(glossaryUI.lang);
   });
 }
 
@@ -227,9 +228,9 @@ export function closeGlossaryPanel() {
   if (form) form.hidden = true;
   const addBtn = document.getElementById("ag-glossary-add");
   if (addBtn) addBtn.hidden = false;
-  _glossaryAudioBlob = null;
-  if (_glossaryRecorder && _glossaryRecorder.state !== "inactive") {
-    try { _glossaryRecorder.stop(); } catch (_) {}
+  glossaryUI.audioBlob = null;
+  if (glossaryUI.recorder && glossaryUI.recorder.state !== "inactive") {
+    try { glossaryUI.recorder.stop(); } catch (_) {}
   }
-  _glossaryRecorder = null;
+  glossaryUI.recorder = null;
 }

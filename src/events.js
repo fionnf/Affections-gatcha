@@ -15,13 +15,11 @@ import { emojiForTone } from "./pull.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
-import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, _glossaryCurrentLang, _glossaryAudioBlob, _glossaryRecorder } from "./glossary.js";
+import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
-import * as glossaryMod from "./glossary.js";
 import { urlFor } from "./utils.js";
 import { readQuestState } from "./storage.js";
 import { currentWeekKey } from "./utils.js";
-import { recoverHistory } from "./init.js";
 
 // Notification message pools (from dist)
 export const DAILY_REMINDER_POOL = [
@@ -114,9 +112,18 @@ export function sendPingToBackend() {
       if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
     })
     .catch(() => {
-      fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
-      if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
-      if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
+      // CORS rejection is expected from Apps Script sometimes — the no-cors
+      // retry still delivers. Only a rejection of THAT means it truly failed
+      // (offline), and pretending otherwise would leave Lennart thinking a
+      // Stups arrived when it never did.
+      fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" })
+        .then(() => {
+          if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
+        })
+        .catch(() => {
+          if (status) { status.textContent = "Gerade keine Verbindung – gleich nochmal probieren."; status.dataset.agHugState = "error"; }
+        })
+        .finally(() => { if (button) window.setTimeout(() => { button.disabled = false; }, 2000); });
     });
 }
 
@@ -753,7 +760,7 @@ export function bindEvents() {
     if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
     haptic(6);
     const count = await fetchGlossaryFromSheet();
-    renderGlossaryPanel(glossaryMod._glossaryCurrentLang);
+    renderGlossaryPanel(glossaryUI.lang);
     if (btn) {
       btn.textContent = count > 0 ? `↻${count}` : "↻";
       setTimeout(() => { btn.textContent = "↻"; btn.disabled = false; }, 3000);
@@ -773,7 +780,7 @@ export function bindEvents() {
 
   // Search
   document.getElementById("ag-glossary-search")?.addEventListener("input", () => {
-    renderGlossaryPanel(glossaryMod._glossaryCurrentLang);
+    renderGlossaryPanel(glossaryUI.lang);
   });
 
   // Add button
@@ -791,7 +798,7 @@ export function bindEvents() {
       if (labelEl) labelEl.textContent = "Eintragen";
       const statusEl = document.getElementById("ag-glossary-audio-status");
       if (statusEl) statusEl.textContent = "";
-      glossaryMod._glossaryAudioBlob = null;
+      glossaryUI.audioBlob = null;
       const playPrev = document.getElementById("ag-glossary-play-preview");
       if (playPrev) playPrev.hidden = true;
       glossaryForm.hidden = false;
@@ -808,11 +815,11 @@ export function bindEvents() {
     if (glossaryAddBtn) glossaryAddBtn.hidden = false;
     $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
     document.getElementById("ag-glossary-edit-id").value = "";
-    glossaryMod._glossaryAudioBlob = null;
-    if (glossaryMod._glossaryRecorder && glossaryMod._glossaryRecorder.state !== "inactive") {
-      try { glossaryMod._glossaryRecorder.stop(); } catch (_) {}
+    glossaryUI.audioBlob = null;
+    if (glossaryUI.recorder && glossaryUI.recorder.state !== "inactive") {
+      try { glossaryUI.recorder.stop(); } catch (_) {}
     }
-    glossaryMod._glossaryRecorder = null;
+    glossaryUI.recorder = null;
     haptic(6);
   });
 
@@ -824,10 +831,10 @@ export function bindEvents() {
     if (!word) { document.getElementById("ag-glossary-word-input")?.focus(); return; }
     const statusEl = document.getElementById("ag-glossary-audio-status");
     let audioUrl = null;
-    if (glossaryMod._glossaryAudioBlob) {
+    if (glossaryUI.audioBlob) {
       if (statusEl) statusEl.textContent = "Wird hochgeladen…";
       const newId = editId || `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
-      audioUrl = await uploadGlossaryAudio(glossaryMod._glossaryAudioBlob, newId);
+      audioUrl = await uploadGlossaryAudio(glossaryUI.audioBlob, newId);
     }
     haptic([20, 20, 40]);
     if (editId) {
@@ -835,14 +842,14 @@ export function bindEvents() {
       if (audioUrl !== null) fields.audioUrl = audioUrl;
       updateGlossaryWord(editId, fields);
     } else {
-      addGlossaryWord({ id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`, lang: glossaryMod._glossaryCurrentLang, word, meaning: meaning || null, audioUrl, token: getToken() });
+      addGlossaryWord({ id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`, lang: glossaryUI.lang, word, meaning: meaning || null, audioUrl, token: getToken() });
     }
     if (glossaryForm) glossaryForm.hidden = true;
     if (glossaryAddBtn) glossaryAddBtn.hidden = false;
     document.getElementById("ag-glossary-edit-id").value = "";
-    glossaryMod._glossaryAudioBlob = null;
-    glossaryMod._glossaryRecorder = null;
-    renderGlossaryPanel(glossaryMod._glossaryCurrentLang);
+    glossaryUI.audioBlob = null;
+    glossaryUI.recorder = null;
+    renderGlossaryPanel(glossaryUI.lang);
     showToast("Wort gespeichert ✓");
   });
 
@@ -850,25 +857,25 @@ export function bindEvents() {
   const recordBtn = document.getElementById("ag-glossary-record");
   if (recordBtn) {
     recordBtn.addEventListener("click", async () => {
-      if (glossaryMod._glossaryRecorder && glossaryMod._glossaryRecorder.state === "recording") {
-        glossaryMod._glossaryRecorder.stop();
+      if (glossaryUI.recorder && glossaryUI.recorder.state === "recording") {
+        glossaryUI.recorder.stop();
         return;
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const chunks = [];
-        glossaryMod._glossaryRecorder = new MediaRecorder(stream);
-        glossaryMod._glossaryRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        glossaryMod._glossaryRecorder.onstop = () => {
+        glossaryUI.recorder = new MediaRecorder(stream);
+        glossaryUI.recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        glossaryUI.recorder.onstop = () => {
           stream.getTracks().forEach(t => t.stop());
-          glossaryMod._glossaryAudioBlob = new Blob(chunks, { type: glossaryMod._glossaryRecorder.mimeType || "audio/webm" });
+          glossaryUI.audioBlob = new Blob(chunks, { type: glossaryUI.recorder.mimeType || "audio/webm" });
           const statusEl = document.getElementById("ag-glossary-audio-status");
           if (statusEl) statusEl.textContent = "✓ Aufnahme bereit";
           const playPrev = document.getElementById("ag-glossary-play-preview");
           if (playPrev) playPrev.hidden = false;
           recordBtn.textContent = "🎙 Neu aufnehmen";
         };
-        glossaryMod._glossaryRecorder.start();
+        glossaryUI.recorder.start();
         recordBtn.textContent = "⏹ Stop";
         const statusEl = document.getElementById("ag-glossary-audio-status");
         if (statusEl) statusEl.textContent = "● REC";
@@ -882,8 +889,8 @@ export function bindEvents() {
 
   // Preview playback
   document.getElementById("ag-glossary-play-preview")?.addEventListener("click", () => {
-    if (!glossaryMod._glossaryAudioBlob) return;
-    const url = URL.createObjectURL(glossaryMod._glossaryAudioBlob);
+    if (!glossaryUI.audioBlob) return;
+    const url = URL.createObjectURL(glossaryUI.audioBlob);
     const audio = new Audio(url);
     audio.onended = () => URL.revokeObjectURL(url);
     audio.play().catch(() => {});
@@ -1042,19 +1049,6 @@ export function bindEvents() {
     showToast("Freikarte eingelöst — nochmal gezogen! 🎟️✨");
     haptic([20, 20, 40]);
   });
-
-  const recoverBtn = $("[data-ag-recover-btn]");
-  if (recoverBtn) {
-    recoverBtn.addEventListener("click", () => {
-      recoverBtn.textContent = "⏳";
-      recoverBtn.disabled = true;
-      const added = recoverHistory();
-      renderHistory();
-      renderStreak();
-      recoverBtn.textContent = added > 0 ? `↺${added}` : "✓";
-      setTimeout(() => { recoverBtn.textContent = "↺"; recoverBtn.disabled = false; }, 3000);
-    });
-  }
 
   const restoreBtn = $("[data-ag-streak-restore]");
   if (restoreBtn) {

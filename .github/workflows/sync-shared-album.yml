@@ -33,10 +33,10 @@ jobs:
         env:
           GDRIVE_OAUTH_CLIENT: ${{ secrets.GDRIVE_OAUTH_CLIENT }}
           GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
-        run: node scripts/sync-shared-album.js
+        run: node scripts/sync-shared-album.cjs
 
       - name: Validate config
-        run: node scripts/validate-gacha-config.js
+        run: node scripts/validate-gacha-config.cjs
 
       - name: Commit and push if changed
         run: |

@@ -1,0 +1,69 @@
+name: Build bundles
+
+# Rebuilds both app bundles whenever source changes land on master, and stamps
+# the cache-busting ?v= query in the HTML entry points with the commit SHA —
+# no more building locally, committing dist/ by hand, and remembering to bump
+# ?v= in two files (forgetting that once already shipped a stale bundle).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+      - "admin/**"
+      - "vite.config.js"
+      - "vite.config.admin.js"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-bundles
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Validate config
+        run: node scripts/validate-gacha-config.cjs
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build both bundles
+        run: npm run build
+
+      - name: Stamp cache-bust version with commit SHA
+        run: |
+          SHORT_SHA="${GITHUB_SHA::9}"
+          sed -i -E "s#(dist/affection-gacha\.js\?v=)[^\"]*#\1${SHORT_SHA}#" index.html fionn.html
+          sed -i -E "s#(dist/fionn-admin\.js\?v=)[^\"]*#\1${SHORT_SHA}#" fionn.html
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/ index.html fionn.html
+          if git diff --cached --quiet; then
+            echo "No changes. Skipping commit."
+            exit 0
+          fi
+          git commit -m "chore(build): rebuild bundles for ${GITHUB_SHA::9} [skip ci]"
+          git pull --rebase origin master
+          git push
