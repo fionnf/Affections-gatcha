@@ -599,15 +599,8 @@ export function renderError(error) {
   `;
 }
 
-export function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[character]));
-}
+import { escapeHtml } from "./utils.js";
+export { escapeHtml };
 
 
 export function reveal() {

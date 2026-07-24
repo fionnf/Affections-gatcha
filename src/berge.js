@@ -1,6 +1,6 @@
 // ── Berge / Gipfelbuch ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, formatElev, formatBergeDate, extractKomootId } from "./utils.js";
+import { getToken, formatElev, formatBergeDate, extractKomootId, escapeHtml } from "./utils.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
 import { markRecentWrite } from "./sheetSync.js";
@@ -107,14 +107,16 @@ export function renderGipfelCard(entry) {
   const isAllTrails = entry.activityUrl && entry.activityUrl.includes("alltrails.com");
   const allTrailsEmbed = isAllTrails ? extractAllTrailsEmbed(entry.activityUrl) : null;
 
+  // Every entry field below comes from the shared sheet (typed by either
+  // player on any device) — escape all of it before it touches innerHTML.
   const coverHtml = entry.cover
-    ? `<div class="ag-gipfel-cover"><img src="${entry.cover}" alt="${entry.name || ""}" loading="lazy"></div>`
+    ? `<div class="ag-gipfel-cover"><img src="${escapeHtml(entry.cover)}" alt="${escapeHtml(entry.name || "")}" loading="lazy" decoding="async"></div>`
     : "";
 
   const elevDisplay = entry.elevGain || entry.elevation;
-  const distStr = entry.distance ? `${entry.distance} km` : "";
+  const distStr = entry.distance ? `${escapeHtml(entry.distance)} km` : "";
   const trailLink = entry.activityUrl
-    ? `<a class="ag-gipfel-trail-arrow" href="${entry.activityUrl}" target="_blank" rel="noopener noreferrer">↗</a>`
+    ? `<a class="ag-gipfel-trail-arrow" href="${escapeHtml(entry.activityUrl)}" target="_blank" rel="noopener noreferrer">↗</a>`
     : "";
   const statsHtml = (distStr || trailLink)
     ? `<div class="ag-gipfel-stats">${distStr}${distStr && trailLink ? " " : ""}${trailLink}</div>`
@@ -125,16 +127,16 @@ export function renderGipfelCard(entry) {
     <div class="ag-gipfel-head">
       <div class="ag-gipfel-head-info">
         <div class="ag-gipfel-date">${formatBergeDate(entry.date)}</div>
-        <div class="ag-gipfel-name">${entry.name || "—"}</div>
+        <div class="ag-gipfel-name">${escapeHtml(entry.name || "—")}</div>
       </div>
       ${elevDisplay ? `<div class="ag-gipfel-elev">↑ ${formatElev(elevDisplay)}</div>` : ""}
       <div class="ag-gipfel-actions">
-        <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${entry.id}" aria-label="Bearbeiten" title="Bearbeiten">✏️</button>
-        <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${entry.id}" aria-label="Löschen" title="Löschen">✕</button>
+        <button class="ag-gipfel-edit" type="button" data-ag-gipfel-edit="${escapeHtml(entry.id)}" aria-label="Bearbeiten" title="Bearbeiten">✏️</button>
+        <button class="ag-gipfel-delete" type="button" data-ag-gipfel-delete="${escapeHtml(entry.id)}" aria-label="Löschen" title="Löschen">✕</button>
       </div>
     </div>
     ${statsHtml}
-    ${entry.notes ? `<p class="ag-gipfel-notes">${entry.notes}</p>` : ""}
+    ${entry.notes ? `<p class="ag-gipfel-notes">${escapeHtml(entry.notes)}</p>` : ""}
     ${komootId ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-komoot="${komootId}">🗺 Komoot-Karte</button></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-komoot="${komootId}" hidden></div>` : ""}
     ${isAllTrails && allTrailsEmbed ? `<div class="ag-gipfel-embed-row"><button class="ag-secondary ag-gipfel-map-btn" type="button" data-ag-map-alltrails="true">🗺 AllTrails-Karte</button></div><div class="ag-gipfel-map-preview" data-ag-map-wrap-alltrails="true" hidden></div>` : ""}
   `;
@@ -202,7 +204,7 @@ export function renderGipfelCard(entry) {
       const wrap = card.querySelector("[data-ag-map-wrap-alltrails]");
       if (!wrap) return;
       if (!wrap.hidden) { wrap.hidden = true; alltrailsMapBtn.textContent = "🗺 AllTrails-Karte"; return; }
-      wrap.innerHTML = `<iframe src="${allTrailsEmbed}" height="220" frameborder="0" scrolling="no" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
+      wrap.innerHTML = `<iframe src="${escapeHtml(allTrailsEmbed)}" height="220" frameborder="0" scrolling="no" title="AllTrails Route" style="display:block;width:100%;border:0;border-radius:8px"></iframe>`;
       wrap.hidden = false;
       alltrailsMapBtn.textContent = "Karte schließen";
       haptic(4);
@@ -399,7 +401,7 @@ export async function initGipfelMap(entries) {
     popupContent.style.cssText = "min-width:130px";
     const elevVal = entry.elevGain || entry.elevation;
     popupContent.innerHTML = `
-      <div style="font-weight:700;margin-bottom:4px;font-size:.92rem">${entry.name || "—"}</div>
+      <div style="font-weight:700;margin-bottom:4px;font-size:.92rem">${escapeHtml(entry.name || "—")}</div>
       ${elevVal ? `<div style="font-size:.8rem;opacity:.7;margin-bottom:6px">↑ ${formatElev(elevVal)}</div>` : ""}
     `;
     const goBtn = document.createElement("button");

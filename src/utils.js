@@ -197,3 +197,12 @@ export function isVoucherEntry(entry) {
   if (VOUCHER_NEGATIVE.test(text)) return false;
   return VOUCHER_KEYWORDS.test(text);
 }
+
+// Escape text for interpolation into innerHTML template strings. Sheet-synced
+// content (glossary words, Gipfelbuch entries, prompt answers) is written by
+// the two players but still must never be interpretable as markup.
+export function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  }[c]));
+}

@@ -2,6 +2,27 @@ export const css = `
       body{transition:background .55s ease}
       .ag-widget,.ag-widget *{box-sizing:border-box}
       .ag-widget [hidden]{display:none!important}
+
+      /* Keyboard focus is visible; pointer taps stay clean. */
+      .ag-widget :focus-visible{outline:2px solid var(--ag-primary);outline-offset:2px;border-radius:6px}
+      .ag-widget :focus:not(:focus-visible){outline:none}
+
+      /* Respect the OS-level reduced-motion setting: kill the perpetual
+         orbit/shimmer/spin loops and cut transitions to near-instant. This
+         doubles as a battery/perf escape hatch on old phones — turning on
+         "reduce motion" makes the whole app cheap to render. */
+      @media (prefers-reduced-motion:reduce){
+        .ag-widget *,.ag-widget *::before,.ag-widget *::after{
+          animation-duration:.01ms!important;animation-iteration-count:1!important;
+          transition-duration:.01ms!important;scroll-behavior:auto!important;
+        }
+        body{transition:none}
+      }
+
+      /* While the hero is scrolled out of view its orbit/shimmer loops keep
+         the compositor busy for nothing — init.js toggles this class via an
+         IntersectionObserver. */
+      .ag-stage.ag-stage-idle *{animation-play-state:paused!important}
       .ag-widget:not(.is-ready){opacity:0}
       .ag-widget.is-ready{opacity:1;transition:opacity .18s ease}
       .ag-widget{
@@ -970,6 +991,9 @@ export const css = `
         padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
         background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
         transition:transform 180ms var(--ag-ease), border-color 180ms var(--ag-ease);
+        /* Off-screen cards skip layout+paint entirely — the big win for long
+           lists on old phones. Harmless no-op where unsupported. */
+        content-visibility:auto;contain-intrinsic-size:auto 120px;
       }
       @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
       .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
@@ -1329,7 +1353,7 @@ export const css = `
           radial-gradient(ellipse 70% 90% at 80% 80%, rgba(184,120,46,.38) 0%, transparent 50%),
           radial-gradient(ellipse 60% 60% at 60% 30%, rgba(55,106,131,.3) 0%, transparent 50%),
           rgba(6,14,9,.88);
-        backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+        backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
         animation:ag-letter-fade-in 900ms cubic-bezier(.16,1,.3,1) both;
       }
       .ag-letter-overlay[hidden]{display:none}
@@ -1668,8 +1692,8 @@ export const css = `
           z-index:1000;
           border-radius:26px;
           background:rgba(255,255,255,.13);
-          backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);
-          -webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);
+          backdrop-filter:blur(16px) saturate(1.9) brightness(1.06);
+          -webkit-backdrop-filter:blur(16px) saturate(1.9) brightness(1.06);
           border:1px solid rgba(255,255,255,.32);
           box-shadow:
             0 1.5px 0 rgba(255,255,255,.28) inset,
@@ -1706,8 +1730,8 @@ export const css = `
           height:calc(100% - 10px);
           border-radius:16px;
           background:linear-gradient(170deg,rgba(255,255,255,.32) 0%,rgba(255,255,255,.10) 100%);
-          backdrop-filter:blur(28px) saturate(2.8) brightness(1.14);
-          -webkit-backdrop-filter:blur(28px) saturate(2.8) brightness(1.14);
+          backdrop-filter:blur(12px) saturate(2.8) brightness(1.14);
+          -webkit-backdrop-filter:blur(12px) saturate(2.8) brightness(1.14);
           border:1px solid rgba(255,255,255,.62);
           box-shadow:
             0 1.5px 0 rgba(255,255,255,.70) inset,
