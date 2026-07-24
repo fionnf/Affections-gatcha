@@ -157,6 +157,24 @@ function doGet(e) {
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
     // prompt answers and quest solves into one time-sorted list.
+    // Push-subscription feed for the sender job (a Node/web-push runner or
+    // Worker). Returns every stored subscription, optionally filtered to one
+    // recipient token with &for=fionn. See PUSH-SETUP.md.
+    if (e.parameter && e.parameter.feed === "push-subs") {
+      const pushSheet = getOrCreatePushSheet_(ss);
+      const pVals = pushSheet.getDataRange().getValues();
+      const wantToken = (e.parameter.for || "").toString().toLowerCase();
+      const subs = [];
+      for (let i = 1; i < pVals.length; i++) {
+        const row = pVals[i];
+        if (!row[1]) continue;
+        const rowToken = (row[0] || "").toString().toLowerCase();
+        if (wantToken && rowToken !== wantToken) continue;
+        try { subs.push({ token: rowToken, subscription: JSON.parse(row[2]) }); } catch (err) {}
+      }
+      return jsonOut_({ ok: true, subscriptions: subs });
+    }
+
     let activity = [];
     if (e.parameter && e.parameter.feed === "activity") {
       function tsStr(v) {
@@ -402,6 +420,25 @@ function doPost(e) {
       return jsonOut_({ ok: true });
     }
 
+    // ── Web Push subscription upsert ──────────────────────────────────────────
+    // Stores one row per (token, endpoint) so a player can have several devices.
+    // The push SENDER (a Node/web-push job or Cloudflare Worker — Apps Script
+    // can't sign VAPID ES256) reads these via doGet ?feed=push-subs. See
+    // PUSH-SETUP.md.
+    if (data.type === "push-subscribe" && data.subscription && data.subscription.endpoint) {
+      const sheet = getOrCreatePushSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const endpoint = data.subscription.endpoint;
+      const row = [data.token || "", endpoint, JSON.stringify(data.subscription), new Date().toISOString()];
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][1] === endpoint) { rowIdx = i + 1; break; }
+      }
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
     // ── Notfall-Umarmung & Wunschkapsel ──────────────────────────────────────
     if (data.type === "hug" || data.wish) {
       const isHug = data.type === "hug";
@@ -641,6 +678,18 @@ function getOrCreateGipfelbuchSheet_(ss) {
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
     sheet.setColumnWidth(6, 300);
+  }
+  return sheet;
+}
+
+function getOrCreatePushSheet_(ss) {
+  let sheet = ss.getSheetByName("PushSubscriptions");
+  if (!sheet) {
+    sheet = ss.insertSheet("PushSubscriptions");
+    sheet.appendRow(["Token", "Endpoint", "SubscriptionJSON", "UpdatedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(2, 320);
+    sheet.setColumnWidth(3, 400);
   }
   return sheet;
 }

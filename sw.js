@@ -60,15 +60,50 @@ self.addEventListener("periodicsync", (event) => {
   })());
 });
 
+// ── Real Web Push ─────────────────────────────────────────────────────────────
+// Fires for a server-sent push while the app is fully closed (the piece local
+// SW-timer notifications can never do). Dormant unless config/push.json is
+// enabled and a sender is wired up — see PUSH-SETUP.md. Payload is JSON
+// { title, body, url? }; a payloadless push still shows a gentle default.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (_e) {
+    try { data = { body: event.data.text() }; } catch (_e2) { data = {}; }
+  }
+  const title = data.title || "Affektions-Gacha 🎲";
+  const body = data.body || "Es gibt etwas Neues für dich.";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "./media/icon-192.png",
+      badge: "./media/icon-96.png",
+      tag: data.tag || "ag-push",
+      renotify: true,
+      data: { url: data.url || "./" },
+    })
+  );
+});
+
+// If the browser rotates the subscription, tell any open client to re-register
+// it (subscribeToPush runs on next open regardless, this just speeds it up).
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
+      clients.forEach((c) => c.postMessage({ type: "PUSH_RESUBSCRIBE" }));
+    })
+  );
+});
+
 // ── Notification click ───────────────────────────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "./";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if (client.url && "focus" in client) return client.focus();
       }
-      if (self.clients.openWindow) return self.clients.openWindow("./");
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     })
   );
 });
