@@ -1,6 +1,6 @@
 // ── Glossary ──────────────────────────────────────────────────────────────────
 import { state } from "./state.js";
-import { getToken } from "./utils.js";
+import { getToken, escapeHtml } from "./utils.js";
 import { haptic } from "./haptic.js";
 import { GLOSSARY_KEY } from "./constants.js";
 import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
@@ -107,19 +107,21 @@ export function renderGlossaryWord(word, showLang = false) {
   const card = document.createElement("div");
   card.className = "ag-glossary-card";
   card.dataset.agGlossaryId = word.id;
+  // Word entries are sheet-synced (typed by either player on any device) —
+  // escape everything interpolated into innerHTML.
   const langBadge = showLang && word.lang
-    ? `<span class="ag-glossary-lang-badge">${LANG_LABELS[word.lang] || word.lang}</span>`
+    ? `<span class="ag-glossary-lang-badge">${escapeHtml(LANG_LABELS[word.lang] || word.lang)}</span>`
     : "";
   card.innerHTML = `
     <div class="ag-glossary-card-body">
       <div class="ag-glossary-card-text">
-        <div class="ag-glossary-word">${word.word || "—"}${langBadge}</div>
-        ${word.meaning ? `<div class="ag-glossary-meaning-text">${word.meaning}</div>` : ""}
+        <div class="ag-glossary-word">${escapeHtml(word.word || "—")}${langBadge}</div>
+        ${word.meaning ? `<div class="ag-glossary-meaning-text">${escapeHtml(word.meaning)}</div>` : ""}
       </div>
       <div class="ag-glossary-card-btns">
-        ${word.audioUrl ? `<button class="ag-glossary-play-btn" type="button" data-ag-glossary-play="${word.id}" aria-label="Abspielen">▶</button>` : ""}
-        <button class="ag-glossary-edit-btn" type="button" data-ag-glossary-edit="${word.id}" aria-label="Bearbeiten">Bearbeiten</button>
-        <button class="ag-glossary-del-btn" type="button" data-ag-glossary-del="${word.id}" aria-label="Löschen">✕</button>
+        ${word.audioUrl ? `<button class="ag-glossary-play-btn" type="button" data-ag-glossary-play="${escapeHtml(word.id)}" aria-label="Abspielen">▶</button>` : ""}
+        <button class="ag-glossary-edit-btn" type="button" data-ag-glossary-edit="${escapeHtml(word.id)}" aria-label="Bearbeiten">Bearbeiten</button>
+        <button class="ag-glossary-del-btn" type="button" data-ag-glossary-del="${escapeHtml(word.id)}" aria-label="Löschen">✕</button>
       </div>
     </div>
   `;

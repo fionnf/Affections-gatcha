@@ -599,15 +599,8 @@ export function renderError(error) {
   `;
 }
 
-export function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[character]));
-}
+import { escapeHtml } from "./utils.js";
+export { escapeHtml };
 
 
 export function reveal() {
@@ -1194,6 +1187,7 @@ export function bindEvents() {
   });
   $("#ag-stimmung-close")?.addEventListener("click", closeStimmungPanel);
   bindStimmungPanel();
+
 
   // Berge / Gipfelbuch
   const bergeAddBtn = $("[data-ag-berge-add]");

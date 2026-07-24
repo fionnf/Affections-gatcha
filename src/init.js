@@ -75,6 +75,18 @@ export async function init() {
       }
     });
     try { retryPendingWishSend(); } catch (_error) {}
+    // The hero's orbit/shimmer loops run forever; when it's scrolled out of
+    // view (reading Verlauf/Berge) they're pure wasted GPU work — noticeable
+    // heat and jank on older phones. Pause them until the hero is back.
+    try {
+      const stage = mount.querySelector(".ag-stage");
+      if (stage && "IntersectionObserver" in window) {
+        const io = new IntersectionObserver(([entry]) => {
+          stage.classList.toggle("ag-stage-idle", !entry.isIntersecting);
+        }, { threshold: 0.05 });
+        io.observe(stage);
+      }
+    } catch (_error) {}
     registerServiceWorker();
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") scheduleStreakWarning();

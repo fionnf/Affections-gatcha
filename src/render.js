@@ -29,9 +29,8 @@ export function getHistoryFilter() {
 
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
-export function escHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+import { escapeHtml as escHtml } from "./utils.js";
+export { escHtml };
 
 export function formatMsg(text) {
   if (!text) return "";
@@ -475,6 +474,8 @@ export function renderMediaInto(container, photo) {
       const poster = document.createElement("img");
       poster.src = `https://lh3.googleusercontent.com/d/${driveId}`;
       poster.alt = altText;
+      poster.loading = "lazy";
+      poster.decoding = "async";
       poster.className = "ag-drive-poster-img";
       poster.addEventListener("error", () => poster.remove(), { once: true });
       wrapper.appendChild(poster);
