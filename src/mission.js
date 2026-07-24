@@ -1,17 +1,12 @@
 // ── Mission / Gespräch / Quest / Letter ───────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getMissionPlayer, dateKeyInTimezone, currentQuestPeriod, currentChallenge } from "./utils.js";
-import { seededIndex } from "./utils.js";
+import { getMissionPlayer, dateKeyInTimezone, currentChallenge } from "./utils.js";
+import { seededIndex, escapeHtml as escHtml } from "./utils.js";
 import { readMissionLog, writeMissionLog, readQuestState, writeQuestState, readQuestPoints, addQuestPoints } from "./storage.js";
 import { QUEST_POINTS_SCHEDULE, GESPRACH_IDX_KEY } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { imagePhotos } from "./pull.js";
 import { haptic } from "./haptic.js";
-
-// Local escHtml to avoid circular dependency with render.js
-function escHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 export const GESPRACH_QUESTIONS = [
   "Wenn wir ein Restaurant eröffnen würden — was servieren wir, wie heißt es, und wo steht es?",
@@ -411,45 +406,6 @@ export async function callQuestProxy(base64, challenge, solution, attemptNumber,
   });
   if (!res.ok) throw new Error("proxy error");
   return res.json();
-}
-
-export function applyFionnView() {
-  // Minimal view for Fionn — just his daily mission, no pull UI
-  document.title = "Fionns Mission";
-  const frame = mount?.querySelector(".ag-frame");
-  if (frame) {
-    frame.innerHTML = "";
-    const header = document.createElement("div");
-    header.className = "ag-fionn-header";
-    header.innerHTML = `<h1 class="ag-fionn-title">Deine Mission heute</h1><p class="ag-fionn-sub">Lennart hat eine andere — ihr erfahrt voneinander was es war wenn ihr redet.</p>`;
-    const card = document.createElement("div");
-    card.className = "ag-mission-card ag-fionn-card";
-    card.textContent = getTodaysMission() || "Heute keine Mission.";
-    const done = document.createElement("button");
-    done.className = "ag-button ag-fionn-done";
-    done.type = "button";
-    done.innerHTML = `<span class="ag-button-orb" aria-hidden="true"></span><span>Erledigt ✓</span>`;
-    const doneNote = document.createElement("p");
-    doneNote.className = "ag-mission-done-note";
-    doneNote.hidden = true;
-    doneNote.textContent = "Gut gemacht. Morgen gibt es eine neue.";
-    if (isMissionDoneToday()) { done.hidden = true; doneNote.hidden = false; }
-    const logDiv = document.createElement("div");
-    logDiv.className = "ag-mission-log";
-    logDiv.id = "ag-fionn-mission-log";
-    done.addEventListener("click", () => {
-      markMissionDone();
-      done.hidden = true;
-      doneNote.hidden = false;
-      renderMissionLog(logDiv, "fionn");
-    });
-    frame.appendChild(header);
-    frame.appendChild(card);
-    frame.appendChild(done);
-    frame.appendChild(doneNote);
-    frame.appendChild(logDiv);
-    renderMissionLog(logDiv, "fionn");
-  }
 }
 
 export function playLetterSound() {

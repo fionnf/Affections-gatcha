@@ -40,21 +40,6 @@ export function fetchJson(file, fallback = null) {
   });
 }
 
-export async function loadAllConfig() {
-  const defaultPhotos = { photos: [] };
-  const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions] = await Promise.all([
-    fetchJson("config/theme.json"),
-    fetchJson("config/outcomes.json"),
-    fetchJson("config/photos.json", defaultPhotos),
-    fetchJson("config/special-days.json", { days: [] }),
-    fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
-    fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
-    fetchJson("config/quest.json", { enabled: false }),
-    fetchJson("config/missions.json", { pairs: [] })
-  ]);
-  return { theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions };
-}
-
 // Quiet one-line sync indicator at the bottom of the page. Failures used to
 // be completely invisible — data just silently didn't arrive. Now the app
 // always shows when it last heard from the sheet, or that it's offline.

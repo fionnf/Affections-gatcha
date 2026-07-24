@@ -14,10 +14,6 @@ export function soundEnabled() {
   try { return window.localStorage.getItem(SOUND_KEY) !== "off"; } catch (_) { return true; }
 }
 
-export function setSoundEnabled(on) {
-  try { window.localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch (_) {}
-}
-
 export function _playNote(ctx, freq, startSec, dur, vol = 0.15, type = "sine") {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();

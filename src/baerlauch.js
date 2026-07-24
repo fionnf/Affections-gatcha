@@ -28,10 +28,6 @@ export function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-export function baerlauchDurationForLevel(level) {
-  return Math.max(1800, 15000 - (level - 1) * 500);
-}
-
 export function updateBaerlauchLevelText() {
   const el = $("#ag-baerlauch-level");
   if (el) el.textContent = `Level ${state.baerlauch.level}`;
