@@ -552,41 +552,11 @@ export const html = `
               <div id="ag-gipfel-map" class="ag-gipfel-map"></div>
             </div>
           </section>
-          <section class="ag-card ag-mini-panel" id="ag-lights-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Lichtsteuerung 💡</span>
-              <button class="ag-secondary" type="button" id="ag-lights-close">✕</button>
-            </div>
-            <h2 class="ag-mini-title">Eure Lampen</h2>
-            <p class="ag-mini-copy">
-              <span class="ag-lights-dot" data-ag-lights-dot data-ag-lights-state="disconnected" aria-hidden="true"></span>
-              <span data-ag-lights-status>Getrennt</span>
-              <span class="ag-lights-boards">
-                <span class="ag-lights-board" data-ag-lights-board="board_a">FF –</span>
-                <span class="ag-lights-board" data-ag-lights-board="board_b">LS –</span>
-              </span>
-            </p>
-            <div class="ag-lights-controls">
-              <button class="ag-button ag-lights-power" type="button" data-ag-lights-power>💡 An</button>
-              <label class="ag-lights-row">
-                <span class="ag-lights-label">Helligkeit</span>
-                <input class="ag-lights-slider" data-ag-lights-brightness type="range" min="5" max="100" value="100" aria-label="Helligkeit">
-              </label>
-              <label class="ag-lights-row">
-                <span class="ag-lights-label">Farbe <span class="ag-lights-preview" data-ag-lights-preview aria-hidden="true"></span></span>
-                <input class="ag-lights-slider ag-lights-colour" data-ag-lights-colour type="range" min="0" max="100" value="0" aria-label="Farbe">
-              </label>
-              <div class="ag-lights-foot">
-                <button class="ag-secondary" type="button" data-ag-lights-random>🎲 Überraschung</button>
-                <a class="ag-secondary ag-link" href="https://fionnf.github.io/linked_friend_lights/" target="_blank" rel="noopener noreferrer">Erweitert ↗</a>
-              </div>
-            </div>
-          </section>
           <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
-              <button type="button" id="ag-lights-open" class="ag-button" style="display:inline-flex;background:var(--ag-bg);box-shadow:none;">
+              <a href="./lichter.html" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span>💡 Lichtsteuerung</span>
-              </button>
+              </a>
             </div>
           <p class="ag-sync-status" data-ag-sync-status hidden></p>
         </div>
