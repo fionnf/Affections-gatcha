@@ -685,6 +685,13 @@ export function reveal() {
       playPullSound(pullTone || "common");
     }
 
+    // Both lamps glow green for ~10s, then return to exactly their prior
+    // state. Best-effort and fully async — never blocks or breaks the reveal,
+    // and skipped in preview/testing so we don't strobe the real lamps.
+    if (!getPreviewDay()) {
+      import("./lightsFx.js").then((m) => m.flashLightsForPull()).catch(() => {});
+    }
+
     if (MILESTONE_MESSAGES[streak]) {
       haptic([30, 20, 30, 20, 60]);
     } else {

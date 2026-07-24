@@ -169,10 +169,11 @@ export const html = `
                 <p class="ag-intro" data-ag-intro></p>
                 <ul class="ag-chips" data-ag-chips></ul>
                 <div class="ag-tabs" role="tablist" aria-label="Ansicht wählen">
-                  <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">Heute</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history">Verlauf</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">⭐</button>
-                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge">⛰</button>
+                  <button class="ag-tab is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today" aria-label="Heute" title="Heute">🎰</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history" aria-label="Verlauf" title="Verlauf">🗓</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge" title="Lieblinge">⭐</button>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge" title="Berge">⛰</button>
+                  <a class="ag-tab" href="./lichter.html" aria-label="Lichtsteuerung" title="Lichtsteuerung">💡</a>
                 </div>
               </div>
             </header>
@@ -552,12 +553,6 @@ export const html = `
               <div id="ag-gipfel-map" class="ag-gipfel-map"></div>
             </div>
           </section>
-          <div class="ag-lighting-link-wrap" style="text-align:center;padding:4px 0 8px;">
-              <a href="./lichter.html" class="ag-button" style="display:inline-flex;text-decoration:none;background:var(--ag-bg);box-shadow:none;">
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span>💡 Lichtsteuerung</span>
-              </a>
-            </div>
           <p class="ag-sync-status" data-ag-sync-status hidden></p>
         </div>
       </div>
@@ -588,11 +583,11 @@ export const html = `
       <nav class="ag-bottomnav" aria-label="Navigation">
         <div class="ag-nav-pill" aria-hidden="true"></div>
         <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">
-          <span class="ag-bottomnav-btn-icon" aria-hidden="true">✦</span>
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">🎰</span>
           <span class="ag-bottomnav-btn-label">Heute</span>
         </button>
         <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="history">
-          <span class="ag-bottomnav-btn-icon" aria-hidden="true">📋</span>
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">🗓</span>
           <span class="ag-bottomnav-btn-label">Verlauf</span>
         </button>
         <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge">
@@ -603,6 +598,10 @@ export const html = `
           <span class="ag-bottomnav-btn-icon" aria-hidden="true">⛰</span>
           <span class="ag-bottomnav-btn-label">Berge</span>
         </button>
+        <a class="ag-bottomnav-btn ag-bottomnav-link" href="./lichter.html" aria-label="Lichtsteuerung">
+          <span class="ag-bottomnav-btn-icon" aria-hidden="true">💡</span>
+          <span class="ag-bottomnav-btn-label">Licht</span>
+        </a>
       </nav>
     `;
 

@@ -1717,7 +1717,7 @@ export const css = `
           gap:4px;padding:9px 6px;background:none;border:none;cursor:pointer;
           min-height:50px;
           color:rgba(255,255,255,.48);
-          font-family:inherit;
+          font-family:inherit;text-decoration:none;
           border-radius:22px;
           transition:color 180ms var(--ag-ease),background 180ms var(--ag-ease),transform 120ms var(--ag-ease);
           -webkit-tap-highlight-color:transparent;
