@@ -944,6 +944,44 @@ export const css = `
       .ag-history-star:hover{color:var(--ag-gold);transform:scale(1.2)}
       .ag-history-star.is-starred{color:var(--ag-gold)}
       .ag-lighting-link-wrap{display:flex;justify-content:center;padding:12px 0 4px}
+      /* ── Lichtsteuerung panel ── */
+      .ag-lights-dot{
+        display:inline-block;width:9px;height:9px;border-radius:50%;
+        background:#a83f3f;margin-right:6px;vertical-align:baseline;
+        transition:background .3s ease;
+      }
+      .ag-lights-dot[data-ag-lights-state="connected"]{background:#4aaa5a}
+      .ag-lights-dot[data-ag-lights-state="connecting"]{background:var(--ag-gold)}
+      .ag-lights-boards{float:right;display:inline-flex;gap:6px}
+      .ag-lights-board{
+        font-size:.72rem;font-weight:700;letter-spacing:.03em;
+        padding:2px 8px;border-radius:999px;color:var(--ag-muted);
+        border:1px solid var(--ag-border);opacity:.6;
+      }
+      .ag-lights-board.is-online{opacity:1;color:var(--ag-primary-dark);border-color:rgba(47,122,79,.45)}
+      .ag-lights-controls{display:grid;gap:14px;margin-top:14px}
+      .ag-lights-power{width:100%}
+      .ag-lights-power:not(.is-on){filter:grayscale(.6);opacity:.8}
+      .ag-lights-row{display:grid;gap:6px}
+      .ag-lights-label{font-size:.8rem;font-weight:700;color:var(--ag-muted);display:flex;align-items:center;gap:8px}
+      .ag-lights-preview{
+        display:inline-block;width:16px;height:16px;border-radius:50%;
+        background:rgb(200,232,208);border:1px solid rgba(255,255,255,.25);
+      }
+      .ag-lights-slider{width:100%;accent-color:var(--ag-primary);min-height:28px}
+      .ag-lights-colour{
+        -webkit-appearance:none;appearance:none;height:14px;border-radius:999px;
+        border:1px solid rgba(255,255,255,.18);
+      }
+      .ag-lights-colour::-webkit-slider-thumb{
+        -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+        background:#fffdf8;border:2px solid rgba(0,0,0,.35);cursor:pointer;
+      }
+      .ag-lights-colour::-moz-range-thumb{
+        width:22px;height:22px;border-radius:50%;
+        background:#fffdf8;border:2px solid rgba(0,0,0,.35);cursor:pointer;
+      }
+      .ag-lights-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
       .ag-sync-status{
         text-align:center;font-size:.72rem;color:var(--ag-muted);opacity:.65;
         margin:2px 0 0;letter-spacing:.02em;

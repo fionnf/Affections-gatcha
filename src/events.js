@@ -17,6 +17,7 @@ import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
+import { openLightsPanel, bindLightsPanel } from "./lights.js";
 import { urlFor } from "./utils.js";
 import { readQuestState } from "./storage.js";
 import { currentWeekKey } from "./utils.js";
@@ -1187,6 +1188,10 @@ export function bindEvents() {
   });
   $("#ag-stimmung-close")?.addEventListener("click", closeStimmungPanel);
   bindStimmungPanel();
+
+  // ── Lichtsteuerung ──────────────────────────────────────────────────────────
+  $("#ag-lights-open")?.addEventListener("click", openLightsPanel);
+  bindLightsPanel();
 
   // Berge / Gipfelbuch
   const bergeAddBtn = $("[data-ag-berge-add]");
