@@ -1,5 +1,5 @@
 {
-  "comment": "Real Web Push config. Disabled until set up — see PUSH-SETUP.md. When ready: set enabled:true and paste the VAPID public key generated with scripts/gen-vapid-keys.cjs (keep the private key out of the repo — it goes in the sender only).",
-  "enabled": false,
-  "vapidPublicKey": ""
+  "comment": "Web Push. Public VAPID key is safe to commit; the matching PRIVATE key lives only in the sender's secrets (GitHub Actions). Full activation steps in PUSH-SETUP.md.",
+  "enabled": true,
+  "vapidPublicKey": "BAqIalnAwKPXQFF5ieX9ubT9MPsyClU0hNTnT9B4CltZDR02WPhMewTcJjEm4z4slik1PAo2i9Jrqg78dCrjbvo"
 }

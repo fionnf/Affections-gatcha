@@ -1074,6 +1074,42 @@ export const css = `
       .ag-widget[data-tone=rare] .ag-badge,.ag-widget[data-tone=photo] .ag-badge{color:var(--ag-green)}
       .ag-widget[data-tone=jackpot] .ag-badge{color:var(--ag-gold);background:rgba(185,120,46,.16)}
 
+      /* ── Tone glow: the revealed card takes on the colour of its rarity ── */
+      .ag-widget{--ag-tone-glow:rgba(126,207,163,.28)}
+      .ag-widget[data-tone=quiet]{--ag-tone-glow:rgba(150,165,150,.20)}
+      .ag-widget[data-tone=soft]{--ag-tone-glow:rgba(126,207,163,.28)}
+      .ag-widget[data-tone=quest]{--ag-tone-glow:rgba(100,160,255,.30)}
+      .ag-widget[data-tone=warm]{--ag-tone-glow:rgba(232,200,122,.34)}
+      .ag-widget[data-tone=cursed]{--ag-tone-glow:rgba(150,120,220,.30)}
+      .ag-widget[data-tone=rare]{--ag-tone-glow:rgba(96,207,140,.36)}
+      .ag-widget[data-tone=photo]{--ag-tone-glow:rgba(120,190,255,.32)}
+      .ag-widget[data-tone=jackpot]{--ag-tone-glow:rgba(240,201,74,.44)}
+      .ag-widget[data-tone=special]{--ag-tone-glow:rgba(240,201,74,.44)}
+      .ag-widget.is-revealed .ag-result{
+        box-shadow:0 0 0 1px var(--ag-tone-glow) inset, 0 14px 48px -12px var(--ag-tone-glow);
+        transition:box-shadow .6s var(--ag-ease);
+      }
+      /* Jackpots & special days get a slow breathing aura on top. */
+      .ag-widget.is-revealed[data-tone=jackpot] .ag-result,
+      .ag-widget.is-revealed[data-tone=special] .ag-result{
+        animation:ag-tone-pulse 3.2s ease-in-out infinite;
+      }
+      @keyframes ag-tone-pulse{
+        0%,100%{box-shadow:0 0 0 1px var(--ag-tone-glow) inset, 0 14px 44px -14px var(--ag-tone-glow)}
+        50%{box-shadow:0 0 0 1px var(--ag-tone-glow) inset, 0 18px 60px -8px var(--ag-tone-glow)}
+      }
+
+      /* ── Draw button: a slow sheen sweeps across, inviting the tap. Scoped
+         to the main draw button only, and it stops once you've drawn today. ── */
+      .ag-widget:not(.has-drawn) [data-ag-draw]{position:relative;overflow:hidden}
+      .ag-widget:not(.has-drawn) [data-ag-draw]::after{
+        content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+        background:linear-gradient(115deg,transparent 34%,rgba(255,255,255,.22) 50%,transparent 64%);
+        transform:translateX(-120%);
+        animation:ag-sheen 5s ease-in-out infinite;
+      }
+      @keyframes ag-sheen{0%,74%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+
       .ag-error{padding:24px;border:1px solid var(--ag-border);border-radius:18px;background:var(--ag-surface);color:var(--ag-text)}
 
       .ag-shimmer{animation:ag-shimmer 6s ease-in-out infinite}

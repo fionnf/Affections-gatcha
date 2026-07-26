@@ -1,67 +1,52 @@
-# Real Web Push — setup
+# Real Web Push — finishing setup
 
-The app already contains the whole **device side** of Web Push: it subscribes,
-stores the subscription, and the service worker shows a notification when one
-arrives while the app is fully closed. It ships **disabled**
-(`config/push.json` → `"enabled": false`) and does nothing until you complete
-the steps below.
-
-Web Push (unlike the app's existing local notifications) can reach a phone with
-the app closed — but it needs one thing the Google Apps Script backend can't
-provide: **VAPID request signing (ES256)**. So the *sender* runs as a tiny Node
-job (the `web-push` library) somewhere you control — a GitHub Action is the
-easiest. No Firebase project required.
+The whole pipeline is now wired and the app side is **live** (a public VAPID
+key is in `config/push.json`, `enabled: true`; devices subscribe on load). Three
+small steps remain — all on your side, because they involve secrets and a
+redeploy that can't be done from the repo:
 
 ```
-[phone] subscribe ──► Apps Script sheet ──► [Node sender: web-push] ──► push service ──► [phone, app closed]
+[phone] subscribe ─► Apps Script sheet ─► [GitHub Action every ~5 min: push-poll.cjs] ─► push service ─► [phone, app closed]
 ```
 
-## 1. Generate a VAPID key pair
+## Step 1 — Redeploy the Apps Script
 
-```bash
-node scripts/gen-vapid-keys.cjs
-```
+`scripts/backup-apps-script.js` gained: `push-subscribe` (stores device
+subscriptions), `?feed=push-subs` (sender reads them), and `?feed=push-pending`
+(returns un-pushed hugs/wishes and advances a pointer). Paste the file into the
+Apps Script editor and redeploy the web app to the **same URL**.
 
-- **Public key** → paste into `config/push.json` as `vapidPublicKey`, set
-  `"enabled": true`, commit. (Public — safe to commit.)
-- **Private key** → keep OUT of the repo. It goes only in the sender's secrets.
+## Step 2 — Add the secrets & turn the job on
 
-## 2. Deploy the updated Apps Script
+In the GitHub repo → Settings → Secrets and variables → Actions:
 
-`scripts/backup-apps-script.js` now handles `type: "push-subscribe"` (stores
-subscriptions in a new **PushSubscriptions** sheet) and serves them back to the
-sender at `?feed=push-subs`. Paste the file into the Apps Script editor and
-redeploy the web app (same URL).
+**Secrets:**
+- `VAPID_PRIVATE` — the private key printed by `node scripts/gen-vapid-keys.cjs`
+  (the one already used here — I'll hand it to you; never commit it).
+- `VAPID_PUBLIC` — must match `config/push.json`'s `vapidPublicKey`.
+- `VAPID_SUBJECT` — `mailto:your-email`.
+- `BACKUP_ENDPOINT` — the Apps Script `…/exec` URL.
 
-## 3. Turn it on for a device
+**Variable** (not a secret): `PUSH_ENABLED` = `true` — this gates the workflow.
 
-With `config/push.json` enabled and live, open the app on the phone and grant
-notifications. On the next load `subscribeToPush()` registers the device and
-POSTs its subscription to the sheet. (iOS: the app must be **installed to the
-home screen** first — the existing install nudge covers this.)
+The `Push notifications` workflow then runs every ~5 min, sends a push to the
+*other* player for each new hug/wish, and email keeps working as the guaranteed
+channel. (Regenerate keys anytime with `node scripts/gen-vapid-keys.cjs` — put
+the new public key in `config/push.json` and the private one in the secret.)
 
-## 4. Send a push
+## Step 3 — Grant on each phone
 
-By hand, to test:
-
-```bash
-npm install web-push
-VAPID_PUBLIC=…  VAPID_PRIVATE=…  VAPID_SUBJECT=mailto:you@example.com \
-BACKUP_ENDPOINT=https://script.google.com/macros/s/…/exec \
-node scripts/send-push.cjs fionn "🫂 Ein Stups" "Lennart denkt an dich" "./?player=fionn"
-```
-
-To make it automatic (e.g. push Fionn when Lennart taps a hug), add a scheduled
-**GitHub Action** that polls the activity feed (`?feed=activity`), diffs against
-the last-seen timestamp it stored, and calls `send-push.cjs` for anything new.
-Put `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT`, and `BACKUP_ENDPOINT` in
-the repo's Actions **secrets** — never in the tree.
+Open the app, allow notifications. On the next load the device subscribes
+itself. **iOS:** the app must be **installed to the home screen** first (the
+existing install nudge covers this) — Safari tabs can't receive push.
 
 ## Notes
 
-- **Email stays the guaranteed channel.** Push is best-effort; a phone that's
-  been offline for days may miss one.
-- Expired subscriptions (HTTP 410/404) are just logged; the device re-subscribes
-  itself the next time the app opens, so the sheet self-heals.
-- Everything here is inert while `config/push.json` is disabled — shipping this
-  changed nothing about the live app until you do step 1–3.
+- Cron is best-effort; GitHub often delays it 5–15 min, so pushes aren't
+  instant. For instant delivery, point Apps Script's hug handler at a tiny
+  always-on signer (Cloudflare Worker running `web-push`) instead of polling —
+  everything server-side is already in place for that.
+- Expired subscriptions (410/404) are logged and self-heal: the device
+  re-subscribes next time the app opens.
+- Local reminders (daily 08:00, streak warning 21:00) already work through the
+  service worker independently of any of this.

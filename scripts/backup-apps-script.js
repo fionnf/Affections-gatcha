@@ -175,6 +175,37 @@ function doGet(e) {
       return jsonOut_({ ok: true, subscriptions: subs });
     }
 
+    // Pending-push feed for the notifier job. Returns hugs/wishes newer than
+    // the stored pointer and (unless &peek=1) advances the pointer, so the
+    // poller sends each item exactly once without keeping its own state. See
+    // PUSH-SETUP.md.
+    if (e.parameter && e.parameter.feed === "push-pending") {
+      const props = PropertiesService.getScriptProperties();
+      const since = props.getProperty("lastPushTs") || "";
+      const wuenscheSheet = getOrCreateWuenscheSheet_(ss);
+      const wVals = wuenscheSheet.getDataRange().getValues();
+      const pending = [];
+      let maxTs = since;
+      for (let i = 1; i < wVals.length; i++) {
+        const row = wVals[i];
+        if (!row[0]) continue;
+        const ts = (row[0] instanceof Date) ? row[0].toISOString() : String(row[0]);
+        if (since && ts <= since) continue;
+        const type = (row[2] || "wish").toString().toLowerCase();
+        pending.push({
+          timestamp: ts,
+          from: (row[1] || "").toString().toLowerCase(),
+          type: type,
+          text: row[3] || row[4] || ""
+        });
+        if (ts > maxTs) maxTs = ts;
+      }
+      if (maxTs && maxTs !== since && !(e.parameter.peek === "1")) {
+        props.setProperty("lastPushTs", maxTs);
+      }
+      return jsonOut_({ ok: true, pending: pending });
+    }
+
     let activity = [];
     if (e.parameter && e.parameter.feed === "activity") {
       function tsStr(v) {
