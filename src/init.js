@@ -9,8 +9,9 @@ import { renderShell } from "./template.js";
 import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
 import { bindEvents, retryPendingWishSend, renderError } from "./events.js";
-import { registerServiceWorker, scheduleStreakWarning } from "./notify.js";
+import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
+import { readWerkstatt } from "./werkstatt.js";
 import { initInstallPrompt } from "./installPrompt.js";
 import { renderPartnerCard } from "./reactions.js";
 
@@ -54,6 +55,10 @@ export async function init() {
     state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
     state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
     state.push = push && typeof push === "object" ? push : { enabled: false };
+    // Seed the Werkstatt from cache before anything can draw, so a capsule
+    // written yesterday is in play offline and on the very first paint —
+    // syncFromSheets() refreshes it a moment later.
+    state.werkstatt = readWerkstatt();
     applyTheme(theme);
     applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
     restoreStimmung();
@@ -108,6 +113,12 @@ export async function init() {
       mount.classList.add("has-drawn");
     }
     syncFromSheets().catch(() => {});
+
+    // Ask about notifications on load, not only after a draw — the draw is
+    // exactly the moment the daily reminder is no longer useful, so asking
+    // there meant the reminder never fired for anyone who hadn't already
+    // said yes. A short delay keeps it clear of the first paint.
+    window.setTimeout(() => { showNotifPrompt().catch(() => {}); }, 1800);
   } catch (error) {
     renderError(error);
   }

@@ -54,9 +54,16 @@ export async function showNotifPrompt() {
     return;
   }
 
-  // 'default' → browser blocked silent request → show in-app banner
+  // 'default' → browser blocked silent request → show in-app banner.
+  // It lives at the bottom of the Heute panel, well below the fold on a
+  // phone, so on its own it isn't really "being asked". Float it above the
+  // bottom nav instead — it's still dismissible, just impossible to miss.
   const card = document.querySelector('[data-ag-notif-card]');
-  if (card) { card.hidden = false; card.removeAttribute('hidden'); }
+  if (card) {
+    card.hidden = false;
+    card.removeAttribute('hidden');
+    card.classList.add('is-floating');
+  }
 }
 
 function nextNotificationTimestamp() {

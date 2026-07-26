@@ -1,6 +1,6 @@
 # Affektions-Gacha
 
-A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. A parallel view for Fionn exists in the code but is **not live yet** (see below).
+A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn has his own private page, drawing from capsules Lennart writes for him (see **Kapsel-Werkstatt**). It is not linked publicly.
 
 ---
 
@@ -24,7 +24,7 @@ A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-print
 index.html                  Entry point
 dist/
   affection-gacha.js        Compiled single-file PWA (built from src/ via Vite)
-src/                        ES module source (21 files — edit here, then npm run build)
+src/                        ES module source (edit here, then npm run build)
 config/
   theme.json                Colors, names, timezone, stickers, message target
   outcomes.json             Categories, weights, response texts
@@ -59,11 +59,10 @@ The result is computed deterministically from:
 
 Same day → same result. Refreshing never re-rolls. Tomorrow gets a new pull automatically.
 
-> **Fionn's own gacha is still being built and is deliberately hidden.** The
-> public entry point ignores `?player=fionn` (see `FIONN_GACHA_READY` in
-> `index.html`), so it can't be stumbled into from the URL everyone has.
-> Fionn's private entry point still works for building it out. Flip that flag
-> to `true` when it's ready.
+> **Fionn's gacha lives on its own page, not on the public URL.** `index.html`
+> ignores `?player=fionn` (see `FIONN_GACHA_READY` there), so Lennart's link
+> can't be turned into Fionn's view. Fionn's page is `fionn-gacha.html`
+> (`noindex`, unlinked); `fionn.html` redirects to it for old bookmarks.
 
 ### Local development
 
@@ -90,12 +89,30 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 
 See **[EDITING.md](EDITING.md)** for field-by-field details.
 
-### Curator app (private)
+### Kapsel-Werkstatt
 
-A standalone, PIN-gated page for editing outcomes and special days from a
-phone — separate from Lennart's view and not linked publicly while Fionn's side
-is still being built. Setup and its URL are documented in
-**[admin/README.md](admin/README.md)**.
+Fionn's outcomes are not in `config/` at all — **Lennart writes them**, from the
+🔧 button at the bottom of his Heute tab. Capsules go to the Google Sheet via
+Apps Script (no token, no commit, no build) and reach Fionn on his next sync.
+
+Per category the rule is all-or-nothing: a category Lennart has written at
+least one capsule for is served entirely from his, and one he hasn't written
+for falls back to `config/outcomes.json`. So his first JACKPOT capsule *is*
+Fionn's jackpot, rather than a one-in-ten chance among the shipped ones.
+
+A capsule written mid-day never rewrites a pull already opened that day — the
+recorded title wins on reload.
+
+> **Setup note:** redeploy the Apps Script after pulling this (paste the
+> updated `scripts/backup-apps-script.js`, then Deploy → Manage deployments →
+> ✏️ → New version). The `Werkstatt` worksheet is created on first use.
+
+### Fionn's Eingänge (private)
+
+A PIN-gated 📥 tab on Fionn's page showing what Lennart sends back (hugs,
+wishes, prompt answers, quest solves, reactions). It used to be a curator app
+that committed config to GitHub with a token stored in the browser; that is
+gone. See **[admin/README.md](admin/README.md)**.
 
 ---
 
@@ -316,7 +333,7 @@ to Fionn's Kapsel exactly like Fionn reacts to Lennart's.
   list, and as a toast on the next sync.
 - Reactions ride the existing backends: `Reactions` worksheet in the Google
   Sheet, Web Push via the `push-notify` workflow, and the Eingänge feed in the
-  Fionn admin app.
+  Eingänge feed on Fionn's page.
 - Optional: override the emoji set with `"reactionEmojis": ["…"]` in
   `config/theme.json`.
 

@@ -3,6 +3,7 @@ import { state, $ } from "./state.js";
 import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone } from "./utils.js";
 import { readHistory, readFreikarteReroll } from "./storage.js";
 import { computeStreak, pickWeightedWithStreak } from "./streak.js";
+import { werkstattFor } from "./werkstatt.js";
 
 export function checkSpecialDay(day) {
   const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
@@ -45,6 +46,15 @@ export function setCapsuleTone(tone) {
 
 export function imagePhotos() {
   return (state.photos || []).filter((p) => p.type !== "video");
+}
+
+// The capsules a category actually offers this player. A category that the
+// other player has hand-written capsules for (Kapsel-Werkstatt) is taken over
+// by them entirely; everything else keeps the shipped pool from
+// config/outcomes.json.
+export function poolForCategory(category, token) {
+  const written = werkstattFor(category.id, token);
+  return written.length ? written : category.outcomes;
 }
 
 export function buildPullForDay(day, streak, opts = {}) {
@@ -94,14 +104,35 @@ export function buildPullForDay(day, streak, opts = {}) {
     category = state.outcomes.categories.find((item) => item.id === "common") || category;
   }
 
+  const categoryPool = poolForCategory(category, token);
+
   const usedTitles = new Set(
     readHistory()
       .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
       .map((e) => e.title)
   );
-  const availableOutcomes = category.outcomes.filter((o) => !usedTitles.has(o.title));
-  const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : category.outcomes;
-  const outcome = (rerollRecord && category.outcomes.find((o) => o.title === rerollRecord.outcomeTitle))
+  const availableOutcomes = categoryPool.filter((o) => !usedTitles.has(o.title));
+  const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : categoryPool;
+
+  // Seeding picks by index, so a pool that grows or shrinks re-rolls every
+  // day that still uses it — including today, which the player may already
+  // have opened. That was survivable while pools only changed on a deploy;
+  // now that capsules are written live from a phone it isn't. If this day is
+  // already in the history under the same category, the recorded title wins,
+  // looked up in the current pool so pins, prompts and vouchers still come
+  // from config rather than being reconstructed from the log.
+  // The lookup spans both pools on purpose. The first capsule written for a
+  // category evicts the shipped ones, so searching only the current pool
+  // would fail to find a shipped outcome that was opened this morning —
+  // exactly the case this guards against.
+  const drawn = readHistory().find((e) => e.token === token && e.day === day);
+  const alreadyDrawn = drawn && drawn.categoryId === category.id
+    ? (categoryPool.find((o) => o.title === drawn.title)
+       || category.outcomes.find((o) => o.title === drawn.title))
+    : null;
+
+  const outcome = alreadyDrawn
+    || (rerollRecord && categoryPool.find((o) => o.title === rerollRecord.outcomeTitle))
     || outcomePool[seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)];
 
   const imgs = imagePhotos();

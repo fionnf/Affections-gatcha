@@ -200,6 +200,28 @@ function doGet(e) {
       });
     }
 
+    // Kapsel-Werkstatt: capsules one player hand-wrote for the other. Shared
+    // with both sides — the author lists and edits them, the recipient draws
+    // from them (see poolForCategory in src/pull.js).
+    const werkSheet = getOrCreateWerkstattSheet_(ss);
+    const werkValues = werkSheet.getDataRange().getValues();
+    const werkstatt = [];
+    for (let i = 1; i < werkValues.length; i++) {
+      const row = werkValues[i];
+      if (!row[0]) continue;
+      werkstatt.push({
+        id:         row[0],
+        categoryId: row[1] || "",
+        forToken:   row[2] || "fionn",
+        title:      row[3] || "",
+        message:    row[4] || "",
+        link:       row[5] || null,
+        voucher:    row[6] === true || String(row[6]).toLowerCase() === "true",
+        createdBy:  row[7] || "",
+        createdAt:  row[8] || ""
+      });
+    }
+
     // Today's shared Stimmung colour (one row per day, set by either player).
     // Returned as {day, hex} or null; the client applies it if it's for today.
     let stimmung = null;
@@ -379,6 +401,7 @@ function doGet(e) {
       gipfelbuch,
       glossary,
       stimmung,
+      werkstatt,
       activity,
       reactions,
       partnerToday
@@ -577,6 +600,33 @@ function doPost(e) {
     // ── Ping (Fionn → Lennart) ────────────────────────────────────────────────
     if (data.type === "ping") {
       PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Kapsel-Werkstatt upsert ───────────────────────────────────────────────
+    // One row per hand-written capsule. ForToken says whose pool it belongs
+    // to, so the same sheet serves either direction.
+    if (data.type === "werkstatt-upsert") {
+      const sheet = getOrCreateWerkstattSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const id = data.id || "";
+      if (!id) return jsonOut_({ ok: false, error: "missing id" });
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === id) { rowIdx = i + 1; break; }
+      }
+      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString()];
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    if (data.type === "werkstatt-delete") {
+      const sheet = getOrCreateWerkstattSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
+      }
       return jsonOut_({ ok: true });
     }
 
@@ -874,6 +924,19 @@ function getOrCreateStimmungSheet_(ss) {
     sheet = ss.insertSheet("Stimmung");
     sheet.appendRow(["Day", "Hex", "SetBy", "UpdatedAt"]);
     sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getOrCreateWerkstattSheet_(ss) {
+  let sheet = ss.getSheetByName("Werkstatt");
+  if (!sheet) {
+    sheet = ss.insertSheet("Werkstatt");
+    sheet.appendRow(["ID", "CategoryId", "ForToken", "Title", "Message", "Link", "Voucher", "CreatedBy", "CreatedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(4, 200);
+    sheet.setColumnWidth(5, 360);
+    sheet.setColumnWidth(6, 260);
   }
   return sheet;
 }

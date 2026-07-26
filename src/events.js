@@ -17,6 +17,7 @@ import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
+import { openWerkstatt, closeWerkstatt, openKapselForm, closeKapselForm, submitKapselForm, renderWerkstatt, renderWerkstattEntry } from "./werkstatt.js";
 import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
 import { currentWeekKey } from "./utils.js";
 import { sendReaction, renderPartnerCard, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
@@ -1042,6 +1043,8 @@ export function bindEvents() {
     try {
       renderPartnerCard();
       renderReactionOnResult();
+      renderWerkstattEntry();
+      if (!document.getElementById("ag-werkstatt-panel")?.hidden) renderWerkstatt();
       const fresh = state._freshReactions;
       state._freshReactions = null;
       if (Array.isArray(fresh) && fresh.length) {
@@ -1051,6 +1054,16 @@ export function bindEvents() {
         if (state.activeTab === "history") renderHistory();
       }
     } catch (_e) {}
+  });
+
+  // ── Kapsel-Werkstatt (Lennart writes Fionn's pool) ──────────────────────────
+  $("[data-ag-werkstatt-open]")?.addEventListener("click", openWerkstatt);
+  $("#ag-werkstatt-close")?.addEventListener("click", closeWerkstatt);
+  document.getElementById("ag-werkstatt-add")?.addEventListener("click", () => openKapselForm(null));
+  document.getElementById("ag-werkstatt-cancel")?.addEventListener("click", closeKapselForm);
+  document.getElementById("ag-werkstatt-save")?.addEventListener("click", () => {
+    submitKapselForm();
+    renderWerkstattEntry();
   });
 
   // ── Stimmung ─────────────────────────────────────────────────────────────────

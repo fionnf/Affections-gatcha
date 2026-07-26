@@ -8,6 +8,7 @@ export const state = {
   quest: null,
   missions: null,
   push: null,
+  werkstatt: [],         // capsules written by one player for the other
   todaysPull: null,
   activeTab: "today",
   revealed: false,

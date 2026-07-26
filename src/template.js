@@ -362,6 +362,42 @@ export const html = `
             </div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-werkstatt-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Werkstatt 🔧</span>
+              <button class="ag-secondary" type="button" id="ag-werkstatt-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title">Kapseln für Fionn</h2>
+            <p class="ag-mini-copy">Was du hier schreibst, zieht Fionn. Pro Kategorie: sobald eine eigene Kapsel drin ist, kommen nur noch deine.</p>
+            <div class="ag-werkstatt-tabs" id="ag-werkstatt-tabs"></div>
+            <p class="ag-werkstatt-note" id="ag-werkstatt-note"></p>
+            <div class="ag-werkstatt-list" id="ag-werkstatt-list"></div>
+            <button class="ag-button ag-werkstatt-add-btn" type="button" id="ag-werkstatt-add" style="width:100%;justify-content:center;margin-top:12px">
+              <span class="ag-button-orb" aria-hidden="true"></span>
+              <span>Kapsel schreiben</span>
+            </button>
+            <div class="ag-werkstatt-form" id="ag-werkstatt-form" hidden>
+              <p class="ag-wish-label" id="ag-werkstatt-form-title">Neue Kapsel</p>
+              <div class="ag-werkstatt-form-fields">
+                <input class="ag-berge-input" type="text" id="ag-werkstatt-title" placeholder="Titel" maxlength="80">
+                <textarea class="ag-berge-input ag-werkstatt-textarea" id="ag-werkstatt-message" rows="3" maxlength="400" placeholder="Was steht in der Kapsel?"></textarea>
+                <input class="ag-berge-input" type="url" id="ag-werkstatt-link" placeholder="Link (optional, z. B. Spotify)" inputmode="url" autocomplete="off" spellcheck="false">
+                <label class="ag-werkstatt-check">
+                  <input type="checkbox" id="ag-werkstatt-voucher">
+                  <span>Gutschein — Fionn kann ihn einlösen</span>
+                </label>
+              </div>
+              <p class="ag-werkstatt-error" id="ag-werkstatt-error" hidden></p>
+              <div class="ag-werkstatt-form-actions">
+                <button class="ag-secondary" type="button" id="ag-werkstatt-cancel">Abbrechen</button>
+                <button class="ag-button" type="button" id="ag-werkstatt-save">
+                  <span class="ag-button-orb" aria-hidden="true"></span>
+                  <span>Speichern</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
@@ -480,6 +516,15 @@ export const html = `
               </div>
               <p class="ag-hug-status" data-ag-ping-status hidden></p>
             </div>
+
+            <button class="ag-card ag-werkstatt-entry" type="button" data-ag-werkstatt-open hidden>
+              <span class="ag-werkstatt-entry-ico" aria-hidden="true">🔧</span>
+              <span class="ag-werkstatt-entry-text">
+                <span class="ag-werkstatt-entry-title">Kapseln für Fionn schreiben</span>
+                <span class="ag-werkstatt-entry-sub" data-ag-werkstatt-entry-sub>Werkstatt öffnen</span>
+              </span>
+              <span class="ag-werkstatt-entry-chev" aria-hidden="true">›</span>
+            </button>
 
             <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
               <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>
