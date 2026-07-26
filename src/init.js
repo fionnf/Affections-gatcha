@@ -8,7 +8,8 @@ import { injectStyles } from "./css.js";
 import { renderShell } from "./template.js";
 import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
-import { bindEvents, retryPendingWishSend, registerServiceWorker, scheduleStreakWarning, renderError } from "./events.js";
+import { bindEvents, retryPendingWishSend, renderError } from "./events.js";
+import { registerServiceWorker, scheduleStreakWarning } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
 import { initInstallPrompt } from "./installPrompt.js";
 
@@ -32,7 +33,7 @@ export async function init() {
   injectStyles();
   renderShell();
   try {
-    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions] = await Promise.all([
+    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions, push] = await Promise.all([
       fetchJson("config/theme.json"),
       fetchJson("config/outcomes.json"),
       fetchJson("config/photos.json", defaultPhotos),
@@ -40,7 +41,8 @@ export async function init() {
       fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/quest.json", { enabled: false }),
-      fetchJson("config/missions.json", { pairs: [] })
+      fetchJson("config/missions.json", { pairs: [] }),
+      fetchJson("config/push.json", { enabled: false })
     ]);
     state.theme = theme;
     state.outcomes = outcomes;
@@ -50,6 +52,7 @@ export async function init() {
     state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
     state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
     state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
+    state.push = push && typeof push === "object" ? push : { enabled: false };
     applyTheme(theme);
     applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
     restoreStimmung();

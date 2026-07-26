@@ -1,0 +1,5 @@
+{
+  "comment": "Web Push. Public VAPID key is safe to commit; the matching PRIVATE key lives only in the sender's secrets (GitHub Actions). Full activation steps in PUSH-SETUP.md.",
+  "enabled": true,
+  "vapidPublicKey": "BAqIalnAwKPXQFF5ieX9ubT9MPsyClU0hNTnT9B4CltZDR02WPhMewTcJjEm4z4slik1PAo2i9Jrqg78dCrjbvo"
+}

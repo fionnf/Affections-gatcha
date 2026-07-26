@@ -1,6 +1,6 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, currentQuestPeriod, dailyMsgIdx } from "./utils.js";
+import { getToken, dateKeyInTimezone } from "./utils.js";
 import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll } from "./storage.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak } from "./streak.js";
 import { buildPull, rerollPullForDay } from "./pull.js";
@@ -14,31 +14,11 @@ import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, rend
 import { emojiForTone } from "./pull.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
-import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, isQuestAvailable, openLetter, closeLetter } from "./mission.js";
+import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
-import { urlFor } from "./utils.js";
-import { readQuestState } from "./storage.js";
+import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
 import { currentWeekKey } from "./utils.js";
-
-// Notification message pools (from dist)
-export const DAILY_REMINDER_POOL = [
-  { title: "{name}s Kapsel wartet 🎲", body: "Heute noch keine Kapsel gezogen — zieh jetzt!" },
-  { title: "Guten Morgen, {name} 🌿", body: "Deine tägliche Kapsel ist bereit." },
-  { title: "Die Maschine dreht sich 🎲", body: "Du hast heute noch nicht gezogen — auf geht's!" },
-  { title: "{name}s tägliche Kapsel ✨", body: "Eine neue Chance — die Maschine dreht sich." },
-  { title: "Heute wartet etwas 🎲", body: "Die Kapsel des Tages ist für dich bereit." },
-  { title: "Zeit für die Kapsel 🌿", body: "Zieh heute und sieh, was die Maschine bereithält." },
-  { title: "Die Maschine ruft 🎰", body: "Deine Kapsel läuft nicht weg — aber der Tag schon." },
-];
-
-export const STREAK_WARN_POOL = [
-  { title: "{name}s Kapsel läuft ab! 🎲", body: "Noch 3 Stunden — dann ist sie weg für heute." },
-  { title: "Nicht vergessen! 🎲", body: "Deine Kapsel wartet noch. Noch 3 Stunden bis Mitternacht." },
-  { title: "Fast zu spät, {name}! 🌙", body: "21 Uhr — in 3 Stunden ist der Tag vorbei." },
-  { title: "Die Maschine wartet auf dich 🎲", body: "Heute noch nicht gezogen. Auf geht's — es ist gleich zu spät." },
-  { title: "{name}s Streak wackelt! 💎", body: "Noch 3 Stunden — dann ist der Streak in Gefahr." },
-];
 
 export function showToast(msg) {
   const container = mount.querySelector("[data-ag-toasts]");
@@ -304,159 +284,6 @@ export function retryPendingWishSend() {
   if (!wish || wish.week !== currentWeekKey()) return;
   if (wish.remoteStatus === "sent") return;
   sendWishToInbox(wish);
-}
-
-export async function showNotifPrompt() {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
-
-  try {
-    if (window.localStorage.getItem(NOTIF_KEY) === 'dismissed') return;
-  } catch {}
-
-  // Attempt native permission request directly — fires the browser dialog immediately
-  // on Firefox and iOS PWA (allowed without user gesture there).
-  // Chrome silently ignores it and keeps permission at 'default', so we fall through
-  // to the in-app banner as a fallback.
-  let result = 'default';
-  try { result = await Notification.requestPermission(); } catch (_) {}
-
-  if (result === 'granted') {
-    try { window.localStorage.setItem(NOTIF_KEY, 'granted'); } catch {}
-    await registerServiceWorker();
-    return;
-  }
-  if (result === 'denied') {
-    try { window.localStorage.setItem(NOTIF_KEY, 'dismissed'); } catch {}
-    return;
-  }
-
-  // 'default' → browser blocked silent request → show in-app banner
-  const card = document.querySelector('[data-ag-notif-card]');
-  if (card) { card.hidden = false; card.removeAttribute('hidden'); }
-}
-
-function nextNotificationTimestamp() {
-  const tz = state.theme?.timezone || "Europe/Zurich";
-  const timeStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false
-  }).format(new Date());
-  const [h, m] = timeStr.split(":").map(Number);
-  const minutesSinceMidnight = h * 60 + m;
-  const targetMinutes = 8 * 60;
-  const minutesUntil = minutesSinceMidnight < targetMinutes
-    ? targetMinutes - minutesSinceMidnight
-    : 24 * 60 - minutesSinceMidnight + targetMinutes;
-  return Date.now() + minutesUntil * 60 * 1000;
-}
-
-export async function scheduleStreakWarning() {
-  if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    if (!reg.active) return;
-    const tz = state.theme?.timezone || "Europe/Zurich";
-    const token = getToken();
-    const today = dateKeyInTimezone(tz);
-    const alreadyPulled = readHistory().some((e) => e.token === token && e.day === today);
-    if (alreadyPulled) {
-      reg.active.postMessage({ type: "CANCEL_NOTIFICATION", tag: "ag-streak-warn" });
-      return;
-    }
-    const { h, m } = hmInTimezone(tz);
-    if (h >= 21) return;
-    const msUntil21 = ((21 - h) * 60 - m) * 60 * 1000 - new Date().getSeconds() * 1000;
-    const name = displayNameFromToken();
-    const warnMsg = STREAK_WARN_POOL[dailyMsgIdx(STREAK_WARN_POOL)];
-    reg.active.postMessage({
-      type: "SCHEDULE_NOTIFICATION",
-      tag: "ag-streak-warn",
-      targetTime: Date.now() + Math.max(0, msUntil21),
-      title: warnMsg.title.replace("{name}", name),
-      body: warnMsg.body.replace("{name}", name)
-    });
-  } catch (_) {}
-}
-
-export async function scheduleNotification() {
-  if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const name = displayNameFromToken();
-    const dailyMsg = DAILY_REMINDER_POOL[dailyMsgIdx(DAILY_REMINDER_POOL)];
-    reg.active?.postMessage({
-      type: "SCHEDULE_NOTIFICATION",
-      tag: "ag-daily",
-      targetTime: nextNotificationTimestamp(),
-      title: dailyMsg.title.replace("{name}", name),
-      body: dailyMsg.body.replace("{name}", name)
-    });
-    // Push quest notification if a new period just started and not yet solved
-    if (state.quest?.enabled && isQuestAvailable()) {
-      const qs = readQuestState();
-      const lastNotifPeriod = (() => { try { return parseInt(localStorage.getItem("affektions-gacha:quest-notif:v1") || "-1", 10); } catch (_e) { return -1; } })();
-      if (!qs.solved && lastNotifPeriod !== currentQuestPeriod(state)) {
-        try { localStorage.setItem("affektions-gacha:quest-notif:v1", String(currentQuestPeriod(state))); } catch (_e) {}
-        reg.active?.postMessage({
-          type: "SCHEDULE_NOTIFICATION",
-          targetTime: Date.now() + 500,
-          title: state.quest.pushTitle || "Neue Foto-Aufgabe 📷",
-          body: state.quest.pushBody || "Die Maschine hat eine neue Aufgabe für dich."
-        });
-      }
-    }
-  } catch (error) {
-    /* ignore */
-  }
-}
-
-export async function tryPeriodicSync() {
-  if (!("serviceWorker" in navigator)) return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    if (!("periodicSync" in reg)) return;
-    await reg.periodicSync.register("ag-daily-reminder", {
-      minInterval: 20 * 60 * 60 * 1000
-    });
-  } catch (error) {
-    /* Periodic Background Sync not supported — ignore */
-  }
-}
-
-export async function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
-  try {
-    const swUrl = urlFor("sw.js");
-    if (new URL(swUrl).origin !== window.location.origin) return;
-    await navigator.serviceWorker.register(swUrl, {
-      scope: new URL("./", swUrl).pathname
-    });
-    if (Notification.permission === "granted") {
-      await scheduleNotification();
-      await scheduleStreakWarning();
-      await tryPeriodicSync();
-    }
-  } catch (error) {
-    /* SW not supported or cross-origin — silent fail */
-  }
-}
-
-export async function enableNotifications() {
-  const notifCard = $("[data-ag-notif-card]");
-  if (!("Notification" in window)) {
-    if (notifCard) notifCard.hidden = true;
-    return;
-  }
-  const permission = await Notification.requestPermission();
-  if (notifCard) notifCard.hidden = true;
-  if (permission !== "granted") {
-    try { window.localStorage.setItem(NOTIF_KEY, "dismissed"); } catch (error) { /* ignore */ }
-    return;
-  }
-  try { window.localStorage.setItem(NOTIF_KEY, "granted"); } catch (error) { /* ignore */ }
-  await registerServiceWorker();
 }
 
 export function drawRoundRect(ctx, x, y, w, h, r) {
@@ -846,6 +673,9 @@ export function bindEvents() {
     }
     if (glossaryForm) glossaryForm.hidden = true;
     if (glossaryAddBtn) glossaryAddBtn.hidden = false;
+    // Clear the full-screen sheet backdrop the add form opened — without this
+    // it stays up after saving and swallows every tap, so the app looks frozen.
+    $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
     document.getElementById("ag-glossary-edit-id").value = "";
     glossaryUI.audioBlob = null;
     glossaryUI.recorder = null;

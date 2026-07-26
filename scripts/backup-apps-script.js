@@ -157,6 +157,55 @@ function doGet(e) {
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
     // prompt answers and quest solves into one time-sorted list.
+    // Push-subscription feed for the sender job (a Node/web-push runner or
+    // Worker). Returns every stored subscription, optionally filtered to one
+    // recipient token with &for=fionn. See PUSH-SETUP.md.
+    if (e.parameter && e.parameter.feed === "push-subs") {
+      const pushSheet = getOrCreatePushSheet_(ss);
+      const pVals = pushSheet.getDataRange().getValues();
+      const wantToken = (e.parameter.for || "").toString().toLowerCase();
+      const subs = [];
+      for (let i = 1; i < pVals.length; i++) {
+        const row = pVals[i];
+        if (!row[1]) continue;
+        const rowToken = (row[0] || "").toString().toLowerCase();
+        if (wantToken && rowToken !== wantToken) continue;
+        try { subs.push({ token: rowToken, subscription: JSON.parse(row[2]) }); } catch (err) {}
+      }
+      return jsonOut_({ ok: true, subscriptions: subs });
+    }
+
+    // Pending-push feed for the notifier job. Returns hugs/wishes newer than
+    // the stored pointer and (unless &peek=1) advances the pointer, so the
+    // poller sends each item exactly once without keeping its own state. See
+    // PUSH-SETUP.md.
+    if (e.parameter && e.parameter.feed === "push-pending") {
+      const props = PropertiesService.getScriptProperties();
+      const since = props.getProperty("lastPushTs") || "";
+      const wuenscheSheet = getOrCreateWuenscheSheet_(ss);
+      const wVals = wuenscheSheet.getDataRange().getValues();
+      const pending = [];
+      let maxTs = since;
+      for (let i = 1; i < wVals.length; i++) {
+        const row = wVals[i];
+        if (!row[0]) continue;
+        const ts = (row[0] instanceof Date) ? row[0].toISOString() : String(row[0]);
+        if (since && ts <= since) continue;
+        const type = (row[2] || "wish").toString().toLowerCase();
+        pending.push({
+          timestamp: ts,
+          from: (row[1] || "").toString().toLowerCase(),
+          type: type,
+          text: row[3] || row[4] || ""
+        });
+        if (ts > maxTs) maxTs = ts;
+      }
+      if (maxTs && maxTs !== since && !(e.parameter.peek === "1")) {
+        props.setProperty("lastPushTs", maxTs);
+      }
+      return jsonOut_({ ok: true, pending: pending });
+    }
+
     let activity = [];
     if (e.parameter && e.parameter.feed === "activity") {
       function tsStr(v) {
@@ -402,6 +451,25 @@ function doPost(e) {
       return jsonOut_({ ok: true });
     }
 
+    // ── Web Push subscription upsert ──────────────────────────────────────────
+    // Stores one row per (token, endpoint) so a player can have several devices.
+    // The push SENDER (a Node/web-push job or Cloudflare Worker — Apps Script
+    // can't sign VAPID ES256) reads these via doGet ?feed=push-subs. See
+    // PUSH-SETUP.md.
+    if (data.type === "push-subscribe" && data.subscription && data.subscription.endpoint) {
+      const sheet = getOrCreatePushSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const endpoint = data.subscription.endpoint;
+      const row = [data.token || "", endpoint, JSON.stringify(data.subscription), new Date().toISOString()];
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][1] === endpoint) { rowIdx = i + 1; break; }
+      }
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
     // ── Notfall-Umarmung & Wunschkapsel ──────────────────────────────────────
     if (data.type === "hug" || data.wish) {
       const isHug = data.type === "hug";
@@ -641,6 +709,18 @@ function getOrCreateGipfelbuchSheet_(ss) {
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
     sheet.setColumnWidth(6, 300);
+  }
+  return sheet;
+}
+
+function getOrCreatePushSheet_(ss) {
+  let sheet = ss.getSheetByName("PushSubscriptions");
+  if (!sheet) {
+    sheet = ss.insertSheet("PushSubscriptions");
+    sheet.appendRow(["Token", "Endpoint", "SubscriptionJSON", "UpdatedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(2, 320);
+    sheet.setColumnWidth(3, 400);
   }
   return sheet;
 }
