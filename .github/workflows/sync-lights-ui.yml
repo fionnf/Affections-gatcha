@@ -1,0 +1,57 @@
+name: Sync lights UI
+
+# lichter.html is the linked_friend_lights web app vendored into this repo so
+# it lives inside the PWA. This job re-pulls it whenever the source changes, so
+# improving the lights UI over there shows up here automatically — no manual
+# copy, no silent drift.
+#
+# The two local touches (this app's favicon + a back control in the header) are
+# re-applied here after fetching, so they survive every sync.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # A few times a day is plenty for a UI that changes rarely.
+    - cron: "37 */6 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-lights-ui
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Fetch upstream lights UI
+        run: |
+          curl -fsSL \
+            https://raw.githubusercontent.com/fionnf/linked_friend_lights/master/web_app/index.html \
+            -o /tmp/lichter-upstream.html
+          # Sanity check: refuse to commit an error page or a truncated file.
+          if ! grep -q "Linked Lights" /tmp/lichter-upstream.html; then
+            echo "Upstream file doesn't look like the lights app — aborting."
+            exit 1
+          fi
+
+      - name: Re-apply local touches
+        run: |
+          python3 scripts/vendor-lights-ui.py /tmp/lichter-upstream.html lichter.html
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lichter.html
+          if git diff --cached --quiet; then
+            echo "Lights UI unchanged."
+            exit 0
+          fi
+          git commit -m "chore(lights): sync lichter.html from linked_friend_lights [skip ci]"
+          git pull --rebase origin master
+          git push

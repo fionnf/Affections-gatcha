@@ -10,6 +10,7 @@ import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQue
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
 import { BAERLAUCH_SCORE_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
+import { applySharedStimmung } from "./stimmung.js";
 
 let _baseUrl = "";
 let _resolveBase = null;
@@ -169,6 +170,12 @@ export async function syncFromSheets() {
           state._newPing = true;
         }
       } catch (_le) {}
+    }
+
+    // Shared day colour: whoever picked it last (either player, any time of
+    // day) wins, and it lands here on this sync.
+    if (data.stimmung) {
+      try { applySharedStimmung(data.stimmung); } catch (_e) {}
     }
 
     if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch")) {

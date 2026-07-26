@@ -393,6 +393,35 @@ export function renderLinkInto(container, link) {
   container.hidden = false;
 }
 
+// "Vor einem Jahr" — if this exact date has an entry from a previous year,
+// show it as a quiet footnote under today's result. Pure looking-back: a
+// small gift of memory, never a prompt to do anything.
+export function renderMemory(pull) {
+  const wrap = $("[data-ag-memory]");
+  if (!wrap) return;
+  wrap.hidden = true;
+  if (!pull || !pull.day || getPreviewDay()) return;
+
+  const [y, md] = [pull.day.slice(0, 4), pull.day.slice(5)];
+  const thisYear = Number(y);
+  const token = pull.token;
+  const past = readHistory()
+    .filter((e) => e.token === token && typeof e.day === "string"
+      && e.day.slice(5) === md && Number(e.day.slice(0, 4)) < thisYear)
+    .sort((a, b) => b.day.localeCompare(a.day));
+  if (!past.length) return;
+
+  const entry = past[0];
+  const yearsAgo = thisYear - Number(entry.day.slice(0, 4));
+  const labelEl = $("[data-ag-memory-label]");
+  const textEl = $("[data-ag-memory-text]");
+  if (labelEl) {
+    labelEl.textContent = yearsAgo === 1 ? "Vor einem Jahr" : `Vor ${yearsAgo} Jahren`;
+  }
+  if (textEl) textEl.textContent = entry.title || "";
+  wrap.hidden = false;
+}
+
 export function renderTokenInto(container, pull) {
   container.innerHTML = "";
   if (!pull.collectToken) { container.hidden = true; return; }
@@ -802,6 +831,7 @@ export function renderPull(pull) {
   }
 
   renderTokenInto($("[data-ag-token-wrap]"), pull);
+  renderMemory(pull);
 
   if (pull.photo) {
     renderMediaInto(photoMedia, pull.photo);
@@ -1267,6 +1297,31 @@ function renderKapselKalender(allEntries) {
   wrap.appendChild(grid);
 }
 
+// A quiet keepsake line under the calendar: how many capsules have been
+// opened, and since when. Deliberately phrased as a memory rather than a
+// metric — no goals, no targets, nothing to keep up with. It looks back at
+// what happened, it never asks for more.
+function renderHistoryTally(allEntries) {
+  const el = $("[data-ag-history-tally]");
+  if (!el) return;
+  if (historyFilter !== "all" || !allEntries.length) { el.hidden = true; return; }
+
+  const total = allEntries.length;
+  const first = allEntries[allEntries.length - 1]?.day;
+  let since = "";
+  if (first) {
+    try {
+      since = new Intl.DateTimeFormat("de-CH", {
+        month: "long", year: "numeric", timeZone: "UTC"
+      }).format(new Date(first + "T12:00:00Z"));
+    } catch (_e) { since = ""; }
+  }
+  el.hidden = false;
+  el.textContent = total === 1
+    ? "Eine Kapsel bisher geöffnet."
+    : `${total} Kapseln geöffnet${since ? `, seit ${since}` : ""}.`;
+}
+
 const HISTORY_PAGE_SIZE = 60;
 let historyShownCount = HISTORY_PAGE_SIZE;
 
@@ -1284,6 +1339,7 @@ export function renderHistory() {
     .sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
 
   renderKapselKalender(allEntries);
+  renderHistoryTally(allEntries);
 
   // Open (unredeemed) voucher count — used for the badge on the "Offen" chip.
   const openVouchers = allEntries.filter((e) => isVoucherEntry(e) && !e.used).length;
