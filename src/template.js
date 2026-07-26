@@ -406,6 +406,10 @@ export const html = `
                 <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
                 <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
               </div>
+              <div class="ag-memory" data-ag-memory hidden>
+                <span class="ag-memory-label" data-ag-memory-label></span>
+                <span class="ag-memory-text" data-ag-memory-text></span>
+              </div>
             </article>
 
             <details class="ag-card ag-rules">
@@ -487,6 +491,7 @@ export const html = `
                 <button class="ag-history-filter-chip" type="button" data-ag-filter="open" role="tab" aria-selected="false">Offen</button>
               </div>
               <div class="ag-kalender" data-ag-history-calendar hidden></div>
+              <p class="ag-history-tally" data-ag-history-tally hidden></p>
               <ol class="ag-history" data-ag-history></ol>
               <p class="ag-history-empty" data-ag-history-empty hidden></p>
               <button class="ag-secondary ag-history-more" type="button" data-ag-history-more hidden>Mehr anzeigen</button>

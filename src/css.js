@@ -1057,6 +1057,26 @@ export const css = `
       .ag-kalender-day.has-pull[data-tone="rare"],
       .ag-kalender-day.has-pull[data-tone="photo"]{background:var(--ag-green)}
 
+      /* "Vor einem Jahr" footnote under the day's result — a small gift of
+         memory, deliberately quiet so it never competes with today. */
+      .ag-memory{
+        display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+        margin-top:14px;padding-top:12px;
+        border-top:1px solid var(--ag-border);
+      }
+      .ag-memory[data-ag-memory]:not([hidden]){display:flex}
+      .ag-memory-label{
+        font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+        color:var(--ag-muted);opacity:.75;flex:none;
+      }
+      .ag-memory-text{font-size:.86rem;color:var(--ag-muted);line-height:1.45;min-width:0}
+
+      .ag-history-tally{
+        margin:0 0 12px;text-align:center;font-size:.78rem;
+        color:var(--ag-muted);opacity:.7;font-variant-numeric:tabular-nums;
+        letter-spacing:.01em;
+      }
+
       .ag-history-more{display:block;width:100%;margin-top:12px;text-align:center}
 
       .ag-history-item[data-tone="quiet"] .ag-history-badge{color:var(--ag-muted)}
