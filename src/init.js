@@ -94,7 +94,11 @@ export async function init() {
     } catch (_error) {}
     registerServiceWorker();
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") scheduleStreakWarning();
+      if (document.visibilityState !== "visible") return;
+      scheduleStreakWarning();
+      // Re-sync on focus so a Stimmung (or anything else) changed on the
+      // other phone shows up when you come back, without a manual reload.
+      syncFromSheets().catch(() => {});
     });
     mount.classList.add("is-ready");
     mount.style.transition = "opacity .18s ease";

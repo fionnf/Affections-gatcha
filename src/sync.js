@@ -11,6 +11,7 @@ import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js"
 import { BAERLAUCH_SCORE_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
 import { mergeReactions } from "./reactions.js";
+import { applySharedStimmung } from "./stimmung.js";
 
 let _baseUrl = "";
 let _resolveBase = null;
@@ -182,6 +183,12 @@ export async function syncFromSheets() {
     }
     if (data.partnerToday && typeof data.partnerToday === "object" && data.partnerToday.day) {
       state.partnerToday = data.partnerToday;
+    }
+
+    // Shared day colour: whoever picked it last (either player, any time of
+    // day) wins, and it lands here on this sync.
+    if (data.stimmung) {
+      try { applySharedStimmung(data.stimmung); } catch (_e) {}
     }
 
     if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch")) {
