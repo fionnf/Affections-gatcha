@@ -673,6 +673,9 @@ export function bindEvents() {
     }
     if (glossaryForm) glossaryForm.hidden = true;
     if (glossaryAddBtn) glossaryAddBtn.hidden = false;
+    // Clear the full-screen sheet backdrop the add form opened — without this
+    // it stays up after saving and swallows every tap, so the app looks frozen.
+    $("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
     document.getElementById("ag-glossary-edit-id").value = "";
     glossaryUI.audioBlob = null;
     glossaryUI.recorder = null;

@@ -1,7 +1,17 @@
 export const css = `
       body{transition:background .55s ease}
+      /* Never let anything push the page wider than the phone: horizontal
+         overflow makes mobile browsers render zoomed-out and jumpy. */
+      html,body{max-width:100%;overflow-x:hidden}
       .ag-widget,.ag-widget *{box-sizing:border-box}
+      .ag-widget{max-width:100%}
       .ag-widget [hidden]{display:none!important}
+
+      /* Form controls stay >=16px so iOS Safari never auto-zooms on focus —
+         the usual cause of "it zoomed in and won't zoom back". Selector is
+         (class+type) specificity so it wins over the component rules that
+         previously set 0.9-ish rem. */
+      .ag-widget input,.ag-widget textarea,.ag-widget select{font-size:16px}
 
       /* Keyboard focus is visible; pointer taps stay clean. */
       .ag-widget :focus-visible{outline:2px solid var(--ag-primary);outline-offset:2px;border-radius:6px}

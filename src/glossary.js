@@ -230,6 +230,9 @@ export function closeGlossaryPanel() {
   if (form) form.hidden = true;
   const addBtn = document.getElementById("ag-glossary-add");
   if (addBtn) addBtn.hidden = false;
+  // If the add form was open its sheet backdrop is up — clear it, or it stays
+  // covering the screen after the panel closes and blocks all taps.
+  document.querySelector("[data-ag-sheet-backdrop]")?.classList.remove("is-open");
   glossaryUI.audioBlob = null;
   if (glossaryUI.recorder && glossaryUI.recorder.state !== "inactive") {
     try { glossaryUI.recorder.stop(); } catch (_) {}
