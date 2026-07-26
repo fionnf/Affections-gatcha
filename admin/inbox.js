@@ -90,6 +90,9 @@ export async function renderInbox(mount) {
       return;
     }
     for (const item of items) {
+      // Reactions flow in BOTH directions — this feed is "Eingänge von
+      // Lennart", so Fionn's own outgoing reactions don't belong here.
+      if (item.type === "reaction" && (item.token || "").toLowerCase() === "fionn") continue;
       list.appendChild(h("div", { class: "fa-feed-item" }, [
         h("div", { class: "fa-feed-ico", text: (item.type === "reaction" && item.emoji) ? item.emoji : (ICONS[item.type] || "•") }),
         h("div", { class: "fa-feed-body" }, [
