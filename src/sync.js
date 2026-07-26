@@ -10,6 +10,7 @@ import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQue
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
 import { BAERLAUCH_SCORE_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
+import { mergeReactions } from "./reactions.js";
 import { applySharedStimmung } from "./stimmung.js";
 
 let _baseUrl = "";
@@ -170,6 +171,18 @@ export async function syncFromSheets() {
           state._newPing = true;
         }
       } catch (_le) {}
+    }
+
+    // Kapsel-Echo: merge both directions' reactions; remember which incoming
+    // ones are genuinely new so the ag-synced handler can announce them.
+    if (Array.isArray(data.reactions)) {
+      try {
+        const fresh = mergeReactions(data.reactions);
+        if (fresh.length) state._freshReactions = fresh;
+      } catch (_e) {}
+    }
+    if (data.partnerToday && typeof data.partnerToday === "object" && data.partnerToday.day) {
+      state.partnerToday = data.partnerToday;
     }
 
     // Shared day colour: whoever picked it last (either player, any time of
