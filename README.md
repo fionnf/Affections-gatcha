@@ -1,6 +1,6 @@
 # Affektions-Gacha
 
-A daily capsule-pull PWA for Lennart and Fionn — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn gets a parallel view at the same URL with `?player=fionn`.
+A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. A parallel view for Fionn exists in the code but is **not live yet** (see below).
 
 ---
 
@@ -9,8 +9,6 @@ A daily capsule-pull PWA for Lennart and Fionn — served from GitHub Pages. Len
 | | |
 |---|---|
 | 🟢 **App (Lennart)** | https://fionnf.github.io/Affections-gatcha/ |
-| 🔵 **App (Fionn)** | https://fionnf.github.io/Affections-gatcha/?player=fionn |
-| 🛠️ **Fionn admin (curator app)** | https://fionnf.github.io/Affections-gatcha/fionn.html |
 | 🖼️ **Media preview** | https://fionnf.github.io/Affections-gatcha/media-preview.html |
 | 📊 **Google Sheet** | https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit |
 | 📸 **iCloud shared album** | https://www.icloud.com/sharedalbum/#B1yGqkRUi85ROko |
@@ -61,7 +59,11 @@ The result is computed deterministically from:
 
 Same day → same result. Refreshing never re-rolls. Tomorrow gets a new pull automatically.
 
-Fionn's view loads via `?player=fionn` — same UI, Fionn's name, Fionn's daily mission, send button pointing to Lennart.
+> **Fionn's own gacha is still being built and is deliberately hidden.** The
+> public entry point ignores `?player=fionn` (see `FIONN_GACHA_READY` in
+> `index.html`), so it can't be stumbled into from the URL everyone has.
+> Fionn's private entry point still works for building it out. Flip that flag
+> to `true` when it's ready.
 
 ### Local development
 
@@ -75,7 +77,7 @@ npx serve .          # serve at http://localhost:3000
 
 ## Editing content (no-code)
 
-Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master` — or use the **Fionn admin app** (below) to edit outcomes and special days from a phone, no git required.
+Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master` — or use the curator app (private, see `admin/README.md`) to edit outcomes and special days from a phone, no git required.
 
 | File | What to edit |
 |---|---|
@@ -88,20 +90,11 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 
 See **[EDITING.md](EDITING.md)** for field-by-field details.
 
-### Fionn admin app (curator app)
+### Curator app (private)
 
-**https://fionnf.github.io/Affections-gatcha/fionn.html** — a standalone, PIN-gated
-page separate from Lennart's view. Edits go straight to GitHub via the Contents
-API and go live in ~1 minute, no git or code editor needed on the phone.
-
-- **Outcomes** — browse categories, add/edit/delete gacha outcomes, tweak
-  category weight/label/tone, with a live odds preview.
-- **Tage** — add/edit/delete special days (date, label, tone, colors, unlock
-  time, photo, confetti, PINs).
-- **Eingänge** — a feed of what Lennart sends back (hugs 🫂, wishes, prompt
-  answers, quest solves), with local notifications on new activity.
-
-First-time setup (PIN, GitHub token, notifications) is documented in
+A standalone, PIN-gated page for editing outcomes and special days from a
+phone — separate from Lennart's view and not linked publicly while Fionn's side
+is still being built. Setup and its URL are documented in
 **[admin/README.md](admin/README.md)**.
 
 ---
@@ -110,8 +103,7 @@ First-time setup (PIN, GitHub token, notifications) is documented in
 
 | Parameter | Example | Effect |
 |---|---|---|
-| `?player=` | `?player=fionn` | Switch to Fionn's view |
-| `?token=` | `?token=lennart` | Override the token directly |
+| `?player=` | `?player=fionn` | Switch to Fionn's view — ignored on the public entry point while `FIONN_GACHA_READY` is `false` |
 | `?preview-day=` | `?preview-day=2026-05-29` | Simulate a date (`YYYY-MM-DD` or `MM-DD`) |
 | `?preview-category=` | `?preview-category=jackpot` | Force an outcome category |
 
