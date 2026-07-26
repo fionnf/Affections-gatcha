@@ -313,6 +313,28 @@ The **Mini-Quest** outcome category delivers a photo challenge from `config/ques
 
 ---
 
+## Kapsel-Echo (Emoji-Reaktionen)
+
+Both players see the **partner's pull of the day** as a card on the Heute tab
+and can answer it with one emoji (❤️ 😂 🥹 😮 🫂). Fully two-way: Lennart reacts
+to Fionn's Kapsel exactly like Fionn reacts to Lennart's.
+
+- One reaction per day and direction — tapping another emoji replaces it.
+- The received reaction appears on the sender's result card, in the Verlauf
+  list, and as a toast on the next sync.
+- Reactions ride the existing backends: `Reactions` worksheet in the Google
+  Sheet, Web Push via the `push-notify` workflow, and the Eingänge feed in the
+  Fionn admin app.
+- Optional: override the emoji set with `"reactionEmojis": ["…"]` in
+  `config/theme.json`.
+
+> **Setup note:** after pulling this feature, redeploy the Apps Script
+> (paste the updated `scripts/backup-apps-script.js`, then Deploy → Manage
+> deployments → ✏️ → New version). The `Reactions` worksheet is created
+> automatically on first use.
+
+---
+
 ## Wunschkapsel
 
 A "wish capsule" form on the Heute tab. The submitted wish goes to the Google Sheet (`Wünsche` worksheet) and is displayed back to the other player during the next sync.
@@ -352,6 +374,7 @@ For `rare` and `jackpot` pulls, **Als Bild speichern** downloads a PNG of the re
 | `Quests` | Quest solve log |
 | `Gipfelbuch` | Mountain log entries |
 | `Glossary` | Shared vocabulary entries |
+| `Reactions` | Kapsel-Echo emoji reactions (one row per day + direction) |
 
 **Setup:**
 

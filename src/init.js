@@ -12,6 +12,7 @@ import { bindEvents, retryPendingWishSend, renderError } from "./events.js";
 import { registerServiceWorker, scheduleStreakWarning } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
 import { initInstallPrompt } from "./installPrompt.js";
+import { renderPartnerCard } from "./reactions.js";
 
 const defaultPhotos = { photos: [] };
 
@@ -59,6 +60,7 @@ export async function init() {
     hydrateCopy();
     renderOdds();
     renderWunschkapsel();
+    renderPartnerCard();
     bindEvents();
     initInstallPrompt();
     // Position the sliding pill after first layout

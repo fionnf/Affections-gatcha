@@ -12,6 +12,7 @@ import { extractDriveFileId } from "./utils.js";
 import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
+import { reactionForEntry, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -837,6 +838,7 @@ export function renderPull(pull) {
   }
 
   $("[data-ag-result]").hidden = false;
+  renderReactionOnResult();
   updateStarButton();
 }
 
@@ -1039,6 +1041,14 @@ export function renderHistoryItemEl(entry) {
 
   head.appendChild(date);
   head.appendChild(badge);
+  const reaction = entry.token === getToken() ? reactionForEntry(entry) : null;
+  if (reaction) {
+    const rx = document.createElement("span");
+    rx.className = "ag-history-reaction";
+    rx.textContent = reaction.emoji;
+    rx.title = `${partnerDisplayName()} hat darauf reagiert`;
+    head.appendChild(rx);
+  }
   head.appendChild(starBtn);
 
   const title = document.createElement("p");

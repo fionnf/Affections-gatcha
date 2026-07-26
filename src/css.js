@@ -1332,6 +1332,57 @@ export const css = `
         .ag-hug-status[data-ag-hug-state="error"]{color:#e8a4a4}
       }
 
+      /* ── Kapsel-Echo (partner pull + emoji reactions) ── */
+      .ag-partner-card{}
+      .ag-partner-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+      .ag-partner-head .ag-wish-label{margin:0;flex:1 1 auto}
+      .ag-partner-pull{margin:4px 0 0;color:var(--ag-text);font-size:.98rem;line-height:1.55;font-weight:600}
+      .ag-partner-pull.is-waiting{color:var(--ag-muted);font-weight:500;font-style:italic}
+      .ag-reaction-bar{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+      .ag-reaction-btn{
+        width:46px;height:46px;border-radius:999px;
+        border:1px solid var(--ag-border);
+        background:var(--ag-surface);
+        font-size:1.3rem;line-height:1;cursor:pointer;
+        display:inline-flex;align-items:center;justify-content:center;
+        transition:transform 120ms var(--ag-ease),border-color 150ms var(--ag-ease),box-shadow 150ms var(--ag-ease);
+      }
+      .ag-reaction-btn:hover{transform:translateY(-1px) scale(1.05)}
+      .ag-reaction-btn:active{transform:scale(.9)}
+      .ag-reaction-btn.is-selected{
+        border-color:var(--ag-primary);
+        box-shadow:0 0 0 2px var(--ag-primary) inset,0 4px 14px rgba(47,122,79,.18);
+        transform:scale(1.08);
+      }
+      .ag-reaction-pop{animation:ag-reaction-pop 420ms var(--ag-ease)}
+      @keyframes ag-reaction-pop{
+        0%{transform:scale(1)}
+        40%{transform:scale(1.35) rotate(-8deg)}
+        100%{transform:scale(1.08)}
+      }
+      .ag-partner-note{margin:10px 0 0;color:var(--ag-muted);font-size:.85rem;line-height:1.5}
+      .ag-reaction-received{
+        display:flex;align-items:center;gap:10px;
+        margin:14px 0 0;padding:10px 14px;border-radius:var(--ag-radius-sm);
+        border:1px dashed var(--ag-border);
+        background:linear-gradient(135deg,rgba(232,164,164,.10),rgba(47,122,79,.08));
+        color:var(--ag-text);font-size:.9rem;font-weight:600;
+        animation:ag-echo-in 400ms var(--ag-ease) both;
+      }
+      @keyframes ag-echo-in{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:none}}
+      .ag-reaction-received-emoji{font-size:1.4rem;line-height:1}
+      .ag-history-reaction{
+        font-size:.95rem;line-height:1;
+        padding:2px 6px;border-radius:999px;
+        border:1px solid var(--ag-border);
+        background:var(--ag-surface);
+      }
+      @media (prefers-color-scheme:dark){
+        .ag-reaction-btn{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
+        .ag-reaction-received{background:linear-gradient(135deg,rgba(232,164,164,.10),rgba(47,122,79,.14))}
+        .ag-history-reaction{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+      }
+
       /* ── Wunschkapsel card ── */
       .ag-wish-card{}
       .ag-wish-label{margin:0 0 6px;font-weight:800;font-size:1rem;color:var(--ag-text);letter-spacing:.01em}

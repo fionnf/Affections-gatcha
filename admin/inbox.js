@@ -3,7 +3,7 @@
 import { state } from "./state.js";
 import { h } from "./ui.js";
 
-const ICONS = { hug: "🫂", wish: "✨", voucher: "🎟️", answer: "💬", quest: "📸", ping: "📍" };
+const ICONS = { hug: "🫂", wish: "✨", voucher: "🎟️", answer: "💬", quest: "📸", ping: "📍", reaction: "💛" };
 
 function endpoint() {
   const cfg = state.backup;
@@ -47,6 +47,7 @@ function labelFor(item) {
     case "voucher": return "Gutschein eingelöst";
     case "answer": return "Prompt-Antwort";
     case "quest": return "Quest gelöst";
+    case "reaction": return "Kapsel-Reaktion";
     default: return item.type || "Eintrag";
   }
 }
@@ -58,6 +59,9 @@ function textFor(item) {
   }
   if (item.type === "quest") {
     return `${item.challenge || ""}${item.points ? ` · ${item.points} Punkte` : ""}`;
+  }
+  if (item.type === "reaction") {
+    return `${item.emoji || ""} auf die Kapsel vom ${item.day || "heute"}`;
   }
   return item.message || item.wish || item.text || "";
 }
@@ -87,7 +91,7 @@ export async function renderInbox(mount) {
     }
     for (const item of items) {
       list.appendChild(h("div", { class: "fa-feed-item" }, [
-        h("div", { class: "fa-feed-ico", text: ICONS[item.type] || "•" }),
+        h("div", { class: "fa-feed-ico", text: (item.type === "reaction" && item.emoji) ? item.emoji : (ICONS[item.type] || "•") }),
         h("div", { class: "fa-feed-body" }, [
           h("div", { class: "fa-when", text: `${labelFor(item)} · ${fmtWhen(item)}` }),
           h("p", { class: "fa-what", text: textFor(item) })

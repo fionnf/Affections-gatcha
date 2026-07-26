@@ -30,6 +30,9 @@ async function subsFor(token) {
 function messageFor(item) {
   const who = NAME[item.from] || "Jemand";
   if (item.type === "hug") return { title: "🫂 Ein Stups", body: `${who} denkt gerade an dich.` };
+  if (item.type === "reaction") {
+    return { title: `${item.text || "💛"} von ${who}`, body: `${who} hat auf deine Kapsel reagiert.` };
+  }
   return { title: "✨ Neuer Wunsch", body: `${who} hat einen Wunsch geschickt.` };
 }
 
@@ -41,7 +44,8 @@ function messageFor(item) {
 
   let sent = 0, gone = 0, failed = 0;
   for (const item of pending) {
-    const recipient = other(item.from);
+    // Reactions carry an explicit recipient; hugs/wishes imply "the other one".
+    const recipient = NAME[item.to] ? item.to : other(item.from);
     const subs = await subsFor(recipient);
     if (!subs.length) continue;
     const { title, body } = messageFor(item);
