@@ -154,6 +154,23 @@ function doGet(e) {
       });
     }
 
+    // Today's shared Stimmung colour (one row per day, set by either player).
+    // Returned as {day, hex} or null; the client applies it if it's for today.
+    let stimmung = null;
+    try {
+      const stimmungSheet = getOrCreateStimmungSheet_(ss);
+      const sVals = stimmungSheet.getDataRange().getValues();
+      for (let i = sVals.length - 1; i >= 1; i--) {
+        const row = sVals[i];
+        if (!row[0]) continue;
+        const day = (row[0] instanceof Date)
+          ? Utilities.formatDate(row[0], "Europe/Zurich", "yyyy-MM-dd")
+          : String(row[0]).slice(0, 10);
+        stimmung = { day: day, hex: row[1] || "", setBy: row[2] || "" };
+        break;
+      }
+    } catch (errS) { stimmung = null; }
+
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
     // prompt answers and quest solves into one time-sorted list.
@@ -278,6 +295,7 @@ function doGet(e) {
       latestPing,
       gipfelbuch,
       glossary,
+      stimmung,
       activity
     });
   } catch (err) {
@@ -448,6 +466,22 @@ function doPost(e) {
     // ── Ping (Fionn → Lennart) ────────────────────────────────────────────────
     if (data.type === "ping") {
       PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Stimmung (shared day colour) ──────────────────────────────────────────
+    // One row per day, shared by both players: whoever sets the mood colour
+    // sets it for that day, and the other's app picks it up on the next sync.
+    if (data.type === "stimmung-set" && data.day) {
+      const sheet = getOrCreateStimmungSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      const row = [data.day, data.hex || "", data.token || "", new Date().toISOString()];
+      let rowIdx = -1;
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]).slice(0, 10) === data.day) { rowIdx = i + 1; break; }
+      }
+      if (rowIdx === -1) { sheet.appendRow(row); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
       return jsonOut_({ ok: true });
     }
 
@@ -709,6 +743,16 @@ function getOrCreateGipfelbuchSheet_(ss) {
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
     sheet.setColumnWidth(6, 300);
+  }
+  return sheet;
+}
+
+function getOrCreateStimmungSheet_(ss) {
+  let sheet = ss.getSheetByName("Stimmung");
+  if (!sheet) {
+    sheet = ss.insertSheet("Stimmung");
+    sheet.appendRow(["Day", "Hex", "SetBy", "UpdatedAt"]);
+    sheet.setFrozenRows(1);
   }
   return sheet;
 }

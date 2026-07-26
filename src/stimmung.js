@@ -1,4 +1,44 @@
 import { STIMMUNG_KEY } from "./constants.js";
+import { state } from "./state.js";
+import { getToken, dateKeyInTimezone } from "./utils.js";
+import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
+
+// The Stimmung is shared: whoever picks the day's colour picks it for both.
+// Uses the app's timezone (not UTC) so "today" flips at the same moment as
+// every other day-keyed thing in the app.
+function todayKey() {
+  return dateKeyInTimezone(state.theme?.timezone || "Europe/Zurich");
+}
+
+function postStimmungToSheet(day, hex) {
+  const cfg = state.backup;
+  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+  const body = JSON.stringify({ type: "stimmung-set", day, hex, token: getToken() });
+  const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+  fetch(cfg.endpointUrl, opts)
+    .catch(() => fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}));
+}
+
+// Called from the sync handler with the sheet's {day, hex} for the shared
+// colour. Applies it when it's for today and differs from what's showing —
+// so the other person's pick lands here on the next sync.
+export function applySharedStimmung(shared) {
+  if (!shared || typeof shared !== "object") return;
+  // Don't let an in-flight sync stomp a colour just chosen on this device.
+  if (withinGracePeriod("stimmung")) return;
+  const today = todayKey();
+  if (shared.day !== today) return;
+  const hex = typeof shared.hex === "string" ? shared.hex.trim() : "";
+  if (!hex) {
+    // Cleared on the other device — clear here too.
+    if (readStimmung()) { clearStimmung(); resetStimmung(); }
+    return;
+  }
+  if (readStimmung() === hex) return;
+  writeStimmungLocal(hex);
+  applyStimmung(hex);
+}
 
 // Mix the chosen colour (30%) into the dark base #0a1410
 function _tintBg(hex) {
@@ -24,19 +64,38 @@ export function readStimmung() {
     const raw = localStorage.getItem(STIMMUNG_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
-    if (parsed.day !== today) return null;
+    if (parsed.day !== todayKey()) return null;
     return parsed.hex || null;
   } catch { return null; }
 }
 
+// Local-only write (no sheet post) — used when applying someone else's pick.
+function writeStimmungLocal(hex) {
+  try {
+    localStorage.setItem(STIMMUNG_KEY, JSON.stringify({ day: todayKey(), hex }));
+  } catch (_e) {}
+}
+
+// A pick made on this device: store it and share it for the day. Can happen
+// any number of times a day — the sheet row is upserted per day, so the most
+// recent choice always wins and reaches the other person on their next sync.
 export function writeStimmung(hex) {
-  const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem(STIMMUNG_KEY, JSON.stringify({ day: today, hex }));
+  const day = todayKey();
+  writeStimmungLocal(hex);
+  markRecentWrite("stimmung");
+  postStimmungToSheet(day, hex);
 }
 
 export function clearStimmung() {
-  localStorage.removeItem(STIMMUNG_KEY);
+  try { localStorage.removeItem(STIMMUNG_KEY); } catch (_e) {}
+}
+
+// Reset shares the cleared state too, so "Zurücksetzen" clears it for both.
+export function clearStimmungShared() {
+  const day = todayKey();
+  clearStimmung();
+  markRecentWrite("stimmung");
+  postStimmungToSheet(day, "");
 }
 
 export function restoreStimmung() {
@@ -116,7 +175,7 @@ export function bindStimmungPanel() {
 
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
-      clearStimmung();
+      clearStimmungShared();
       resetStimmung();
       _syncInputs(panel, "#4aaa5a");
       _updatePreview(panel, "#4aaa5a");
