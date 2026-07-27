@@ -17,23 +17,14 @@ import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, openLetter, closeLetter } from "./mission.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
-import { openWerkstatt, closeWerkstatt, openKapselForm, closeKapselForm, submitKapselForm, renderWerkstatt, renderWerkstattEntry } from "./werkstatt.js";
+import { openWerkstatt, closeWerkstatt, openKapselForm, closeKapselForm, submitKapselForm, requestKapselDelete, renderWerkstatt, renderWerkstattEntry } from "./werkstatt.js";
 import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
 import { currentWeekKey } from "./utils.js";
 import { sendReaction, renderPartnerCard, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
 
-export function showToast(msg) {
-  const container = mount.querySelector("[data-ag-toasts]");
-  if (!container) return;
-  const el = document.createElement("div");
-  el.className = "ag-toast";
-  el.textContent = msg;
-  container.appendChild(el);
-  setTimeout(() => {
-    el.classList.add("is-leaving");
-    setTimeout(() => el.remove(), 300);
-  }, 2400);
-}
+// Moved to toast.js; re-exported so the existing importers stay unchanged.
+export { showToast } from "./toast.js";
+import { showToast } from "./toast.js";
 
 export function setActiveTab(tab) {
   state.activeTab = tab;
@@ -1061,6 +1052,7 @@ export function bindEvents() {
   $("#ag-werkstatt-close")?.addEventListener("click", closeWerkstatt);
   document.getElementById("ag-werkstatt-add")?.addEventListener("click", () => openKapselForm(null));
   document.getElementById("ag-werkstatt-cancel")?.addEventListener("click", closeKapselForm);
+  document.getElementById("ag-werkstatt-delete")?.addEventListener("click", requestKapselDelete);
   document.getElementById("ag-werkstatt-save")?.addEventListener("click", () => {
     submitKapselForm();
     renderWerkstattEntry();

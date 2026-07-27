@@ -76,7 +76,7 @@ npx serve .          # serve at http://localhost:3000
 
 ## Editing content (no-code)
 
-Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master` — or use the curator app (private, see `admin/README.md`) to edit outcomes and special days from a phone, no git required.
+Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master`. (Fionn's outcomes are the exception — they aren't in `config/` at all; see **Kapsel-Werkstatt** below.)
 
 | File | What to edit |
 |---|---|
@@ -95,6 +95,20 @@ Fionn's outcomes are not in `config/` at all — **Lennart writes them**, from t
 🔧 button at the bottom of his Heute tab. Capsules go to the Google Sheet via
 Apps Script (no token, no commit, no build) and reach Fionn on his next sync.
 
+A capsule has a title and a message, and optionally:
+
+| Field | Effect |
+|---|---|
+| **Gutschein** | renders as a redeemable voucher in Verlauf |
+| **Link** | Spotify embeds as a player, anything else as a link button |
+| **Frage** | gates the message — Fionn answers before he can read it |
+
+An answer to a *Frage* is filed back onto the capsule and shown under the
+question in the Werkstatt, so it reaches whoever asked. (The generic
+prompt-answer path emails Fionn regardless of who answered, which is the wrong
+direction for a question Lennart wrote.) Editing a capsule never erases an
+answer already given.
+
 Per category the rule is all-or-nothing: a category Lennart has written at
 least one capsule for is served entirely from his, and one he hasn't written
 for falls back to `config/outcomes.json`. So his first JACKPOT capsule *is*
@@ -102,6 +116,16 @@ Fionn's jackpot, rather than a one-in-ten chance among the shipped ones.
 
 A capsule written mid-day never rewrites a pull already opened that day — the
 recorded title wins on reload.
+
+**No repeats**, the same promise the shipped pool makes. Written capsules go
+through the same seen-title filter, and because a hand-written pool is small
+— often one capsule — exhausting it falls through to the shipped outcomes
+Fionn hasn't seen rather than handing back the same capsule every time. Only a
+genuinely exhausted category repeats. Duplicate titles within a category are
+refused at write time and de-duplicated on the way in from the sheet, since
+that filter keys on category + exact title and can't tell two identical
+titles apart (the same rule `scripts/validate-gacha-config.cjs` enforces for
+`config/outcomes.json`).
 
 > **Setup note:** redeploy the Apps Script after pulling this (paste the
 > updated `scripts/backup-apps-script.js`, then Deploy → Manage deployments →

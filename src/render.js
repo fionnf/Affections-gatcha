@@ -13,7 +13,7 @@ import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
 import { reactionForEntry, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
-import { renderWerkstattEntry } from "./werkstatt.js";
+import { renderWerkstattEntry, answerKapsel } from "./werkstatt.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -734,6 +734,10 @@ export function renderPull(pull) {
         promptGate.remove();
         if (!getPreviewDay()) {
           _firePromptNotification(pull, answer);
+          // Written capsules carry an id; shipped outcomes don't. When the
+          // question came from one, the answer also goes back onto that
+          // capsule so its author sees it in the Werkstatt.
+          if (pull.outcome.id) answerKapsel(pull.outcome.id, answer);
           const hist = readHistory();
           const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
           if (idx !== -1) { hist[idx] = { ...hist[idx], promptAnswer: answer }; writeHistory(hist); backupToSheets(); }

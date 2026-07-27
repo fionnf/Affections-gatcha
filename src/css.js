@@ -1968,6 +1968,11 @@ export const css = `
       #ag-werkstatt-form:not([hidden]){
         position:relative;z-index:1010;margin-top:14px;padding-top:14px;
         border-top:1px solid rgba(255,255,255,.1);
+        animation:ag-werkstatt-form-in 280ms var(--ag-ease) both;
+      }
+      @keyframes ag-werkstatt-form-in{
+        from{opacity:0;transform:translateY(8px)}
+        to{opacity:1;transform:none}
       }
       /* Clear the floating bottom nav so Speichern is never half under it. */
       @media (max-width:900px){
@@ -1975,6 +1980,12 @@ export const css = `
       }
 
       /* ── Kapsel-Werkstatt ── */
+      #ag-werkstatt-panel:not([hidden]){animation:ag-werkstatt-panel-in 340ms var(--ag-ease) both}
+      @keyframes ag-werkstatt-panel-in{
+        from{opacity:0;transform:translateY(10px)}
+        to{opacity:1;transform:none}
+      }
+
       .ag-werkstatt-entry{
         display:flex;align-items:center;gap:12px;width:100%;text-align:left;
         cursor:pointer;font:inherit;color:inherit;
@@ -1995,9 +2006,21 @@ export const css = `
          which is exactly the "wider than the phone" problem this app has had
          before. overflow-x alone does not stop that. */
       .ag-werkstatt-tabs{
-        display:flex;gap:6px;overflow-x:auto;margin-top:12px;padding-bottom:4px;
-        width:100%;max-width:100%;min-width:0;
+        display:flex;gap:6px;overflow-x:auto;margin-top:12px;
+        /* Positioned so a tab's offsetLeft is measured against this strip and
+           not some ancestor — the scroll maths in renderWerkstatt depends on
+           it. The inline padding keeps the first and last tab clear of the
+           edge fades below, and the negative margin cancels it visually so
+           the strip still spans the card edge to edge. */
+        position:relative;
+        padding:0 14px 4px;margin-inline:-14px;
+        width:calc(100% + 28px);max-width:calc(100% + 28px);min-width:0;
+        scroll-behavior:smooth;
         scrollbar-width:none;-webkit-overflow-scrolling:touch;
+        /* Fade the edges so a half-scrolled tab reads as "there's more this
+           way" rather than as a word chopped off by the panel. */
+        -webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);
+        mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);
       }
       .ag-werkstatt-tabs::-webkit-scrollbar{display:none}
       .ag-werkstatt-tab{
@@ -2005,8 +2028,11 @@ export const css = `
         padding:7px 12px;border-radius:999px;white-space:nowrap;
         border:1px solid rgba(255,255,255,.12);
         background:rgba(255,255,255,.04);color:inherit;opacity:.75;
-        transition:background .18s ease,opacity .18s ease;
+        transition:background 200ms var(--ag-ease),color 200ms var(--ag-ease),
+                   border-color 200ms var(--ag-ease),opacity 200ms var(--ag-ease),
+                   transform 140ms var(--ag-ease);
       }
+      .ag-werkstatt-tab:active{transform:scale(.94)}
       .ag-werkstatt-tab.is-active{
         background:var(--ag-primary);border-color:transparent;color:#08150d;opacity:1;font-weight:600;
       }
@@ -2015,33 +2041,72 @@ export const css = `
         background:rgba(0,0,0,.22);font-size:.72rem;font-weight:600;
       }
       .ag-werkstatt-tab:not(.is-active) .ag-werkstatt-count{background:rgba(255,255,255,.14)}
-      .ag-werkstatt-note{margin:10px 0 0;font-size:.82rem;opacity:.72;line-height:1.45}
+      .ag-werkstatt-note{margin:11px 0 0;font-size:.8rem;opacity:.62;line-height:1.5}
       .ag-werkstatt-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+
+      /* The whole card is the edit control, so it gets the full width for
+         text instead of surrendering a third of it to an icon column. */
       .ag-werkstatt-card{
-        display:flex;align-items:flex-start;gap:10px;
-        padding:12px 14px;border-radius:14px;
+        display:block;width:100%;text-align:left;font:inherit;color:inherit;
+        cursor:pointer;padding:13px 15px;border-radius:15px;
         background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);
+        transition:background 180ms var(--ag-ease),border-color 180ms var(--ag-ease),transform 140ms var(--ag-ease);
+        animation:ag-werkstatt-card-in 300ms var(--ag-ease) both;
+        animation-delay:min(calc(var(--ag-i,0) * 45ms),270ms);
       }
-      .ag-werkstatt-card-text{flex:1;min-width:0}
-      .ag-werkstatt-card-title{font-weight:600;font-size:.92rem}
-      .ag-werkstatt-card-msg{font-size:.84rem;opacity:.78;margin-top:3px;line-height:1.45}
-      /* One line, clipped — a full Spotify URL otherwise takes three lines
-         and buries the capsule's actual text. */
-      .ag-werkstatt-card-link{
-        font-size:.76rem;opacity:.6;margin-top:5px;
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      .ag-werkstatt-card:hover{background:rgba(255,255,255,.07);border-color:rgba(126,207,163,.28)}
+      .ag-werkstatt-card:active{transform:scale(.985);background:rgba(255,255,255,.09)}
+      @keyframes ag-werkstatt-card-in{
+        from{opacity:0;transform:translateY(6px)}
+        to{opacity:1;transform:none}
       }
-      .ag-werkstatt-badge{
-        display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
-        background:var(--ag-gold);color:#1c1405;font-size:.68rem;font-weight:700;vertical-align:middle;
+      .ag-werkstatt-card-title{font-weight:600;font-size:.94rem;line-height:1.35}
+      .ag-werkstatt-card-msg{font-size:.84rem;opacity:.75;margin-top:4px;line-height:1.5}
+
+      /* Question and answer share one label treatment so the pair reads as a
+         little exchange rather than two unrelated notes. */
+      .ag-werkstatt-block-label{
+        display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.07em;opacity:.55;margin-bottom:3px;
       }
-      .ag-werkstatt-card-btns{display:flex;gap:6px;flex-shrink:0}
-      .ag-werkstatt-edit,.ag-werkstatt-del{
-        cursor:pointer;font:inherit;font-size:.9rem;line-height:1;
-        width:34px;height:34px;display:grid;place-items:center;border-radius:10px;
-        border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:inherit;
+      .ag-werkstatt-card-prompt{
+        margin-top:9px;padding-left:10px;font-size:.83rem;line-height:1.5;
+        border-left:2px solid rgba(255,255,255,.16);
       }
-      .ag-werkstatt-del{color:#e88}
+      .ag-werkstatt-card-pending{font-size:.75rem;opacity:.45;margin-top:5px;padding-left:10px}
+      .ag-werkstatt-answer{
+        margin-top:7px;padding:9px 11px;border-radius:11px;
+        background:rgba(126,207,163,.1);border-left:2px solid var(--ag-primary);
+        font-size:.84rem;line-height:1.5;
+      }
+
+      .ag-werkstatt-card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+      .ag-werkstatt-card-tags:empty{display:none}
+      .ag-werkstatt-tag{
+        font-size:.68rem;font-weight:600;letter-spacing:.03em;
+        padding:2px 8px;border-radius:999px;
+        background:rgba(255,255,255,.09);opacity:.8;
+      }
+      .ag-werkstatt-tag.is-voucher{background:var(--ag-gold);color:#1c1405;opacity:1}
+      .ag-werkstatt-tag.is-unsent{
+        background:rgba(232,180,120,.18);color:#e8c08a;opacity:1;
+        border:1px solid rgba(232,180,120,.35);
+      }
+
+      /* Destructive, so it sits apart from Speichern and arms before it
+         fires — no native confirm() dialog anywhere in this flow. */
+      .ag-werkstatt-delete-btn{
+        display:block;width:100%;margin-top:14px;padding:10px;
+        cursor:pointer;font:inherit;font-size:.82rem;border-radius:11px;
+        background:none;border:1px solid transparent;color:#e89b9b;opacity:.75;
+        transition:background 180ms var(--ag-ease),border-color 180ms var(--ag-ease),opacity 180ms var(--ag-ease);
+      }
+      .ag-werkstatt-delete-btn:hover{opacity:1}
+      .ag-werkstatt-delete-btn.is-armed{
+        background:rgba(220,120,120,.14);border-color:rgba(232,155,155,.45);
+        color:#f4b4b4;opacity:1;font-weight:600;
+      }
+
       .ag-werkstatt-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
       .ag-werkstatt-textarea{resize:vertical;min-height:76px;font-family:inherit}
       .ag-werkstatt-check{display:flex;align-items:center;gap:8px;font-size:.84rem;opacity:.85}

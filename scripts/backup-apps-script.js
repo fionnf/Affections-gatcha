@@ -21,6 +21,10 @@
  *   "PromptAnswers"  — one row per prompt answer (append-only); triggers email to Fionn
  *   "Reactions"      — Kapsel-Echo: one row per (day, from, to), upsert — emoji
  *                      reactions on the partner's daily pull, both directions
+ *   "Werkstatt"      — one row per hand-written capsule, upsert by id. Lennart
+ *                      writes these for Fionn; ForToken says whose pool they
+ *                      belong to. Answer/AnsweredAt hold the reply to a
+ *                      capsule's Prompt, so it reaches whoever asked.
  *
  * Google Drive folder: "Glossar-Audio" — audio recordings for glossary words
  */
@@ -218,7 +222,10 @@ function doGet(e) {
         link:       row[5] || null,
         voucher:    row[6] === true || String(row[6]).toLowerCase() === "true",
         createdBy:  row[7] || "",
-        createdAt:  row[8] || ""
+        createdAt:  row[8] || "",
+        prompt:     row[9] || null,
+        answer:     row[10] || null,
+        answeredAt: row[11] || null
       });
     }
 
@@ -615,9 +622,34 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (values[i][0] === id) { rowIdx = i + 1; break; }
       }
-      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString()];
+      // The answer belongs to the capsule, not to this edit — carry the
+      // existing one over so rewording a question doesn't erase the reply.
+      const prev = rowIdx === -1 ? [] : values[rowIdx - 1];
+      // Take the answer from the payload when it carries one — a client
+      // re-sending an unconfirmed capsule is how a lost answer gets back in —
+      // and otherwise keep whatever the row already holds, so an ordinary
+      // edit can't blank a reply.
+      const ans   = (data.answer === undefined || data.answer === null) ? (prev[10] || "") : data.answer;
+      const ansAt = (data.answeredAt === undefined || data.answeredAt === null) ? (prev[11] || "") : data.answeredAt;
+      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString(), data.prompt || "", ans, ansAt];
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    // The recipient answered a question capsule. Filed on the capsule itself
+    // so the author sees it in the Werkstatt — the generic prompt-answer
+    // path only ever emails Fionn, which is the wrong direction when Lennart
+    // asked the question.
+    if (data.type === "werkstatt-answer" && data.id) {
+      const sheet = getOrCreateWerkstattSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === data.id) {
+          sheet.getRange(i + 1, 11, 1, 2).setValues([[data.answer || "", data.answeredAt || new Date().toISOString()]]);
+          break;
+        }
+      }
       return jsonOut_({ ok: true });
     }
 
@@ -932,7 +964,7 @@ function getOrCreateWerkstattSheet_(ss) {
   let sheet = ss.getSheetByName("Werkstatt");
   if (!sheet) {
     sheet = ss.insertSheet("Werkstatt");
-    sheet.appendRow(["ID", "CategoryId", "ForToken", "Title", "Message", "Link", "Voucher", "CreatedBy", "CreatedAt"]);
+    sheet.appendRow(["ID", "CategoryId", "ForToken", "Title", "Message", "Link", "Voucher", "CreatedBy", "CreatedAt", "Prompt", "Answer", "AnsweredAt"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 200);
     sheet.setColumnWidth(5, 360);
