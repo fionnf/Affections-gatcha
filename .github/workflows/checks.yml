@@ -1,0 +1,58 @@
+name: Checks
+
+# Runs the validator and the test suite on every pull request, and on pushes
+# to master.
+#
+# Two gaps this closes. Pull requests ran nothing at all, so a red branch could
+# be merged and only be noticed once the app misbehaved. And build-bundles.yml
+# — which does run both — only triggers on src/, admin/ and the build files, so
+# edits to config/ were never validated. That is the path the README actively
+# recommends for no-code changes: edit config/outcomes.json in the GitHub web
+# editor and commit to master. A stray comma or a duplicate outcome title would
+# have gone straight to the live app, where the config is fetched at runtime.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+    paths:
+      - "config/**"
+      - "src/**"
+      - "admin/**"
+      - "tests/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Validate config
+        run: npm run validate
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build both bundles
+        # Not committed here — that is build-bundles.yml's job on master. This
+        # only proves the source still compiles, which a config-only PR gets
+        # for free and a src PR needs before merge.
+        run: npm run build

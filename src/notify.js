@@ -5,7 +5,8 @@
 // dormant until config/push.json is enabled — see PUSH-SETUP.md.
 import { state, $ } from "./state.js";
 import { NOTIF_KEY } from "./constants.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, dailyMsgIdx, currentQuestPeriod, urlFor } from "./utils.js";
+import { getToken, dateKeyInTimezone, hmInTimezone, dailyMsgIdx, currentQuestPeriod } from "./utils.js";
+import { resolveBase } from "./sync.js";
 import { displayNameFromToken } from "./render.js";
 import { readHistory, readQuestState } from "./storage.js";
 import { isQuestAvailable } from "./mission.js";
@@ -158,7 +159,13 @@ export async function tryPeriodicSync() {
 export async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   try {
-    const swUrl = urlFor("sw.js");
+    // Was urlFor("sw.js"). urlFor's third parameter is the resolver it calls,
+    // and this was the only caller — passing one argument made it throw
+    // "resolveBase is not a function" on every single load. The catch below
+    // swallowed it, so the service worker never registered at all: no offline
+    // shell, no daily reminder, no streak warning, no Web Push. Silently, for
+    // as long as the offline support has existed.
+    const swUrl = new URL("sw.js", resolveBase()).toString();
     if (new URL(swUrl).origin !== window.location.origin) return;
     await navigator.serviceWorker.register(swUrl, {
       scope: new URL("./", swUrl).pathname
@@ -170,7 +177,10 @@ export async function registerServiceWorker() {
       await subscribeToPush();
     }
   } catch (error) {
-    /* SW not supported or cross-origin — silent fail */
+    // Genuinely unsupported browsers land here too, so this stays non-fatal —
+    // but it is no longer silent. The bug above hid for months behind a bare
+    // comment.
+    console.warn("[ag] service worker registration failed:", error && error.message);
   }
 }
 

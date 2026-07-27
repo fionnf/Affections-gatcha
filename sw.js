@@ -30,6 +30,12 @@ self.addEventListener("message", (event) => {
       delete scheduledTimers[tag];
     }
   }
+
+  // Fire now, no timer. Used by Fionn's Eingänge poll when a hug or wish
+  // comes in while the app is open.
+  if (type === "SHOW_NOTIFICATION") {
+    event.waitUntil(fireNotification(title, body, tag));
+  }
 });
 
 // ── Periodic Background Sync ────────────────────────────────────────────────
@@ -42,6 +48,15 @@ const DAILY_SYNC_POOL = [
 ];
 
 self.addEventListener("periodicsync", (event) => {
+  // Fionn's Eingänge poll: wake any open client and let it do the fetching,
+  // since the feed logic and its last-seen bookkeeping live in the page.
+  if (event.tag === "fionn-inbox-poll") {
+    event.waitUntil((async () => {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clients) client.postMessage({ type: "POLL_INBOX" });
+    })());
+    return;
+  }
   if (event.tag !== "ag-daily-reminder") return;
   event.waitUntil((async () => {
     const now = new Date();
@@ -152,16 +167,31 @@ self.addEventListener("fetch", (event) => {
         // (?player=/... identity params) — offline, the last-seen copy wins.
         const cached = await caches.match(req, { ignoreSearch: url.pathname.endsWith(".js") || req.mode === "navigate" });
         if (cached) return cached;
-        // Navigations fall back to the cached entry page so a cold offline
-        // open still boots instead of showing the browser error page.
+        // Navigations fall back to a cached entry page so a cold offline open
+        // still boots instead of showing the browser error page — but only to
+        // THIS player's page. index.html forces ?player=lennart, so using it
+        // as a blanket fallback would quietly hand Fionn Lennart's pull,
+        // history and name whenever his own page wasn't cached yet.
         if (req.mode === "navigate") {
-          const shell = await caches.match("./index.html", { ignoreSearch: true });
-          if (shell) return shell;
+          const shell = shellFor(url.pathname);
+          if (shell) {
+            const cached = await caches.match(shell, { ignoreSearch: true });
+            if (cached) return cached;
+          }
         }
         return Response.error();
       })
   );
 });
+
+// Which cached shell may stand in for a navigation. Anything not listed
+// (lichter.html, media-preview.html) gets no substitute: showing the gacha in
+// place of a different page is worse than an honest offline error.
+function shellFor(pathname) {
+  if (/fionn(-gacha)?\.html$/.test(pathname)) return "./fionn-gacha.html";
+  if (/(^|\/)(index\.html)?$/.test(pathname)) return "./index.html";
+  return null;
+}
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(
