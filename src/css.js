@@ -2031,6 +2031,17 @@ export const css = `
         font-size:.76rem;opacity:.6;margin-top:5px;
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       }
+      .ag-werkstatt-card-prompt{font-size:.82rem;opacity:.85;margin-top:6px;line-height:1.45}
+      .ag-werkstatt-card-pending{font-size:.76rem;opacity:.5;margin-top:4px;font-style:italic}
+      .ag-werkstatt-answer{
+        margin-top:7px;padding:8px 10px;border-radius:10px;
+        background:rgba(126,207,163,.1);border-left:2px solid var(--ag-primary);
+        font-size:.84rem;line-height:1.45;
+      }
+      .ag-werkstatt-answer-label{
+        display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
+        opacity:.6;margin-bottom:3px;
+      }
       .ag-werkstatt-badge{
         display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
         background:var(--ag-gold);color:#1c1405;font-size:.68rem;font-weight:700;vertical-align:middle;

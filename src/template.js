@@ -381,6 +381,7 @@ export const html = `
               <div class="ag-werkstatt-form-fields">
                 <input class="ag-berge-input" type="text" id="ag-werkstatt-title" placeholder="Titel" maxlength="80">
                 <textarea class="ag-berge-input ag-werkstatt-textarea" id="ag-werkstatt-message" rows="3" maxlength="400" placeholder="Was steht in der Kapsel?"></textarea>
+                <input class="ag-berge-input" type="text" id="ag-werkstatt-prompt" placeholder="Frage (optional) — er muss sie beantworten" maxlength="180" autocomplete="off">
                 <input class="ag-berge-input" type="url" id="ag-werkstatt-link" placeholder="Link (optional, z. B. Spotify)" inputmode="url" autocomplete="off" spellcheck="false">
                 <label class="ag-werkstatt-check">
                   <input type="checkbox" id="ag-werkstatt-voucher">

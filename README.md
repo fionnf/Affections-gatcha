@@ -95,6 +95,20 @@ Fionn's outcomes are not in `config/` at all — **Lennart writes them**, from t
 🔧 button at the bottom of his Heute tab. Capsules go to the Google Sheet via
 Apps Script (no token, no commit, no build) and reach Fionn on his next sync.
 
+A capsule has a title and a message, and optionally:
+
+| Field | Effect |
+|---|---|
+| **Gutschein** | renders as a redeemable voucher in Verlauf |
+| **Link** | Spotify embeds as a player, anything else as a link button |
+| **Frage** | gates the message — Fionn answers before he can read it |
+
+An answer to a *Frage* is filed back onto the capsule and shown under the
+question in the Werkstatt, so it reaches whoever asked. (The generic
+prompt-answer path emails Fionn regardless of who answered, which is the wrong
+direction for a question Lennart wrote.) Editing a capsule never erases an
+answer already given.
+
 Per category the rule is all-or-nothing: a category Lennart has written at
 least one capsule for is served entirely from his, and one he hasn't written
 for falls back to `config/outcomes.json`. So his first JACKPOT capsule *is*

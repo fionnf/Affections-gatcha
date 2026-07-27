@@ -58,8 +58,13 @@ export function saveKapsel(entry) {
     forToken: entry.forToken || WERKSTATT_TARGET,
     title: (entry.title || "").trim(),
     message: (entry.message || "").trim(),
+    prompt: (entry.prompt || "").trim() || null,
     link: (entry.link || "").trim() || null,
     voucher: !!entry.voucher,
+    // An answer belongs to the capsule, not to the edit — preserve whatever
+    // is already there so editing the wording doesn't erase his reply.
+    answer: (idx === -1 ? null : list[idx].answer) || null,
+    answeredAt: (idx === -1 ? null : list[idx].answeredAt) || null,
     createdBy: getToken(),
     createdAt: (idx === -1 ? new Date().toISOString() : list[idx].createdAt) || new Date().toISOString()
   };
@@ -67,6 +72,22 @@ export function saveKapsel(entry) {
   writeWerkstatt(list);
   markRecentWrite("werkstatt");
   postToSheet("werkstatt-upsert", record);
+}
+
+// Fionn answered a question capsule. The generic prompt-answer path files it
+// in the PromptAnswers sheet and emails Fionn — fine when Fionn wrote the
+// question, useless when Lennart did, because the answer then never reaches
+// the person who asked. This puts it back on the capsule itself, so it shows
+// up under the question in the Werkstatt.
+export function answerKapsel(id, answer) {
+  const list = readWerkstatt();
+  const idx = list.findIndex((c) => c.id === id);
+  if (idx === -1) return;
+  const answeredAt = new Date().toISOString();
+  list[idx] = { ...list[idx], answer, answeredAt };
+  writeWerkstatt(list);
+  markRecentWrite("werkstatt");
+  postToSheet("werkstatt-answer", { id, answer, answeredAt });
 }
 
 export function deleteKapsel(id) {
@@ -194,10 +215,17 @@ function renderKapselCard(kapsel) {
   card.className = "ag-werkstatt-card";
   // Capsules round-trip through the shared sheet, so treat every field as
   // untrusted text on the way back in.
+  const answered = kapsel.prompt && kapsel.answer
+    ? `<div class="ag-werkstatt-answer"><span class="ag-werkstatt-answer-label">Seine Antwort</span>${escapeHtml(kapsel.answer)}</div>`
+    : kapsel.prompt
+      ? `<div class="ag-werkstatt-card-pending">Noch nicht beantwortet.</div>`
+      : "";
   card.innerHTML = `
     <div class="ag-werkstatt-card-text">
       <div class="ag-werkstatt-card-title">${escapeHtml(kapsel.title)}${kapsel.voucher ? ` <span class="ag-werkstatt-badge">Gutschein</span>` : ""}</div>
       <div class="ag-werkstatt-card-msg">${escapeHtml(kapsel.message)}</div>
+      ${kapsel.prompt ? `<div class="ag-werkstatt-card-prompt">❓ ${escapeHtml(kapsel.prompt)}</div>` : ""}
+      ${answered}
       ${kapsel.link ? `<div class="ag-werkstatt-card-link">🔗 ${escapeHtml(kapsel.link)}</div>` : ""}
     </div>
     <div class="ag-werkstatt-card-btns">
@@ -222,6 +250,7 @@ export function openKapselForm(kapsel) {
   ui.editingId = kapsel ? kapsel.id : null;
   document.getElementById("ag-werkstatt-title").value = kapsel ? kapsel.title : "";
   document.getElementById("ag-werkstatt-message").value = kapsel ? kapsel.message : "";
+  document.getElementById("ag-werkstatt-prompt").value = (kapsel && kapsel.prompt) || "";
   document.getElementById("ag-werkstatt-link").value = (kapsel && kapsel.link) || "";
   document.getElementById("ag-werkstatt-voucher").checked = !!(kapsel && kapsel.voucher);
   const titleEl = document.getElementById("ag-werkstatt-form-title");
@@ -246,6 +275,7 @@ export function closeKapselForm() {
 export function submitKapselForm() {
   const title = (document.getElementById("ag-werkstatt-title")?.value || "").trim();
   const message = (document.getElementById("ag-werkstatt-message")?.value || "").trim();
+  const prompt = (document.getElementById("ag-werkstatt-prompt")?.value || "").trim();
   const link = (document.getElementById("ag-werkstatt-link")?.value || "").trim();
   const voucher = !!document.getElementById("ag-werkstatt-voucher")?.checked;
   const errEl = document.getElementById("ag-werkstatt-error");
@@ -277,7 +307,7 @@ export function submitKapselForm() {
     id: ui.editingId || `k-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     categoryId: ui.categoryId,
     forToken: WERKSTATT_TARGET,
-    title, message, link, voucher
+    title, message, prompt, link, voucher
   });
   closeKapselForm();
   renderWerkstatt();
