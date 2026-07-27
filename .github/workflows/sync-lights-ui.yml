@@ -38,7 +38,7 @@ jobs:
         env:
           # Set LIGHTS_UI_URL as a repo variable to point somewhere else
           # without editing this file. Falls back to the original source.
-          LIGHTS_UI_URL: ${{ vars.LIGHTS_UI_URL || 'https://raw.githubusercontent.com/fionnf/linked_friend_lights/master/web_app/index.html' }}
+          LIGHTS_UI_URL: ${{ vars.LIGHTS_UI_URL || 'https://raw.githubusercontent.com/fionnf/linked_friend_lights/master/index.html' }}
           # Only needed while the source repo is private. Unset = plain fetch.
           LIGHTS_UI_TOKEN: ${{ secrets.LIGHTS_UI_TOKEN }}
         run: |
