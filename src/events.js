@@ -22,18 +22,9 @@ import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./n
 import { currentWeekKey } from "./utils.js";
 import { sendReaction, renderPartnerCard, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
 
-export function showToast(msg) {
-  const container = mount.querySelector("[data-ag-toasts]");
-  if (!container) return;
-  const el = document.createElement("div");
-  el.className = "ag-toast";
-  el.textContent = msg;
-  container.appendChild(el);
-  setTimeout(() => {
-    el.classList.add("is-leaving");
-    setTimeout(() => el.remove(), 300);
-  }, 2400);
-}
+// Moved to toast.js; re-exported so the existing importers stay unchanged.
+export { showToast } from "./toast.js";
+import { showToast } from "./toast.js";
 
 export function setActiveTab(tab) {
   state.activeTab = tab;

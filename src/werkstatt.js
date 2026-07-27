@@ -16,6 +16,7 @@ import { getToken, escapeHtml } from "./utils.js";
 import { haptic } from "./haptic.js";
 import { WERKSTATT_KEY } from "./constants.js";
 import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
+import { showToast } from "./toast.js";
 
 // Which player's pool the Werkstatt writes. Stored on every row so the
 // reverse direction (Fionn writing for Lennart) is a value change, not a
@@ -37,6 +38,19 @@ export function werkstattFor(categoryId, forToken) {
   return (state.werkstatt || []).filter(
     (c) => c && c.categoryId === categoryId && (c.forToken || WERKSTATT_TARGET) === forToken
   );
+}
+
+// pendingSince is local bookkeeping — whether THIS device has seen its write
+// come back. Posting it would store it in the sheet and hand it to every
+// client, which would then believe a long-confirmed capsule was still in
+// flight. Strip it, and send only the fields the sheet has columns for.
+function toSheetRow(c) {
+  return {
+    id: c.id, categoryId: c.categoryId, forToken: c.forToken,
+    title: c.title, message: c.message, prompt: c.prompt, link: c.link,
+    voucher: c.voucher, answer: c.answer, answeredAt: c.answeredAt,
+    createdBy: c.createdBy, createdAt: c.createdAt
+  };
 }
 
 function postToSheet(type, payload) {
@@ -66,12 +80,16 @@ export function saveKapsel(entry) {
     answer: (idx === -1 ? null : list[idx].answer) || null,
     answeredAt: (idx === -1 ? null : list[idx].answeredAt) || null,
     createdBy: getToken(),
-    createdAt: (idx === -1 ? new Date().toISOString() : list[idx].createdAt) || new Date().toISOString()
+    createdAt: (idx === -1 ? new Date().toISOString() : list[idx].createdAt) || new Date().toISOString(),
+    // Unconfirmed until the sheet hands it back. postToSheet is
+    // fire-and-forget with a no-cors retry that always looks like it worked,
+    // so this is the only way to know a capsule actually landed.
+    pendingSince: Date.now()
   };
   if (idx === -1) list.unshift(record); else list[idx] = record;
   writeWerkstatt(list);
   markRecentWrite("werkstatt");
-  postToSheet("werkstatt-upsert", record);
+  postToSheet("werkstatt-upsert", toSheetRow(record));
 }
 
 // Fionn answered a question capsule. The generic prompt-answer path files it
@@ -84,7 +102,10 @@ export function answerKapsel(id, answer) {
   const idx = list.findIndex((c) => c.id === id);
   if (idx === -1) return;
   const answeredAt = new Date().toISOString();
-  list[idx] = { ...list[idx], answer, answeredAt };
+  // Pending for the same reason a new capsule is: if this POST is lost, the
+  // next sync would overwrite the answer with the sheet's blank one and it
+  // would be gone for good. Marked, so the retry re-sends it.
+  list[idx] = { ...list[idx], answer, answeredAt, pendingSince: Date.now() };
   writeWerkstatt(list);
   markRecentWrite("werkstatt");
   postToSheet("werkstatt-answer", { id, answer, answeredAt });
@@ -106,13 +127,44 @@ export function applySharedWerkstatt(list) {
   // the authority here, so a clash can still arrive from that side. Drop it
   // on the way in rather than letting the anti-repeat filter silently treat
   // two rows as one capsule.
-  const seen = new Set();
+  const fromSheet = list.filter((c) => c && c.id && c.categoryId && c.title);
+
+  // A local write that the sheet hasn't echoed back did not make it — the
+  // endpoint was down, the script wasn't deployed, the phone was offline. An
+  // authoritative overwrite would erase it in front of the person who typed
+  // it. Keep those, and post them again.
+  //
+  // "Echoed back" has to cover more than the row existing: an answer posted
+  // to a capsule the sheet already holds would otherwise look confirmed the
+  // moment that row came back, and the sheet's empty Answer would win.
+  const sheetById = new Map(fromSheet.map((c) => [c.id, c]));
+  const unsent = readWerkstatt().filter((c) => {
+    if (!c.pendingSince) return false;
+    const row = sheetById.get(c.id);
+    return !row || (row.answer || null) !== (c.answer || null);
+  });
+  for (const c of unsent.slice(0, 5)) postToSheet("werkstatt-upsert", toSheetRow(c));
+
+  // Dedupe across both, unsent first so a still-unconfirmed local capsule
+  // isn't dropped in favour of a same-titled row from the sheet.
+  // Unsent entries go in first and win any clash — by id (the sheet's older
+  // copy of the same capsule) or by title (the anti-repeat filter can't tell
+  // two identical titles apart, so a hand-edited sheet mustn't create one).
+  const keptIds = new Set();
+  const keptTitles = new Set();
   const clean = [];
-  for (const c of list) {
-    if (!c || !c.id || !c.categoryId || !c.title) continue;
-    const key = `${c.forToken || WERKSTATT_TARGET}|${c.categoryId}|${String(c.title).trim().toLocaleLowerCase("de-CH")}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+  const titleKey = (c) =>
+    `${c.forToken || WERKSTATT_TARGET}|${c.categoryId}|${String(c.title).trim().toLocaleLowerCase("de-CH")}`;
+
+  for (const c of unsent) {
+    keptIds.add(c.id);
+    keptTitles.add(titleKey(c));
+    clean.push(c);
+  }
+  for (const c of fromSheet) {
+    if (keptIds.has(c.id) || keptTitles.has(titleKey(c))) continue;
+    keptIds.add(c.id);
+    keptTitles.add(titleKey(c));
     clean.push(c);
   }
   writeWerkstatt(clean);
@@ -183,7 +235,11 @@ export function renderWerkstatt() {
     btn.innerHTML = `${escapeHtml(cat.label)}${count ? ` <span class="ag-werkstatt-count">${count}</span>` : ""}`;
     btn.addEventListener("click", () => {
       ui.categoryId = cat.id;
-      closeKapselForm();
+      // While the form is open the tabs are the capsule's category picker,
+      // not a navigation away from it. Closing the form here used to throw
+      // away everything typed so far, with no warning and no undo.
+      if (isFormOpen()) syncFormCategoryLabel();
+      else closeKapselForm();
       renderWerkstatt();
       haptic(6);
     });
@@ -231,6 +287,10 @@ function renderKapselCard(kapsel, index) {
   card.setAttribute("aria-label", `${kapsel.title} bearbeiten`);
   // Capsules round-trip through the shared sheet, so treat every field as
   // untrusted text on the way back in.
+  // A capsule is pending for a few seconds after every save, until the next
+  // sync confirms it — flagging that immediately would just be noise. Only
+  // say so once it has been unconfirmed long enough to mean something.
+  const stale = kapsel.pendingSince && (Date.now() - kapsel.pendingSince > 90000);
   const answered = kapsel.prompt && kapsel.answer
     ? `<div class="ag-werkstatt-answer"><span class="ag-werkstatt-block-label">Seine Antwort</span>${escapeHtml(kapsel.answer)}</div>`
     : kapsel.prompt
@@ -244,10 +304,26 @@ function renderKapselCard(kapsel, index) {
     <div class="ag-werkstatt-card-tags">
       ${kapsel.voucher ? `<span class="ag-werkstatt-tag is-voucher">Gutschein</span>` : ""}
       ${kapsel.link ? `<span class="ag-werkstatt-tag">Link</span>` : ""}
+      ${stale ? `<span class="ag-werkstatt-tag is-unsent">Noch nicht übertragen</span>` : ""}
     </div>
   `;
   card.addEventListener("click", () => openKapselForm(kapsel));
   return card;
+}
+
+function isFormOpen() {
+  const form = document.getElementById("ag-werkstatt-form");
+  return !!form && !form.hidden;
+}
+
+// The heading names the category the capsule will land in, so switching tabs
+// mid-write reads as a choice rather than as something going wrong.
+function syncFormCategoryLabel() {
+  const el = document.getElementById("ag-werkstatt-form-title");
+  if (!el) return;
+  const cat = categories().find((c) => c.id === ui.categoryId);
+  const what = ui.editingId ? "Kapsel bearbeiten" : "Neue Kapsel";
+  el.textContent = cat ? `${what} · ${cat.label}` : what;
 }
 
 export function openKapselForm(kapsel) {
@@ -255,13 +331,13 @@ export function openKapselForm(kapsel) {
   const addBtn = document.getElementById("ag-werkstatt-add");
   if (!form) return;
   ui.editingId = kapsel ? kapsel.id : null;
+  if (kapsel && kapsel.categoryId) ui.categoryId = kapsel.categoryId;
   document.getElementById("ag-werkstatt-title").value = kapsel ? kapsel.title : "";
   document.getElementById("ag-werkstatt-message").value = kapsel ? kapsel.message : "";
   document.getElementById("ag-werkstatt-prompt").value = (kapsel && kapsel.prompt) || "";
   document.getElementById("ag-werkstatt-link").value = (kapsel && kapsel.link) || "";
   document.getElementById("ag-werkstatt-voucher").checked = !!(kapsel && kapsel.voucher);
-  const titleEl = document.getElementById("ag-werkstatt-form-title");
-  if (titleEl) titleEl.textContent = kapsel ? "Kapsel bearbeiten" : "Neue Kapsel";
+  syncFormCategoryLabel();
   const errEl = document.getElementById("ag-werkstatt-error");
   if (errEl) errEl.hidden = true;
   // Delete only exists while editing, and starts un-armed: the first tap
@@ -304,6 +380,7 @@ export function requestKapselDelete() {
   closeKapselForm();
   renderWerkstatt();
   haptic([12, 40, 12]);
+  showToast("Kapsel gelöscht");
 }
 
 export function submitKapselForm() {
@@ -343,7 +420,9 @@ export function submitKapselForm() {
     forToken: WERKSTATT_TARGET,
     title, message, prompt, link, voucher
   });
+  const wasEdit = !!ui.editingId;
   closeKapselForm();
   renderWerkstatt();
   haptic([10, 30, 10]);
+  showToast(wasEdit ? "Kapsel geändert ✓" : `Kapsel gespeichert — ${targetName()} kann sie ziehen ✓`);
 }

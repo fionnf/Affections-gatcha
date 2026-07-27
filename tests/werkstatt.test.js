@@ -5,8 +5,9 @@ import { setupBrowserEnv, outcomesFixture, TEST_SECRET } from "./helpers.js";
 const env = setupBrowserEnv("?player=fionn");
 const { state } = await import("../src/state.js");
 const { buildPullForDay, poolForCategory } = await import("../src/pull.js");
-const { writeWerkstatt, werkstattFor, applySharedWerkstatt } = await import("../src/werkstatt.js");
+const { writeWerkstatt, werkstattFor, applySharedWerkstatt, saveKapsel, answerKapsel } = await import("../src/werkstatt.js");
 const { writeHistory } = await import("../src/storage.js");
+const { _resetRecentWrites } = await import("../src/sheetSync.js");
 
 state.theme = { secret: TEST_SECRET, timezone: "Europe/Zurich" };
 state.outcomes = outcomesFixture();
@@ -38,7 +39,13 @@ test.beforeEach(() => {
   env.setSearch("?player=fionn");
   state.syncedHistory = null;
   state.werkstatt = [];
+  _resetRecentWrites();
 });
+
+// A local write opens a 6-second window in which sync deliberately skips the
+// authoritative overwrite. These tests are about what happens AFTER it, so
+// they step past it rather than sleeping.
+function graceElapsed() { _resetRecentWrites(); }
 
 test("a category with written capsules replaces the shipped pool for Fionn", () => {
   writeWerkstatt([kapsel("common", "Handgeschrieben")]);
@@ -173,6 +180,47 @@ test("a duplicate title hand-added to the sheet is dropped on the way in", () =>
     kapsel("rare", "Doppelt", { id: "c" })          // other category, keep
   ]);
   assert.deepEqual(state.werkstatt.map((c) => c.id), ["a", "c"]);
+});
+
+// ── Nothing written is lost ──────────────────────────────────────────────────
+
+test("a capsule the sheet never received survives the authoritative overwrite", () => {
+  // saveKapsel marks it pendingSince; the sheet comes back without it,
+  // which is what a failed POST looks like from here.
+  saveKapsel({ id: "lost", categoryId: "common", title: "Ging verloren", message: "m" });
+  graceElapsed();
+  applySharedWerkstatt([kapsel("rare", "Vom Blatt", { id: "ok" })]);
+  const titles = state.werkstatt.map((c) => c.title);
+  assert.ok(titles.includes("Ging verloren"), `dropped: ${titles.join(", ")}`);
+  assert.ok(titles.includes("Vom Blatt"));
+});
+
+test("once the sheet has it, the capsule stops being treated as unsent", () => {
+  saveKapsel({ id: "k9", categoryId: "common", title: "Angekommen", message: "m" });
+  assert.ok(state.werkstatt.find((c) => c.id === "k9").pendingSince);
+  graceElapsed();
+  applySharedWerkstatt([kapsel("common", "Angekommen", { id: "k9" })]);
+  const stored = state.werkstatt.filter((c) => c.id === "k9");
+  assert.equal(stored.length, 1, "kept exactly once, not duplicated");
+  assert.ok(!stored[0].pendingSince, "no longer pending");
+});
+
+test("a capsule deleted on the other device is still dropped", () => {
+  // Only locally-written, unconfirmed capsules are protected — a confirmed
+  // one missing from the sheet means the other phone deleted it.
+  applySharedWerkstatt([kapsel("common", "Da", { id: "d1" })]);
+  applySharedWerkstatt([]);
+  assert.deepEqual(state.werkstatt, []);
+});
+
+test("an unsent answer is not overwritten by the sheet's blank one", () => {
+  applySharedWerkstatt([kapsel("common", "Mit Frage", { id: "q1", prompt: "Wie war's?" })]);
+  answerKapsel("q1", "Schön.");
+  graceElapsed();
+  // The sheet still has no answer — the POST didn't land.
+  applySharedWerkstatt([kapsel("common", "Mit Frage", { id: "q1", prompt: "Wie war's?" })]);
+  const stored = state.werkstatt.find((c) => c.id === "q1");
+  assert.equal(stored.answer, "Schön.");
 });
 
 test("a deletion on the other device propagates instead of lingering", () => {

@@ -625,7 +625,13 @@ function doPost(e) {
       // The answer belongs to the capsule, not to this edit — carry the
       // existing one over so rewording a question doesn't erase the reply.
       const prev = rowIdx === -1 ? [] : values[rowIdx - 1];
-      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString(), data.prompt || "", (prev[10] || ""), (prev[11] || "")];
+      // Take the answer from the payload when it carries one — a client
+      // re-sending an unconfirmed capsule is how a lost answer gets back in —
+      // and otherwise keep whatever the row already holds, so an ordinary
+      // edit can't blank a reply.
+      const ans   = (data.answer === undefined || data.answer === null) ? (prev[10] || "") : data.answer;
+      const ansAt = (data.answeredAt === undefined || data.answeredAt === null) ? (prev[11] || "") : data.answeredAt;
+      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString(), data.prompt || "", ans, ansAt];
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
       return jsonOut_({ ok: true });

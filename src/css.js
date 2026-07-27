@@ -2088,6 +2088,10 @@ export const css = `
         background:rgba(255,255,255,.09);opacity:.8;
       }
       .ag-werkstatt-tag.is-voucher{background:var(--ag-gold);color:#1c1405;opacity:1}
+      .ag-werkstatt-tag.is-unsent{
+        background:rgba(232,180,120,.18);color:#e8c08a;opacity:1;
+        border:1px solid rgba(232,180,120,.35);
+      }
 
       /* Destructive, so it sits apart from Speichern and arms before it
          fires — no native confirm() dialog anywhere in this flow. */
