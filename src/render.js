@@ -13,6 +13,7 @@ import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
 import { reactionForEntry, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
+import { renderWerkstattEntry } from "./werkstatt.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -1504,6 +1505,12 @@ export function hydrateCopy() {
   const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
   const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
   const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
+
+  // The Werkstatt is the authoring side: Lennart writes what Fionn pulls, so
+  // it only exists in Lennart's view. Fionn never sees his own pool.
+  const werkstattEntry = $("[data-ag-werkstatt-open]");
+  if (werkstattEntry) werkstattEntry.hidden = isFionn;
+  renderWerkstattEntry();
 
   const chips = $("[data-ag-chips]");
   if (chips) chips.innerHTML = "";

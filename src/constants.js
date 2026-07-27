@@ -7,7 +7,11 @@ export const STREAK_SYNCED_KEY     = "affektions-gacha:streak-synced:v1";
 export const STREAK_RESTORE_KEY    = "affektions-gacha:streak-restore:v1";
 export const WISH_KEY              = "affektions-gacha:wish:v1";
 export const MILESTONE_KEY         = "affektions-gacha:milestones:v1";
-export const NOTIF_KEY             = "affektions-gacha:notif:v1";
+// v2: bumping the key re-asks once on the next load. A "dismissed" written
+// against v1 was permanent, so anyone who ever tapped "Nicht jetzt" could
+// never be offered notifications again — including before the reminders
+// actually worked end to end.
+export const NOTIF_KEY             = "affektions-gacha:notif:v2";
 export const PIN_UNLOCK_PREFIX     = "affektions-gacha:pin-unlock:";
 export const BAERLAUCH_SCORE_KEY   = "affektions-gacha:baerlauch-scores:v1";
 export const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
@@ -33,6 +37,7 @@ export const REACTIONS_KEY           = "affektions-gacha:reactions:v1";
 export const REACTION_SEEN_KEY       = "affektions-gacha:reactions-seen:v1";
 export const FREIKARTE_KEY           = "affektions-gacha:freikarte:v1";
 export const FREIKARTE_REROLL_KEY    = "affektions-gacha:freikarte-reroll:v1";
+export const WERKSTATT_KEY           = "affektions-gacha:werkstatt:v1";
 
 export const TOKEN_REWARDS = {
   "🌿": "Fionn kocht dir ein Abendessen nach Wahl",

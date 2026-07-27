@@ -12,6 +12,7 @@ import { BAERLAUCH_SCORE_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
 import { mergeReactions } from "./reactions.js";
 import { applySharedStimmung } from "./stimmung.js";
+import { applySharedWerkstatt } from "./werkstatt.js";
 
 let _baseUrl = "";
 let _resolveBase = null;
@@ -189,6 +190,12 @@ export async function syncFromSheets() {
     // day) wins, and it lands here on this sync.
     if (data.stimmung) {
       try { applySharedStimmung(data.stimmung); } catch (_e) {}
+    }
+
+    // Capsules one player wrote for the other. Both sides need them: the
+    // author to list and edit them, the recipient to draw from them.
+    if (Array.isArray(data.werkstatt)) {
+      try { applySharedWerkstatt(data.werkstatt); } catch (_e) {}
     }
 
     if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch")) {

@@ -1,25 +1,25 @@
-// ── Fionn admin app entry point ───────────────────────────────────────────────
+// ── Fionn's Eingänge ──────────────────────────────────────────────────────────
+// What's left of the curator app. It used to edit config/outcomes.json and
+// config/special-days.json through the GitHub Contents API with a fine-grained
+// token pasted into the browser; all of that is gone. Outcomes for Fionn are
+// now written by Lennart in the Kapsel-Werkstatt (src/werkstatt.js), and Fionn
+// edits the repo's config through GitHub itself — so nothing here needs write
+// access to anything, and no token is stored on the device any more.
+//
+// What remains is the read-only activity feed: hugs, wishes, prompt answers,
+// quest solves and reactions coming in from Lennart, plus the local
+// notification poll that announces them.
 import { state, setMount, setConfigBase } from "./state.js";
 import { injectCss } from "./css.js";
 import { h } from "./ui.js";
 import { renderGate, hasSession } from "./auth.js";
 import { renderInbox } from "./inbox.js";
-import { renderOutcomes } from "./editor-outcomes.js";
-import { renderSpecial } from "./editor-special.js";
-import { renderSettings } from "./settings.js";
 import { startPolling, registerServiceWorker } from "./notify.js";
 
 const script = document.currentScript;
 const isTabMode = script?.dataset.mode === "tab";
 const mountSelector = script?.dataset.mount || "#fionn-admin";
 const baseUrl = script?.dataset.configBase || "./";
-
-const TABS = [
-  { id: "inbox", label: "Eingänge", ico: "📥", render: renderInbox },
-  { id: "outcomes", label: "Outcomes", ico: "🎰", render: renderOutcomes },
-  { id: "special", label: "Tage", ico: "📅", render: renderSpecial },
-  { id: "settings", label: "Einstellungen", ico: "⚙️", render: renderSettings }
-];
 
 async function fetchJson(path, fallback) {
   try {
@@ -32,8 +32,6 @@ async function fetchJson(path, fallback) {
   }
 }
 
-let contentEl = null;
-
 function renderShell(mount, tabMode = false) {
   mount.innerHTML = "";
   const app = h("div", { class: tabMode ? "fa-app fa-tab-mode" : "fa-app" });
@@ -41,46 +39,16 @@ function renderShell(mount, tabMode = false) {
   if (!tabMode) {
     app.appendChild(h("header", { class: "fa-header" }, [
       h("h1", { text: "Affektions-Gacha · Fionn" }),
-      h("p", { class: "fa-sub", text: "Kuratoren-App" })
+      h("p", { class: "fa-sub", text: "Eingänge" })
     ]));
   }
 
-  // In tab mode the sub-nav goes at the top; in standalone it's a fixed bottom bar.
-  const tabBar = h("nav", { class: "fa-tabs" });
-  for (const tab of TABS) {
-    const btn = h("button", { class: "fa-tab", "data-tab": tab.id }, [
-      h("span", { class: "fa-ico", text: tab.ico }),
-      h("span", { text: tab.label })
-    ]);
-    btn.addEventListener("click", () => switchTab(tab.id));
-    tabBar.appendChild(btn);
-  }
-
-  contentEl = h("main", {});
-
-  if (tabMode) {
-    // Sub-nav first, content below
-    app.appendChild(tabBar);
-    app.appendChild(contentEl);
-  } else {
-    app.appendChild(contentEl);
-    app.appendChild(tabBar);
-  }
-
+  const content = h("main", {});
+  app.appendChild(content);
   mount.appendChild(app);
-  switchTab(state.activeTab || "inbox");
-}
 
-function switchTab(id) {
-  state.activeTab = id;
-  document.querySelectorAll(".fa-tab").forEach((b) => {
-    b.classList.toggle("active", b.getAttribute("data-tab") === id);
-  });
-  const tab = TABS.find((t) => t.id === id);
-  if (!tab || !contentEl) return;
-  contentEl.innerHTML = "";
-  Promise.resolve(tab.render(contentEl)).catch((e) => {
-    contentEl.appendChild(h("div", { class: "fa-status err", text: `Fehler: ${e.message}` }));
+  Promise.resolve(renderInbox(content)).catch((e) => {
+    content.appendChild(h("div", { class: "fa-status err", text: `Fehler: ${e.message}` }));
   });
 }
 
@@ -114,55 +82,51 @@ async function bootTabMode() {
   try {
     await loadAdminConfig();
   } catch (e) {
-    console.error("[fionn-admin]", e.message);
+    console.error("[fionn-inbox]", e.message);
     return;
   }
 
   await waitFor(".ag-bottomnav");
-  injectAdminTab();
+  injectInboxTab();
 
   startPolling();
 }
 
-let adminRendered = false;
+let inboxRendered = false;
 
-function injectAdminTab() {
+function injectInboxTab() {
   const bottomNav = document.querySelector(".ag-bottomnav");
   const agContent = document.querySelector(".ag-content");
   if (!bottomNav || !agContent) return;
 
-  // Create the admin panel section inside ag-content.
-  const adminPanel = document.createElement("section");
-  adminPanel.className = "ag-panel";
-  adminPanel.setAttribute("data-ag-panel-admin", "");
-  adminPanel.hidden = true;
-  agContent.appendChild(adminPanel);
-  setMount(adminPanel);
+  const panel = document.createElement("section");
+  panel.className = "ag-panel";
+  panel.setAttribute("data-ag-panel-admin", "");
+  panel.hidden = true;
+  agContent.appendChild(panel);
+  setMount(panel);
 
-  // Create the Admin tab button.
-  const adminBtn = document.createElement("button");
-  adminBtn.className = "ag-bottomnav-btn";
-  adminBtn.type = "button";
-  adminBtn.setAttribute("role", "tab");
-  adminBtn.setAttribute("aria-selected", "false");
-  adminBtn.dataset.agTab = "admin";
-  adminBtn.innerHTML = `<span class="ag-bottomnav-btn-icon" aria-hidden="true">⚙️</span><span class="ag-bottomnav-btn-label">Admin</span>`;
-  bottomNav.appendChild(adminBtn);
+  const btn = document.createElement("button");
+  btn.className = "ag-bottomnav-btn";
+  btn.type = "button";
+  btn.setAttribute("role", "tab");
+  btn.setAttribute("aria-selected", "false");
+  btn.dataset.agTab = "admin";
+  btn.innerHTML = `<span class="ag-bottomnav-btn-icon" aria-hidden="true">📥</span><span class="ag-bottomnav-btn-label">Eingänge</span>`;
+  bottomNav.appendChild(btn);
 
-  function activateAdminTab() {
-    // Update active classes across all bottom-nav buttons.
+  function activateTab() {
     bottomNav.querySelectorAll(".ag-bottomnav-btn[data-ag-tab]").forEach((b) => {
-      const active = b === adminBtn;
+      const active = b === btn;
       b.classList.toggle("is-active", active);
       b.setAttribute("aria-selected", active ? "true" : "false");
     });
 
-    // Slide the pill to the admin button.
     const pill = document.querySelector(".ag-nav-pill");
     if (pill) {
       const PILL_W = 54;
       const navRect = bottomNav.getBoundingClientRect();
-      const icon = adminBtn.querySelector(".ag-bottomnav-btn-icon") || adminBtn;
+      const icon = btn.querySelector(".ag-bottomnav-btn-icon") || btn;
       const iconRect = icon.getBoundingClientRect();
       if (navRect && iconRect.width) {
         const centre = iconRect.left - navRect.left + iconRect.width / 2;
@@ -171,7 +135,6 @@ function injectAdminTab() {
       }
     }
 
-    // Hide main app panels and FAB.
     ["today", "history", "lieblinge", "berge"].forEach((name) => {
       const el = document.querySelector(`[data-ag-panel-${name}]`);
       if (el) el.hidden = true;
@@ -179,41 +142,38 @@ function injectAdminTab() {
     const fab = document.querySelector("[data-ag-fab]");
     if (fab) fab.hidden = true;
 
-    adminPanel.hidden = false;
-    showAdminContent(adminPanel);
-    // Short admin tabs (e.g. Einstellungen) can end above the fixed floating
-    // bottom nav on first render, since that pill is positioned independent
-    // of scroll and the decorative hero above eats most of a phone viewport.
-    // Scrolling the panel to the top clears it and gives the tools more room.
-    adminPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    panel.hidden = false;
+    showInbox(panel);
+    // The decorative hero above eats most of a phone viewport and the nav pill
+    // is positioned independent of scroll, so a short panel can otherwise open
+    // entirely behind it.
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  adminBtn.addEventListener("click", activateAdminTab);
+  btn.addEventListener("click", activateTab);
 
-  // When any other bottom-nav tab is clicked, hide the admin panel.
   bottomNav.querySelectorAll(".ag-bottomnav-btn[data-ag-tab]").forEach((b) => {
-    if (b !== adminBtn) {
+    if (b !== btn) {
       b.addEventListener("click", () => {
-        adminPanel.hidden = true;
-        adminBtn.classList.remove("is-active");
-        adminBtn.setAttribute("aria-selected", "false");
+        panel.hidden = true;
+        btn.classList.remove("is-active");
+        btn.setAttribute("aria-selected", "false");
       });
     }
   });
 }
 
-async function showAdminContent(panel) {
-  // If already rendered and session is still valid, nothing to do.
-  if (adminRendered && hasSession()) return;
+async function showInbox(panel) {
+  if (inboxRendered && hasSession()) return;
 
   if (!hasSession()) {
-    adminRendered = false;
+    inboxRendered = false;
     await renderGate(panel);
   }
 
-  if (!adminRendered) {
+  if (!inboxRendered) {
     renderShell(panel, true);
-    adminRendered = true;
+    inboxRendered = true;
   }
 }
 

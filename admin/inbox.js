@@ -70,6 +70,24 @@ export async function renderInbox(mount) {
   mount.innerHTML = "";
   mount.appendChild(h("p", { class: "fa-section-title", text: "Eingänge von Lennart" }));
 
+  // The permission prompt used to live in the settings tab, which went away
+  // with the GitHub editors. Without it the poll below can never announce
+  // anything, so the offer belongs here now.
+  if (typeof Notification !== "undefined" && Notification.permission === "default") {
+    const permBtn = h("button", { class: "fa-btn primary", text: "🔔 Benachrichtigungen aktivieren" });
+    permBtn.addEventListener("click", async () => {
+      permBtn.disabled = true;
+      // Imported lazily: notify.js already imports this module, and a static
+      // import back would make the pair circular.
+      const { requestPermission } = await import("./notify.js");
+      const result = await requestPermission();
+      permBtn.textContent = result === "granted"
+        ? "Benachrichtigungen aktiv ✓"
+        : "Vom Browser abgelehnt";
+    });
+    mount.appendChild(permBtn);
+  }
+
   const list = h("div", {});
   const loading = h("p", { class: "fa-muted", text: "Lade…" });
   mount.appendChild(loading);

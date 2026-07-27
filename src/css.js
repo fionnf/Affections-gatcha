@@ -124,7 +124,13 @@ export const css = `
       .ag-content{
         display:grid;
         gap:clamp(14px,2vw,18px);
+        min-width:0;
       }
+      /* Grid items default to min-width:auto, so any panel holding something
+         wide — a long scrolling row, an unbroken URL — grows its track,
+         which drags .ag-widget past the viewport and clips the right edge.
+         The panels are meant to scroll internally instead. */
+      .ag-content > *{min-width:0}
 
       .ag-hero{
         display:grid;
@@ -1428,6 +1434,14 @@ export const css = `
       .ag-notif-card:not([hidden]){display:flex}
       .ag-notif-text{margin:0;font-size:.93rem;color:var(--ag-text);flex:1;min-width:0;line-height:1.5}
       .ag-notif-actions{display:flex;gap:8px;flex-shrink:0}
+      /* Auto-shown on load: lift it out of the panel so it is actually seen. */
+      .ag-notif-card.is-floating{
+        position:fixed;left:12px;right:12px;z-index:1200;
+        bottom:calc(var(--ag-bottomnav-clearance,86px) + env(safe-area-inset-bottom));
+        max-width:520px;margin:0 auto;
+        box-shadow:0 12px 40px rgba(0,0,0,.45);
+        animation:ag-sheet-in 320ms var(--ag-ease) both;
+      }
 
       /* ── Link embed (Spotify / generic) ── */
       .ag-link-embed{margin:14px 0 0;border-radius:var(--ag-radius-md);overflow:hidden}
@@ -1664,6 +1678,10 @@ export const css = `
       .ag-berge-total-elev{font-size:2.4rem}
 
       /* ── Glossary language tab strip ── */
+      /* Four language tabs already exceed a narrow phone; let the row scroll
+         instead of spilling past the panel edge. */
+      .ag-glossary-tabs{max-width:100%;min-width:0;overflow-x:auto;scrollbar-width:none}
+      .ag-glossary-tabs::-webkit-scrollbar{display:none}
       .ag-glossary-tab-track{
         position:relative;display:inline-flex;align-items:stretch;
         background:var(--ag-surface-2);border-radius:999px;padding:3px;gap:0;
@@ -1941,6 +1959,97 @@ export const css = `
       /* Form must always sit above the backdrop on every screen size */
       [data-ag-berge-form]:not([hidden]),
       #ag-glossary-form:not([hidden]){position:relative;z-index:1010}
+
+      /* The Werkstatt form stays in flow rather than joining the fixed
+         bottom-sheet rules above. Those resolve position:fixed against a
+         transformed ancestor here, not the viewport, so the sheet lands
+         mid-page with its top cut off. In-flow inside the panel is both
+         correct and simpler, and needs no backdrop to be dismissed. */
+      #ag-werkstatt-form:not([hidden]){
+        position:relative;z-index:1010;margin-top:14px;padding-top:14px;
+        border-top:1px solid rgba(255,255,255,.1);
+      }
+      /* Clear the floating bottom nav so Speichern is never half under it. */
+      @media (max-width:900px){
+        #ag-werkstatt-form:not([hidden]){padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+      }
+
+      /* ── Kapsel-Werkstatt ── */
+      .ag-werkstatt-entry{
+        display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+        cursor:pointer;font:inherit;color:inherit;
+        border:1px dashed rgba(126,207,163,.34);
+        transition:border-color .18s ease,transform .18s var(--ag-ease);
+      }
+      .ag-werkstatt-entry:hover{border-color:rgba(126,207,163,.6)}
+      .ag-werkstatt-entry:active{transform:scale(.99)}
+      .ag-werkstatt-entry-ico{font-size:1.5rem;line-height:1;flex-shrink:0}
+      .ag-werkstatt-entry-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+      .ag-werkstatt-entry-title{font-weight:600;font-size:.95rem}
+      .ag-werkstatt-entry-sub{font-size:.8rem;opacity:.72}
+      .ag-werkstatt-entry-chev{font-size:1.3rem;opacity:.5;flex-shrink:0}
+
+      /* Nine categories don't fit a phone, so the row scrolls sideways. The
+         width pin matters: without it the row's min-content width propagates
+         up through the card and stretches the whole widget past the viewport,
+         which is exactly the "wider than the phone" problem this app has had
+         before. overflow-x alone does not stop that. */
+      .ag-werkstatt-tabs{
+        display:flex;gap:6px;overflow-x:auto;margin-top:12px;padding-bottom:4px;
+        width:100%;max-width:100%;min-width:0;
+        scrollbar-width:none;-webkit-overflow-scrolling:touch;
+      }
+      .ag-werkstatt-tabs::-webkit-scrollbar{display:none}
+      .ag-werkstatt-tab{
+        flex-shrink:0;cursor:pointer;font:inherit;font-size:.8rem;
+        padding:7px 12px;border-radius:999px;white-space:nowrap;
+        border:1px solid rgba(255,255,255,.12);
+        background:rgba(255,255,255,.04);color:inherit;opacity:.75;
+        transition:background .18s ease,opacity .18s ease;
+      }
+      .ag-werkstatt-tab.is-active{
+        background:var(--ag-primary);border-color:transparent;color:#08150d;opacity:1;font-weight:600;
+      }
+      .ag-werkstatt-count{
+        display:inline-block;margin-left:4px;padding:0 5px;border-radius:999px;
+        background:rgba(0,0,0,.22);font-size:.72rem;font-weight:600;
+      }
+      .ag-werkstatt-tab:not(.is-active) .ag-werkstatt-count{background:rgba(255,255,255,.14)}
+      .ag-werkstatt-note{margin:10px 0 0;font-size:.82rem;opacity:.72;line-height:1.45}
+      .ag-werkstatt-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+      .ag-werkstatt-card{
+        display:flex;align-items:flex-start;gap:10px;
+        padding:12px 14px;border-radius:14px;
+        background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);
+      }
+      .ag-werkstatt-card-text{flex:1;min-width:0}
+      .ag-werkstatt-card-title{font-weight:600;font-size:.92rem}
+      .ag-werkstatt-card-msg{font-size:.84rem;opacity:.78;margin-top:3px;line-height:1.45}
+      /* One line, clipped — a full Spotify URL otherwise takes three lines
+         and buries the capsule's actual text. */
+      .ag-werkstatt-card-link{
+        font-size:.76rem;opacity:.6;margin-top:5px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      }
+      .ag-werkstatt-badge{
+        display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
+        background:var(--ag-gold);color:#1c1405;font-size:.68rem;font-weight:700;vertical-align:middle;
+      }
+      .ag-werkstatt-card-btns{display:flex;gap:6px;flex-shrink:0}
+      .ag-werkstatt-edit,.ag-werkstatt-del{
+        cursor:pointer;font:inherit;font-size:.9rem;line-height:1;
+        width:34px;height:34px;display:grid;place-items:center;border-radius:10px;
+        border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:inherit;
+      }
+      .ag-werkstatt-del{color:#e88}
+      .ag-werkstatt-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+      .ag-werkstatt-textarea{resize:vertical;min-height:76px;font-family:inherit}
+      .ag-werkstatt-check{display:flex;align-items:center;gap:8px;font-size:.84rem;opacity:.85}
+      .ag-werkstatt-check input{width:18px;height:18px;accent-color:var(--ag-primary)}
+      .ag-werkstatt-error{margin:10px 0 0;font-size:.82rem;color:#f2a0a0}
+      .ag-werkstatt-form-actions{display:flex;gap:8px;margin-top:12px}
+      .ag-werkstatt-form-actions .ag-button{flex:1}
+      .ag-werkstatt-form-actions .ag-secondary{flex-shrink:0}
 
       /* Glossary form field spacing */
       .ag-glossary-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}

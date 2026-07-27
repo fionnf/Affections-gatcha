@@ -60,7 +60,7 @@ self.addEventListener("notificationclick", (event) => {
       for (const client of clients) {
         if (client.url && "focus" in client) return client.focus();
       }
-      if (self.clients.openWindow) return self.clients.openWindow("./fionn.html");
+      if (self.clients.openWindow) return self.clients.openWindow("./fionn-gacha.html");
     })
   );
 });

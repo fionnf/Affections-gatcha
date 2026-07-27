@@ -1,6 +1,6 @@
 # Affektions-Gacha
 
-A daily capsule-pull PWA for Lennart and Fionn — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn gets a parallel view at the same URL with `?player=fionn`.
+A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn has his own private page, drawing from capsules Lennart writes for him (see **Kapsel-Werkstatt**). It is not linked publicly.
 
 ---
 
@@ -9,8 +9,6 @@ A daily capsule-pull PWA for Lennart and Fionn — served from GitHub Pages. Len
 | | |
 |---|---|
 | 🟢 **App (Lennart)** | https://fionnf.github.io/Affections-gatcha/ |
-| 🔵 **App (Fionn)** | https://fionnf.github.io/Affections-gatcha/?player=fionn |
-| 🛠️ **Fionn admin (curator app)** | https://fionnf.github.io/Affections-gatcha/fionn.html |
 | 🖼️ **Media preview** | https://fionnf.github.io/Affections-gatcha/media-preview.html |
 | 📊 **Google Sheet** | https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit |
 | 📸 **iCloud shared album** | https://www.icloud.com/sharedalbum/#B1yGqkRUi85ROko |
@@ -26,7 +24,7 @@ A daily capsule-pull PWA for Lennart and Fionn — served from GitHub Pages. Len
 index.html                  Entry point
 dist/
   affection-gacha.js        Compiled single-file PWA (built from src/ via Vite)
-src/                        ES module source (21 files — edit here, then npm run build)
+src/                        ES module source (edit here, then npm run build)
 config/
   theme.json                Colors, names, timezone, stickers, message target
   outcomes.json             Categories, weights, response texts
@@ -61,7 +59,10 @@ The result is computed deterministically from:
 
 Same day → same result. Refreshing never re-rolls. Tomorrow gets a new pull automatically.
 
-Fionn's view loads via `?player=fionn` — same UI, Fionn's name, Fionn's daily mission, send button pointing to Lennart.
+> **Fionn's gacha lives on its own page, not on the public URL.** `index.html`
+> ignores `?player=fionn` (see `FIONN_GACHA_READY` there), so Lennart's link
+> can't be turned into Fionn's view. Fionn's page is `fionn-gacha.html`
+> (`noindex`, unlinked); `fionn.html` redirects to it for old bookmarks.
 
 ### Local development
 
@@ -75,7 +76,7 @@ npx serve .          # serve at http://localhost:3000
 
 ## Editing content (no-code)
 
-Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master` — or use the **Fionn admin app** (below) to edit outcomes and special days from a phone, no git required.
+Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master` — or use the curator app (private, see `admin/README.md`) to edit outcomes and special days from a phone, no git required.
 
 | File | What to edit |
 |---|---|
@@ -88,21 +89,30 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 
 See **[EDITING.md](EDITING.md)** for field-by-field details.
 
-### Fionn admin app (curator app)
+### Kapsel-Werkstatt
 
-**https://fionnf.github.io/Affections-gatcha/fionn.html** — a standalone, PIN-gated
-page separate from Lennart's view. Edits go straight to GitHub via the Contents
-API and go live in ~1 minute, no git or code editor needed on the phone.
+Fionn's outcomes are not in `config/` at all — **Lennart writes them**, from the
+🔧 button at the bottom of his Heute tab. Capsules go to the Google Sheet via
+Apps Script (no token, no commit, no build) and reach Fionn on his next sync.
 
-- **Outcomes** — browse categories, add/edit/delete gacha outcomes, tweak
-  category weight/label/tone, with a live odds preview.
-- **Tage** — add/edit/delete special days (date, label, tone, colors, unlock
-  time, photo, confetti, PINs).
-- **Eingänge** — a feed of what Lennart sends back (hugs 🫂, wishes, prompt
-  answers, quest solves), with local notifications on new activity.
+Per category the rule is all-or-nothing: a category Lennart has written at
+least one capsule for is served entirely from his, and one he hasn't written
+for falls back to `config/outcomes.json`. So his first JACKPOT capsule *is*
+Fionn's jackpot, rather than a one-in-ten chance among the shipped ones.
 
-First-time setup (PIN, GitHub token, notifications) is documented in
-**[admin/README.md](admin/README.md)**.
+A capsule written mid-day never rewrites a pull already opened that day — the
+recorded title wins on reload.
+
+> **Setup note:** redeploy the Apps Script after pulling this (paste the
+> updated `scripts/backup-apps-script.js`, then Deploy → Manage deployments →
+> ✏️ → New version). The `Werkstatt` worksheet is created on first use.
+
+### Fionn's Eingänge (private)
+
+A PIN-gated 📥 tab on Fionn's page showing what Lennart sends back (hugs,
+wishes, prompt answers, quest solves, reactions). It used to be a curator app
+that committed config to GitHub with a token stored in the browser; that is
+gone. See **[admin/README.md](admin/README.md)**.
 
 ---
 
@@ -110,8 +120,7 @@ First-time setup (PIN, GitHub token, notifications) is documented in
 
 | Parameter | Example | Effect |
 |---|---|---|
-| `?player=` | `?player=fionn` | Switch to Fionn's view |
-| `?token=` | `?token=lennart` | Override the token directly |
+| `?player=` | `?player=fionn` | Switch to Fionn's view — ignored on the public entry point while `FIONN_GACHA_READY` is `false` |
 | `?preview-day=` | `?preview-day=2026-05-29` | Simulate a date (`YYYY-MM-DD` or `MM-DD`) |
 | `?preview-category=` | `?preview-category=jackpot` | Force an outcome category |
 
@@ -324,7 +333,7 @@ to Fionn's Kapsel exactly like Fionn reacts to Lennart's.
   list, and as a toast on the next sync.
 - Reactions ride the existing backends: `Reactions` worksheet in the Google
   Sheet, Web Push via the `push-notify` workflow, and the Eingänge feed in the
-  Fionn admin app.
+  Eingänge feed on Fionn's page.
 - Optional: override the emoji set with `"reactionEmojis": ["…"]` in
   `config/theme.json`.
 
