@@ -81,7 +81,20 @@ export function deleteKapsel(id) {
 export function applySharedWerkstatt(list) {
   if (!Array.isArray(list)) return;
   if (withinGracePeriod("werkstatt")) return;
-  writeWerkstatt(list.filter((c) => c && c.id && c.categoryId && c.title));
+  // The form refuses duplicate titles, but the sheet is hand-editable and is
+  // the authority here, so a clash can still arrive from that side. Drop it
+  // on the way in rather than letting the anti-repeat filter silently treat
+  // two rows as one capsule.
+  const seen = new Set();
+  const clean = [];
+  for (const c of list) {
+    if (!c || !c.id || !c.categoryId || !c.title) continue;
+    const key = `${c.forToken || WERKSTATT_TARGET}|${c.categoryId}|${String(c.title).trim().toLocaleLowerCase("de-CH")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clean.push(c);
+  }
+  writeWerkstatt(clean);
 }
 
 // ── Authoring UI ─────────────────────────────────────────────────────────────
@@ -245,6 +258,20 @@ export function submitKapselForm() {
   if (!message) return fail("Schreib noch einen Satz dazu.");
   if (link && !/^https?:\/\//i.test(link)) return fail("Der Link muss mit http:// oder https:// anfangen.");
   if (!ui.categoryId) return fail("Wähl zuerst eine Kategorie.");
+
+  // The anti-repeat filter in pull.js keys on category + exact title, so two
+  // capsules sharing one title look like a single capsule to it and quietly
+  // cost a slot from the "nothing repeats until the pool is spent" promise.
+  // scripts/validate-gacha-config.cjs rejects this in config/outcomes.json;
+  // capsules never pass through that validator, so the check lives here.
+  const norm = (s) => (s || "").trim().toLocaleLowerCase("de-CH");
+  const clash = norm(title);
+  const mine = werkstattFor(ui.categoryId, WERKSTATT_TARGET)
+    .some((c) => c.id !== ui.editingId && norm(c.title) === clash);
+  if (mine) return fail("Eine Kapsel mit diesem Titel gibt es hier schon.");
+  const shipped = (categories().find((c) => c.id === ui.categoryId)?.outcomes || [])
+    .some((o) => norm(o.title) === clash);
+  if (shipped) return fail("So heisst schon eine Standardkapsel in dieser Kategorie.");
 
   saveKapsel({
     id: ui.editingId || `k-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,

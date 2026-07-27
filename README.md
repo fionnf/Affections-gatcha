@@ -103,6 +103,16 @@ Fionn's jackpot, rather than a one-in-ten chance among the shipped ones.
 A capsule written mid-day never rewrites a pull already opened that day — the
 recorded title wins on reload.
 
+**No repeats**, the same promise the shipped pool makes. Written capsules go
+through the same seen-title filter, and because a hand-written pool is small
+— often one capsule — exhausting it falls through to the shipped outcomes
+Fionn hasn't seen rather than handing back the same capsule every time. Only a
+genuinely exhausted category repeats. Duplicate titles within a category are
+refused at write time and de-duplicated on the way in from the sheet, since
+that filter keys on category + exact title and can't tell two identical
+titles apart (the same rule `scripts/validate-gacha-config.cjs` enforces for
+`config/outcomes.json`).
+
 > **Setup note:** redeploy the Apps Script after pulling this (paste the
 > updated `scripts/backup-apps-script.js`, then Deploy → Manage deployments →
 > ✏️ → New version). The `Werkstatt` worksheet is created on first use.

@@ -111,8 +111,20 @@ export function buildPullForDay(day, streak, opts = {}) {
       .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
       .map((e) => e.title)
   );
-  const availableOutcomes = categoryPool.filter((o) => !usedTitles.has(o.title));
-  const outcomePool = availableOutcomes.length > 0 ? availableOutcomes : categoryPool;
+  const unseen = (list) => list.filter((o) => !usedTitles.has(o.title));
+
+  // Same promise as the shipped pool: nothing comes back until the pool is
+  // used up. But a hand-written pool is small — often a single capsule — so
+  // exhausting it must not mean handing back that same capsule every time
+  // the category comes up. Once the written ones are spent, fall through to
+  // the shipped outcomes this player hasn't seen, and only start repeating
+  // when the whole category really is exhausted. When nothing is written,
+  // both branches are the same list, so this is a no-op for Lennart.
+  const unseenWritten = unseen(categoryPool);
+  const unseenShipped = unseenWritten.length ? [] : unseen(category.outcomes);
+  const outcomePool = unseenWritten.length ? unseenWritten
+    : unseenShipped.length ? unseenShipped
+    : categoryPool;
 
   // Seeding picks by index, so a pool that grows or shrinks re-rolls every
   // day that still uses it — including today, which the player may already
