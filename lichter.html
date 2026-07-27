@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Linked Lights</title>
+  <meta name="theme-color" content="#060608">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" href="./media/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./media/apple-touch-icon.png">
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -278,28 +282,6 @@
       transition: color 0.15s, border-color 0.15s;
     }
     .scene-del:hover { color: var(--red); border-color: rgba(224,72,72,0.3); }
-    .board-lib-row {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.45rem 0.6rem; border-radius: var(--r-xs);
-      border: 1px solid var(--border); background: var(--surface2);
-      transition: border-color 0.15s;
-    }
-    .board-lib-row:hover { border-color: var(--border2); }
-    .board-lib-name { flex: 1; font-size: 0.8rem; color: var(--text2); }
-    .board-lib-play {
-      padding: 0.28rem 0.65rem; font-size: 0.72rem; font-weight: 600;
-      border-radius: var(--r-xs); border: 1px solid rgba(240,160,48,0.35);
-      background: rgba(240,160,48,0.08); color: var(--accent); cursor: pointer;
-      font-family: inherit; transition: background 0.15s;
-    }
-    .board-lib-play:hover { background: rgba(240,160,48,0.18); }
-    .board-lib-del {
-      padding: 0.28rem 0.45rem; font-size: 0.72rem; border-radius: var(--r-xs);
-      border: 1px solid transparent; background: transparent; color: var(--muted);
-      cursor: pointer; font-family: inherit; transition: color 0.15s, border-color 0.15s;
-    }
-    .board-lib-del:hover { color: var(--red); border-color: rgba(224,72,72,0.3); }
-    .board-lib-empty { font-size:0.78rem; color:var(--muted); padding:0.3rem 0; }
     .save-row { display: flex; gap: 0.5rem; }
     .save-row input {
       flex: 1; background: rgba(0,0,0,0.25); border: 1px solid var(--border);
@@ -382,6 +364,12 @@
       transition: all 0.2s;
     }
     .add-alarm-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(240,160,48,0.04); }
+    #alarm-warning {
+      display: none; font-size: 0.7rem; line-height: 1.4;
+      color: #ffcf8a; background: rgba(240,160,48,0.09);
+      border: 1px solid rgba(240,160,48,0.3); border-radius: var(--r-xs);
+      padding: 0.55rem 0.7rem; margin-bottom: 0.6rem;
+    }
 
     /* ── Settings ── */
     #cfg-toggle {
@@ -493,6 +481,7 @@
 <!-- Sunrise -->
 <div class="card">
   <div class="card-title">Alarms</div>
+  <div id="alarm-warning"></div>
   <div id="alarms-list"></div>
   <button class="add-alarm-btn" id="btn-add-alarm">+ Add Alarm</button>
 </div>
@@ -619,6 +608,8 @@ const driftEnabled   = false;
 const driftInterval  = 45;
 const BOARD_ID     = "web_app";
 const boardLastSeen   = {};
+const boardOnline     = {};   // broker-tracked presence via retained Last-Will (true/false/undefined)
+const boardNtp        = {};   // clock synced? alarms cannot fire without it
 const boardLastChange = {};
 const boardLastFw     = {};   // firmware version per board
 const boardLastPower  = {};   // last known on/off state per board
@@ -650,8 +641,14 @@ function updatePills() {
     const labelEl = document.getElementById(labelId);
     if (labelEl.textContent !== name) labelEl.textContent = name;
 
-    const seen    = boardLastSeen[boardId];
-    const reachable = !!(seen && (Date.now() - seen) < BOARD_TIMEOUT_MS);
+    const seen  = boardLastSeen[boardId];
+    const fresh = !!(seen && (Date.now() - seen) < BOARD_TIMEOUT_MS);
+    // Broker-tracked Last-Will is authoritative: false → offline now,
+    // true → online; undefined (no retained status yet) → fall back to freshness.
+    // And if the web app itself is disconnected, we can't know — show offline.
+    const mqttUp = !!(client && client.connected);
+    const st = boardOnline[boardId];
+    const reachable = mqttUp && (st === false ? false : (st === true || fresh));
     const lightsOn  = boardLastPower[boardId] !== false; // default true if unknown
     // three states: "online" (reachable + on), "standby" (reachable + off), "" (offline)
     const state = reachable ? (lightsOn ? "online" : "standby") : "";
@@ -668,6 +665,25 @@ function updatePills() {
       : "offline";
     if (sub.textContent !== subText) sub.textContent = subText;
   });
+  updateAlarmWarning();
+}
+
+// Alarms are compared against the board's clock, so a board that never
+// synced NTP can't fire them. Say so instead of failing silently.
+function updateAlarmWarning() {
+  const el = document.getElementById("alarm-warning");
+  if (!el) return;
+  const bad = [[cfg.boardIdA, cfg.boardNameA], [cfg.boardIdB, cfg.boardNameB]]
+    .filter(([id]) => boardNtp[id] === false)
+    .map(([, name]) => name);
+  if (bad.length) {
+    el.textContent = `⚠ ${bad.join(" & ")} ${bad.length > 1 ? "have" : "has"} no clock `
+      + `(NTP sync failed) — alarms can't fire until it syncs. It retries hourly; `
+      + `a reboot usually fixes it.`;
+    el.style.display = "block";
+  } else {
+    el.style.display = "none";
+  }
 }
 
 // Schedule a one-shot pill refresh exactly when a board's timeout expires.
@@ -701,8 +717,9 @@ let client = null;
 let _pingIntervalId = null;
 
 function topic()       { return cfg.prefix + "/events"; }
-function topicScenes() { return cfg.prefix + "/scenes"; }
 function topicAlarms() { return cfg.prefix + "/alarms"; }
+function topicScenes() { return cfg.prefix + "/scenes"; }
+function topicStatus() { return cfg.prefix + "/status/+"; }
 
 function setStatus(cls, text) {
   document.getElementById("dot").className = cls;
@@ -721,26 +738,49 @@ function connect() {
   client.on("connect", () => {
     setStatus("connected", cfg.broker.replace(/^wss?:\/\//,"").replace(/\/mqtt$/,""));
     client.subscribe(topic());
-    client.subscribe(topicScenes());
     client.subscribe(topicAlarms());
+    client.subscribe(topicScenes());  // retained — shared scene library
+    client.subscribe(topicStatus());  // retained — pills light up immediately
     // Ping boards immediately so they echo their state back (pills update fast)
     setTimeout(() => publish({ ping: true }), 300);
     // Then keep polling every 2 min so pills stay current without relying on board heartbeats
     _pingIntervalId = setInterval(() => publish({ ping: true }), PING_INTERVAL_MS);
+    // Share our scene library. Delayed so the retained copy lands first and
+    // we publish the merge of both, rather than overwriting it with ours.
+    setTimeout(() => { if (loadScenes().length) publishScenes(); }, 1200);
   });
   client.on("message", (t, msg) => {
     const topicStr = t.toString();
     try {
       const d = JSON.parse(msg.toString());
 
-      if (topicStr === topicScenes()) {
+      if (topicStr.startsWith(cfg.prefix + "/status/")) {
+        const id = topicStr.split("/").pop();
+        boardOnline[id] = !!d.online;
+        if (d.fw) boardLastFw[id] = d.fw;
+        if (d.ntp !== undefined) boardNtp[id] = d.ntp;
+        if (d.online) { boardLastSeen[id] = Date.now(); _scheduleBoardTimeout(id); }
         updatePills();
-        updateTargetBtns();
+        return;
+      }
+
+      if (topicStr === topicScenes()) {
+        if (d.from === BOARD_ID) return;          // our own retained copy
+        if (mergeScenes(d)) {
+          renderScenes();
+          publishScenes();                        // share the merged result
+          showToast("Scenes synced");
+        }
         return;
       }
 
       if (topicStr === topicAlarms()) {
-        if (Array.isArray(d)) { alarms = d; renderAlarms(); }
+        if (Array.isArray(d)) {
+          alarms = d;
+          // Self-heal DST shifts / legacy UTC-only alarms, then republish
+          if (normaliseAlarms()) publishAlarms();
+          renderAlarms();
+        }
         return;
       }
 
@@ -748,11 +788,13 @@ function connect() {
         boardLastSeen[d.from] = Date.now();
         boardLastChange[d.from] = boardStateDesc(d);
         if (d.fw)  boardLastFw[d.from]  = d.fw;
+        if (d.ntp !== undefined) boardNtp[d.from] = d.ntp;
         if (d.on !== undefined) boardLastPower[d.from] = d.on;
         updatePills();
         _scheduleBoardTimeout(d.from);
       }
       if (d.from === BOARD_ID) return;
+      if (Date.now() < _holdUntil) return;  // user is mid-interaction — don't yank controls
       if (d.on         !== undefined) { powered = d.on;              updatePowerBtn(); }
       if (d.brightness !== undefined) { brightness = d.brightness;   syncBrightnessSlider(); }
       if (d.fade_steps !== undefined) { fadeSteps = d.fade_steps;    syncFadeSlider(); }
@@ -767,21 +809,38 @@ function connect() {
         });
         renderAll();
       }
-    } catch(e) {}
+    } catch(e) { console.warn("[mqtt] bad message on", topicStr, e); }
   });
   client.on("error",     () => setStatus("disconnected", "error"));
   client.on("close",     () => {
     setStatus("disconnected", "disconnected");
     if (_pingIntervalId) { clearInterval(_pingIntervalId); _pingIntervalId = null; }
+    updatePills();   // don't keep showing stale green pills with no connection
   });
   client.on("reconnect", () => setStatus("connecting",   "reconnecting…"));
 }
+
+// Phones suspend the WebSocket when the tab is backgrounded; on return the
+// app would sit on a dead socket until mqtt.js noticed. Reconnect (or
+// refresh state) the moment the tab becomes visible again.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (!client || !client.connected) connect();
+  else publish({ ping: true });
+  updatePills();
+});
 
 // ── Debounce helper ────────────────────────────────────────────
 function debounce(fn, ms) {
   let timer;
   return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
 }
+
+// While the user is actively adjusting a control, ignore incoming state
+// echoes — otherwise the round-trip echo yanks the slider/handle they are
+// still holding. Refreshed on every local interaction, expires after 1.5 s.
+let _holdUntil = 0;
+function markLocalInteraction() { _holdUntil = Date.now() + 1500; }
 
 let _publishFlashTimer = null;
 function _flashDot() {
@@ -805,8 +864,16 @@ function showToast(msg) {
   t._timer = setTimeout(() => { t.style.opacity = "0"; }, 2500);
 }
 
+let _offlineToastAt = 0;
 function publish(payload) {
-  if (!client || !client.connected) return;
+  if (!client || !client.connected) {
+    // Silently dropping the change made the app feel broken — say so instead
+    if (Date.now() - _offlineToastAt > 3000) {
+      _offlineToastAt = Date.now();
+      showToast("⚠ Not connected — change not sent");
+    }
+    return;
+  }
   payload.from = BOARD_ID;
   if (sendTarget !== "both") payload.target = sendTarget;
   // Mirror on/off state immediately so pills update without waiting for echo
@@ -837,7 +904,20 @@ function publishRetained(topicFn, payload) {
   client.publish(topicFn(), JSON.stringify(payload), { retain: true, qos: 1 });
 }
 
+// Alarms and reboots must reach BOTH boards regardless of the "Send to"
+// selector — an alarm's own `boards` field decides which lamp acts on it.
+function publishBroadcast(payload) {
+  if (!client || !client.connected) {
+    showToast("⚠ Not connected — not saved to the lamps");
+    return;
+  }
+  payload.from = BOARD_ID;
+  client.publish(topic(), JSON.stringify(payload));
+  _flashDot();
+}
+
 function publishState() {
+  markLocalInteraction();
   const p = { groups: getGroups(), on: powered, brightness, fade_steps: fadeSteps,
               drift_enabled: driftEnabled, drift_interval: driftInterval };
   publish(p);
@@ -906,7 +986,17 @@ function renderStrip() {
   }
 }
 
-function renderDividerBar() { /* merged into renderStrip */ }
+// Recolour existing LED cells without rebuilding the DOM — used on the
+// drag hot path where innerHTML rebuilds at 60 Hz cause visible jank.
+function updateStripColours() {
+  const ledsRow = document.getElementById("leds-row");
+  if (ledsRow.children.length !== cfg.numLeds) { renderStrip(); return; }
+  let idx = 0;
+  getGroups().forEach(g => {
+    const colour = powered ? rgbStr(g.pos) : "#111";
+    for (let j = 0; j < g.size; j++) ledsRow.children[idx++].style.background = colour;
+  });
+}
 
 function rebuildGroupData() {
   const n = groupCount();
@@ -940,7 +1030,8 @@ function _palettePos(e, bar) {
     }
     const sw = document.getElementById(`gsw-${i}`);
     if (sw) sw.style.background = rgbStr(pos);
-    renderStrip(); _publishPalette();
+    markLocalInteraction();
+    updateStripColours(); _publishPalette();
   }
   document.addEventListener("mousemove",  onMove);
   document.addEventListener("touchmove",  onMove, { passive: false });
@@ -997,7 +1088,6 @@ function renderGroupPanels() {
 function renderAll() {
   rebuildGroupData();
   renderStrip();
-  renderDividerBar();
   renderPaletteBar();
   renderGroupPanels();
 }
@@ -1016,6 +1106,7 @@ function syncFadeSlider() {
 // ── Group handlers ─────────────────────────────────────────────
 const _publishStateDebounced = debounce(publishState, 120);
 function onGroupW(i, val) {
+  markLocalInteraction();
   groupWLevels[i] = val;
   document.getElementById(`gww-${i}`).textContent = Math.round(val*100)+"%";
   _publishStateDebounced();
@@ -1026,7 +1117,7 @@ function updatePowerBtn() {
   const btn = document.getElementById("btn-power");
   btn.className = powered ? "power-btn on" : "power-btn off";
   btn.querySelector(".power-label").textContent = powered ? "On" : "Off";
-  renderStrip();
+  updateStripColours();
 }
 
 
@@ -1047,12 +1138,14 @@ document.getElementById("btn-reset").addEventListener("click", () => {
 
 
 document.getElementById("sl-brightness").addEventListener("input", function() {
+  markLocalInteraction();
   brightness = this.value/100;
   document.getElementById("val-brightness").textContent = this.value+"%";
   _publishStateDebounced();
 });
 
 document.getElementById("sl-fade").addEventListener("input", function() {
+  markLocalInteraction();
   fadeSteps = parseInt(this.value);
   document.getElementById("val-fade").textContent = Math.round(fadeSteps*16/1000*10)/10+"s";
   _publishStateDebounced();
@@ -1108,13 +1201,49 @@ document.getElementById("btn-reconnect").addEventListener("click", () => {
 // ── Alarms ──────────────────────────────────────────────────────
 const DAY_LABELS = ["Mo","Tu","We","Th","Fr","Sa","Su"];
 
+// ── Timezone ──
+// The Pico has no timezone database, so firmware compares alarms against
+// UTC. The UI therefore edits in LOCAL time and records the user's intent
+// in lh/lm, which lets the UTC fields be recomputed whenever the offset
+// changes — so an alarm set to 07:00 stays 07:00 across a DST switch.
+function localToUtc(lh, lm) {
+  const d = new Date(); d.setHours(lh, lm, 0, 0);
+  return [d.getUTCHours(), d.getUTCMinutes()];
+}
+function utcToLocal(uh, um) {
+  const d = new Date(); d.setUTCHours(uh, um, 0, 0);
+  return [d.getHours(), d.getMinutes()];
+}
+function alarmLocal(a) {
+  if (Number.isInteger(a.lh) && Number.isInteger(a.lm)) return [a.lh, a.lm];
+  return utcToLocal(a.hour || 0, a.minute || 0);   // legacy alarm: derive intent
+}
+// Re-derive the UTC fields from local intent. Returns true if anything
+// changed (DST shift, or a legacy alarm gaining lh/lm) → caller republishes.
+function normaliseAlarms() {
+  let changed = false;
+  alarms.forEach(a => {
+    const [lh, lm] = alarmLocal(a);
+    if (a.lh !== lh || a.lm !== lm) { a.lh = lh; a.lm = lm; changed = true; }
+    const [uh, um] = localToUtc(lh, lm);
+    if (a.hour !== uh || a.minute !== um) { a.hour = uh; a.minute = um; changed = true; }
+  });
+  return changed;
+}
+
 function defaultAlarm() {
-  return { enabled: true, type: "sunrise", hour: 7, minute: 0, duration_min: 30, brightness: 1.0, days: [0,1,2,3,4], boards: [cfg.boardIdA, cfg.boardIdB] };
+  const [uh, um] = localToUtc(7, 0);
+  return { enabled: true, type: "sunrise", hour: uh, minute: um, lh: 7, lm: 0,
+           duration_min: 30, brightness: 1.0, days: [0,1,2,3,4],
+           boards: [cfg.boardIdA, cfg.boardIdB] };
 }
 
 function publishAlarms() {
+  // Retained → durable: a board that is offline now still gets the schedule
+  // when it reconnects. The events copy is just the instant path for boards
+  // that are already online.
   publishRetained(topicAlarms, alarms);
-  publish({ set_alarms: alarms });
+  publishBroadcast({ set_alarms: alarms });
 }
 
 function renderAlarms() {
@@ -1123,10 +1252,13 @@ function renderAlarms() {
   alarms.forEach((alarm, idx) => {
     const el = document.createElement("div");
     el.className = "alarm-card";
-    const hh = String(alarm.hour).padStart(2,"0");
-    const mm = String(alarm.minute).padStart(2,"0");
+    const [lh, lm] = alarmLocal(alarm);
+    const hh = String(lh).padStart(2,"0");
+    const mm = String(lm).padStart(2,"0");
+    const utcHint = `${String(alarm.hour).padStart(2,"0")}:${String(alarm.minute).padStart(2,"0")} UTC`;
+    const days = alarm.days || [];
     const dayBtns = DAY_LABELS.map((d,i) =>
-      `<button class="day-btn ${alarm.days.includes(i)?"on":""}" data-d="${i}">${d}</button>`
+      `<button class="day-btn ${days.includes(i)?"on":""}" data-d="${i}">${d}</button>`
     ).join("");
     const alarmBoards = alarm.boards || [cfg.boardIdA, cfg.boardIdB];
     const boardBtns = [
@@ -1138,10 +1270,13 @@ function renderAlarms() {
     el.innerHTML = `
       <div class="alarm-header">
         <button class="alarm-toggle ${alarm.enabled?"on":""}" data-idx="${idx}"></button>
-        <input class="alarm-time" type="time" value="${hh}:${mm}" title="Time is UTC — adjust for your timezone" data-idx="${idx}">
-        <span style="font-size:0.6rem;color:var(--muted);margin-left:0.2rem">UTC</span>
+        <input class="alarm-time" type="time" value="${hh}:${mm}"
+          title="Your local time — sent to the lamps as ${utcHint}" data-idx="${idx}">
+        <span style="font-size:0.55rem;color:var(--muted);margin-left:0.2rem" title="What the lamps compare against">${utcHint}</span>
         <button class="alarm-type-btn ${(alarm.type||'sunrise')==='sunrise'?'sunrise':'sunset'}" data-idx="${idx}"
           title="Toggle sunrise / bedtime fade">${(alarm.type||'sunrise')==='sunrise'?'🌅 Rise':'🌙 Sleep'}</button>
+        <button class="alarm-type-btn" data-test="${idx}"
+          title="Run this fade on both lamps now (20 s) to verify it works">▶ Test</button>
         <button class="alarm-del" data-idx="${idx}">✕</button>
       </div>
       <div class="alarm-days">${dayBtns}</div>
@@ -1192,8 +1327,17 @@ function renderAlarms() {
     });
     el.querySelector(".alarm-time").addEventListener("change", e => {
       const [h,m] = e.target.value.split(":").map(Number);
-      alarms[idx].hour = h; alarms[idx].minute = m;
+      if (!Number.isInteger(h) || !Number.isInteger(m)) return;
+      // Store local intent, then derive the UTC time the firmware uses
+      alarms[idx].lh = h; alarms[idx].lm = m;
+      const [uh,um] = localToUtc(h, m);
+      alarms[idx].hour = uh; alarms[idx].minute = um;
       publishAlarms();
+      renderAlarms();   // refresh the UTC hint
+    });
+    el.querySelector("[data-test]").addEventListener("click", () => {
+      publishBroadcast({ test_alarm: alarms[idx].type || "sunrise", test_seconds: 20 });
+      showToast("Testing on both lamps — 20 s fade");
     });
     el.querySelector(".alarm-del").addEventListener("click", () => {
       alarms.splice(idx, 1); renderAlarms(); publishAlarms();
@@ -1221,13 +1365,97 @@ document.getElementById("btn-add-alarm").addEventListener("click", () => {
 });
 
 // ── Scenes ──────────────────────────────────────────────────────
+// Scenes live in localStorage, and are also mirrored to the retained
+// `P/scenes` topic so every client — this app on your phone and laptop, and
+// any other client — converges on the same library.
+//
+// Sync rules, chosen so no device can wipe another's work:
+//   • merge by `id`, keeping whichever copy has the newer `updated`
+//   • deletions travel as tombstones, since a scene simply missing from a
+//     remote list means "that device hasn't seen it yet", not "delete it"
+//   • tombstones are capped, oldest dropped first
+const SCENE_TOMBSTONE_CAP = 50;
+
 function loadScenes() {
-  try { return JSON.parse(localStorage.getItem("ll_scenes") || "[]"); }
-  catch(e) { return []; }
+  try {
+    const s = JSON.parse(localStorage.getItem("ll_scenes") || "[]");
+    return Array.isArray(s) ? s.filter(x => x && typeof x === "object") : [];
+  } catch(e) { return []; }
 }
 
 function saveScenes(scenes) {
   localStorage.setItem("ll_scenes", JSON.stringify(scenes));
+}
+
+function loadTombstones() {
+  try {
+    const t = JSON.parse(localStorage.getItem("ll_scenes_deleted") || "[]");
+    return Array.isArray(t) ? t.filter(x => typeof x === "string") : [];
+  } catch(e) { return []; }
+}
+
+function saveTombstones(ids) {
+  localStorage.setItem("ll_scenes_deleted",
+    JSON.stringify(ids.slice(-SCENE_TOMBSTONE_CAP)));
+}
+
+function newSceneId() {
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
+
+// Give legacy scenes an identity so they can participate in sync
+function ensureSceneIds(scenes) {
+  let changed = false;
+  scenes.forEach(s => {
+    if (typeof s.id !== "string")      { s.id = newSceneId();  changed = true; }
+    if (typeof s.updated !== "number") { s.updated = Date.now(); changed = true; }
+  });
+  return changed;
+}
+
+function publishScenes() {
+  publishRetained(topicScenes, {
+    v: 1, from: BOARD_ID,
+    scenes: loadScenes(),
+    deleted: loadTombstones(),
+  });
+}
+
+// Merge a remote library into ours. Returns true if our copy changed.
+function mergeScenes(remote) {
+  if (!remote || typeof remote !== "object") return false;
+  const incoming = Array.isArray(remote.scenes) ? remote.scenes : [];
+  const remoteDead = Array.isArray(remote.deleted) ? remote.deleted : [];
+
+  const dead = new Set([...loadTombstones(), ...remoteDead.filter(x => typeof x === "string")]);
+  const byId = new Map();
+  loadScenes().forEach(s => { if (typeof s.id === "string") byId.set(s.id, s); });
+
+  let changed = false;
+  incoming.forEach(s => {
+    if (!s || typeof s !== "object" || typeof s.id !== "string") return;
+    if (dead.has(s.id)) return;                       // deleted somewhere
+    const mine = byId.get(s.id);
+    const theirs = typeof s.updated === "number" ? s.updated : 0;
+    if (!mine || theirs > (mine.updated || 0)) {
+      byId.set(s.id, s);
+      changed = true;
+    }
+  });
+
+  // Apply tombstones — ours and theirs
+  for (const id of byId.keys()) {
+    if (dead.has(id)) { byId.delete(id); changed = true; }
+  }
+
+  const mergedDead = [...dead];
+  if (mergedDead.length !== loadTombstones().length) changed = true;
+
+  if (changed) {
+    saveScenes([...byId.values()]);
+    saveTombstones(mergedDead);
+  }
+  return changed;
 }
 
 // ── Scenes (unified — built-ins + user-saved) ─────────────────────────
@@ -1267,6 +1495,7 @@ function _sceneSwatches(item) {
 
 function captureScene(name) {
   return {
+    id: newSceneId(), updated: Date.now(),   // identity, for cross-device sync
     name,
     groups: getGroups(), boundaries: Array.from(boundaries),
     groupPositions: [...groupPositions], groupWLevels: [...groupWLevels],
@@ -1306,6 +1535,10 @@ function renderScenes() {
     ...userScenes.map((s, i) => ({ item: s, builtin: false, idx: i })),
   ];
   container.innerHTML = "";
+  if (!all.length) {
+    container.innerHTML = `<div class="no-scenes">No scenes yet — set some colours and save one below</div>`;
+    return;
+  }
   all.forEach(({ item, builtin, idx }) => {
     const row = document.createElement("div");
     row.className = "scene-row";
@@ -1317,7 +1550,16 @@ function renderScenes() {
     row.querySelector(".scene-load").addEventListener("click", e => _applySceneOrBuiltin(item, e.currentTarget));
     if (!builtin) {
       row.querySelector(".scene-del").addEventListener("click", () => {
-        const s = loadScenes(); s.splice(idx, 1); saveScenes(s); renderScenes();
+        const s = loadScenes();
+        const [gone] = s.splice(idx, 1);
+        saveScenes(s);
+        // Tombstone, so the deletion propagates instead of other devices
+        // helpfully syncing the scene straight back
+        if (gone && typeof gone.id === "string") {
+          saveTombstones([...loadTombstones(), gone.id]);
+        }
+        renderScenes();
+        publishScenes();
       });
     }
     container.appendChild(row);
@@ -1331,9 +1573,26 @@ document.getElementById("btn-save-scene").addEventListener("click", () => {
   saveScenes(scenes);
   document.getElementById("scene-name").value = "";
   renderScenes();
+  publishScenes();
 });
 
+// Cache the shell + mqtt.js so a CDN outage can't take the app down.
+// Wrapped in a guard: a service-worker failure must never break the UI.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    Promise.reject(new Error("vendored: gacha SW owns this origin")).catch(e =>
+      console.warn("[sw] registration failed (app still works)", e));
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────
+// Legacy scenes predate sync and have no id/updated — give them one so they
+// can take part rather than being silently ignored by the merge.
+(function migrateSceneIds() {
+  const s = loadScenes();
+  if (ensureSceneIds(s)) saveScenes(s);
+})();
+
 initGroups(cfg.numGroups);
 renderAll();
 renderScenes();

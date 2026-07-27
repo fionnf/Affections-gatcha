@@ -198,9 +198,14 @@ One row per day in the `Stimmung` worksheet.
 The 💡 **Licht** tab opens `lichter.html`, an MQTT-over-WebSocket controller
 for the linked lamps. The page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)
-(branch `master`) by `scripts/vendor-lights-ui.py`, which re-applies two local
-touches: this app's favicon and a ‹ back control. The `sync-lights-ui` workflow
-re-pulls it, so an upstream edit shows up here without a manual copy.
+(branch `master`) by `scripts/vendor-lights-ui.py`, which re-applies the local
+changes it needs: this app's favicon and apple-touch-icon, a ‹ back control,
+no manifest link (that would resolve to the *gacha's* manifest), and a
+neutered service-worker registration (`./sw.js` is the gacha's SW here, and
+the gacha already registers it). The `sync-lights-ui` workflow re-pulls it, so
+an upstream edit shows up here without a manual copy — and skips with a
+warning rather than failing if upstream moves or goes private, since
+`lichter.html` is committed and keeps working either way.
 
 Both lamps also flash green for ~10 s on a capsule pull (`src/lightsFx.js`),
 skipped in preview mode so testing doesn't strobe the real lamps.
