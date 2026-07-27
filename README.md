@@ -9,6 +9,7 @@ A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-print
 | | |
 |---|---|
 | 🟢 **App (Lennart)** | https://fionnf.github.io/Affections-gatcha/ |
+| 🟣 **App (Fionn)** | https://fionnf.github.io/Affections-gatcha/fionn-gacha.html |
 | 🖼️ **Media preview** | https://fionnf.github.io/Affections-gatcha/media-preview.html |
 | 📊 **Google Sheet** | https://docs.google.com/spreadsheets/d/1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4/edit |
 | 📸 **iCloud shared album** | https://www.icloud.com/sharedalbum/#B1yGqkRUi85ROko |
@@ -22,7 +23,7 @@ A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-print
 
 ```
 index.html                  Lennart's entry point (public)
-fionn-gacha.html            Fionn's entry point (private, noindex, unlinked)
+fionn-gacha.html            Fionn's entry point (noindex, not on the public URL)
 fionn.html                  Redirect to fionn-gacha.html, for old bookmarks
 lichter.html                Lichtsteuerung — vendored from the lights repo
 dist/
@@ -75,10 +76,13 @@ The result is computed deterministically from:
 
 Same day → same result. Refreshing never re-rolls. Tomorrow gets a new pull automatically.
 
-> **Fionn's gacha lives on its own page, not on the public URL.** `index.html`
-> ignores `?player=fionn` (see `FIONN_GACHA_READY` there), so Lennart's link
-> can't be turned into Fionn's view. Fionn's page is `fionn-gacha.html`
-> (`noindex`, unlinked); `fionn.html` redirects to it for old bookmarks.
+> **Fionn's gacha lives on its own page**, not on Lennart's URL. `index.html`
+> ignores `?player=fionn` (see `FIONN_GACHA_READY` there), so the link everyone
+> has can't be turned into Fionn's view. His page is `fionn-gacha.html`, marked
+> `noindex` so it stays out of search results; `fionn.html` redirects to it for
+> old bookmarks. Neither page is a secret — both are public files on GitHub
+> Pages, and the separation is about who sees which capsules, not access
+> control.
 
 ### Local development
 
