@@ -20,7 +20,6 @@ import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stim
 import { openWerkstatt, closeWerkstatt, openKapselForm, closeKapselForm, submitKapselForm, requestKapselDelete, renderWerkstatt, renderWerkstattEntry } from "./werkstatt.js";
 import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
 import { currentWeekKey } from "./utils.js";
-import { sendReaction, renderPartnerCard, renderReactionOnResult, partnerDisplayName } from "./reactions.js";
 
 // Moved to toast.js; re-exported so the existing importers stay unchanged.
 export { showToast } from "./toast.js";
@@ -1010,40 +1009,10 @@ export function bindEvents() {
     });
   }
 
-  // ── Kapsel-Echo reactions ────────────────────────────────────────────────────
-  // Delegated so the bar can re-render freely; works identically for both
-  // players (each reacts to the OTHER one's pull of the day).
-  const reactionBar = $("[data-ag-reaction-bar]");
-  if (reactionBar) {
-    reactionBar.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-ag-reaction]");
-      if (!btn) return;
-      haptic([10, 10, 20]);
-      const emoji = btn.dataset.agReaction;
-      sendReaction(emoji);
-      renderPartnerCard();
-      // renderPartnerCard rebuilt the bar — pop the NEW button, not the stale node
-      reactionBar.querySelector(`[data-ag-reaction="${emoji}"]`)?.classList.add("ag-reaction-pop");
-      showToast(`Reaktion an ${partnerDisplayName()} gesendet 💌`);
-    });
-  }
-
-  // Every successful sync refreshes the two-way reaction UI; genuinely new
-  // incoming reactions (collected in sync.js) get announced once.
   mount.addEventListener("ag-synced", () => {
     try {
-      renderPartnerCard();
-      renderReactionOnResult();
       renderWerkstattEntry();
       if (!document.getElementById("ag-werkstatt-panel")?.hidden) renderWerkstatt();
-      const fresh = state._freshReactions;
-      state._freshReactions = null;
-      if (Array.isArray(fresh) && fresh.length) {
-        const latest = fresh[fresh.length - 1];
-        showToast(`${partnerDisplayName()} hat mit ${latest.emoji} auf deine Kapsel reagiert`);
-        haptic([15, 20, 15]);
-        if (state.activeTab === "history") renderHistory();
-      }
     } catch (_e) {}
   });
 

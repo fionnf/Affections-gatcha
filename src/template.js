@@ -438,7 +438,6 @@ export const html = `
                 <div class="ag-media-stage" data-ag-photo-media></div>
                 <figcaption data-ag-photo-caption hidden></figcaption>
               </figure>
-              <div class="ag-reaction-received" data-ag-reaction-received hidden></div>
               <div class="ag-actions">
                 <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
                 <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
@@ -450,16 +449,6 @@ export const html = `
                 <span class="ag-memory-text" data-ag-memory-text></span>
               </div>
             </article>
-
-            <div class="ag-card ag-partner-card" data-ag-partner-card hidden>
-              <div class="ag-partner-head">
-                <p class="ag-wish-label" data-ag-partner-title>Kapsel des Tages</p>
-                <span class="ag-history-badge" data-ag-partner-badge hidden></span>
-              </div>
-              <p class="ag-partner-pull" data-ag-partner-pull></p>
-              <div class="ag-reaction-bar" data-ag-reaction-bar role="group" aria-label="Mit Emoji reagieren" hidden></div>
-              <p class="ag-partner-note" data-ag-partner-note hidden></p>
-            </div>
 
             <details class="ag-card ag-rules">
               <summary data-ag-rules-title>Maschinenregeln</summary>

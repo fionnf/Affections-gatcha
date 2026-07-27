@@ -6,9 +6,9 @@
 // edits the repo's config through GitHub itself — so nothing here needs write
 // access to anything, and no token is stored on the device any more.
 //
-// What remains is the read-only activity feed: hugs, wishes, prompt answers,
-// quest solves and reactions coming in from Lennart, plus the local
-// notification poll that announces them.
+// What remains is the read-only activity feed: hugs, wishes, prompt answers
+// and quest solves coming in from Lennart, plus the local notification poll
+// that announces them.
 import { state, setMount, setConfigBase } from "./state.js";
 import { injectCss } from "./css.js";
 import { h } from "./ui.js";

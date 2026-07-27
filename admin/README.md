@@ -5,7 +5,7 @@ A small PIN-gated panel that rides along on Fionn's page
 
 What it does:
 - **Eingänge** — a feed of what Lennart sends back (hugs 🫂, wishes, prompt
-  answers, quest solves, Kapsel-Reaktionen).
+  answers and quest solves).
 - **Notifications** — local notification when a hug/wish arrives while the app
   is open or installed as a PWA. Email stays the guaranteed channel.
 
