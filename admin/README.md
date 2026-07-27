@@ -58,7 +58,8 @@ the alert channel.
 Or just this one: `npm run build:admin`.
 
 ## Files
-- `fionn-gacha.html`, `manifest-fionn.json`, `sw-fionn.js` — shell, PWA manifest, worker
+- `fionn-gacha.html`, `manifest-fionn.json` — shell and PWA manifest
+- The app's own `sw.js` serves this page too; there is no separate worker
 - `fionn.html` — redirect kept for old bookmarks and installed PWAs
 - `admin/*.js` — source (entry `admin/main.js`)
 - `config/admin.json` — PIN hash + poll interval

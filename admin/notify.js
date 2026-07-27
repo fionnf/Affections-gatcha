@@ -15,10 +15,16 @@ function setLastSeen(ts) {
   try { window.localStorage.setItem(LAST_SEEN_KEY, String(ts)); } catch {}
 }
 
+// Uses the app's existing service worker rather than registering one of its
+// own. Both would sit at the origin root, and a registration is keyed by
+// scope — a second script there REPLACES the first, so this page would knock
+// out sw.js (losing the offline shell and Web Push) and then get replaced
+// right back on the next load. One worker per origin; sw.js handles the two
+// messages this needs.
 export async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    swReg = await navigator.serviceWorker.register("./sw-fionn.js");
+    swReg = await navigator.serviceWorker.ready;
     // Best-effort periodic background sync (Chrome installed-PWA only).
     if (swReg.periodicSync) {
       try {

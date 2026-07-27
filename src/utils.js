@@ -101,10 +101,6 @@ export function extractDriveFileId(url) {
   return m ? (m[1] || m[2]) : null;
 }
 
-export function urlFor(file, baseUrl, resolveBase) {
-  return new URL(file, resolveBase()).toString();
-}
-
 export function getToken() {
   return getMissionPlayer() === "fionn" ? "fionn" : "lennart";
 }

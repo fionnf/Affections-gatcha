@@ -60,7 +60,7 @@ scripts/
 media-preview.html          Preview page for all synced photos and videos
 EDITING.md                  Quick-reference for no-code edits
 PUSH-SETUP.md               Remaining owner steps to switch Web Push on
-sw.js  sw-fionn.js          Service workers (offline cache, notifications)
+sw.js                       Service worker (offline cache, notifications, push)
 manifest.json  manifest-fionn.json   PWA manifests
 ```
 
