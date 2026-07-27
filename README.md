@@ -55,7 +55,8 @@ scripts/
   backup-apps-script.js      Google Apps Script source for the Sheets web app
   hash-admin-pin.cjs         Generates the salt + PIN hash for config/admin.json
   gen-vapid-keys.cjs         One-off VAPID keypair for Web Push
-  send-push.cjs  push-poll.cjs  Web Push sender, run by the push-notify workflow
+  send-push.cjs  push-poll.cjs  Web Push senders (manual, and the hug/wish poll)
+  push-due.cjs               Daily reminder + evening streak warning sender
   vendor-lights-ui.py        Re-pulls lichter.html from the lights repo
 media-preview.html          Preview page for all synced photos and videos
 EDITING.md                  Quick-reference for no-code edits
@@ -214,12 +215,30 @@ skipped in preview mode so testing doesn't strobe the real lamps.
 
 ## Notifications
 
-Two layers, both optional:
+Everything reliable goes through **Web Push** (VAPID, no Firebase). The
+sending lives in `push-notify.yml`:
 
-| Layer | How it works |
-|---|---|
-| **Local reminders** | The service worker schedules a daily 08:00 nudge and a 21:00 streak warning. Works offline, no backend. |
-| **Web Push** | Real push via VAPID (no Firebase). `push-notify.yml` polls the sheet every 5 min and sends via `web-push`. |
+| Job | Schedule | Sends |
+|---|---|---|
+| `notify` | every 5 min | hugs and wishes, as they arrive |
+| `daily` | hourly | the morning reminder and the evening streak warning |
+
+The `daily` job asks the backend (`?feed=push-due`) who still hasn't pulled
+today. The backend checks the Europe/Zurich window itself — so DST can't skew
+it — and records that it answered, so a delayed or repeated cron can't send
+twice. Outside the two windows it returns "nobody due" and the run is a single
+cheap GET.
+
+> **Why not schedule them in the browser?** The service worker did exactly
+> that, with `setTimeout`. A worker is terminated after ~30 seconds idle and
+> its timers die with it, so a target set for 08:00 tomorrow essentially never
+> fired — the reminder only appeared if the app was already open, which is
+> when you least need it. Those timers are still there as a free best-effort,
+> but nothing depends on them.
+
+Periodic Background Sync (`ag-daily-reminder`) is registered too, as a third
+best-effort path. It is Chrome-and-installed-PWA only and heavily throttled;
+iOS never runs it.
 
 The app asks for permission shortly after load. Where the browser blocks a
 silent request (Chrome), an in-app banner floats above the bottom nav instead.
@@ -511,7 +530,7 @@ After editing the script: Deploy → Manage deployments → ✏️ → New versi
 | `build-bundles.yml` | Push to `master` | Builds `dist/`, stamps the `?v=` cache-buster with the commit SHA, commits both |
 | `sync-shared-album.yml` | Manual + every 2 h | Validates config, syncs photos from album, commits `config/photos.json` |
 | `sync-lights-ui.yml` | Manual + scheduled | Re-pulls `lichter.html` from the lights repo and re-applies the local touches |
-| `push-notify.yml` | Every 5 min | Sends queued Web Push notifications. Dormant unless the `PUSH_ENABLED` variable is `true` |
+| `push-notify.yml` | Every 5 min + hourly | Sends queued Web Push (hugs/wishes) and the daily reminder. Dormant unless the `PUSH_ENABLED` variable is `true` |
 
 Run the checks locally:
 

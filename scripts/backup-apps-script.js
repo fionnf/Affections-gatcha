@@ -252,6 +252,50 @@ function doGet(e) {
       return jsonOut_({ ok: true, pending: pending });
     }
 
+    // ── Daily reminder / streak warning, server-side ─────────────────────────
+    // The client schedules these with setTimeout inside the service worker,
+    // which the browser kills after ~30s idle — a timer set for 08:00 the next
+    // morning dies long before it fires. So the reminders only ever arrived if
+    // the app happened to be open, which is exactly when you don't need them.
+    //
+    // Deciding it here instead: the sender asks who is due, we answer from the
+    // History sheet and remember that we said so. The Zurich window is checked
+    // server-side so it stays right across DST without any client involvement.
+    if (e.parameter && e.parameter.feed === "push-due") {
+      const props = PropertiesService.getScriptProperties();
+      const zNow = new Date();
+      const zHour = Number(Utilities.formatDate(zNow, "Europe/Zurich", "H"));
+      const zDay = Utilities.formatDate(zNow, "Europe/Zurich", "yyyy-MM-dd");
+
+      // Two windows an hour wide on either side, so an hourly cron that
+      // GitHub delays by 10-15 minutes still lands inside one.
+      let kind = "";
+      if (zHour >= 7 && zHour < 10) kind = "morning";
+      else if (zHour >= 20 && zHour < 23) kind = "evening";
+      if (!kind) return jsonOut_({ ok: true, due: [], reason: "outside both windows" });
+
+      const histSheet = getOrCreateHistorySheet_(ss);
+      const hVals = histSheet.getDataRange().getValues();
+      const pulledToday = {};
+      for (let i = 1; i < hVals.length; i++) {
+        const row = hVals[i];
+        if (!row[0]) continue;
+        if (normDay(row[1]) === zDay) pulledToday[(row[0] || "").toString().toLowerCase()] = true;
+      }
+
+      const due = [];
+      ["lennart", "fionn"].forEach(function (who) {
+        if (pulledToday[who]) return;
+        // One nudge per player, per kind, per day — a retry or a double cron
+        // must not send twice.
+        const key = "pushDue:" + who + ":" + kind;
+        if (props.getProperty(key) === zDay) return;
+        due.push({ token: who, kind: kind, day: zDay });
+        if (!(e.parameter.peek === "1")) props.setProperty(key, zDay);
+      });
+      return jsonOut_({ ok: true, due: due });
+    }
+
     let activity = [];
     if (e.parameter && e.parameter.feed === "activity") {
       function tsStr(v) {

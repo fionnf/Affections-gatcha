@@ -9,7 +9,11 @@ name: Push notifications
 on:
   workflow_dispatch:
   schedule:
+    # Hugs and wishes: as soon as practical.
     - cron: "*/5 * * * *"
+    # Reminders: hourly. The backend decides whether the hour is in a window,
+    # so this stays correct across DST without touching the cron.
+    - cron: "7 * * * *"
 
 concurrency:
   group: push-notify
@@ -18,7 +22,7 @@ concurrency:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    if: ${{ vars.PUSH_ENABLED == 'true' }}
+    if: ${{ vars.PUSH_ENABLED == 'true' && github.event.schedule != '7 * * * *' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,3 +36,23 @@ jobs:
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
         run: node scripts/push-poll.cjs
+
+  # Daily reminder + evening streak warning. Separate job on its own hourly
+  # schedule: the backend answers "nobody due" outside the two Zurich windows,
+  # so 22 of 24 runs are a single cheap GET.
+  daily:
+    runs-on: ubuntu-latest
+    if: ${{ vars.PUSH_ENABLED == 'true' && github.event.schedule != '*/5 * * * *' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install web-push --no-save
+      - name: Send due reminders
+        env:
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
+        run: node scripts/push-due.cjs

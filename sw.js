@@ -7,6 +7,15 @@ const scheduledTimers = {};
 // ── Message handler ─────────────────────────────────────────────────────────
 // SCHEDULE_NOTIFICATION: { type, targetTime, title, body, tag? }
 // CANCEL_NOTIFICATION:   { type, tag? }
+// SHOW_NOTIFICATION:     { type, title, body, tag? } — fire now, no timer
+//
+// A word on SCHEDULE_NOTIFICATION: the browser terminates an idle service
+// worker after ~30 seconds and its timers die with it, so a target hours away
+// is a hope, not a schedule. It survives only if the worker happens to stay
+// alive, which in practice means the app is open — exactly when a reminder is
+// least useful. The daily reminder and the evening streak warning are
+// therefore sent server-side as real Web Push (scripts/push-due.cjs), and
+// these timers are kept only as a free best-effort on top.
 
 self.addEventListener("message", (event) => {
   if (!event.data) return;
