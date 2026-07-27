@@ -368,7 +368,7 @@ export const html = `
               <button class="ag-secondary" type="button" id="ag-werkstatt-close">✕</button>
             </div>
             <h2 class="ag-mini-title">Kapseln für Fionn</h2>
-            <p class="ag-mini-copy">Was du hier schreibst, zieht Fionn. Pro Kategorie: sobald eine eigene Kapsel drin ist, kommen nur noch deine.</p>
+            <p class="ag-mini-copy">Was du hier schreibst, zieht Fionn.</p>
             <div class="ag-werkstatt-tabs" id="ag-werkstatt-tabs"></div>
             <p class="ag-werkstatt-note" id="ag-werkstatt-note"></p>
             <div class="ag-werkstatt-list" id="ag-werkstatt-list"></div>
@@ -381,7 +381,7 @@ export const html = `
               <div class="ag-werkstatt-form-fields">
                 <input class="ag-berge-input" type="text" id="ag-werkstatt-title" placeholder="Titel" maxlength="80">
                 <textarea class="ag-berge-input ag-werkstatt-textarea" id="ag-werkstatt-message" rows="3" maxlength="400" placeholder="Was steht in der Kapsel?"></textarea>
-                <input class="ag-berge-input" type="text" id="ag-werkstatt-prompt" placeholder="Frage (optional) — er muss sie beantworten" maxlength="180" autocomplete="off">
+                <input class="ag-berge-input" type="text" id="ag-werkstatt-prompt" placeholder="Frage an ihn (optional)" maxlength="180" autocomplete="off">
                 <input class="ag-berge-input" type="url" id="ag-werkstatt-link" placeholder="Link (optional, z. B. Spotify)" inputmode="url" autocomplete="off" spellcheck="false">
                 <label class="ag-werkstatt-check">
                   <input type="checkbox" id="ag-werkstatt-voucher">
@@ -396,6 +396,7 @@ export const html = `
                   <span>Speichern</span>
                 </button>
               </div>
+              <button class="ag-werkstatt-delete-btn" type="button" id="ag-werkstatt-delete" hidden>Kapsel löschen</button>
             </div>
           </section>
 

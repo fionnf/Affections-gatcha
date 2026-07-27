@@ -205,41 +205,48 @@ export function renderWerkstatt() {
   }
 
   list.innerHTML = "";
-  for (const kapsel of mine) {
-    list.appendChild(renderKapselCard(kapsel));
+  mine.forEach((kapsel, i) => list.appendChild(renderKapselCard(kapsel, i)));
+
+  // Keep the selected category in view without scrolling the page — only the
+  // strip moves, so tapping the last tab never yanks the panel around.
+  const activeTab = tabs.querySelector(".is-active");
+  if (activeTab && tabs.scrollWidth > tabs.clientWidth) {
+    tabs.scrollTo({
+      left: Math.max(0, activeTab.offsetLeft - (tabs.clientWidth - activeTab.offsetWidth) / 2),
+      behavior: "smooth"
+    });
   }
 }
 
-function renderKapselCard(kapsel) {
-  const card = document.createElement("div");
+function renderKapselCard(kapsel, index) {
+  // The whole card is the edit affordance. A per-card ✎/✕ column cost about
+  // a third of the width on a phone, wrapped every title, and stacked a row
+  // of red crosses down the list; deleting lives in the form instead, behind
+  // the edit the user already has to open.
+  const card = document.createElement("button");
+  card.type = "button";
   card.className = "ag-werkstatt-card";
+  // Stagger, capped so a long list doesn't turn into a slow cascade.
+  card.style.setProperty("--ag-i", String(index));
+  card.setAttribute("aria-label", `${kapsel.title} bearbeiten`);
   // Capsules round-trip through the shared sheet, so treat every field as
   // untrusted text on the way back in.
   const answered = kapsel.prompt && kapsel.answer
-    ? `<div class="ag-werkstatt-answer"><span class="ag-werkstatt-answer-label">Seine Antwort</span>${escapeHtml(kapsel.answer)}</div>`
+    ? `<div class="ag-werkstatt-answer"><span class="ag-werkstatt-block-label">Seine Antwort</span>${escapeHtml(kapsel.answer)}</div>`
     : kapsel.prompt
-      ? `<div class="ag-werkstatt-card-pending">Noch nicht beantwortet.</div>`
+      ? `<div class="ag-werkstatt-card-pending">Noch nicht beantwortet</div>`
       : "";
   card.innerHTML = `
-    <div class="ag-werkstatt-card-text">
-      <div class="ag-werkstatt-card-title">${escapeHtml(kapsel.title)}${kapsel.voucher ? ` <span class="ag-werkstatt-badge">Gutschein</span>` : ""}</div>
-      <div class="ag-werkstatt-card-msg">${escapeHtml(kapsel.message)}</div>
-      ${kapsel.prompt ? `<div class="ag-werkstatt-card-prompt">❓ ${escapeHtml(kapsel.prompt)}</div>` : ""}
-      ${answered}
-      ${kapsel.link ? `<div class="ag-werkstatt-card-link">🔗 ${escapeHtml(kapsel.link)}</div>` : ""}
-    </div>
-    <div class="ag-werkstatt-card-btns">
-      <button class="ag-werkstatt-edit" type="button" aria-label="Kapsel bearbeiten" title="Bearbeiten">✎</button>
-      <button class="ag-werkstatt-del" type="button" aria-label="Kapsel löschen" title="Löschen">✕</button>
+    <div class="ag-werkstatt-card-title">${escapeHtml(kapsel.title)}</div>
+    <div class="ag-werkstatt-card-msg">${escapeHtml(kapsel.message)}</div>
+    ${kapsel.prompt ? `<div class="ag-werkstatt-card-prompt"><span class="ag-werkstatt-block-label">Frage</span>${escapeHtml(kapsel.prompt)}</div>` : ""}
+    ${answered}
+    <div class="ag-werkstatt-card-tags">
+      ${kapsel.voucher ? `<span class="ag-werkstatt-tag is-voucher">Gutschein</span>` : ""}
+      ${kapsel.link ? `<span class="ag-werkstatt-tag">Link</span>` : ""}
     </div>
   `;
-  card.querySelector(".ag-werkstatt-edit").addEventListener("click", () => openKapselForm(kapsel));
-  card.querySelector(".ag-werkstatt-del").addEventListener("click", () => {
-    if (!window.confirm(`„${kapsel.title}" löschen?`)) return;
-    deleteKapsel(kapsel.id);
-    renderWerkstatt();
-    haptic(8);
-  });
+  card.addEventListener("click", () => openKapselForm(kapsel));
   return card;
 }
 
@@ -257,6 +264,15 @@ export function openKapselForm(kapsel) {
   if (titleEl) titleEl.textContent = kapsel ? "Kapsel bearbeiten" : "Neue Kapsel";
   const errEl = document.getElementById("ag-werkstatt-error");
   if (errEl) errEl.hidden = true;
+  // Delete only exists while editing, and starts un-armed: the first tap
+  // turns it into a confirmation. Replaces a window.confirm() — the one
+  // native dialog left in the app, and the least elegant thing in it.
+  const delBtn = document.getElementById("ag-werkstatt-delete");
+  if (delBtn) {
+    delBtn.hidden = !kapsel;
+    delBtn.textContent = "Kapsel löschen";
+    delBtn.classList.remove("is-armed");
+  }
   form.hidden = false;
   if (addBtn) addBtn.hidden = true;
   form.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -269,7 +285,25 @@ export function closeKapselForm() {
   const addBtn = document.getElementById("ag-werkstatt-add");
   if (form) form.hidden = true;
   if (addBtn) addBtn.hidden = false;
+  const delBtn = document.getElementById("ag-werkstatt-delete");
+  if (delBtn) { delBtn.hidden = true; delBtn.classList.remove("is-armed"); }
   ui.editingId = null;
+}
+
+// Two-step, in place: tap once to arm, again to delete.
+export function requestKapselDelete() {
+  const btn = document.getElementById("ag-werkstatt-delete");
+  if (!btn || !ui.editingId) return;
+  if (!btn.classList.contains("is-armed")) {
+    btn.classList.add("is-armed");
+    btn.textContent = "Wirklich löschen?";
+    haptic(12);
+    return;
+  }
+  deleteKapsel(ui.editingId);
+  closeKapselForm();
+  renderWerkstatt();
+  haptic([12, 40, 12]);
 }
 
 export function submitKapselForm() {
