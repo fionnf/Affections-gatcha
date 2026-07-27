@@ -76,7 +76,7 @@ npx serve .          # serve at http://localhost:3000
 
 ## Editing content (no-code)
 
-Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master` — or use the curator app (private, see `admin/README.md`) to edit outcomes and special days from a phone, no git required.
+Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) and commit directly to `master`. (Fionn's outcomes are the exception — they aren't in `config/` at all; see **Kapsel-Werkstatt** below.)
 
 | File | What to edit |
 |---|---|
