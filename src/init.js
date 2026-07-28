@@ -13,7 +13,6 @@ import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from ".
 import { restoreStimmung } from "./stimmung.js";
 import { readWerkstatt } from "./werkstatt.js";
 import { initInstallPrompt } from "./installPrompt.js";
-import { renderPartnerCard } from "./reactions.js";
 
 const defaultPhotos = { photos: [] };
 
@@ -65,7 +64,6 @@ export async function init() {
     hydrateCopy();
     renderOdds();
     renderWunschkapsel();
-    renderPartnerCard();
     bindEvents();
     initInstallPrompt();
     // Position the sliding pill after first layout

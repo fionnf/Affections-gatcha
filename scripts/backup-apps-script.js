@@ -19,8 +19,6 @@
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
  *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
  *   "PromptAnswers"  — one row per prompt answer (append-only); triggers email to Fionn
- *   "Reactions"      — Kapsel-Echo: one row per (day, from, to), upsert — emoji
- *                      reactions on the partner's daily pull, both directions
  *   "Werkstatt"      — one row per hand-written capsule, upsert by id. Lennart
  *                      writes these for Fionn; ForToken says whose pool they
  *                      belong to. Answer/AnsweredAt hold the reply to a
@@ -116,50 +114,6 @@ function doGet(e) {
     }
 
     const latestPing = PropertiesService.getScriptProperties().getProperty("latestPing") || null;
-
-    // Kapsel-Echo: recent reaction rows involving this token, both directions,
-    // so each client can render what it sent AND what it received.
-    const reactSheet = getOrCreateReactionsSheet_(ss);
-    const reactValues = reactSheet.getDataRange().getValues();
-    let reactions = [];
-    for (let i = 1; i < reactValues.length; i++) {
-      const row = reactValues[i];
-      if (!row[0]) continue;
-      const rFrom = (row[1] || "").toString().toLowerCase();
-      const rTo = (row[2] || "").toString().toLowerCase();
-      if (rFrom !== token && rTo !== token) continue;
-      reactions.push({
-        day: normDay(row[0]),
-        from: rFrom,
-        to: rTo,
-        emoji: row[3] || "",
-        updatedAt: (row[4] instanceof Date) ? row[4].toISOString() : String(row[4] || "")
-      });
-    }
-    if (reactions.length > 100) reactions = reactions.slice(-100);
-
-    // Kapsel-Echo: the OTHER player's pull of today, so the client can show
-    // "X hat heute gezogen" with a reaction bar. Deliberately compact — no
-    // message body, just enough to react to.
-    const otherToken = token === "fionn" ? "lennart" : "fionn";
-    const todayZurich = Utilities.formatDate(new Date(), "Europe/Zurich", "yyyy-MM-dd");
-    let partnerToday = null;
-    for (let i = 1; i < histValues.length; i++) {
-      const row = histValues[i];
-      if ((row[0] || "").toLowerCase() !== otherToken) continue;
-      if (normDay(row[1]) !== todayZurich) continue;
-      let photo = null;
-      try { photo = row[9] ? JSON.parse(row[9]) : null; } catch (err) {}
-      partnerToday = {
-        day: todayZurich,
-        categoryId: row[2] || "",
-        categoryLabel: row[3] || "",
-        tone: row[4] || "",
-        title: row[5] || "",
-        photo: photo
-      };
-      break;
-    }
 
     // Read Gipfelbuch entries (all players share one log)
     const gipfelSheet = getOrCreateGipfelbuchSheet_(ss);
@@ -295,30 +249,51 @@ function doGet(e) {
       if (maxTs && maxTs !== since && !(e.parameter.peek === "1")) {
         props.setProperty("lastPushTs", maxTs);
       }
-      // Kapsel-Echo reactions ride the same pending feed, with their own
-      // pointer so a replaced emoji pushes again but nothing is double-sent.
-      const rSince = props.getProperty("lastPushReactionTs") || "";
-      const rVals = getOrCreateReactionsSheet_(ss).getDataRange().getValues();
-      let rMax = rSince;
-      for (let i = 1; i < rVals.length; i++) {
-        const row = rVals[i];
-        if (!row[0]) continue;
-        const ts = (row[4] instanceof Date) ? row[4].toISOString() : String(row[4] || "");
-        if (rSince && ts <= rSince) continue;
-        pending.push({
-          timestamp: ts,
-          from: (row[1] || "").toString().toLowerCase(),
-          to: (row[2] || "").toString().toLowerCase(),
-          type: "reaction",
-          text: row[3] || "",
-          day: normDay(row[0])
-        });
-        if (ts > rMax) rMax = ts;
-      }
-      if (rMax && rMax !== rSince && !(e.parameter.peek === "1")) {
-        props.setProperty("lastPushReactionTs", rMax);
-      }
       return jsonOut_({ ok: true, pending: pending });
+    }
+
+    // ── Daily reminder / streak warning, server-side ─────────────────────────
+    // The client schedules these with setTimeout inside the service worker,
+    // which the browser kills after ~30s idle — a timer set for 08:00 the next
+    // morning dies long before it fires. So the reminders only ever arrived if
+    // the app happened to be open, which is exactly when you don't need them.
+    //
+    // Deciding it here instead: the sender asks who is due, we answer from the
+    // History sheet and remember that we said so. The Zurich window is checked
+    // server-side so it stays right across DST without any client involvement.
+    if (e.parameter && e.parameter.feed === "push-due") {
+      const props = PropertiesService.getScriptProperties();
+      const zNow = new Date();
+      const zHour = Number(Utilities.formatDate(zNow, "Europe/Zurich", "H"));
+      const zDay = Utilities.formatDate(zNow, "Europe/Zurich", "yyyy-MM-dd");
+
+      // Two windows an hour wide on either side, so an hourly cron that
+      // GitHub delays by 10-15 minutes still lands inside one.
+      let kind = "";
+      if (zHour >= 7 && zHour < 10) kind = "morning";
+      else if (zHour >= 20 && zHour < 23) kind = "evening";
+      if (!kind) return jsonOut_({ ok: true, due: [], reason: "outside both windows" });
+
+      const histSheet = getOrCreateHistorySheet_(ss);
+      const hVals = histSheet.getDataRange().getValues();
+      const pulledToday = {};
+      for (let i = 1; i < hVals.length; i++) {
+        const row = hVals[i];
+        if (!row[0]) continue;
+        if (normDay(row[1]) === zDay) pulledToday[(row[0] || "").toString().toLowerCase()] = true;
+      }
+
+      const due = [];
+      ["lennart", "fionn"].forEach(function (who) {
+        if (pulledToday[who]) return;
+        // One nudge per player, per kind, per day — a retry or a double cron
+        // must not send twice.
+        const key = "pushDue:" + who + ":" + kind;
+        if (props.getProperty(key) === zDay) return;
+        due.push({ token: who, kind: kind, day: zDay });
+        if (!(e.parameter.peek === "1")) props.setProperty(key, zDay);
+      });
+      return jsonOut_({ ok: true, due: due });
     }
 
     let activity = [];
@@ -374,20 +349,6 @@ function doGet(e) {
         });
       }
 
-      // Kapsel-Echo reactions in the admin feed
-      for (let i = 1; i < reactValues.length; i++) {
-        const row = reactValues[i];
-        if (!row[0]) continue;
-        activity.push({
-          timestamp: tsStr(row[4]),
-          token: row[1] || "",
-          type: "reaction",
-          emoji: row[3] || "",
-          day: normDay(row[0]),
-          message: (row[3] || "") + " auf die Kapsel vom " + normDay(row[0])
-        });
-      }
-
       activity.sort(function (a, b) {
         return (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0);
       });
@@ -410,8 +371,6 @@ function doGet(e) {
       stimmung,
       werkstatt,
       activity,
-      reactions,
-      partnerToday
     });
   } catch (err) {
     return jsonOut_({ ok: false, error: err.message });
@@ -575,38 +534,6 @@ function doPost(e) {
       for (let i = values.length - 1; i >= 1; i--) {
         if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
       }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Kapsel-Echo reaction upsert ──────────────────────────────────────────
-    // One reaction per (day, from, to); re-reacting replaces the emoji. Works
-    // in both directions — each player reacts to the other's daily pull.
-    if (data.type === "reaction") {
-      const day = String(data.day || "").slice(0, 10);
-      const from = (data.from || data.token || "").toString().toLowerCase();
-      const to = (data.to || "").toString().toLowerCase();
-      const emoji = String(data.emoji || "").slice(0, 16);
-      if (!day || !from || !to || !emoji) return jsonOut_({ ok: false, error: "missing fields" });
-      const sheet = getOrCreateReactionsSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      let rowIdx = -1;
-      for (let i = 1; i < values.length; i++) {
-        const d = values[i][0] instanceof Date
-          ? Utilities.formatDate(values[i][0], "UTC", "yyyy-MM-dd")
-          : String(values[i][0]).slice(0, 10);
-        if (d === day
-            && (values[i][1] || "").toString().toLowerCase() === from
-            && (values[i][2] || "").toString().toLowerCase() === to) { rowIdx = i + 1; break; }
-      }
-      const row = [day, from, to, emoji, new Date().toISOString()];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Ping (Fionn → Lennart) ────────────────────────────────────────────────
-    if (data.type === "ping") {
-      PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
       return jsonOut_({ ok: true });
     }
 
@@ -936,26 +863,6 @@ function getOrCreateGipfelbuchSheet_(ss) {
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
     sheet.setColumnWidth(6, 300);
-  }
-  return sheet;
-}
-
-function getOrCreateReactionsSheet_(ss) {
-  let sheet = ss.getSheetByName("Reactions");
-  if (!sheet) {
-    sheet = ss.insertSheet("Reactions");
-    sheet.appendRow(["Day", "From", "To", "Emoji", "UpdatedAt"]);
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
-}
-
-function getOrCreateStimmungSheet_(ss) {
-  let sheet = ss.getSheetByName("Stimmung");
-  if (!sheet) {
-    sheet = ss.insertSheet("Stimmung");
-    sheet.appendRow(["Day", "Hex", "SetBy", "UpdatedAt"]);
-    sheet.setFrozenRows(1);
   }
   return sheet;
 }

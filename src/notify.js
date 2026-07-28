@@ -245,7 +245,11 @@ export async function subscribeToPush() {
       headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
     fetch(endpoint, opts).catch(() =>
       fetch(endpoint, { ...opts, mode: "no-cors" }).catch(() => {}));
-  } catch (_e) {
-    /* push unsupported / user blocked / offline — silently skip */
+  } catch (error) {
+    // Unsupported browsers and blocked permissions land here legitimately, so
+    // this must not throw — but it is not silent. A push subscription that
+    // quietly fails looks exactly like one that succeeded, and the reminders
+    // simply never arrive with nothing anywhere to say why.
+    console.warn("[ag] push subscription failed:", error && error.message);
   }
 }

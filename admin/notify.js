@@ -67,7 +67,7 @@ export async function pollOnce({ silent = false } = {}) {
   try { items = await fetchActivity(); } catch { return []; }
   state.activity = items;
   const lastSeen = getLastSeen();
-  const fresh = items.filter((it) => tsOf(it) > lastSeen && (it.type === "hug" || it.type === "wish" || it.type === "reaction"));
+  const fresh = items.filter((it) => tsOf(it) > lastSeen && (it.type === "hug" || it.type === "wish"));
   const newestTs = items.reduce((m, it) => Math.max(m, tsOf(it)), lastSeen);
 
   if (!silent && fresh.length) {
@@ -75,9 +75,6 @@ export async function pollOnce({ silent = false } = {}) {
     if (hug) notify("🫂 Lennart hat dich angestupst", hug.message || "Notfall-Umarmung gebraucht");
     const wishes = fresh.filter((f) => f.type === "wish");
     if (wishes.length) notify("✨ Neuer Wunsch", wishes[0].wish || wishes[0].message || "Lennart hat etwas gewünscht");
-    // Reactions appear in the feed from BOTH players — only announce Lennart's.
-    const reaction = fresh.find((f) => f.type === "reaction" && (f.token || "").toLowerCase() === "lennart");
-    if (reaction) notify(`${reaction.emoji || "💛"} Kapsel-Reaktion`, reaction.message || "Lennart hat auf deine Kapsel reagiert");
   }
   if (newestTs > lastSeen) setLastSeen(newestTs);
   return items;

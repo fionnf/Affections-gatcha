@@ -75,24 +75,6 @@ test("a failed sync leaves local history untouched and reports -1", async () => 
   globalThis.fetch = async () => ({ ok: true, json: async () => _nextPayload });
 });
 
-test("sync merges reactions and picks up the partner's pull of today", async () => {
-  const { readReactions } = await import("../src/reactions.js");
-  const today = new Date().toISOString().slice(0, 10);
-  _nextPayload = { ok: true,
-    reactions: [
-      { day: today, from: "fionn", to: "lennart", emoji: "❤️", updatedAt: "2026-01-01T10:00:00Z" },
-    ],
-    partnerToday: { day: today, categoryId: "rare", categoryLabel: "Selten", tone: "rare", title: "R1", photo: null },
-  };
-
-  await syncFromSheets();
-
-  const r = readReactions().find((x) => x.from === "fionn" && x.day === today);
-  assert.ok(r, "incoming reaction stored locally");
-  assert.equal(r.emoji, "❤️");
-  assert.equal(state.partnerToday.title, "R1", "partner's pull of today lands in state");
-});
-
 test("server rows for a future day are ignored", async () => {
   _nextPayload = { ok: true, history: [
     { day: "2999-01-01", token: "lennart", categoryId: "jackpot", title: "future", message: "f" },
