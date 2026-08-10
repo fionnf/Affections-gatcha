@@ -295,7 +295,7 @@ Available color keys: `background`, `surface`, `surfaceAlt`, `text`, `muted`, `b
 
 ## Photo & video drops
 
-Photos/videos appear when the `Foto-Drop` category is drawn (28.4% base chance).
+Photos/videos appear when the `Foto-Drop` category is drawn (27.1% base chance).
 
 ```json
 { "url": "https://…/foto.jpg", "alt": "Wir beim Kaffee", "caption": "Beweisstück A.", "type": "image" }
@@ -319,19 +319,19 @@ The workflow runs every **2 hours** and commits only `config/photos.json`. iClou
 
 ## Outcome categories & odds
 
-Base weights (total = 1340):
+Base weights (total = 1400):
 
 | Category | ID | Weight | Base chance | Outcomes |
 |---|---|---:|---:|---:|
-| Niete | `niete` | 150 | 11.19% | 46 |
-| Gewöhnlich | `common` | 210 | 15.67% | 105 |
-| Mini-Quest | `quest` | 180 | 13.43% | 47 |
-| Ungewöhnlich | `uncommon` | 150 | 11.19% | 31 |
-| Verflucht | `cursed` | 90 | 6.72% | 54 |
-| Selten (Date-Credits) | `rare` | 90 | 6.72% | 29 |
-| Sammelkapsel | `collect` | 60 | 4.48% | 17 |
-| Foto-Drop | `photo` | 380 | 28.36% | 15 |
-| JACKPOT | `jackpot` | 30 | 2.24% | 13 |
+| Niete | `niete` | 150 | 10.71% | 46 |
+| Gewöhnlich | `common` | 270 | 19.29% | 123 |
+| Mini-Quest | `quest` | 180 | 12.86% | 47 |
+| Ungewöhnlich | `uncommon` | 150 | 10.71% | 31 |
+| Verflucht | `cursed` | 90 | 6.43% | 54 |
+| Selten | `rare` | 90 | 6.43% | 29 |
+| Sammelkapsel | `collect` | 60 | 4.29% | 17 |
+| Foto-Drop | `photo` | 380 | 27.14% | 15 |
+| JACKPOT | `jackpot` | 30 | 2.14% | 13 |
 
 Edit `weight` values in `config/outcomes.json` to change odds, then run
 `npm run validate` (which prints the recomputed table) and `npm run simulate`.

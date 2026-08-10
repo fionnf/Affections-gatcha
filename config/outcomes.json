@@ -13,8 +13,7 @@
         },
         {
           "title": "Baustelle",
-          "message": "Hier wird gerade an einer Treppe gearbeitet. Kein Gewinn, nur Lärm — die Maschine entschuldigt sich mit einem Sammelstück.",
-          "token": "🔥"
+          "message": "Hier wird gerade an einer Treppe gearbeitet. Kein Gewinn, nur Lärm — die Maschine entschuldigt sich mit einem Sammelstück."
         },
         {
           "title": "Zeltplatz besetzt",
@@ -54,7 +53,8 @@
         },
         {
           "title": "Tram verpasst",
-          "message": "Du siehst die Rücklichter der 14. Lauf ihr nicht hinterher, es gibt heute keine Kapsel."
+          "message": "Du siehst die Rücklichter der 14. Lauf ihr nicht hinterher, es gibt heute keine Kapsel.",
+          "token": "🔥"
         },
         {
           "title": "Denkmalschutz",
@@ -147,7 +147,8 @@
         },
         {
           "title": "Batterie leer",
-          "message": "Die Stirnlampe der Maschine ist ausgegangen. Im Dunkeln vergibt sie keine Preise. Sicherheit geht vor."
+          "message": "Die Stirnlampe der Maschine ist ausgegangen. Im Dunkeln vergibt sie keine Preise. Sicherheit geht vor.",
+          "token": "☕"
         },
         {
           "title": "Zu früh",
@@ -183,8 +184,7 @@
         },
         {
           "title": "Hochnebel",
-          "message": "Die Aussicht ist heute privat, Grau in erstaunlich vielen Nuancen. Als Trost fällt ein Sammelstück aus dem Schacht.",
-          "token": "☕"
+          "message": "Die Aussicht ist heute privat, Grau in erstaunlich vielen Nuancen. Als Trost fällt ein Sammelstück aus dem Schacht."
         },
         {
           "title": "Akku bei 1%",
@@ -199,7 +199,7 @@
     {
       "id": "common",
       "label": "Gewöhnlich",
-      "weight": 210,
+      "weight": 270,
       "tone": "soft",
       "outcomes": [
         {
@@ -222,8 +222,7 @@
         },
         {
           "title": "Wasser am Brunnen",
-          "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang.",
-          "token": "⭐"
+          "message": "Trink ein Glas Wasser und tu so, als wärst du gerade auf einem sehr ästhetischen Stadtspaziergang."
         },
         {
           "title": "Portugiesisches Wort: Beijo",
@@ -233,7 +232,8 @@
         {
           "title": "Barróg (IE)",
           "message": "Eine feste Umarmung (20 Sekunden Minimum).",
-          "voucher": true
+          "voucher": true,
+          "token": "⭐"
         },
         {
           "title": "Petisco (PT)",
@@ -242,50 +242,50 @@
         },
         {
           "title": "Português: Amor",
-          "message": "Bedeutung: Liebe.",
-          "token": "☕"
+          "message": "Amor — Liebe. Das Wort ist kurz, weil man es oft sagen soll. Hiermit gesagt."
         },
         {
           "title": "Português: Saudade",
-          "message": "Bedeutung: Sehnsucht."
+          "message": "Saudade — die Sehnsucht nach etwas, das man liebt und gerade nicht dahat. Ich habe heute ein bisschen davon."
         },
         {
           "title": "Português: Abraço",
-          "message": "Bedeutung: Umarmung."
+          "message": "Abraço — Umarmung. Stell sie dir jetzt gerade vor, mit Kinn auf deiner Schulter."
         },
         {
           "title": "Português: Carinho",
-          "message": "Bedeutung: Zärtlichkeit."
+          "message": "Carinho — Zärtlichkeit, die Sorte ohne Anlass. Hiermit zugeteilt."
         },
         {
           "title": "Português: Alegria",
-          "message": "Bedeutung: Freude."
+          "message": "Alegria — Freude. Für heute bestellt, Lieferung über den Tag verteilt.",
+          "token": "☕"
         },
         {
           "title": "Português: Beijinho",
-          "message": "Bedeutung: Küsschen."
+          "message": "Beijinho — Küsschen. Eins ist unterwegs, es hat nur gerade keine Adresse."
         },
         {
           "title": "Português: Coração",
-          "message": "Bedeutung: Herz."
+          "message": "Coração — Herz. Deins schlägt irgendwo da draussen weiter, und ich finde das täglich bemerkenswert."
         },
         {
           "title": "Português: Sol",
-          "message": "Bedeutung: Sonne."
+          "message": "Sol — Sonne. Bei uns beiden bist du für diese Abteilung zuständig."
         },
         {
           "title": "Português: Casa",
-          "message": "Bedeutung: Zuhause / Haus.",
-          "token": "🛁"
+          "message": "Casa — Zuhause. Ist bei mir inzwischen weniger ein Ort und mehr eine Person."
         },
         {
           "title": "Português: Estrela",
-          "message": "Bedeutung: Stern."
+          "message": "Estrela — Stern. Du hast heute wieder Dienst."
         },
         {
           "title": "Gedanken-Ping",
           "message": "Du musst jetzt acht Sekunden an mich denken. Die Maschine behauptet, sie könne das überprüfen <3.",
-          "prompt": "Woran hast du zuletzt gedacht, bevor du diese Kapsel gezogen hast?"
+          "prompt": "Woran hast du zuletzt gedacht, bevor du diese Kapsel gezogen hast?",
+          "token": "🛁"
         },
         {
           "title": "Luxemburgerli-Vibe",
@@ -293,12 +293,12 @@
         },
         {
           "title": "IDKYY",
-          "message": "Just a little tune.",
+          "message": "Ein Lied, das mich an dich denken lässt. Mehr Erklärung gibt es dazu nicht.",
           "link": "https://open.spotify.com/track/0j1Ia2lQWrcXrQZI4AdJlk?si=04672e4988d34b89"
         },
         {
           "title": "Motivationslied",
-          "message": "Just a little tune.",
+          "message": "Für den Moment, in dem der Tag noch Anlauf braucht. Kopfhörer rein.",
           "link": "https://open.spotify.com/track/1SL2YvZKbcrN6XQeBQjsgT?si=b4039834b1b44c3a"
         },
         {
@@ -337,13 +337,13 @@
         },
         {
           "title": "Kleiner Reminder",
-          "message": "Du musst nicht perfekt sein, um für mich der absolute Gewinner der Quest zu sein."
+          "message": "Du musst nicht perfekt sein, um für mich der absolute Gewinner der Quest zu sein.",
+          "token": "💚"
         },
         {
           "title": "Feierabend-Vision",
           "message": "Stell dir vor: Die Tasche ist gepackt, der Laptop zu, und wir treffen uns am Letten. Nur noch ein paar Stunden! :-)",
-          "prompt": "Was ist das Erste, das du nach der Arbeit machen willst?",
-          "token": "🔥"
+          "prompt": "Was ist das Erste, das du nach der Arbeit machen willst?"
         },
         {
           "title": "Züri-Life Fact",
@@ -364,7 +364,8 @@
         {
           "title": "Wildcamp-Vibe: Sternenzelt",
           "message": "Stell dir vor, wir öffnen den Reißverschluss vom Zelt und sehen nur Sterne. Dieses Gefühl von Freiheit schickt dir die Maschine für deinen Arbeitstag.",
-          "prompt": "Wo würdest du am liebsten unterm Sternenzelt aufwachen?"
+          "prompt": "Wo würdest du am liebsten unterm Sternenzelt aufwachen?",
+          "token": "☁️"
         },
         {
           "title": "Ende der Quest?",
@@ -378,8 +379,7 @@
         {
           "title": "Stimmungskompass",
           "message": "Wohin zeigt heute dein innerer Kompass?",
-          "prompt": "Ruhe, Aufbruch, Hunger oder Ablenkung? Wähle eins (oder mehrere).",
-          "token": "⭐"
+          "prompt": "Ruhe, Aufbruch, Hunger oder Ablenkung? Wähle eins (oder mehrere)."
         },
         {
           "title": "Mini-Beichte",
@@ -394,7 +394,8 @@
         {
           "title": "Kleiner Höhepunkt",
           "message": "Was war heute die beste Kleinigkeit?",
-          "prompt": "Was war heute die beste Kleinigkeit? Kaffeetemperatur, kurze Stille und warme Duschen zählen vollständig."
+          "prompt": "Was war heute die beste Kleinigkeit? Kaffeetemperatur, kurze Stille und warme Duschen zählen vollständig.",
+          "token": "🔥"
         },
         {
           "title": "Português: Aconchego",
@@ -402,24 +403,24 @@
         },
         {
           "title": "Português: Xodó",
-          "message": "Bedeutung: Herzensschatz, jemand, den man besonders gern hat."
+          "message": "Xodó — Herzensschatz. Das Portugiesische hat ein eigenes Wort dafür, was ich sehr vernünftig finde. Du bist meiner."
         },
         {
           "title": "Gaeilge: Grá mo chroí",
-          "message": "Irisch für 'Schatz meines Herzens'. Heute nur als Vokabel ausgegeben."
+          "message": "Grá mo chroí — Schatz meines Herzens. Klingt auf Irisch noch eine Spur ernster gemeint. Ist es auch."
         },
         {
           "title": "Nederlands: Schatje",
-          "message": "Niederländisch für 'kleiner Schatz'. Einmal laut aussprechen, dann gilt's."
+          "message": "Schatje — kleiner Schatz. Einmal laut aussprechen. Die Niederländer sagen das den ganzen Tag und wirken deutlich entspannter."
         },
         {
           "title": "Architektur-Fakt: Wendeltreppe",
-          "message": "Wendeltreppen drehen historisch nach rechts, damit der Verteidiger mehr Schwertarm-Platz hat. Du verteidigst heute alles locker mit links.",
-          "token": "💚"
+          "message": "Wendeltreppen drehen historisch nach rechts, damit der Verteidiger mehr Schwertarm-Platz hat. Du verteidigst heute alles locker mit links."
         },
         {
           "title": "Chemie-Fakt: Koffein",
-          "message": "Koffein hat fast dieselbe Form wie Adenosin und blockiert deshalb deine Müdigkeitsrezeptoren. Geprüft von Fionn, im Selbstversuch."
+          "message": "Koffein hat fast dieselbe Form wie Adenosin und blockiert deshalb deine Müdigkeitsrezeptoren. Geprüft von Fionn, im Selbstversuch.",
+          "token": "⭐"
         },
         {
           "title": "Höhenmeter-Gutschrift",
@@ -427,7 +428,7 @@
         },
         {
           "title": "Gaeilge: Mo sholas",
-          "message": "Irisch für 'mein Licht'. Für Tage, an denen du besonders hell bist."
+          "message": "Mo sholas — mein Licht. Für Tage, an denen du besonders hell bist. Also heute."
         },
         {
           "title": "Gaeilge: Conas atá tú?",
@@ -439,12 +440,12 @@
         },
         {
           "title": "Português: Maravilhoso",
-          "message": "Bedeutung: Wunderschön, wunderbar. Passt auf dich."
+          "message": "Maravilhoso — wunderschön. Eigentlich zu lang für ein Kompliment und trotzdem genau richtig."
         },
         {
           "title": "Spiegelmoment",
           "message": "Schau kurz in den Spiegel. Die Maschine bestätigt: korrekt. Du siehst gut aus.",
-          "token": "☁️"
+          "token": "🏔"
         },
         {
           "title": "Sticker-Energie",
@@ -460,7 +461,7 @@
         },
         {
           "title": "Português: Encantado",
-          "message": "Encantado — bezaubert. Einfach so."
+          "message": "Encantado — bezaubert. Zustand: anhaltend, seit einer ganzen Weile."
         },
         {
           "title": "Gaeilge: Grianghraf",
@@ -472,12 +473,12 @@
         },
         {
           "title": "Nederlands: Knusse",
-          "message": "Knusse — gemütlich, aber mit noch mehr Decke."
+          "message": "Knusse — gemütlich, aber mit noch mehr Decke.",
+          "token": "☕"
         },
         {
           "title": "Tee-Moment",
-          "message": "Heiß, mit allem was du willst. Kein Anlass nötig.",
-          "token": "🏔"
+          "message": "Heiß, mit allem was du willst. Kein Anlass nötig."
         },
         {
           "title": "Póg (IE)",
@@ -502,7 +503,8 @@
         {
           "title": "Rückenkraulen",
           "message": "Fünf Minuten Rücken kraulen, langsam, mit Nachdruck. Auf Abruf.",
-          "voucher": true
+          "voucher": true,
+          "token": "🛁"
         },
         {
           "title": "Stirn an Stirn",
@@ -517,8 +519,7 @@
         {
           "title": "Treppen-Rangliste",
           "message": "Nenn mir deine drei Lieblingstreppen in Zürich. Ich führe insgeheim Buch.",
-          "prompt": "Welche Treppe würdest du für uns bauen, wenn du könntest? 🌿",
-          "token": "☕"
+          "prompt": "Welche Treppe würdest du für uns bauen, wenn du könntest? 🌿"
         },
         {
           "title": "Song des Tages",
@@ -533,7 +534,8 @@
         {
           "title": "Drei gute Dinge",
           "message": "Zähl mir drei kleine Dinge auf, die heute gut waren. Auch winzige zählen.",
-          "prompt": "Was hat dich heute zum Lächeln gebracht? 🌱"
+          "prompt": "Was hat dich heute zum Lächeln gebracht? 🌱",
+          "token": "✈️"
         },
         {
           "title": "Guten-Morgen-Depesche",
@@ -549,8 +551,7 @@
         },
         {
           "title": "Kleiner Mut",
-          "message": "Für heute ausgestellt: eine Portion Rückenwind. Trag sie in der Innentasche.",
-          "token": "🛁"
+          "message": "Für heute ausgestellt: eine Portion Rückenwind. Trag sie in der Innentasche."
         },
         {
           "title": "Zärtlichkeits-Beleg",
@@ -558,7 +559,8 @@
         },
         {
           "title": "Tee-Ritual",
-          "message": "Setz Wasser auf. Die Maschine trinkt heimlich mit dir mit. Zwei Tassen, ein Gedanke."
+          "message": "Setz Wasser auf. Die Maschine trinkt heimlich mit dir mit. Zwei Tassen, ein Gedanke.",
+          "token": "💚"
         },
         {
           "title": "Umweg-Erlaubnis",
@@ -586,7 +588,7 @@
           "title": "Fernweh-Lied",
           "message": "Ein Song, der nach einem Ort klingt, an dem wir noch nicht gemeinsam waren.",
           "link": "https://open.spotify.com/track/4sNG6zQBmtq7M8aeeKJRMQ?si=c4ce17cdd4c0400b",
-          "token": "✈️"
+          "token": "☁️"
         },
         {
           "title": "Gute-Nacht-Track",
@@ -616,7 +618,8 @@
         {
           "title": "Aufwach-Song",
           "message": "Ein Lied, das sanfter ist als ein Wecker. Zum Wachwerden ohne Schreck.",
-          "link": "https://open.spotify.com/track/4A5x3SuJdoP56UR3qXV3Dp?si=65d358e6d7334113"
+          "link": "https://open.spotify.com/track/4A5x3SuJdoP56UR3qXV3Dp?si=65d358e6d7334113",
+          "token": "🔥"
         },
         {
           "title": "Feierabend-Track",
@@ -626,8 +629,7 @@
         {
           "title": "Mitten-im-Tag-Lied",
           "message": "Kein besonderer Anlass, nur ein Song für irgendwann zwischendurch.",
-          "link": "https://open.spotify.com/track/3g7fzHY2ieDM7RaAYbItLK?si=848742a8e09d4f53",
-          "token": "🔥"
+          "link": "https://open.spotify.com/track/3g7fzHY2ieDM7RaAYbItLK?si=848742a8e09d4f53"
         },
         {
           "title": "Gedankenverloren-Sound",
@@ -646,12 +648,12 @@
         },
         {
           "title": "Gutes Licht",
-          "message": "Heute steht dir die Beleuchtung. Das ist keine Meinung, das ist ein Messwert."
+          "message": "Heute steht dir die Beleuchtung. Das ist keine Meinung, das ist ein Messwert.",
+          "token": "⭐"
         },
         {
           "title": "Zwei Grad wärmer",
-          "message": "Die Maschine hat den Tag für dich um zwei Grad wärmer gestellt. Gern geschehen.",
-          "token": "⭐"
+          "message": "Die Maschine hat den Tag für dich um zwei Grad wärmer gestellt. Gern geschehen."
         },
         {
           "title": "Handschuhwetter",
@@ -663,8 +665,7 @@
         },
         {
           "title": "Sonntagsstimme",
-          "message": "Deine Stimme klingt heute wie ein langsamer Sonntag. Kompliment, kein Befund.",
-          "token": "💚"
+          "message": "Deine Stimme klingt heute wie ein langsamer Sonntag. Kompliment, kein Befund."
         },
         {
           "title": "Kleine Beobachtung",
@@ -678,7 +679,81 @@
         {
           "title": "Kaffeefleck-Diplom",
           "message": "Verliehen für standhaftes Trinken unter widrigen Bedingungen. Urkunde imaginär, Anerkennung echt.",
-          "token": "☁️"
+          "token": "🏔"
+        },
+        {
+          "title": "Fundbüro",
+          "message": "Die Maschine hat einen Gedanken von mir gefunden, der bei dir liegen geblieben ist. Du darfst ihn behalten."
+        },
+        {
+          "title": "Platzhalter",
+          "message": "Hier stünde eigentlich ein Preis. Ich habe stattdessen an dich gedacht, das hat länger gedauert."
+        },
+        {
+          "title": "Kurze Durchsage",
+          "message": "Durchsage an alle Reisenden: Lennart wird heute sehr gemocht. Ende der Durchsage."
+        },
+        {
+          "title": "Reservierter Platz",
+          "message": "Links auf dem Sofa ist dein Platz. Der bleibt heute frei, egal wie spät es wird."
+        },
+        {
+          "title": "Wetterbericht",
+          "message": "Heute sonnig in deiner Nähe, unabhängig von der tatsächlichen Bewölkung."
+        },
+        {
+          "title": "Inventur",
+          "message": "Bestandsaufnahme: ein Mensch, sehr gemocht, in gutem Zustand. Lagerort bekannt.",
+          "token": "☕"
+        },
+        {
+          "title": "Dienstanweisung",
+          "message": "Die Maschine verfügt: einmal tief durchatmen, Schultern runter. Ja, jetzt gerade."
+        },
+        {
+          "title": "Kleiner Diebstahl",
+          "message": "Einer deiner Pullover ist heimlich eingeplant. Er riecht nach dir, das ist der ganze Zweck."
+        },
+        {
+          "title": "Ungefragte Meinung",
+          "message": "Die Maschine findet dich gut. Sie wurde nicht gefragt und sagt es trotzdem."
+        },
+        {
+          "title": "Stille Post",
+          "message": "Jemand hat der Maschine etwas sehr Nettes über dich zugeflüstert. Sie darf nicht sagen wer."
+        },
+        {
+          "title": "Abholservice",
+          "message": "Falls du heute irgendwo nicht weiterweisst: Ich hole dich ab. Metaphorisch und zur Not auch echt."
+        },
+        {
+          "title": "Eine Tasse zu viel",
+          "message": "Es steht eine Tasse zu viel auf dem Tisch. Die wartet auf dich.",
+          "token": "🛁"
+        },
+        {
+          "title": "Zwischenstand",
+          "message": "Stand heute: unverändert verliebt. Keine weiteren Meldungen."
+        },
+        {
+          "title": "Nachtschicht",
+          "message": "Falls du spät noch wach bist: Ich denke dann auch noch an dich. Reine Terminüberschneidung."
+        },
+        {
+          "title": "Kleinigkeit",
+          "message": "Nichts Grosses heute. Nur der Hinweis, dass du sehr fehlst, wenn du weg bist."
+        },
+        {
+          "title": "Dauerauftrag",
+          "message": "Einmal eingerichtet, läuft seitdem von selbst: täglich ein Gedanke an dich, immer zur selben Zeit."
+        },
+        {
+          "title": "Zweite Meinung",
+          "message": "Die Maschine hat nachgerechnet und kommt zum selben Ergebnis wie ich. Du bist grossartig."
+        },
+        {
+          "title": "Lieblingsgeräusch",
+          "message": "Auf der Liste ganz oben: du, wenn du über etwas lachst, das gar nicht so lustig war."
         }
       ]
     },
@@ -707,8 +782,7 @@
         },
         {
           "title": "Tagesfund",
-          "message": "Nenne eine kleine gute Sache von heute. Sie darf sehr klein sein. Krümel und gute Kaffeetassen zählen.",
-          "token": "⭐"
+          "message": "Nenne eine kleine gute Sache von heute. Sie darf sehr klein sein. Krümel und gute Kaffeetassen zählen."
         },
         {
           "title": "Restaurant-Orakel",
@@ -720,7 +794,8 @@
         },
         {
           "title": "Route wählen",
-          "message": "Wähle eine Kategorie für unser nächstes Mini-Date: Kaffee, Spaziergang, Dessert, Aussicht oder Designladen."
+          "message": "Wähle eine Kategorie für unser nächstes Mini-Date: Kaffee, Spaziergang, Dessert, Aussicht oder Designladen.",
+          "token": "⭐"
         },
         {
           "title": "Ugly-Building-Mission",
@@ -728,8 +803,7 @@
         },
         {
           "title": "Material-Detektiv",
-          "message": "Finde unterwegs ein spannendes Materialdetail (Stein, Holz, Metall, Putz) und schick ein Foto plus 3-Wort-Bewertung.",
-          "token": "🛁"
+          "message": "Finde unterwegs ein spannendes Materialdetail (Stein, Holz, Metall, Putz) und schick ein Foto plus 3-Wort-Bewertung."
         },
         {
           "title": "Fenster-Zählung",
@@ -753,7 +827,8 @@
         },
         {
           "title": "Mini-Review",
-          "message": "Schick mir ein Foto von etwas aus deinem Tag und bewerte es wie auf Google Maps: Sterne + ein ultrakurzer Kommentar."
+          "message": "Schick mir ein Foto von etwas aus deinem Tag und bewerte es wie auf Google Maps: Sterne + ein ultrakurzer Kommentar.",
+          "token": "🛁"
         },
         {
           "title": "Farbfund",
@@ -765,8 +840,7 @@
         },
         {
           "title": "Schilder-Safari",
-          "message": "Finde das seltsamste Schild, das du heute siehst, und schick ein Foto oder den exakten Wortlaut.",
-          "token": "✈️"
+          "message": "Finde das seltsamste Schild, das du heute siehst, und schick ein Foto oder den exakten Wortlaut."
         },
         {
           "title": "Fionns Laborfrage",
@@ -782,7 +856,8 @@
         },
         {
           "title": "Podcast-Tausch",
-          "message": "Schick mir eine Folge, die du letztens gehört hast, plus einen Satz Begründung. Ich schick dir eine zurück."
+          "message": "Schick mir eine Folge, die du letztens gehört hast, plus einen Satz Begründung. Ich schick dir eine zurück.",
+          "token": "✈️"
         },
         {
           "title": "Buchseiten-Tausch",
@@ -802,8 +877,7 @@
         },
         {
           "title": "Kaffee-Mission",
-          "message": "Trink heute einen Kaffee an einem Ort, an dem du noch nie warst. Schick mir den Ort.",
-          "token": "🏔"
+          "message": "Trink heute einen Kaffee an einem Ort, an dem du noch nie warst. Schick mir den Ort."
         },
         {
           "title": "Ein-Wort-Tagebuch",
@@ -815,7 +889,8 @@
         },
         {
           "title": "Sprachlektion",
-          "message": "Frag mich nach einem irischen Wort. Wenn du es dir bis morgen merkst, gibt's ein Küsschen."
+          "message": "Frag mich nach einem irischen Wort. Wenn du es dir bis morgen merkst, gibt's ein Küsschen.",
+          "token": "🏔"
         },
         {
           "title": "Aussichts-Jagd",
@@ -839,12 +914,12 @@
         },
         {
           "title": "Kleiner Gefallen",
-          "message": "Tu heute jemandem einen winzigen, unerwarteten Gefallen. Berichte mir davon.",
-          "token": "☁️"
+          "message": "Tu heute jemandem einen winzigen, unerwarteten Gefallen. Berichte mir davon."
         },
         {
           "title": "Wolken-Deutung",
-          "message": "Schau kurz hoch und sag mir, an was dich die Wolken gerade erinnern. Freie Assoziation."
+          "message": "Schau kurz hoch und sag mir, an was dich die Wolken gerade erinnern. Freie Assoziation.",
+          "token": "☁️"
         },
         {
           "title": "Handschrift-Quest",
@@ -958,13 +1033,13 @@
         },
         {
           "title": "Zukunfts-Skizze",
-          "message": "Schreib in 3 Sätzen, wo du in 2 Jahren sein willst. Schick’s Fionn.",
-          "token": "✈️"
+          "message": "Schreib in 3 Sätzen, wo du in 2 Jahren sein willst. Schick’s Fionn."
         },
         {
           "title": "Sprachnachricht auf Bestellung",
           "message": "Gutschein für eine Sprachnachricht deiner Wahl. Gute-Nacht-Geschichte inklusive, wenn du willst.",
-          "voucher": true
+          "voucher": true,
+          "token": "✈️"
         },
         {
           "title": "Facetime-Fenster",
@@ -1060,12 +1135,11 @@
         {
           "title": "Snack-Steuer",
           "message": "Verfluchte Kapsel: Beim nächsten Treffen ist ein kleiner Snack fällig. Die Maschine akzeptiert auch sehr überzeugende Ausreden.",
-          "token": "🏔"
+          "token": "✈️"
         },
         {
           "title": "Jogging-Zoll",
-          "message": "Schick mir ein Selfie nach deinem Training. Je verschwitzter, desto besser für die Akten und Blackmail.",
-          "token": "☕"
+          "message": "Schick mir ein Selfie nach deinem Training. Je verschwitzter, desto besser für die Akten und Blackmail."
         },
         {
           "title": "Aussprache-Pflicht",
@@ -1113,7 +1187,8 @@
         },
         {
           "title": "Die Maschine fordert: Tagesbericht",
-          "message": "Heute dreht sich die Kapsel um. Schick der Maschine deinen Tag in einem ehrlichen Satz — via Wunschkapsel. Kein Schönen erlaubt."
+          "message": "Heute dreht sich die Kapsel um. Schick der Maschine deinen Tag in einem ehrlichen Satz — via Wunschkapsel. Kein Schönen erlaubt.",
+          "token": "💚"
         },
         {
           "title": "Die Maschine fordert: Bewertung",
@@ -1170,7 +1245,7 @@
         {
           "title": "Dauer-Termin blockieren",
           "message": "Sperr dir einen festen Termin diese Woche für Fionn — etwas Regelmäßiges, das ihr zusammen machen könnt. Und sag es ihm.",
-          "token": "🛁"
+          "token": "☁️"
         },
         {
           "title": "Lieblingsmoment teilen",
@@ -1222,7 +1297,8 @@
         },
         {
           "title": "Ehrliche-Meinung-Steuer",
-          "message": "Du musst mir jetzt ehrlich sagen, was du an mir nervig findest. Nur eine Sache. Die Maschine verzeiht."
+          "message": "Du musst mir jetzt ehrlich sagen, was du an mir nervig findest. Nur eine Sache. Die Maschine verzeiht.",
+          "token": "🔥"
         },
         {
           "title": "Spontan-Anruf-Fluch",
@@ -1258,8 +1334,7 @@
         },
         {
           "title": "Singpflicht",
-          "message": "Verflucht: Eine Zeile aus dem Lied, das dir gerade im Kopf ist, als Sprachnachricht.",
-          "token": "✈️"
+          "message": "Verflucht: Eine Zeile aus dem Lied, das dir gerade im Kopf ist, als Sprachnachricht."
         },
         {
           "title": "Aufzug-Bann",
@@ -1316,8 +1391,7 @@
         {
           "title": "Architecture of Us",
           "message": "Ein Abend mit Fokus auf 'Fine Living'. Wir suchen uns das schönste Restaurant der Stadt aus.",
-          "voucher": true,
-          "token": "✈️"
+          "voucher": true
         },
         {
           "title": "6a-Belay-Pass",
@@ -1337,7 +1411,8 @@
         {
           "title": "Date-Credit: Rote Fabrik",
           "message": "Ein alternativer Abend am See. Kultur, Drinks und Seeluft.",
-          "voucher": true
+          "voucher": true,
+          "token": "✈️"
         },
         {
           "title": "Date-Credit: Frühschwimmen",
@@ -1384,7 +1459,8 @@
         {
           "title": "Date-Credit: Museums-Streifzug",
           "message": "Ein Museum deiner Wahl, in unserem eigenen Tempo. Danach Kaffee und Diskussion.",
-          "voucher": true
+          "voucher": true,
+          "token": "🏔"
         },
         {
           "title": "Date-Credit: Sternenabend",
@@ -1437,8 +1513,7 @@
         {
           "title": "Date-Credit: Frühzug irgendwohin",
           "message": "Erster Zug am Morgen, Ziel wird am Bahnhof entschieden.",
-          "voucher": true,
-          "token": "🏔"
+          "voucher": true
         }
       ]
     },
@@ -1543,7 +1618,8 @@
       "outcomes": [
         {
           "title": "Foto-Drop",
-          "message": "Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut."
+          "message": "Die Maschine spuckt eine Erinnerung aus. Das zählt als Preis, auch wenn sie sentimental tut.",
+          "token": "🎬"
         },
         {
           "title": "Bildkapsel",
@@ -1551,8 +1627,7 @@
         },
         {
           "title": "Archivfund",
-          "message": "Die Maschine hat im geheimen Fotoarchiv gekramt.",
-          "token": "🎬"
+          "message": "Die Maschine hat im geheimen Fotoarchiv gekramt."
         },
         {
           "title": "Erinnerungs-Auswurf",
@@ -1564,7 +1639,8 @@
         },
         {
           "title": "Doppelbelichtung",
-          "message": "Zwei Momente auf einem Bild. Die Maschine nennt es Kunst, wir nennen es uns."
+          "message": "Zwei Momente auf einem Bild. Die Maschine nennt es Kunst, wir nennen es uns.",
+          "token": "🍕"
         },
         {
           "title": "Sofortbild",
@@ -1585,7 +1661,7 @@
         {
           "title": "Aus dem Schuhkarton",
           "message": "Ein Bild, das eigentlich nur zwischen zwei anderen lag.",
-          "token": "🍕"
+          "token": "🎧"
         },
         {
           "title": "Unscharf, aber gut",
@@ -1597,8 +1673,7 @@
         },
         {
           "title": "Beweisstück B",
-          "message": "Die Maschine legt weitere Beweise vor. Die Akte wird dicker.",
-          "token": "🎧"
+          "message": "Die Maschine legt weitere Beweise vor. Die Akte wird dicker."
         },
         {
           "title": "Ohne Kommentar",
@@ -1615,7 +1690,8 @@
         {
           "title": "JACKPOT: Vollständige kleine Expedition",
           "message": "Fionn plant ein ganzes Mini-Date: Weg, Essen, schöner Ort. Du musst nur auftauchen und süß sein.",
-          "voucher": true
+          "voucher": true,
+          "token": "💚"
         },
         {
           "title": "JACKPOT: Der Fionn-Quest-Sieger",
@@ -1630,8 +1706,7 @@
         {
           "title": "JACKPOT: Mo anamchara (IE)",
           "message": "Mein Seelenfreund. Ein Gutschein für eine Nacht ohne Wecker, nur wir.",
-          "voucher": true,
-          "token": "💚"
+          "voucher": true
         },
         {
           "title": "JACKPOT: Nacht mit Aussicht",
@@ -1641,7 +1716,8 @@
         {
           "title": "JACKPOT: Wunsch frei",
           "message": "Ein echter Wunsch, in vernünftigem Rahmen, wird erfüllt. Sag ihn, ich mach ihn möglich.",
-          "voucher": true
+          "voucher": true,
+          "token": "☁️"
         },
         {
           "title": "JACKPOT: Der große Brief",
@@ -1672,8 +1748,7 @@
         {
           "title": "JACKPOT: Wunschkonzert",
           "message": "Ein Abend, an dem alles nach deinem Wunsch läuft — Essen, Musik, Programm. Sag einfach an.",
-          "voucher": true,
-          "token": "☁️"
+          "voucher": true
         },
         {
           "title": "JACKPOT: Brief und Abendessen",
