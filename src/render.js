@@ -6,7 +6,7 @@ import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, w
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
 import { setCapsuleTone, emojiForTone } from "./pull.js";
-import { TOKEN_REWARDS } from "./constants.js";
+import { TOKEN_REWARDS, tokenGoal, tokenReward } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { extractDriveFileId } from "./utils.js";
 import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
@@ -27,6 +27,7 @@ export function setHistoryFilter(value) {
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
 import { escapeHtml as escHtml } from "./utils.js";
+import { haptic } from "./haptic.js";
 export { escHtml };
 
 export function formatMsg(text) {
@@ -423,20 +424,38 @@ export function renderMemory(pull) {
   wrap.hidden = false;
 }
 
+// Redeeming is the same act whether it happens on today's result card or in
+// the Verlauf token bank: zero the count, back it up, tell Fionn.
+export function redeemToken(emoji) {
+  const goal = tokenGoal(emoji);
+  const reward = tokenReward(emoji);
+  resetToken(emoji);
+  backupToSheets();
+  if (state.wishInbox && state.wishInbox.enabled) {
+    const body = JSON.stringify({
+      timestamp: new Date().toISOString(), token: getToken(),
+      wish: `🎁 Sammelkapsel eingelöst: ${emoji} × ${goal} — ${reward}`,
+      pageUrl: location.href, userAgent: navigator.userAgent
+    });
+    fetch(state.wishInbox.endpointUrl, { method: "POST", mode: "cors", credentials: "omit",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
+  }
+}
+
 export function renderTokenInto(container, pull) {
   container.innerHTML = "";
   if (!pull.collectToken) { container.hidden = true; return; }
   const t = pull.collectToken;
   const count = readTokens()[t] || 0;
-  const reward = TOKEN_REWARDS[t] || "";
-  const TOKEN_GOAL = 5;
-  const redeemed = count >= TOKEN_GOAL;
+  const reward = tokenReward(t);
+  const goal = tokenGoal(t);
+  const redeemed = count >= goal;
 
   if (redeemed) {
     container.innerHTML = `
       <div style="text-align:center;padding:16px 0;animation:ag-pop 400ms var(--ag-ease) both">
-        <div style="font-size:2.5rem;margin-bottom:8px">${t.repeat(TOKEN_GOAL)}</div>
-        <p style="font-weight:700;font-size:1.1rem;margin-bottom:4px">5 erreicht — einlösbar!</p>
+        <div style="font-size:2.5rem;margin-bottom:8px">${t.repeat(goal)}</div>
+        <p style="font-weight:700;font-size:1.1rem;margin-bottom:4px">${goal} erreicht — einlösbar!</p>
         <p style="opacity:0.8;font-size:0.9rem;margin-bottom:12px">${reward}</p>
         <button class="ag-button" type="button" id="ag-token-redeem">
           <span class="ag-button-orb" aria-hidden="true"></span>
@@ -445,25 +464,79 @@ export function renderTokenInto(container, pull) {
       </div>`;
     container.hidden = false;
     container.querySelector("#ag-token-redeem").addEventListener("click", () => {
-      resetToken(t);
-      backupToSheets();
+      redeemToken(t);
       container.innerHTML = `<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>`;
-      if (state.wishInbox && state.wishInbox.enabled) {
-        const body = JSON.stringify({ timestamp: new Date().toISOString(), token: getToken(), wish: `🎁 Sammelkapsel eingelöst: ${t} × ${TOKEN_GOAL} — ${reward}`, pageUrl: location.href, userAgent: navigator.userAgent });
-        fetch(state.wishInbox.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {});
-      }
+      renderTokenBank();
     });
   } else {
-    const remaining = TOKEN_GOAL - count;
+    const remaining = goal - count;
     container.innerHTML = `
       <div style="text-align:center;padding:12px 0">
-        <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px;word-break:break-all;max-width:100%">${t.repeat(count)}${"⬜".repeat(TOKEN_GOAL - count)}</div>
+        <div style="font-size:1.6rem;letter-spacing:2px;margin-bottom:6px;word-break:break-all;max-width:100%">${t.repeat(count)}${"⬜".repeat(goal - count)}</div>
         <p style="opacity:0.7;font-size:0.85rem">${remaining} × ${t} bis: <em>${reward}</em></p>
       </div>`;
     container.hidden = false;
   }
 }
 
+// ── Token bank (Verlauf) ─────────────────────────────────────────────────────
+// The counts come straight from readTokens(), which syncFromSheets overwrites
+// with the Backup sheet's value on every sync — so this is the shared tally
+// from the Sheet, not a device-local one, and it re-renders on ag-synced.
+export function renderTokenBank() {
+  const wrap = $("[data-ag-tokenbank]");
+  if (!wrap) return;
+  const owned = readTokens();
+  const types = Object.keys(TOKEN_REWARDS).map((emoji) => {
+    const goal = tokenGoal(emoji);
+    const count = Math.min(owned[emoji] || 0, goal);
+    return { emoji, goal, count, raw: owned[emoji] || 0, reward: tokenReward(emoji),
+             done: (owned[emoji] || 0) >= goal };
+  });
+
+  const total = types.reduce((n, t) => n + t.raw, 0);
+  const ready = types.filter((t) => t.done).length;
+
+  // Complete first, then closest to complete, then untouched.
+  types.sort((a, b) => (b.done - a.done) || (b.count / b.goal - a.count / a.goal) || a.goal - b.goal);
+
+  const head = $("[data-ag-tokenbank-head]");
+  if (head) {
+    head.textContent = total === 0
+      ? "Noch keine Sammeltokens — sie fallen bei etwa jeder fünften Kapsel."
+      : ready
+        ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar`
+        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt`;
+  }
+
+  wrap.innerHTML = "";
+  for (const t of types) {
+    const row = document.createElement("div");
+    row.className = "ag-tokenrow" + (t.done ? " is-done" : "") + (t.raw === 0 ? " is-empty" : "");
+    row.innerHTML = `
+      <span class="ag-tokenrow-emoji" aria-hidden="true">${t.emoji}</span>
+      <span class="ag-tokenrow-body">
+        <span class="ag-tokenrow-reward">${escHtml(t.reward)}</span>
+        <span class="ag-tokenrow-bar"><span class="ag-tokenrow-fill" style="width:${(t.count / t.goal) * 100}%"></span></span>
+      </span>
+      <span class="ag-tokenrow-count">${t.count}<span class="ag-tokenrow-goal">/${t.goal}</span></span>
+    `;
+    if (t.done) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ag-tokenrow-redeem";
+      btn.textContent = "Einlösen";
+      btn.addEventListener("click", () => {
+        redeemToken(t.emoji);
+        haptic([12, 30, 12]);
+        showToast(`${t.emoji} eingelöst — Fionn weiss Bescheid`);
+        renderTokenBank();
+      });
+      row.appendChild(btn);
+    }
+    wrap.appendChild(row);
+  }
+}
 
 export function renderMediaInto(container, photo) {
   container.innerHTML = "";
@@ -1331,6 +1404,7 @@ const HISTORY_PAGE_SIZE = 60;
 let historyShownCount = HISTORY_PAGE_SIZE;
 
 export function renderHistory() {
+  renderTokenBank();
   const list = $("[data-ag-history]");
   const empty = $("[data-ag-history-empty]");
   const note = $("[data-ag-history-note]");

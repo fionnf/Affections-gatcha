@@ -329,19 +329,30 @@ Base weights (total = 1340):
 | Ungewöhnlich | `uncommon` | 150 | 11.19% | 31 |
 | Verflucht | `cursed` | 90 | 6.72% | 54 |
 | Selten (Date-Credits) | `rare` | 90 | 6.72% | 29 |
-| Sammelkapsel | `collect` | 60 | 4.48% | 12 |
+| Sammelkapsel | `collect` | 60 | 4.48% | 17 |
 | Foto-Drop | `photo` | 380 | 28.36% | 15 |
 | JACKPOT | `jackpot` | 30 | 2.24% | 13 |
 
 Edit `weight` values in `config/outcomes.json` to change odds, then run
 `npm run validate` (which prints the recomputed table) and `npm run simulate`.
 
-**Sammeltokens:** about **20% of pulls** award a collectible emoji, spread so
-all seven reward types come up roughly equally often — a reward needs 5 of
-*one* emoji, so the rarest type would otherwise gate everything. Balance is by
-draw probability, not by count: a token on a Foto-Drop is seen far more often
-than one on a Verflucht. `TOKEN_REWARDS` in `src/constants.js` maps each emoji
-to what it buys.
+**Sammeltokens:** about **20% of pulls** award a collectible emoji. There are
+**12 types**, each buying a different reward, and each reward costs a
+different number — 3 for a film night, 7 for a weekend away. `TOKEN_REWARDS`
+in `src/constants.js` holds both, and `tokenGoal()` is the single source for
+"how many". Goals have only ever been *lowered* from the old flat 5: raising
+one would turn a finished set back into an unfinished one.
+
+Which outcomes carry a token is balanced by **draw probability, not count** —
+a token on a Foto-Drop is seen four times as often as one on a Verflucht, so
+equal counts would make some rewards unreachable. In practice the pace runs
+from ~140 days for the cheapest to ~450 for the city trip, and roughly **16
+rewards a year** overall.
+
+The **Token-Bank** at the top of Verlauf lists all 12 with progress bars and a
+redeem button when one is full. Counts come from `readTokens()`, which sync
+overwrites from the Sheet — so it is the shared tally, and it refreshes on
+every `ag-synced`.
 
 **Anti-repeat:** a category never repeats an outcome until its whole pool is
 used up, keyed on category + exact title. `npm run validate` rejects duplicate

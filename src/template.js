@@ -527,6 +527,14 @@ export const html = `
           </section>
 
           <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
+            <div class="ag-card ag-tokenbank-card">
+              <div class="ag-history-header">
+                <p class="ag-wish-label">Token-Bank</p>
+              </div>
+              <p class="ag-tokenbank-head" data-ag-tokenbank-head></p>
+              <div class="ag-tokenbank" data-ag-tokenbank></div>
+            </div>
+
             <div class="ag-card">
               <div class="ag-history-header">
                 <p class="ag-history-note" data-ag-history-note></p>
