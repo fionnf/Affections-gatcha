@@ -323,18 +323,25 @@ Base weights (total = 1340):
 
 | Category | ID | Weight | Base chance | Outcomes |
 |---|---|---:|---:|---:|
-| Niete | `niete` | 150 | 11.19% | 40 |
-| Gewöhnlich | `common` | 210 | 15.67% | 97 |
-| Mini-Quest | `quest` | 180 | 13.43% | 39 |
-| Ungewöhnlich | `uncommon` | 150 | 11.19% | 23 |
-| Verflucht | `cursed` | 90 | 6.72% | 46 |
-| Selten (Date-Credits) | `rare` | 90 | 6.72% | 23 |
-| Sammelkapsel | `collect` | 60 | 4.48% | 7 |
-| Foto-Drop | `photo` | 380 | 28.36% | 9 |
-| JACKPOT | `jackpot` | 30 | 2.24% | 9 |
+| Niete | `niete` | 150 | 11.19% | 46 |
+| Gewöhnlich | `common` | 210 | 15.67% | 105 |
+| Mini-Quest | `quest` | 180 | 13.43% | 47 |
+| Ungewöhnlich | `uncommon` | 150 | 11.19% | 31 |
+| Verflucht | `cursed` | 90 | 6.72% | 54 |
+| Selten (Date-Credits) | `rare` | 90 | 6.72% | 29 |
+| Sammelkapsel | `collect` | 60 | 4.48% | 12 |
+| Foto-Drop | `photo` | 380 | 28.36% | 15 |
+| JACKPOT | `jackpot` | 30 | 2.24% | 13 |
 
 Edit `weight` values in `config/outcomes.json` to change odds, then run
 `npm run validate` (which prints the recomputed table) and `npm run simulate`.
+
+**Sammeltokens:** about **20% of pulls** award a collectible emoji, spread so
+all seven reward types come up roughly equally often — a reward needs 5 of
+*one* emoji, so the rarest type would otherwise gate everything. Balance is by
+draw probability, not by count: a token on a Foto-Drop is seen far more often
+than one on a Verflucht. `TOKEN_REWARDS` in `src/constants.js` maps each emoji
+to what it buys.
 
 **Anti-repeat:** a category never repeats an outcome until its whole pool is
 used up, keyed on category + exact title. `npm run validate` rejects duplicate
