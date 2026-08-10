@@ -295,7 +295,7 @@ Available color keys: `background`, `surface`, `surfaceAlt`, `text`, `muted`, `b
 
 ## Photo & video drops
 
-Photos/videos appear when the `Foto-Drop` category is drawn (28.4% base chance).
+Photos/videos appear when the `Foto-Drop` category is drawn (27.1% base chance).
 
 ```json
 { "url": "https://…/foto.jpg", "alt": "Wir beim Kaffee", "caption": "Beweisstück A.", "type": "image" }
@@ -319,22 +319,40 @@ The workflow runs every **2 hours** and commits only `config/photos.json`. iClou
 
 ## Outcome categories & odds
 
-Base weights (total = 1340):
+Base weights (total = 1400):
 
 | Category | ID | Weight | Base chance | Outcomes |
 |---|---|---:|---:|---:|
-| Niete | `niete` | 150 | 11.19% | 40 |
-| Gewöhnlich | `common` | 210 | 15.67% | 97 |
-| Mini-Quest | `quest` | 180 | 13.43% | 39 |
-| Ungewöhnlich | `uncommon` | 150 | 11.19% | 23 |
-| Verflucht | `cursed` | 90 | 6.72% | 46 |
-| Selten (Date-Credits) | `rare` | 90 | 6.72% | 23 |
-| Sammelkapsel | `collect` | 60 | 4.48% | 7 |
-| Foto-Drop | `photo` | 380 | 28.36% | 9 |
-| JACKPOT | `jackpot` | 30 | 2.24% | 9 |
+| Niete | `niete` | 150 | 10.71% | 46 |
+| Gewöhnlich | `common` | 270 | 19.29% | 123 |
+| Mini-Quest | `quest` | 180 | 12.86% | 47 |
+| Ungewöhnlich | `uncommon` | 150 | 10.71% | 31 |
+| Verflucht | `cursed` | 90 | 6.43% | 54 |
+| Selten | `rare` | 90 | 6.43% | 29 |
+| Sammelkapsel | `collect` | 60 | 4.29% | 17 |
+| Foto-Drop | `photo` | 380 | 27.14% | 15 |
+| JACKPOT | `jackpot` | 30 | 2.14% | 13 |
 
 Edit `weight` values in `config/outcomes.json` to change odds, then run
 `npm run validate` (which prints the recomputed table) and `npm run simulate`.
+
+**Sammeltokens:** about **20% of pulls** award a collectible emoji. There are
+**12 types**, each buying a different reward, and each reward costs a
+different number — 3 for a film night, 7 for a weekend away. `TOKEN_REWARDS`
+in `src/constants.js` holds both, and `tokenGoal()` is the single source for
+"how many". Goals have only ever been *lowered* from the old flat 5: raising
+one would turn a finished set back into an unfinished one.
+
+Which outcomes carry a token is balanced by **draw probability, not count** —
+a token on a Foto-Drop is seen four times as often as one on a Verflucht, so
+equal counts would make some rewards unreachable. In practice the pace runs
+from ~140 days for the cheapest to ~450 for the city trip, and roughly **16
+rewards a year** overall.
+
+The **Token-Bank** at the top of Verlauf lists all 12 with progress bars and a
+redeem button when one is full. Counts come from `readTokens()`, which sync
+overwrites from the Sheet — so it is the shared tally, and it refreshes on
+every `ag-synced`.
 
 **Anti-repeat:** a category never repeats an outcome until its whole pool is
 used up, keyed on category + exact title. `npm run validate` rejects duplicate

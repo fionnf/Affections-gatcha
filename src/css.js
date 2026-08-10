@@ -1358,6 +1358,49 @@ export const css = `
         .ag-hug-status[data-ag-hug-state="error"]{color:#e8a4a4}
       }
 
+      /* ── Token-Bank (Verlauf) ── */
+      .ag-tokenbank-card{margin-bottom:0}
+      .ag-tokenbank-head{margin:2px 0 0;font-size:.82rem;opacity:.65;line-height:1.5}
+      .ag-tokenbank{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+      .ag-tokenrow{
+        display:flex;align-items:center;gap:10px;
+        padding:9px 11px;border-radius:13px;
+        background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+        transition:background 180ms var(--ag-ease),border-color 180ms var(--ag-ease);
+      }
+      /* Types you have none of stay visible — seeing what's out there is half
+         the point — but they recede so the ones in progress read first. */
+      .ag-tokenrow.is-empty{opacity:.42}
+      .ag-tokenrow.is-done{
+        background:rgba(126,207,163,.12);border-color:rgba(126,207,163,.4);opacity:1;
+      }
+      .ag-tokenrow-emoji{font-size:1.35rem;line-height:1;flex:none;width:26px;text-align:center}
+      .ag-tokenrow-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+      .ag-tokenrow-reward{font-size:.82rem;line-height:1.35;overflow-wrap:anywhere}
+      .ag-tokenrow-bar{
+        display:block;height:4px;border-radius:999px;
+        background:rgba(255,255,255,.1);overflow:hidden;
+      }
+      .ag-tokenrow-fill{
+        display:block;height:100%;border-radius:999px;background:var(--ag-primary);
+        transition:width 420ms var(--ag-ease);
+      }
+      .ag-tokenrow.is-done .ag-tokenrow-fill{background:var(--ag-gold)}
+      .ag-tokenrow-count{
+        flex:none;font-size:.86rem;font-weight:700;font-variant-numeric:tabular-nums;
+      }
+      .ag-tokenrow-goal{font-weight:500;opacity:.5}
+      /* Completed rows wrap so the button gets its own line — inline it stole
+         enough width to break "Ein Ausflug in dein Traumcafé" over three. */
+      .ag-tokenrow.is-done{flex-wrap:wrap}
+      .ag-tokenrow-redeem{
+        flex:1 0 100%;margin-top:9px;
+        cursor:pointer;font:inherit;font-size:.8rem;font-weight:600;
+        padding:8px 11px;border-radius:11px;
+        border:none;background:var(--ag-gold);color:#1c1405;
+      }
+      .ag-tokenrow-redeem:active{transform:scale(.98)}
+
       /* ── Wunschkapsel card ── */
       .ag-wish-card{}
       .ag-wish-label{margin:0 0 6px;font-weight:800;font-size:1rem;color:var(--ag-text);letter-spacing:.01em}

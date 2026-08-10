@@ -10,7 +10,7 @@ import { syncFromSheets, backupToSheets } from "./sync.js";
 import { NOTIF_KEY } from "./constants.js";
 import { triggerConfetti } from "./confetti.js";
 import { haptic } from "./haptic.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, MILESTONE_MESSAGES } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
@@ -1012,6 +1012,9 @@ export function bindEvents() {
   mount.addEventListener("ag-synced", () => {
     try {
       renderWerkstattEntry();
+      // Token counts are sheet-authoritative — a token earned on the other
+      // device shows up here as soon as the sync lands.
+      renderTokenBank();
       if (!document.getElementById("ag-werkstatt-panel")?.hidden) renderWerkstatt();
     } catch (_e) {}
   });

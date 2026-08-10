@@ -28,7 +28,7 @@ export const CACHE_VERSION_KEY     = "affektions-gacha:cache-version:v1";
 
 // ── Numeric constants ────────────────────────────────────────────────────────
 export const CACHE_VERSION           = "2026-05-22-v2";
-export const TOKEN_GOAL              = 5;
+export const TOKEN_GOAL              = 5;   // default when a type has no goal
 export const STREAK_RESTORE_THRESHOLD = 20;
 export const QUEST_POINTS_SCHEDULE   = [100, 75, 50, 25];
 export const GLOSSARY_KEY            = "affektions-gacha:glossary:v1";
@@ -37,12 +37,33 @@ export const FREIKARTE_KEY           = "affektions-gacha:freikarte:v1";
 export const FREIKARTE_REROLL_KEY    = "affektions-gacha:freikarte-reroll:v1";
 export const WERKSTATT_KEY           = "affektions-gacha:werkstatt:v1";
 
+// Each token type is one reward, and each reward costs a different number of
+// tokens — a film night shouldn't take as long to earn as a weekend away.
+// Goals were only ever LOWERED from the old flat 5, never raised: raising one
+// would turn somebody's finished set back into an unfinished one.
 export const TOKEN_REWARDS = {
-  "🌿": "Fionn kocht dir ein Abendessen nach Wahl",
-  "🔥": "Wochenend-Abenteuer — Ziel nach deiner Wahl",
-  "⭐": "Fionns Überraschung — er entscheidet",
-  "☁️": "Ein ganzer fauler Tag ohne Pläne",
-  "🏔": "Eine richtige Bergtour, Hütte inklusive",
-  "☕": "Ein Ausflug in dein Traumcafé, egal wo",
-  "💚": "Ein langer, handgeschriebener Brief"
+  "🌿": { goal: 5, reward: "Fionn kocht dir ein Abendessen nach Wahl" },
+  "🔥": { goal: 5, reward: "Wochenend-Abenteuer — Ziel nach deiner Wahl" },
+  "⭐": { goal: 5, reward: "Fionns Überraschung — er entscheidet" },
+  "☁️": { goal: 4, reward: "Ein ganzer fauler Tag ohne Pläne" },
+  "🏔": { goal: 5, reward: "Eine richtige Bergtour, Hütte inklusive" },
+  "☕": { goal: 4, reward: "Ein Ausflug in dein Traumcafé, egal wo" },
+  "💚": { goal: 3, reward: "Ein langer, handgeschriebener Brief" },
+  "🎬": { goal: 3, reward: "Filmabend — du wählst, ich mache Popcorn" },
+  "🍕": { goal: 3, reward: "Essen kommt ins Haus, du bestimmst was" },
+  "🎧": { goal: 5, reward: "Konzert oder DJ-Abend, Tickets gehen auf mich" },
+  "🛁": { goal: 4, reward: "Ein Wellness-Abend, komplett vorbereitet" },
+  "✈️": { goal: 7, reward: "Ein Städtetrip — ein ganzes Wochenende weg" }
 };
+
+// How many of one emoji a reward costs. Unknown emoji fall back to the old
+// flat goal so a token from an older build can never become uncollectable.
+export function tokenGoal(emoji) {
+  const entry = TOKEN_REWARDS[emoji];
+  return (entry && entry.goal) || TOKEN_GOAL;
+}
+
+export function tokenReward(emoji) {
+  const entry = TOKEN_REWARDS[emoji];
+  return (entry && entry.reward) || "";
+}
