@@ -135,7 +135,8 @@
         },
         {
           "title": "Steinbock im Weg",
-          "message": "Ein imaginärer Steinbock blockiert stur den Pfad. Man diskutiert nicht mit Steinböcken. Heute leider nichts."
+          "message": "Ein imaginärer Steinbock blockiert stur den Pfad. Man diskutiert nicht mit Steinböcken. Also kehrt die Maschine um — und lässt dir unterwegs ein Berg-Zeichen in die Hand fallen.",
+          "token": "🏔"
         },
         {
           "title": "Falscher Knopf",

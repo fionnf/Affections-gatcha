@@ -1,7 +1,7 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen } from "./storage.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount } from "./storage.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";

@@ -76,6 +76,44 @@ test("special day (full date) overrides the weighted pull exactly once", () => {
   assert.notEqual(nextYear.category.id, "special", "YYYY-MM-DD date must not recur");
 });
 
+test("a special day can hand out a Sammeltoken", () => {
+  // The special branch returns early, and it used to build its result without
+  // collectToken — so a token written into special-days.json was accepted by
+  // the validator, rendered nowhere, and never credited.
+  state.specialDays = { days: [
+    { date: "2026-08-12", label: "Testtag", tone: "jackpot",
+      outcomes: [{ title: "S1", message: "s1", token: "⭐" }] },
+  ]};
+  assert.equal(buildPullForDay("2026-08-12", 0).collectToken, "⭐");
+
+  state.specialDays = { days: [
+    { date: "2026-08-12", label: "Testtag", tone: "jackpot",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
+  assert.equal(buildPullForDay("2026-08-12", 0).collectToken, null,
+    "a special day without a token must not invent one");
+});
+
+test("a special day can be addressed to one player", () => {
+  state.specialDays = { days: [
+    { date: "2026-08-12", label: "Nur für Lennart", tone: "jackpot", player: "lennart",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
+  assert.equal(buildPullForDay("2026-08-12", 0).category.id, "special");
+  env.setSearch("?player=fionn");
+  assert.notEqual(buildPullForDay("2026-08-12", 0).category.id, "special",
+    "an entry addressed to Lennart must not fire in Fionn's app");
+
+  // No "player" key means both, which is what every pre-existing entry relies on.
+  state.specialDays = { days: [
+    { date: "2026-08-12", label: "Für beide", tone: "warm",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
+  assert.equal(buildPullForDay("2026-08-12", 0).category.id, "special");
+  env.setSearch("?player=lennart");
+  assert.equal(buildPullForDay("2026-08-12", 0).category.id, "special");
+});
+
 test("Freikarte reroll never lands on Niete or Verflucht", () => {
   for (let i = 1; i <= 28; i++) {
     const day = `2026-09-${String(i).padStart(2, "0")}`;
