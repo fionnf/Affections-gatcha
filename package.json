@@ -2,18 +2,21 @@
   "name": "lennart-affektions-gacha",
   "version": "1.0.0",
   "private": true,
-  "description": "A daily affection gacha PWA for two \u2014 GitHub Pages + iCloud album sync.",
+  "description": "A daily affection gacha PWA for two — GitHub Pages + iCloud album sync.",
   "scripts": {
     "build": "vite build && vite build --config vite.config.admin.js",
     "build:main": "vite build",
     "build:admin": "vite build --config vite.config.admin.js",
     "validate": "node scripts/validate-gacha-config.cjs",
+    "check:refs": "node scripts/check-undefined-refs.cjs src admin sw.js",
     "test": "node --test tests/*.test.js",
     "simulate": "node scripts/simulate-odds.cjs 20000 lennart",
     "build:photos": "node scripts/build-photo-manifest.cjs photos",
     "sync:album": "node scripts/sync-shared-album.cjs"
   },
   "devDependencies": {
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5",
     "vite": "^5.4.0"
   },
   "dependencies": {

@@ -48,6 +48,13 @@ jobs:
       - name: Validate config
         run: npm run validate
 
+      - name: Check for undefined references
+        # A missing import is invisible to the bundler and only throws in the
+        # browser, on the day the branch happens to run. renderPull() called
+        # freikarteCount() without importing it, so every Niete and Verflucht
+        # day — about one in six — died mid-reveal.
+        run: npm run check:refs
+
       - name: Run tests
         run: npm test
 
