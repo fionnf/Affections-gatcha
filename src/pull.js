@@ -8,8 +8,15 @@ import { werkstattFor } from "./werkstatt.js";
 export function checkSpecialDay(day) {
   const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
   const mmdd = day.slice(5); // "MM-DD" from "YYYY-MM-DD"
+  const player = getToken();
   for (const entry of days) {
-    if (entry.date === day || entry.date === mmdd) return entry;
+    if (entry.date !== day && entry.date !== mmdd) continue;
+    // Special days were written when Lennart's app was the only one. Now that
+    // Fionn draws too, a capsule addressed to one of them would otherwise show
+    // up in both apps. An entry with no "player" still goes to everybody, so
+    // every existing entry keeps its current behaviour.
+    if (entry.player && entry.player !== player) continue;
+    return entry;
   }
   return null;
 }
@@ -78,7 +85,16 @@ export function buildPullForDay(day, streak, opts = {}) {
     const specialPhoto = (special.photoAlt && state.photos.length)
       ? (imagePhotos().find((p) => p.alt === special.photoAlt) || null)
       : null;
-    return { day, token, category, outcome, photo: specialPhoto, unlockTime: special.unlockTime || null };
+    // collectToken is threaded through here so a special day can hand out a
+    // Sammeltoken like any other capsule. The ordinary return below builds it
+    // from outcome.token; this branch returns early and used to drop it, so a
+    // token written into special-days.json was silently ignored.
+    return {
+      day, token, category, outcome,
+      photo: specialPhoto,
+      collectToken: outcome.token || null,
+      unlockTime: special.unlockTime || null
+    };
   }
 
   // A Freikarte reroll already happened for this day — reproduce the same
