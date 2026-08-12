@@ -1,6 +1,6 @@
 // ── All localStorage read/write functions ─────────────────────────────────
 import {
-  STORAGE_KEY, FAVORITES_KEY, TOKENS_KEY, STREAK_CACHE_KEY, STREAK_SYNCED_KEY,
+  STORAGE_KEY, FAVORITES_KEY, TOKENS_KEY, TOKENS_SENT_KEY, STREAK_CACHE_KEY, STREAK_SYNCED_KEY,
   STREAK_RESTORE_KEY, WISH_KEY, MILESTONE_KEY,
   BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY, MISSION_LOG_KEY,
   GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY,
@@ -124,6 +124,78 @@ export function resetToken(token) {
   const tokens = readTokens();
   tokens[token] = 0;
   writeTokens(tokens);
+}
+
+// ── Token sync ───────────────────────────────────────────────────────────────
+// Tokens were the one synced collection the sheet overwrote outright. History
+// and favourites merge, streak and questPoints only move upward, and the Apps
+// Script even guards the streak with Math.max — but tokens were assigned
+// straight from the sheet. So a token earned while the backup POST could not
+// land (offline, a dropped request, the app closed before it went out) was
+// deleted by the next sync, which is the one thing a collectible must never do.
+
+function numTokens(map) {
+  const out = {};
+  if (!map || typeof map !== "object") return out;
+  for (const [k, v] of Object.entries(map)) {
+    const n = typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
+    if (n > 0) out[k] = n;
+  }
+  return out;
+}
+
+// null (rather than {}) means "never recorded", which is not the same as
+// "recorded as empty" — see applySharedTokens for why that distinction matters.
+export function readTokensSent() {
+  const val = readPlayerSlot(TOKENS_SENT_KEY, null);
+  return val && typeof val === "object" && !Array.isArray(val) ? numTokens(val) : null;
+}
+
+export function writeTokensSent(tokens) {
+  writePlayerSlot(TOKENS_SENT_KEY, numTokens(tokens));
+}
+
+// Three-way merge of the sheet's copy against ours, using the last confirmed
+// send as the common base. Per emoji: whatever the sheet has, plus whatever we
+// have changed since we last successfully sent.
+//
+// With nothing unsent, local equals the base and the result is the sheet
+// exactly — so a redeem on the other phone still lands here. With something
+// unsent, the delta rides on top of the sheet instead of being thrown away,
+// and a redeem (which zeroes the count) carries across as a negative delta
+// rather than being undone.
+export function applySharedTokens(sheetTokens) {
+  const sheet = numTokens(sheetTokens);
+  const local = numTokens(readTokens());
+  let base = readTokensSent();
+
+  // First run after this shipped: there is no record of what was sent, and
+  // assuming "nothing" would add every local token on top of the sheet's copy
+  // of those same tokens. Seed the base from local instead — that reproduces
+  // the old sheet-wins behaviour exactly once, and every later sync is tracked.
+  if (base === null) {
+    base = local;
+    writeTokensSent(local);
+  }
+
+  const emojis = new Set([...Object.keys(sheet), ...Object.keys(local), ...Object.keys(base)]);
+  const merged = {};
+  for (const emoji of emojis) {
+    const value = (sheet[emoji] || 0) + ((local[emoji] || 0) - (base[emoji] || 0));
+    if (value > 0) merged[emoji] = value;
+  }
+  writeTokens(merged);
+
+  // The base has to move to the sheet's copy, not stay where it was. Whatever
+  // the sheet just told us is now known-shared, so the only thing that should
+  // count as a local delta from here on is what we change next. Leaving the
+  // base behind makes the merge re-apply the same difference on every sync:
+  // an offline run took 🌿 from 2 to 4 that way, because the 2 the sheet had
+  // sent us was still being read back as 2 we had earned.
+  writeTokensSent(sheet);
+
+  // Anything left over the sheet's copy is ours and still unsent.
+  return [...emojis].some((e) => (merged[e] || 0) !== (sheet[e] || 0));
 }
 
 export function readFreikarten() {

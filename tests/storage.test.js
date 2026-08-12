@@ -5,7 +5,8 @@ import { setupBrowserEnv } from "./helpers.js";
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
 const {
-  readTokens, writeTokens, addToken,
+  readTokens, writeTokens, addToken, resetToken,
+  applySharedTokens, readTokensSent, writeTokensSent,
   readQuestPoints, addQuestPoints,
   readWish, writeWish,
   readStreakCache, writeStreakCache,
@@ -72,4 +73,102 @@ test("writeTokens for one player preserves the other's existing slot", () => {
   writeTokens({ "💚": 1 });
   const raw = JSON.parse(env.localStorage.getItem(TOKENS_KEY));
   assert.deepEqual(raw, { lennart: { "🌿": 4 }, fionn: { "💚": 1 } });
+});
+
+// ── Token sync ───────────────────────────────────────────────────────────────
+// Regression cover for the one collection the sheet used to overwrite outright.
+
+test("a sync does not delete a token the sheet has never seen", () => {
+  // Everything so far is confirmed on the sheet.
+  writeTokens({ "🌿": 2 });
+  writeTokensSent({ "🌿": 2 });
+  // Earn one while the backup POST cannot land — so it stays unsent.
+  addToken("⭐");
+  // The sheet answers with its older copy, which knows nothing about the ⭐.
+  const pending = applySharedTokens({ "🌿": 2 });
+  assert.deepEqual(readTokens(), { "🌿": 2, "⭐": 1 }, "the unsent ⭐ must survive");
+  assert.equal(pending, true, "caller must be told to re-post");
+});
+
+test("with nothing unsent the sheet wins, so the other phone's redeem lands", () => {
+  writeTokens({ "⭐": 5 });
+  writeTokensSent({ "⭐": 5 });
+  const pending = applySharedTokens({ "⭐": 0, "🌿": 1 });
+  assert.deepEqual(readTokens(), { "🌿": 1 }, "sheet is authoritative when we hold nothing new");
+  assert.equal(pending, false);
+});
+
+test("a local redeem is not undone by a sheet that still shows the full count", () => {
+  writeTokens({ "⭐": 5 });
+  writeTokensSent({ "⭐": 5 });
+  resetToken("⭐");
+  applySharedTokens({ "⭐": 5 });
+  assert.deepEqual(readTokens(), {}, "redeeming must not be reversed by the stale sheet");
+});
+
+test("an earn here and an earn there both survive the merge", () => {
+  writeTokens({ "🌿": 1 });
+  writeTokensSent({ "🌿": 1 });
+  addToken("🌿");                          // ours, unsent  → 2
+  applySharedTokens({ "🌿": 2 });          // theirs, on the sheet → 2
+  assert.deepEqual(readTokens(), { "🌿": 3 }, "neither earn may be dropped");
+});
+
+test("first sync after upgrading seeds the base instead of double-counting", () => {
+  // No tokens-sent record exists yet, but these tokens are already on the
+  // sheet — adding them on top would hand out free collectibles.
+  writeTokens({ "🌿": 3 });
+  assert.equal(readTokensSent(), null);
+  applySharedTokens({ "🌿": 3 });
+  assert.deepEqual(readTokens(), { "🌿": 3 });
+  assert.deepEqual(readTokensSent(), { "🌿": 3 }, "base is seeded for later syncs");
+});
+
+test("token counts stay per player through a merge", () => {
+  writeTokens({ "🌿": 2 });
+  writeTokensSent({ "🌿": 2 });
+  env.setSearch("?player=fionn");
+  writeTokens({ "💚": 1 });
+  writeTokensSent({ "💚": 1 });
+  addToken("💚");
+  applySharedTokens({ "💚": 1 });
+  assert.deepEqual(readTokens(), { "💚": 2 });
+  env.setSearch("?player=lennart");
+  assert.deepEqual(readTokens(), { "🌿": 2 }, "Lennart's bank is untouched by Fionn's merge");
+});
+
+test("junk from the sheet never yields a negative or non-numeric balance", () => {
+  writeTokens({ "🌿": 2 });
+  writeTokensSent({ "🌿": 2 });
+  addToken("⭐");                                        // unsent
+  applySharedTokens({ "🌿": "nope", "⭐": -4, "🔥": null });
+  // Unreadable sheet values count as zero, exactly as the old overwrite treated
+  // them — but the unsent ⭐ still rides on top, and nothing goes negative.
+  assert.deepEqual(readTokens(), { "⭐": 1 });
+  for (const n of Object.values(readTokens())) {
+    assert.ok(Number.isInteger(n) && n > 0, `bad count ${n}`);
+  }
+});
+
+test("repeated syncs are idempotent — an unsent token is not re-added each time", () => {
+  // The offline case, which is where this went wrong: the sheet stays stale
+  // because our POSTs never land, and sync runs again on every app open.
+  writeTokens({});
+  applySharedTokens({ "🌿": 2 });                 // first sync seeds from the sheet
+  assert.deepEqual(readTokens(), { "🌿": 2 });
+  addToken("⭐");                                  // earned offline, never sent
+  for (let i = 0; i < 5; i++) applySharedTokens({ "🌿": 2 });
+  assert.deepEqual(readTokens(), { "🌿": 2, "⭐": 1 },
+    "🌿 must not grow, and the unsent ⭐ must not be dropped");
+});
+
+test("a confirmed send makes the sheet authoritative again", () => {
+  writeTokens({});
+  applySharedTokens({ "🌿": 2 });
+  addToken("⭐");
+  assert.equal(applySharedTokens({ "🌿": 2 }), true, "still unsent");
+  // The backup lands: writeTokensSent records exactly what went out.
+  writeTokensSent(readTokens());
+  assert.equal(applySharedTokens({ "🌿": 2, "⭐": 1 }), false, "nothing left pending");
+  assert.deepEqual(readTokens(), { "🌿": 2, "⭐": 1 });
 });

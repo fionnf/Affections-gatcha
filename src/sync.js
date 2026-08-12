@@ -2,7 +2,7 @@
 import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
-  writeTokens, readTokens, readGipfelbuch, writeGipfelbuch,
+  readTokens, applySharedTokens, writeTokensSent, readGipfelbuch, writeGipfelbuch,
   readBaerlauchScores, readMissionLog, writeMissionLog,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
@@ -124,7 +124,11 @@ export async function syncFromSheets() {
     }
 
     if (data.tokens && typeof data.tokens === "object") {
-      writeTokens(data.tokens);
+      // Merges rather than overwrites, and tells us whether we are still
+      // holding tokens the sheet has not got. If so, push them now instead of
+      // waiting for whatever the player happens to do next — that wait was how
+      // an unsent token stayed unsent long enough to be lost.
+      if (applySharedTokens(data.tokens)) backupToSheets();
     }
 
     if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
@@ -216,6 +220,9 @@ export function backupToSheets() {
     // testing), a sync would tag the other player's entries under this
     // player's backup row on the server.
     const favourites = readFavorites().filter((e) => (e.token || "").toLowerCase() === token.toLowerCase());
+    // Snapshotted before the POST goes out, and recorded only once the request
+    // comes back, so a failed send leaves the tokens marked unsent.
+    const tokensSent = readTokens();
     const qs = readQuestState(() => currentQuestPeriod(state));
     const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
       challenge: currentChallenge(state),
@@ -230,7 +237,7 @@ export function backupToSheets() {
       history,
       favourites,
       streak: computeStreak(),
-      tokens: readTokens(),
+      tokens: tokensSent,
       questPoints: readQuestPoints(),
       ...(questLog ? { questLog } : {})
     });
@@ -242,8 +249,17 @@ export function backupToSheets() {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body
     };
-    fetch(cfg.endpointUrl, opts).catch(() => {
-      fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {});
-    });
+    // A resolved fetch means the request reached Apps Script — readable in
+    // cors mode, opaque in the no-cors fallback, but either way it went. Only
+    // then are the tokens marked sent; a rejection (offline, blocked) leaves
+    // the mark where it was, which is what keeps the next sync from treating
+    // the sheet's older copy as the truth.
+    return fetch(cfg.endpointUrl, opts)
+      .then(() => { writeTokensSent(tokensSent); })
+      .catch(() =>
+        fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" })
+          .then(() => { writeTokensSent(tokensSent); })
+          .catch(() => {})
+      );
   } catch (_e) {}
 }

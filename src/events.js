@@ -860,10 +860,13 @@ export function bindEvents() {
       };
       writeHistory(history);
     }
-    backupToSheets();
-
+    // Credit the token first. The backup sends readTokens() as it stands when
+    // it is called, so backing up before the token existed left it out of the
+    // payload — it then sat unsent until some unrelated action happened to
+    // push it, which on the old overwrite-from-sheet path meant losing it.
     if (state.todaysPull.collectToken) addToken(state.todaysPull.collectToken);
     if (state.todaysPull.freikarte) addFreikarte(state.todaysPull.token);
+    backupToSheets();
 
     renderPull(state.todaysPull);
     if (state.activeTab === "history") renderHistory();
