@@ -8,7 +8,7 @@
     "build:main": "vite build",
     "build:admin": "vite build --config vite.config.admin.js",
     "validate": "node scripts/validate-gacha-config.cjs",
-    "check:refs": "node scripts/check-undefined-refs.cjs src admin sw.js",
+    "check:refs": "node scripts/check-undefined-refs.cjs src admin scripts sw.js",
     "test": "node --test tests/*.test.js",
     "simulate": "node scripts/simulate-odds.cjs 20000 lennart",
     "build:photos": "node scripts/build-photo-manifest.cjs photos",

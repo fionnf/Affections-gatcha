@@ -42,6 +42,11 @@ const GLOBALS = new Set([
   "self", "clients", "registration", "skipWaiting", "importScripts", "ExtendableEvent",
   // node (scripts/)
   "require", "module", "exports", "process", "Buffer", "__dirname", "__filename",
+  // Google Apps Script runtime (scripts/*-apps-script*.js run inside Google,
+  // not here, so their globals are provided by that runtime)
+  "SpreadsheetApp", "DriveApp", "MailApp", "GmailApp", "ContentService", "HtmlService",
+  "Utilities", "PropertiesService", "LockService", "CacheService", "UrlFetchApp",
+  "ScriptApp", "Session", "Logger", "CalendarApp",
 ]);
 
 function collect(ast) {
