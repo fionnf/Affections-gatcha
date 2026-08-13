@@ -2,6 +2,11 @@
 export const STORAGE_KEY           = "affektions-gacha:history:v1";
 export const FAVORITES_KEY         = "affektions-gacha:favourites:v1";
 export const TOKENS_KEY            = "affektions-gacha:tokens:v1";
+// The token map as of the last backup POST that actually came back. It is the
+// common base for the three-way merge in applySharedTokens — without it a sync
+// cannot tell "the sheet is ahead of me" from "I hold a token the sheet has
+// never seen", and the second case loses the token.
+export const TOKENS_SENT_KEY       = "affektions-gacha:tokens-sent:v1";
 export const STREAK_CACHE_KEY      = "affektions-gacha:streak-cache:v1";
 export const STREAK_SYNCED_KEY     = "affektions-gacha:streak-synced:v1";
 export const STREAK_RESTORE_KEY    = "affektions-gacha:streak-restore:v1";

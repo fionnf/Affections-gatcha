@@ -880,6 +880,22 @@ function getOrCreateWerkstattSheet_(ss) {
   return sheet;
 }
 
+// Was referenced twice — once in doGet, once by the "stimmung-set" POST — but
+// never actually defined. The read is inside a try/catch, so the shared day
+// colour just silently came back null forever; the write is not, so setting a
+// colour threw. Columns match the row the POST handler writes.
+function getOrCreateStimmungSheet_(ss) {
+  let sheet = ss.getSheetByName("Stimmung");
+  if (!sheet) {
+    sheet = ss.insertSheet("Stimmung");
+    sheet.appendRow(["Day", "Hex", "SetBy", "UpdatedAt"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 110);
+    sheet.setColumnWidth(4, 200);
+  }
+  return sheet;
+}
+
 function getOrCreatePushSheet_(ss) {
   let sheet = ss.getSheetByName("PushSubscriptions");
   if (!sheet) {

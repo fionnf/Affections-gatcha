@@ -17,12 +17,10 @@
 //   BACKUP_ENDPOINT=https://script.google.com/…/exec \
 //   node scripts/push-due.cjs
 const webpush = require("web-push");
+const { requireEnv, fetchFeed, run, warn, AuthError } = require("./push-lib.cjs");
 
+requireEnv(["VAPID_PUBLIC", "VAPID_PRIVATE", "BACKUP_ENDPOINT"]);
 const { VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT, BACKUP_ENDPOINT } = process.env;
-if (!VAPID_PUBLIC || !VAPID_PRIVATE || !BACKUP_ENDPOINT) {
-  console.error("Missing VAPID_PUBLIC / VAPID_PRIVATE / BACKUP_ENDPOINT.");
-  process.exit(1);
-}
 webpush.setVapidDetails(VAPID_SUBJECT || "mailto:fionn@fionnferreira.com", VAPID_PUBLIC, VAPID_PRIVATE);
 
 const NAME = { lennart: "Lennart", fionn: "Fionn" };
@@ -56,21 +54,22 @@ function hash(str) {
 }
 
 async function subsFor(token) {
-  const res = await fetch(`${BACKUP_ENDPOINT}?feed=push-subs&for=${encodeURIComponent(token)}`, { cache: "no-store" });
-  const data = await res.json();
+  const data = await fetchFeed(
+    `${BACKUP_ENDPOINT}?feed=push-subs&for=${encodeURIComponent(token)}`,
+    { label: `push-subs(${token})` }
+  );
   return (data && data.subscriptions) || [];
 }
 
-(async () => {
-  const res = await fetch(`${BACKUP_ENDPOINT}?feed=push-due`, { cache: "no-store" });
-  const data = await res.json();
+run(async () => {
+  const data = await fetchFeed(`${BACKUP_ENDPOINT}?feed=push-due`, { label: "push-due" });
   const due = (data && data.due) || [];
   if (!due.length) {
     console.log(`Nobody due${data && data.reason ? ` (${data.reason})` : ""}.`);
     return;
   }
 
-  let sent = 0, gone = 0, failed = 0;
+  let sent = 0, gone = 0, failed = 0, authFailed = 0;
   for (const item of due) {
     const subs = await subsFor(item.token);
     if (!subs.length) {
@@ -86,11 +85,24 @@ async function subsFor(token) {
       } catch (err) {
         // 404/410 mean the browser threw the subscription away (app deleted,
         // permission revoked). Not an error worth failing the run over.
-        if (err.statusCode === 404 || err.statusCode === 410) gone++;
-        else { failed++; console.error(`${item.token}: ${err.statusCode || ""} ${err.message}`); }
+        const status = err && err.statusCode;
+        if (status === 404 || status === 410) gone++;
+        else {
+          failed++;
+          if (status === 401 || status === 403) authFailed++;
+          console.error(`${item.token}: ${status || ""} ${err.message}`);
+        }
       }
     }
   }
   console.log(`sent ${sent}, expired ${gone}, failed ${failed}`);
-  if (failed) process.exitCode = 1;
-})();
+
+  // This used to be `if (failed) process.exitCode = 1`, so one browser refusing
+  // one notification failed the hourly run and sent mail. Only a wholesale
+  // authorisation failure — nothing delivered, everything rejected — actually
+  // needs a human, because that is a dead VAPID key rather than a bad day.
+  if (failed && authFailed === failed && sent === 0) {
+    throw new AuthError(`all ${failed} sends rejected as unauthorised — check VAPID_PUBLIC/VAPID_PRIVATE`);
+  }
+  if (failed) warn(`${failed} push send(s) failed; see log above.`);
+});
