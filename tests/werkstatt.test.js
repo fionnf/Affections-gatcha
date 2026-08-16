@@ -5,7 +5,7 @@ import { setupBrowserEnv, outcomesFixture, TEST_SECRET } from "./helpers.js";
 const env = setupBrowserEnv("?player=fionn");
 const { state } = await import("../src/state.js");
 const { buildPullForDay, poolForCategory } = await import("../src/pull.js");
-const { writeWerkstatt, werkstattFor, applySharedWerkstatt, saveKapsel, answerKapsel } = await import("../src/werkstatt.js");
+const { writeWerkstatt, werkstattFor, applySharedWerkstatt, saveKapsel, answerKapsel, werkstattEnabled, openWerkstatt } = await import("../src/werkstatt.js");
 const { writeHistory } = await import("../src/storage.js");
 const { _resetRecentWrites } = await import("../src/sheetSync.js");
 
@@ -228,4 +228,41 @@ test("a deletion on the other device propagates instead of lingering", () => {
   applySharedWerkstatt([]);
   assert.deepEqual(state.werkstatt, []);
   assert.deepEqual(poolForCategory(categoryById("common"), "fionn").map((o) => o.title), ["A", "B", "C"]);
+});
+
+// ── Feature flag ─────────────────────────────────────────────────────────────
+
+test("the Werkstatt flag gates authoring but never the existing pool", () => {
+  const base = { secret: TEST_SECRET, timezone: "Europe/Zurich" };
+
+  state.theme = { ...base };                       // no features block at all
+  assert.equal(werkstattEnabled(), true, "a config without the key keeps the feature");
+  state.theme = { ...base, features: {} };
+  assert.equal(werkstattEnabled(), true, "an empty features block keeps the feature");
+  state.theme = { ...base, features: { werkstatt: true } };
+  assert.equal(werkstattEnabled(), true);
+  state.theme = { ...base, features: { werkstatt: false } };
+  assert.equal(werkstattEnabled(), false, "only an explicit false turns it off");
+
+  // Capsules already written stay drawable, so flipping the flag back on
+  // loses nothing and flipping it off does not silently rewrite Fionn's pool.
+  writeWerkstatt([kapsel("common", "Handwritten")]);
+  const pool = poolForCategory(state.outcomes.categories.find((c) => c.id === "common"), "fionn");
+  assert.deepEqual(pool.map((o) => o.title), ["Handwritten"]);
+
+  state.theme = { ...base };
+});
+
+test("opening the Werkstatt is inert while the flag is off", () => {
+  state.theme = { secret: TEST_SECRET, timezone: "Europe/Zurich", features: { werkstatt: false } };
+  let opened = false;
+  global.document = {
+    getElementById: (id) => (id === "ag-werkstatt-panel"
+      ? { set hidden(v) { opened = v === false; }, scrollIntoView() {} } : null),
+    querySelector: () => null,
+  };
+  openWerkstatt();
+  assert.equal(opened, false, "the panel must not be revealed");
+  delete global.document;
+  state.theme = { secret: TEST_SECRET, timezone: "Europe/Zurich" };
 });

@@ -12,7 +12,7 @@ import { extractDriveFileId } from "./utils.js";
 import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
-import { renderWerkstattEntry, answerKapsel } from "./werkstatt.js";
+import { renderWerkstattEntry, answerKapsel, werkstattEnabled } from "./werkstatt.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -1575,9 +1575,12 @@ export function hydrateCopy() {
   const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
 
   // The Werkstatt is the authoring side: Lennart writes what Fionn pulls, so
-  // it only exists in Lennart's view. Fionn never sees his own pool.
+  // it only exists in Lennart's view. Fionn never sees his own pool. It is
+  // also behind a config flag, currently off — see theme.json features.
   const werkstattEntry = $("[data-ag-werkstatt-open]");
-  if (werkstattEntry) werkstattEntry.hidden = isFionn;
+  if (werkstattEntry) werkstattEntry.hidden = isFionn || !werkstattEnabled();
+  const werkstattPanel = document.getElementById("ag-werkstatt-panel");
+  if (werkstattPanel && !werkstattEnabled()) werkstattPanel.hidden = true;
   renderWerkstattEntry();
 
   const chips = $("[data-ag-chips]");
