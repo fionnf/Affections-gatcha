@@ -64,11 +64,31 @@ export const css = `
       }
 
       /* Outer frame: centers the widget with breathing room. */
+      /* Safe areas. Both apps ship viewport-fit=cover together with
+         apple-mobile-web-app-status-bar-style=black-translucent, which means
+         that once installed to the home screen the web view starts at y=0 —
+         physically underneath the notch and the status bar. The bottom nav,
+         FAB and toasts already added env(safe-area-inset-bottom); nothing ever
+         accounted for the top, so on any notched iPhone (13 mini included) the
+         kicker and the title sat behind the clock and the battery.
+
+         Kept as variables so every rule reads the same value, and so the
+         no-inset case (desktop, Android, Safari tabs) is exactly the old
+         padding rather than a special case. */
+      :root{
+        --ag-safe-top:env(safe-area-inset-top,0px);
+        --ag-safe-bottom:env(safe-area-inset-bottom,0px);
+        --ag-safe-left:env(safe-area-inset-left,0px);
+        --ag-safe-right:env(safe-area-inset-right,0px);
+      }
       .ag-frame{
         width:100%;
         max-width:1120px;
         margin-inline:auto;
-        padding:clamp(12px,2.4vw,28px) clamp(12px,3vw,32px);
+        padding:calc(clamp(12px,2.4vw,28px) + var(--ag-safe-top))
+                calc(clamp(12px,3vw,32px) + var(--ag-safe-right))
+                clamp(12px,2.4vw,28px)
+                calc(clamp(12px,3vw,32px) + var(--ag-safe-left));
         display:flex;
         flex-direction:column;
         gap:clamp(16px,2.4vw,28px);
@@ -250,6 +270,19 @@ export const css = `
      .ag-chip-clickable {
         cursor: pointer;
         touch-action: manipulation;
+        position: relative;
+      }
+
+      /* The chips are 28px tall and are the way into Bärlauch, Gespräch,
+         Mission, Glossar and Stimmung — the smallest real navigation in the
+         app, on the smallest current iPhone. Rather than fatten them to 44pt
+         and wreck the chip row, the hit area is extended past the pill:
+         28 + 2*8 = 44pt tall, while the visible design is untouched. The row
+         gap is 8px, so ±4px sideways cannot make two chips overlap. */
+      .ag-chip-clickable::after {
+        content: "";
+        position: absolute;
+        inset: -8px -4px;
       }
       
       .ag-chip-clickable:hover {
@@ -1164,7 +1197,14 @@ export const css = `
       @keyframes ag-orbit-4{0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(-360deg)}}
 
       @media (max-width:760px){
-        .ag-frame{padding:clamp(8px,3vw,16px) clamp(8px,3vw,16px)}
+        /* Shorthand, so it has to re-apply the insets or it would drop the
+           top one again on exactly the phone widths that need it. */
+        .ag-frame{
+          padding:calc(clamp(8px,3vw,16px) + var(--ag-safe-top))
+                  calc(clamp(8px,3vw,16px) + var(--ag-safe-right))
+                  clamp(8px,3vw,16px)
+                  calc(clamp(8px,3vw,16px) + var(--ag-safe-left));
+        }
         .ag-shell{padding:clamp(16px,4vw,24px)}
         .ag-machine-wrap{max-width:220px}
         .ag-emoji{font-size:clamp(.85rem,2.4vw,1.05rem)}
@@ -1296,7 +1336,11 @@ export const css = `
       .ag-install-nudge-title{margin:0 0 2px;font-size:.9rem;font-weight:700;color:var(--ag-primary-dark)}
       .ag-install-nudge-copy{margin:0;font-size:.82rem;color:var(--ag-muted);line-height:1.4}
       .ag-install-nudge-actions{display:flex;align-items:center;gap:8px;flex:none}
-      .ag-install-nudge-dismiss{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1rem;padding:2px 4px;line-height:1;border-radius:4px}
+      /* 21x20 before. Apple's minimum is 44pt, and this is the one control on
+         the page you tap by accident instead of on purpose. Grown to 44 without
+         moving anything: the box stays visually small, the hit area does not. */
+      .ag-install-nudge-dismiss{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1rem;line-height:1;border-radius:4px;
+        min-width:44px;min-height:44px;padding:0;display:flex;align-items:center;justify-content:center;margin:-11px -11px -11px 0}
       .ag-install-nudge-dismiss:hover{color:var(--ag-text)}
       @media (prefers-color-scheme:dark){
         .ag-install-nudge{background:linear-gradient(135deg,rgba(100,160,255,.14),rgba(47,122,79,.12));border-color:rgba(100,160,255,.32)}
@@ -1429,7 +1473,7 @@ export const css = `
       /* Auto-shown on load: lift it out of the panel so it is actually seen. */
       .ag-notif-card.is-floating{
         position:fixed;left:12px;right:12px;z-index:1200;
-        bottom:calc(var(--ag-bottomnav-clearance,86px) + env(safe-area-inset-bottom));
+        bottom:calc(var(--ag-bottomnav-clearance,86px) + var(--ag-safe-bottom));
         max-width:520px;margin:0 auto;
         box-shadow:0 12px 40px rgba(0,0,0,.45);
         animation:ag-sheet-in 320ms var(--ag-ease) both;
@@ -1813,8 +1857,10 @@ export const css = `
         .ag-bottomnav{
           display:flex;
           position:fixed;
-          bottom:calc(12px + env(safe-area-inset-bottom));
-          left:16px;right:16px;
+          bottom:calc(12px + var(--ag-safe-bottom));
+          /* Side insets matter in landscape, where the notch eats one edge. */
+          left:calc(16px + var(--ag-safe-left));
+          right:calc(16px + var(--ag-safe-right));
           z-index:1000;
           border-radius:26px;
           background:rgba(255,255,255,.13);
@@ -1899,7 +1945,7 @@ export const css = `
         }
 
         /* Frame: enough padding to clear the floating pill */
-        .ag-frame{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+        .ag-frame{padding-bottom:calc(90px + var(--ag-safe-bottom))}
       }
 
       /* ── FAB ── */
@@ -1907,7 +1953,8 @@ export const css = `
       @media (max-width:900px){
         .ag-fab{
           display:flex;align-items:center;justify-content:center;
-          position:fixed;bottom:calc(60px + env(safe-area-inset-bottom) + 14px);right:16px;
+          position:fixed;bottom:calc(60px + var(--ag-safe-bottom) + 14px);
+          right:calc(16px + var(--ag-safe-right));
           z-index:999;width:52px;height:52px;border-radius:999px;
           background:linear-gradient(180deg,var(--ag-primary),var(--ag-primary-dark));
           color:#fffdf8;border:none;cursor:pointer;font-size:1.6rem;font-weight:400;line-height:1;
@@ -1922,7 +1969,7 @@ export const css = `
 
       /* ── Toast ── */
       .ag-toast-container{
-        position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));
+        position:fixed;bottom:calc(72px + var(--ag-safe-bottom));
         left:50%;transform:translateX(-50%);
         z-index:2000;display:flex;flex-direction:column;align-items:center;gap:8px;
         pointer-events:none;
@@ -1968,7 +2015,7 @@ export const css = `
       }
       /* Clear the floating bottom nav so Speichern is never half under it. */
       @media (max-width:900px){
-        #ag-werkstatt-form:not([hidden]){padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+        #ag-werkstatt-form:not([hidden]){padding-bottom:calc(76px + var(--ag-safe-bottom))}
       }
 
       /* ── Kapsel-Werkstatt ── */
@@ -2123,7 +2170,7 @@ export const css = `
           z-index:1010;
           background:var(--ag-surface);
           border-radius:var(--ag-radius-lg) var(--ag-radius-lg) 0 0;
-          padding:24px 20px calc(32px + env(safe-area-inset-bottom));
+          padding:24px 20px calc(32px + var(--ag-safe-bottom));
           max-height:88vh;overflow-y:auto;
           box-shadow:0 -8px 40px rgba(0,0,0,.28);
           margin:0;

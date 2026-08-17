@@ -45,11 +45,14 @@ SW_SRC = re.compile(
 )
 SW_OUT = 'Promise.reject(new Error("vendored: gacha SW owns this origin"))'
 
+# 44x44 minimum: this was 25x30, the smallest control on the page, and it is
+# the one you reach for one-handed at the top-left corner of a small phone.
 BACK_LINK = (
     '<a href="./index.html" aria-label="Zurück zum Gacha"\n'
     '     onclick="if (history.length > 1) { history.back(); return false; }"\n'
     '     style="text-decoration:none;font-size:1.05rem;line-height:1;color:var(--text2);'
-    'padding:0.35rem 0.55rem;border:1px solid var(--border);border-radius:10px;'
+    'min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;'
+    'border:1px solid var(--border);border-radius:10px;'
     'margin-right:0.6rem;flex:none">‹</a>\n  '
 )
 
