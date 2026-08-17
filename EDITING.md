@@ -32,7 +32,26 @@ Each category has:
 - `label`: what appears on the capsule result
 - `weight`: probability weight
 - `tone`: visual tone
-- `outcomes`: title/message pairs, each outcome optionally has a `link` field
+- `outcomes`: title/message pairs, plus these optional per-outcome fields:
+
+| Field | Effect |
+|---|---|
+| `link` | Spotify embeds as a player, anything else as a link button |
+| `voucher` | renders as a redeemable Gutschein in Verlauf |
+| `prompt` | gates the message — a question has to be answered first |
+| `token` | awards one of the 12 Sammeltoken emoji |
+| `freikarte` | grants a Freikarte (a reroll for a bad day) |
+
+**Adding or removing outcomes shifts the token maths.** Roughly one pull in
+five should award a token, and a token in a big category is seen far less
+often than one in a small category — so adding ten outcomes to Foto-Drop
+quietly halves the exposure of every token already in it. After editing, run
+`npm run validate`, and if you changed how many outcomes a category has, ask
+for the token spread to be re-derived rather than guessing. Bad pulls
+(Niete, Verflucht) are deliberately the most token-rich at ~35%.
+
+**Never add a token to an outcome whose text says there is no prize.** Two
+Nieten used to read "es gibt heute keine Kapsel" directly above a collectible.
 
 ### Outcome `link` field
 
@@ -99,8 +118,16 @@ special-day outcome is shown instead. Colors can also be overridden for that day
 | `label` | ✅ | Shown as the capsule category label |
 | `outcomes` | ✅ | Array of `{title, message}` — one is picked deterministically (stable across reloads) |
 | `tone` | optional | Visual style of the capsule (default: `"jackpot"`). Same values as categories: `quiet`, `soft`, `quest`, `warm`, `cursed`, `rare`, `photo`, `jackpot` |
+| `player` | optional | `"lennart"` or `"fionn"` — scopes the day to one app. **Omit it and the entry fires in both**, so a message addressed to one of them is also read by the other, and any token is banked twice |
 | `colors` | optional | Overrides any subset of the light-mode palette for that day |
 | `darkColors` | optional | Same but for dark mode |
+| `unlockTime` | optional | `"HH:MM"` — a `link` on the outcome stays hidden until then |
+| `photoAlt` | optional | Shows the photo with this `alt` from `photos.json` |
+
+A special-day outcome can carry `token` too, exactly like a normal outcome.
+
+> **The list is empty right now.** It was cleared deliberately; the sixteen
+> previous entries are in git history if you want any back.
 
 ### Available color keys
 

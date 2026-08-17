@@ -198,6 +198,30 @@ if (specialDaysConfig !== null) {
   }
 }
 
+// ── README drift ─────────────────────────────────────────────────────────────
+// The odds table in the README is hand-maintained and has been wrong before —
+// once by a whole category. It is the first thing anyone reads to decide what
+// to edit, so a stale row is worse than no table. Warn (not fail) when a row
+// no longer matches config: docs lagging a config change is a nudge, not a
+// reason to block a commit.
+try {
+  const readme = fs.readFileSync(path.join(__dirname, "..", "README.md"), "utf8");
+  for (const category of outcomes.categories || []) {
+    const row = new RegExp(
+      `^\\|[^|]*\\|\\s*\`${category.id}\`\\s*\\|([^|]*)\\|([^|]*)\\|([^|]*)\\|`, "m");
+    const m = readme.match(row);
+    if (!m) { addWarning(`README has no odds row for "${category.id}".`); continue; }
+    const weight = Number(m[1].trim());
+    const count = Number(m[3].trim());
+    if (weight !== category.weight) {
+      addWarning(`README weight for "${category.id}" is ${weight}, config says ${category.weight}.`);
+    }
+    if (count !== category.outcomes.length) {
+      addWarning(`README outcome count for "${category.id}" is ${count}, config says ${category.outcomes.length}.`);
+    }
+  }
+} catch (_e) { /* no README, or unreadable — not this script's problem */ }
+
 if (warnings.length) {
   console.warn("\nWarnings:");
   for (const warning of warnings) console.warn(`- ${warning}`);

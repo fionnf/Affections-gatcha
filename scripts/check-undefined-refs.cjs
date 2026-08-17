@@ -120,12 +120,16 @@ function collect(ast) {
 
 function scan(file) {
   const src = fs.readFileSync(file, "utf8");
-  let ast;
-  try {
-    ast = acorn.parse(src, { ecmaVersion: "latest", sourceType: "module", locations: true });
-  } catch (err) {
-    return [{ name: `(parse error) ${err.message}`, line: 0 }];
+  // CommonJS files can hold syntax that strict module parsing rejects, so fall
+  // back to script mode rather than reporting a bogus parse error.
+  let ast, firstErr;
+  for (const sourceType of ["module", "script"]) {
+    try {
+      ast = acorn.parse(src, { ecmaVersion: "latest", sourceType, locations: true, allowReturnOutsideFunction: true });
+      break;
+    } catch (err) { firstErr = firstErr || err; }
   }
+  if (!ast) return [{ name: `(parse error) ${firstErr.message}`, line: 0 }];
   const { declared, used } = collect(ast);
   const bad = [];
   for (const [name, line] of used) {
@@ -141,7 +145,13 @@ for (const root of roots.length ? roots : ["src", "sw.js"]) {
   const p = path.resolve(root);
   if (!fs.existsSync(p)) continue;
   if (fs.statSync(p).isDirectory()) {
-    for (const f of fs.readdirSync(p)) if (f.endsWith(".js")) files.push(path.join(p, f));
+    // .cjs counts. Globbing only .js quietly skipped every build and CI script
+    // in scripts/ — including this one — while the README claimed the
+    // directory was covered. A stale reference in validate-gacha-config.cjs
+    // sat inside a try/catch and went unnoticed exactly that way.
+    for (const f of fs.readdirSync(p)) {
+      if (/\.(js|cjs|mjs)$/.test(f)) files.push(path.join(p, f));
+    }
   } else {
     files.push(p);
   }
