@@ -497,20 +497,28 @@ export function renderTokenBank() {
   const total = types.reduce((n, t) => n + t.raw, 0);
   const ready = types.filter((t) => t.done).length;
 
-  // Complete first, then closest to complete, then untouched.
-  types.sort((a, b) => (b.done - a.done) || (b.count / b.goal - a.count / a.goal) || a.goal - b.goal);
+  // Only what has actually been collected. Twelve rows of which ten read 0/5
+  // is a list of things you don't have; showing the ones you do turns the
+  // panel into a collection. The hidden ones are still counted below, so the
+  // set stays discoverable without being spelled out.
+  const held = types.filter((t) => t.raw > 0);
+  const hidden = types.length - held.length;
+
+  // Complete first, then closest to complete.
+  held.sort((a, b) => (b.done - a.done) || (b.count / b.goal - a.count / a.goal) || a.goal - b.goal);
 
   const head = $("[data-ag-tokenbank-head]");
   if (head) {
+    const rest = hidden ? ` · ${hidden} ${hidden === 1 ? "Sorte" : "Sorten"} noch unentdeckt` : "";
     head.textContent = total === 0
       ? "Noch keine Sammeltokens — sie fallen bei etwa jeder fünften Kapsel."
       : ready
-        ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar`
-        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt`;
+        ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar${rest}`
+        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt${rest}`;
   }
 
   wrap.innerHTML = "";
-  for (const t of types) {
+  for (const t of held) {
     const row = document.createElement("div");
     row.className = "ag-tokenrow" + (t.done ? " is-done" : "") + (t.raw === 0 ? " is-empty" : "");
     row.innerHTML = `

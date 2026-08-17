@@ -1035,6 +1035,20 @@ export const css = `
         color:var(--ag-muted);font-size:.95rem;line-height:1.55;background:var(--ag-surface-2);
         overflow-wrap:break-word;word-break:break-word;
       }
+      /* Waiting on the sheet, not empty. A turning ring so the difference is
+         visible at a glance rather than only in the wording. */
+      .ag-history-empty.is-loading{
+        display:flex;align-items:center;gap:10px;border-style:solid;
+      }
+      .ag-history-empty.is-loading::before{
+        content:"";width:15px;height:15px;flex:0 0 auto;border-radius:50%;
+        border:2px solid var(--ag-border);border-top-color:var(--ag-primary);
+        animation:ag-spin .7s linear infinite;
+      }
+      @keyframes ag-spin{to{transform:rotate(360deg)}}
+      @media (prefers-reduced-motion:reduce){
+        .ag-history-empty.is-loading::before{animation-duration:2.4s}
+      }
       .ag-history-item{
         padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
         background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
@@ -1223,9 +1237,22 @@ export const css = `
 
       /* ── Gipfelbuch / Berge ── */
       .ag-berge-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-      .ag-berge-stats{display:flex;flex-direction:column;gap:2px}
+      .ag-berge-stats{display:flex;flex-direction:column;gap:8px;min-width:0}
+      /* Two figures share one row and never wrap. Letting them size to their
+         content pushed them to 136px + 154px against 285px of card, so they
+         stacked and the header grew to a full screen before the first summit.
+         flex:1 1 0 splits the row evenly and lets the analogy text wrap
+         instead of the layout. */
+      .ag-berge-figures{display:flex;gap:14px;flex-wrap:nowrap;align-items:flex-start}
+      .ag-berge-figure{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0}
+      .ag-berge-analogy{overflow-wrap:anywhere}
       .ag-berge-total-label{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted)}
-      .ag-berge-total-elev{font-size:2rem;font-weight:800;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1}
+      .ag-berge-total-elev{font-size:2rem;font-weight:800;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+      .ag-berge-gipfel-cmp{font-size:.8rem;color:var(--ag-muted);font-style:italic}
+      .ag-berge-stats-kicker{
+        font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+        color:var(--ag-muted);opacity:.75;
+      }
       .ag-berge-add-btn{flex-shrink:0}
 
       .ag-berge-form-grid{display:grid;gap:10px;margin-bottom:14px}
@@ -1712,6 +1739,12 @@ export const css = `
 
       /* Berge stats counter: bigger */
       .ag-berge-total-elev{font-size:2.4rem}
+      /* Two of them at 2.4rem cannot sit side by side on a phone, so they wrap
+         and the header grew to 331px — a full screen of chrome before the
+         first summit. Smaller here buys the single row back. */
+      @media (max-width:430px){
+        .ag-berge-total-elev{font-size:1.9rem}
+      }
 
       /* ── Glossary language tab strip ── */
       /* Four language tabs already exceed a narrow phone; let the row scroll

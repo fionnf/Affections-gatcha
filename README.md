@@ -581,8 +581,17 @@ The ⛰ **Berge** tab is a mountain log.
 - **Location search:** Nominatim (OpenStreetMap) autocomplete — saves lat/lng with the entry
 - **Map:** Leaflet dark map below the list showing all located peaks; CH/EU toggle; click a marker to scroll to the entry
 - **AllTrails:** if a widget URL is pasted, the map embeds directly in the card
-- **Total elevation counter** at the top with analogy (e.g. "≈ 0.8× Pilatus")
-- Entries sync to the Google Sheet (`Gipfelbuch` worksheet)
+- **Two counters** at the top — total Höhenmeter and total Strecke — each with
+  an analogy ("≈ 0,8× Titlis", "≈ 2× Marathon"), plus a comparison against
+  *their own* highest logged summit ("≈ 1,5× euer höchster Gipfel (Grosse
+  Mythen)"). The Gipfel comparison reads `elevation` (the summit's real
+  height), never `elevGain`, or the sentence would not be true. Distance
+  references are all fixed numbers — a marathon is exactly 42.195 km — rather
+  than routes, whose length depends on which way you walk.
+- Entries sync to the Google Sheet (`Gipfelbuch` worksheet), but the panel
+  **renders from the local cache first** and refreshes when the sheet answers.
+  Rendering only after the sync left the tab showing "— m" and no entries for
+  as long as the sheet took, which on a cold Apps Script is several seconds.
 
 ---
 

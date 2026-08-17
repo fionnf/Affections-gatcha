@@ -53,6 +53,17 @@ export function formatElev(m) {
   return Number(m).toLocaleString("de-CH") + " m";
 }
 
+// Kilometres for the Gipfelbuch header. One decimal below 100 km (7,4 km reads
+// like a real walk), none above (248 km, not 248,3) — the extra digit stops
+// carrying information once the number is that big.
+export function formatKm(km) {
+  const n = Number(km);
+  if (!Number.isFinite(n)) return "—";
+  return n < 100
+    ? n.toLocaleString("de-CH", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    : Math.round(n).toLocaleString("de-CH");
+}
+
 export function safeUrl(url) {
   if (typeof url !== "string") return "";
   try {

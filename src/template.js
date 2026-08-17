@@ -450,12 +450,6 @@ export const html = `
               </div>
             </article>
 
-            <details class="ag-card ag-rules">
-              <summary data-ag-rules-title>Maschinenregeln</summary>
-              <p data-ag-rules-text></p>
-              <ul data-ag-odds></ul>
-            </details>
-
             <div class="ag-card ag-hug-card" data-ag-hug-card>
               <div class="ag-hug-row">
                 <div class="ag-hug-text">
@@ -524,6 +518,12 @@ export const html = `
                 <button class="ag-secondary" type="button" data-ag-notif-enable>Erinnern</button>
               </div>
             </div>
+
+            <details class="ag-card ag-rules">
+              <summary data-ag-rules-title>Maschinenregeln</summary>
+              <p data-ag-rules-text></p>
+              <ul data-ag-odds></ul>
+            </details>
           </section>
 
           <section class="ag-panel" data-ag-panel-history role="tabpanel" hidden>
@@ -562,9 +562,20 @@ export const html = `
           <section class="ag-panel" data-ag-panel-berge role="tabpanel" hidden>
             <div class="ag-card ag-berge-header" data-ag-berge-header>
               <div class="ag-berge-stats">
-                <span class="ag-berge-total-label">Gemeinsame Höhenmeter</span>
-                <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
-                <span class="ag-berge-analogy" data-ag-berge-analogy hidden></span>
+                <span class="ag-berge-stats-kicker">Gemeinsam erwandert</span>
+                <div class="ag-berge-figures">
+                  <div class="ag-berge-figure">
+                    <span class="ag-berge-total-label">Höhenmeter</span>
+                    <span class="ag-berge-total-elev" data-ag-berge-total>— m</span>
+                    <span class="ag-berge-analogy" data-ag-berge-analogy hidden></span>
+                  </div>
+                  <div class="ag-berge-figure">
+                    <span class="ag-berge-total-label">Strecke</span>
+                    <span class="ag-berge-total-elev" data-ag-berge-total-dist>— km</span>
+                    <span class="ag-berge-analogy" data-ag-berge-dist-analogy hidden></span>
+                  </div>
+                </div>
+                <span class="ag-berge-gipfel-cmp" data-ag-berge-gipfel-cmp hidden></span>
               </div>
               <button class="ag-button ag-berge-add-btn" type="button" data-ag-berge-add>
                 <span class="ag-button-orb" aria-hidden="true"></span>
