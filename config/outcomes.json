@@ -1679,6 +1679,69 @@
         {
           "title": "Ohne Kommentar",
           "message": "Hier ist ein Foto. Die Maschine sagt heute ausnahmsweise nichts dazu."
+        },
+        {
+          "title": "Herzkammer",
+          "message": "Die Maschine hat ein Fach, in dem nur du vorkommst. Heute macht sie es kurz auf."
+        },
+        {
+          "title": "Warmgehalten",
+          "message": "Dieses Bild lag ganz oben im Stapel, weil es am häufigsten angeschaut wurde. Die Maschine gibt das nur sehr ungern zu."
+        },
+        {
+          "title": "Zwei Sekunden Glück",
+          "message": "Jemand hat auf den Auslöser gedrückt, weil es zu schön war, um es nur im Kopf zu behalten."
+        },
+        {
+          "title": "Statistisch auffällig",
+          "message": "Die Maschine hat das Archiv sortiert und etwas bemerkt: Auf den meisten Bildern bist du. Sie hält das für kein Versehen."
+        },
+        {
+          "title": "Rückspultaste",
+          "message": "Kurz zurück in einen Moment, in dem alles genau richtig war. Einmal anschauen, dann läuft der Tag weiter.",
+          "token": "🎬"
+        },
+        {
+          "title": "Sonntagslicht",
+          "message": "So ein Licht gibt es nur, wenn niemand Pläne hat. Die Maschine hat etwas davon aufgehoben, für heute."
+        },
+        {
+          "title": "Herzschlagfoto",
+          "message": "Nicht das schärfste Bild im Archiv. Aber das mit dem schnellsten Puls.",
+          "token": "🎧"
+        },
+        {
+          "title": "Nicht gelöscht",
+          "message": "Jemand hat dieses Bild behalten. Bei jedem Aufräumen wieder nicht gelöscht. Das ist eigentlich schon die ganze Nachricht."
+        },
+        {
+          "title": "Erste Reihe",
+          "message": "Ganz vorne im Archiv, direkt griffbereit. Die Maschine sagt, das sei Zufall. Es ist kein Zufall."
+        },
+        {
+          "title": "Die Maschine wird weich",
+          "message": "Sie hat es heute wirklich mit Sachlichkeit versucht. Es klappt nicht. Hier, nimm einfach das Bild."
+        },
+        {
+          "title": "Grundlos schön",
+          "message": "Kein Jahrestag, kein Anlass, keine Pointe. Nur ein Moment, den jemand zu gut fand, um ihn wegzuwerfen."
+        },
+        {
+          "title": "Zwischen zwei Terminen",
+          "message": "Diesen Moment hatte niemand eingeplant. Vielleicht ist er genau deshalb so gut geworden.",
+          "token": "🍕"
+        },
+        {
+          "title": "Lieblingsstelle",
+          "message": "Es gibt ein Bild, bei dem die Maschine jedes Mal kurz hängen bleibt. Das hier ist es."
+        },
+        {
+          "title": "Bitte lächeln",
+          "message": "Das musste niemand sagen. Es war schon so, bevor die Kamera überhaupt bereit war."
+        },
+        {
+          "title": "Zum Behalten",
+          "message": "Die Maschine gibt dieses Bild nicht nur aus. Sie schenkt es dir richtig, mit allem was dranhängt."
         }
       ]
     },
