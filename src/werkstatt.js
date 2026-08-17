@@ -182,7 +182,17 @@ function targetName() {
   return WERKSTATT_TARGET.charAt(0).toLocaleUpperCase("de-CH") + WERKSTATT_TARGET.slice(1);
 }
 
+// Off only if config says so — an older or missing config keeps the feature,
+// so it can never silently disappear because a fetch came back thin. Note this
+// gates authoring, not drawing: capsules already in the sheet stay there and
+// are still pulled, so turning it back on loses nothing.
+export function werkstattEnabled() {
+  const features = state.theme && state.theme.features;
+  return !features || features.werkstatt !== false;
+}
+
 export function openWerkstatt() {
+  if (!werkstattEnabled()) return;
   const panel = document.getElementById("ag-werkstatt-panel");
   if (!panel) return;
   panel.hidden = false;
@@ -202,6 +212,7 @@ export function closeWerkstatt() {
 // Keeps the entry card's subtitle honest — it's the only place Lennart sees,
 // at a glance, how much of Fionn's machine is his handwriting.
 export function renderWerkstattEntry() {
+  if (!werkstattEnabled()) return;
   const sub = document.querySelector("[data-ag-werkstatt-entry-sub]");
   if (!sub) return;
   const mine = (state.werkstatt || []).filter((c) => (c.forToken || WERKSTATT_TARGET) === WERKSTATT_TARGET);
