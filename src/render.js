@@ -1408,7 +1408,9 @@ function renderHistoryTally(allEntries) {
     : `${total} Kapseln geöffnet${since ? `, seit ${since}` : ""}.`;
 }
 
-const HISTORY_PAGE_SIZE = 60;
+// 15 rather than 60: a whole page of capsules is a lot of scrolling to reach
+// anything below the history, and the album now sits under it.
+const HISTORY_PAGE_SIZE = 15;
 let historyShownCount = HISTORY_PAGE_SIZE;
 
 // ── Album (Verlauf) ──────────────────────────────────────────────────────────

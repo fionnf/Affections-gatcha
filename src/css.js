@@ -1050,7 +1050,31 @@ export const css = `
         .ag-history-empty.is-loading::before{animation-duration:2.4s}
       }
       /* ── Album (Verlauf) ── */
-      .ag-album-note{margin:0 0 10px;font-size:.85rem;color:var(--ag-muted)}
+      /* Collapsed by default: with a few hundred pulls behind it this grid gets
+         tall, and it sits at the very bottom of the tab. Same chevron
+         behaviour as Maschinenregeln so it reads as the same kind of control. */
+      .ag-album-card{color:var(--ag-text)}
+      .ag-album-summary{
+        list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;
+        flex-wrap:wrap;
+      }
+      .ag-album-summary::-webkit-details-marker{display:none}
+      .ag-album-summary:before{
+        content:"";width:8px;height:8px;flex:0 0 auto;align-self:center;
+        border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+        transform:rotate(-45deg);transition:transform 200ms var(--ag-ease);
+      }
+      .ag-album-card[open] .ag-album-summary:before{transform:rotate(45deg)}
+      .ag-album-summary:focus-visible{outline:2px solid var(--ag-gold);outline-offset:3px;border-radius:4px}
+      .ag-album-summary .ag-wish-label{margin:0}
+      .ag-album-note{margin:0;font-size:.85rem;color:var(--ag-muted)}
+      .ag-album-card[open] .ag-album-grid{margin-top:12px}
+      /* The UA hides a closed <details>' children with display:none, but our
+         own .ag-album-grid rule sets display:grid and is more specific, so it
+         beat the UA rule and the grid stayed on screen while the card
+         reported itself closed. (No backticks in this file — it is one big JS
+         template literal and they terminate it.) */
+      .ag-album-card:not([open]) .ag-album-grid{display:none}
       /* auto-fill keeps the tiles a sane size at any width instead of
          stretching three of them across a tablet. */
       .ag-album-grid{

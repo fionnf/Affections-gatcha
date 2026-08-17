@@ -552,13 +552,13 @@ export const html = `
               <button class="ag-secondary ag-history-more" type="button" data-ag-history-more hidden>Mehr anzeigen</button>
             </div>
 
-            <div class="ag-card ag-album-card" data-ag-album-card hidden>
-              <div class="ag-history-header">
-                <p class="ag-wish-label">Euer Album</p>
-              </div>
-              <p class="ag-album-note" data-ag-album-note></p>
+            <details class="ag-card ag-album-card" data-ag-album-card hidden>
+              <summary class="ag-album-summary">
+                <span class="ag-wish-label">Unser Album</span>
+                <span class="ag-album-note" data-ag-album-note></span>
+              </summary>
               <div class="ag-album-grid" data-ag-album></div>
-            </div>
+            </details>
           </section>
           <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
             <div class="ag-card">
