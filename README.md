@@ -476,13 +476,27 @@ One-time milestone banners at 7, 14, 21, and 30 days.
 | Tab | Content |
 |---|---|
 | 🎰 **Heute** | Today's capsule pull |
-| 🗓 **Verlauf** | Pull history — month calendar, 60 per page, total counter |
+| 🗓 **Verlauf** | Token-Bank, pull history (month calendar, 60 per page, total counter), and the album |
 | ⭐ **Lieblinge** | Starred favourites |
 | ⛰ **Berge** | Gipfelbuch — mountain log |
 | 💡 **Licht** | Lichtsteuerung (opens `lichter.html`) |
 
 Fionn's page adds a sixth, PIN-gated **📥 Eingänge** tab — see
 [admin/README.md](admin/README.md).
+
+---
+
+## Album (Verlauf)
+
+At the bottom of Verlauf, every photo this player has **actually pulled**, as a
+square grid; tapping one opens the lightbox.
+
+It is built from the pull history, never from `state.photos`. That is the whole
+point — `state.photos` is the entire shared library, so rendering from it would
+show photos that have not been drawn yet and spoil future Foto-Drops. A photo
+appears here because it came out of the machine. Videos are skipped, a photo
+drawn on two different days appears once, and a tile whose URL 404s removes
+itself rather than leaving a broken image in the grid.
 
 ---
 

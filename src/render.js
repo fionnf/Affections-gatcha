@@ -1411,6 +1411,66 @@ function renderHistoryTally(allEntries) {
 const HISTORY_PAGE_SIZE = 60;
 let historyShownCount = HISTORY_PAGE_SIZE;
 
+// ── Album (Verlauf) ──────────────────────────────────────────────────────────
+// Every photo this player has actually pulled, newest first. Deliberately not
+// state.photos: that is the whole shared library, and showing an unpulled
+// photo here would spoil a Foto-Drop that hasn't happened yet. The history is
+// the only honest source — a photo is in the album because it was drawn.
+export function pulledPhotos(entries) {
+  const seen = new Set();
+  const shots = [];
+  for (const e of Array.isArray(entries) ? entries : []) {
+    const p = e && e.photo;
+    if (!p || !p.url || p.type === "video") continue;   // stills only
+    if (seen.has(p.url)) continue;                       // same photo, two days
+    seen.add(p.url);
+    shots.push({ url: p.url, caption: (p.caption || "").trim(), alt: p.alt || "", day: e.day });
+  }
+  return shots;
+}
+
+export function renderPulledAlbum(entries) {
+  const card = $("[data-ag-album-card]");
+  const grid = $("[data-ag-album]");
+  const note = $("[data-ag-album-note]");
+  if (!card || !grid) return;
+
+  const shots = pulledPhotos(entries);
+
+  card.hidden = shots.length === 0;
+  if (!shots.length) { grid.innerHTML = ""; return; }
+
+  if (note) {
+    note.textContent = shots.length === 1
+      ? "Ein Bild, das die Maschine schon ausgespuckt hat."
+      : `${shots.length} Bilder, die die Maschine schon ausgespuckt hat.`;
+  }
+
+  grid.innerHTML = "";
+  for (const shot of shots) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ag-album-tile";
+    btn.title = shot.caption || shot.alt || shot.day;
+    btn.setAttribute("aria-label", shot.caption || shot.alt || `Foto vom ${shot.day}`);
+
+    const img = document.createElement("img");
+    img.src = shot.url;
+    img.alt = shot.alt || shot.caption || "Foto von uns";
+    img.loading = "lazy";
+    img.decoding = "async";
+    // A dead URL would otherwise leave a broken-image tile sitting in the grid.
+    img.addEventListener("error", () => btn.remove(), { once: true });
+    btn.appendChild(img);
+
+    btn.addEventListener("click", () => {
+      haptic(8);
+      openLightbox(shot.url, shot.caption, false, shot.alt);
+    });
+    grid.appendChild(btn);
+  }
+}
+
 export function renderHistory() {
   renderTokenBank();
   const list = $("[data-ag-history]");
@@ -1427,6 +1487,7 @@ export function renderHistory() {
 
   renderKapselKalender(allEntries);
   renderHistoryTally(allEntries);
+  renderPulledAlbum(allEntries);
 
   // Open (unredeemed) voucher count — used for the badge on the "Offen" chip.
   const openVouchers = allEntries.filter((e) => isVoucherEntry(e) && !e.used).length;

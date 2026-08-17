@@ -1049,6 +1049,24 @@ export const css = `
       @media (prefers-reduced-motion:reduce){
         .ag-history-empty.is-loading::before{animation-duration:2.4s}
       }
+      /* ── Album (Verlauf) ── */
+      .ag-album-note{margin:0 0 10px;font-size:.85rem;color:var(--ag-muted)}
+      /* auto-fill keeps the tiles a sane size at any width instead of
+         stretching three of them across a tablet. */
+      .ag-album-grid{
+        display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));
+        gap:6px;
+      }
+      .ag-album-tile{
+        position:relative;aspect-ratio:1;padding:0;border:0;border-radius:var(--ag-radius-sm,10px);
+        overflow:hidden;cursor:pointer;background:var(--ag-surface-2);
+        box-shadow:var(--ag-shadow-soft);transition:transform .16s ease,box-shadow .16s ease;
+      }
+      .ag-album-tile img{width:100%;height:100%;object-fit:cover;display:block}
+      .ag-album-tile:hover{transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(0,0,0,.5)}
+      .ag-album-tile:focus-visible{outline:2px solid var(--ag-gold);outline-offset:2px}
+      @media (prefers-reduced-motion:reduce){.ag-album-tile{transition:none}}
+
       .ag-history-item{
         padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
         background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
