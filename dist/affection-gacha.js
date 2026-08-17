@@ -288,8 +288,13 @@
          app, on the smallest current iPhone. Rather than fatten them to 44pt
          and wreck the chip row, the hit area is extended past the pill:
          28 + 2*8 = 44pt tall, while the visible design is untouched. The row
-         gap is 8px, so ±4px sideways cannot make two chips overlap. */
-      .ag-chip-clickable::after {
+         gap is 8px, so ±4px sideways cannot make two chips overlap.
+
+         On ::before deliberately: .ag-chip-mission-active::after is the gold
+         "you have a mission" dot, and one element only gets one ::after. When
+         a chip went active the dot replaced this box, so the Mission chip lost
+         its 44pt target at exactly the moment it most wanted tapping. */
+      .ag-chip-clickable::before {
         content: "";
         position: absolute;
         inset: -8px -4px;
@@ -1036,6 +1041,8 @@
       .ag-history-filter-chip.is-active{background:var(--ag-green);border-color:var(--ag-green);color:#fff;font-weight:600}
       .ag-voucher-actions{margin-top:10px;display:flex;align-items:center;gap:8px}
       .ag-voucher-use{background:var(--ag-gold,#caa45a);border:none;border-radius:8px;padding:6px 14px;font-size:.86rem;font-weight:600;color:#1a1a1a;cursor:pointer;transition:transform .15s,filter .15s;line-height:1.3}
+      .ag-voucher-use{position:relative}
+      .ag-voucher-use::after{content:"";position:absolute;inset:-7px -2px}
       .ag-voucher-use:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
       .ag-voucher-use:disabled{opacity:.5;cursor:default}
       .ag-voucher-used{display:inline-flex;align-items:center;gap:4px;font-size:.84rem;color:var(--ag-muted);font-style:italic}
@@ -1334,11 +1341,15 @@
       }
       .ag-gipfel-card:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       @media (prefers-color-scheme:dark){.ag-gipfel-card{background:rgba(23,32,23,.7)}}
+      /* The elevation and the action buttons are both flex-shrink:0, so a long
+         peak name used to push the edit/delete pair 28px past the right edge
+         of a 375px screen. Let the name block shrink and the row wrap. */
       .ag-gipfel-head{
         display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-        margin-bottom:6px;
+        margin-bottom:6px;flex-wrap:wrap;
       }
-      .ag-gipfel-name{font-size:1rem;font-weight:800;color:var(--ag-text);line-height:1.3;margin-bottom:2px}
+      .ag-gipfel-head-info{flex:1 1 auto;min-width:0}
+      .ag-gipfel-name{font-size:1rem;font-weight:800;color:var(--ag-text);line-height:1.3;margin-bottom:2px;overflow-wrap:anywhere}
       .ag-gipfel-date{font-size:.78rem;color:var(--ag-muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
       .ag-gipfel-elev{
         font-size:1.35rem;font-weight:800;
@@ -2295,8 +2306,28 @@
         opacity:.55;transition:opacity 120ms,background 120ms,color 120ms;
         -webkit-tap-highlight-color:transparent;
       }
+      .ag-gipfel-edit,.ag-gipfel-delete{position:relative}
+      .ag-gipfel-edit::after,.ag-gipfel-delete::after{content:"";position:absolute;inset:-6px}
       .ag-gipfel-edit:hover,.ag-gipfel-delete:hover{
         opacity:1;background:var(--ag-surface-2);color:var(--ag-text);
+      }
+
+      /* ── Remaining sub-44pt controls ──────────────────────────────────────
+         Each keeps its painted size and gains the target from an absolutely
+         positioned ::after with negative insets, so the layout is untouched.
+         Measured on a 375x812 mini: star 20x16, sync 31x28, filter chips
+         h30, calendar arrows 26x22, <summary> rows h24. */
+      .ag-history-star{position:relative}
+      .ag-history-star::after{content:"";position:absolute;inset:-14px -12px}
+      .ag-sync-btn{position:relative}
+      .ag-sync-btn::after{content:"";position:absolute;inset:-8px -7px}
+      .ag-history-filter-chip{position:relative}
+      .ag-history-filter-chip::after{content:"";position:absolute;inset:-7px 0}
+      .ag-kalender-nav{position:relative}
+      .ag-kalender-nav::after{content:"";position:absolute;inset:-11px -9px}
+      .ag-rules summary,.ag-album-summary{position:relative}
+      .ag-rules summary::after,.ag-album-summary::after{
+        content:"";position:absolute;inset:-10px -4px;
       }
       .ag-gipfel-delete:hover{color:#c0392b}
 
