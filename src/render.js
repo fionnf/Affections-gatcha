@@ -202,51 +202,85 @@ export function renderMilestoneBanner(streak) {
 
 // ── PIN gates ────────────────────────────────────────────────────────────────
 
+// `prompt` is one question or several. Several render as their own labelled
+// field, and the answers come back as one string with each question above its
+// answer — so everything downstream (promptAnswer on the history entry, the
+// PromptAnswers sheet, the email) keeps taking a single string and none of it
+// had to change. A lone question still yields just the bare answer, exactly
+// as before.
 export function buildPromptGate(prompt, onSubmit) {
+  const questions = (Array.isArray(prompt) ? prompt : [prompt])
+    .map((q) => String(q || "").trim())
+    .filter(Boolean);
+  if (!questions.length) questions.push("");
+
   const wrap = document.createElement("div");
   wrap.className = "ag-prompt-gate";
-  const q = document.createElement("p");
-  q.className = "ag-prompt-question";
-  q.textContent = "💭 " + prompt;
-  const textarea = document.createElement("textarea");
-  textarea.className = "ag-prompt-textarea";
-  textarea.placeholder = "Schreib hier deine Antwort...";
-  textarea.rows = 4;
+
+  const fields = questions.map((question, idx) => {
+    const field = document.createElement("div");
+    field.className = "ag-prompt-field";
+    const q = document.createElement("p");
+    q.className = "ag-prompt-question";
+    q.textContent = (idx === 0 ? "💭 " : "🌱 ") + question;
+    const textarea = document.createElement("textarea");
+    textarea.className = "ag-prompt-textarea";
+    textarea.placeholder = "Schreib hier deine Antwort...";
+    textarea.rows = questions.length > 1 ? 3 : 4;
+    textarea.setAttribute("aria-label", question);
+    field.appendChild(q);
+    field.appendChild(textarea);
+    wrap.appendChild(field);
+    return { question, textarea };
+  });
+
   const err = document.createElement("p");
   err.className = "ag-pin-err";
   err.hidden = true;
-  err.textContent = "Bitte erst antworten.";
+  err.textContent = questions.length > 1 ? "Bitte beide beantworten." : "Bitte erst antworten.";
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "ag-button";
   btn.style.cssText = "width:100%;margin-top:4px";
   btn.textContent = "Kapsel öffnen ✨";
+
   function attempt() {
-    const val = textarea.value.trim();
-    if (!val) {
+    const empty = fields.filter((f) => !f.textarea.value.trim());
+    if (empty.length) {
       err.hidden = false;
-      textarea.classList.add("ag-pin-shake");
-      setTimeout(() => textarea.classList.remove("ag-pin-shake"), 450);
+      for (const f of empty) {
+        f.textarea.classList.add("ag-pin-shake");
+        setTimeout(() => f.textarea.classList.remove("ag-pin-shake"), 450);
+      }
+      empty[0].textarea.focus();
       return;
     }
-    onSubmit(val);
+    const answer = fields.length === 1
+      ? fields[0].textarea.value.trim()
+      : fields.map((f) => f.question + "\n" + f.textarea.value.trim()).join("\n\n");
+    onSubmit(answer);
   }
+
   btn.addEventListener("click", attempt);
-  textarea.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) attempt();
-  });
-  wrap.appendChild(q);
-  wrap.appendChild(textarea);
+  for (const f of fields) {
+    f.textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) attempt();
+    });
+  }
   wrap.appendChild(err);
   wrap.appendChild(btn);
   return wrap;
+}
+
+function promptText(prompt) {
+  return Array.isArray(prompt) ? prompt.join("\n") : prompt;
 }
 
 function _firePromptNotification(pull, answer) {
   try {
     const cfg = state.backup;
     if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-    const body = JSON.stringify({ type: "prompt-answer", token: pull.token, day: pull.day, prompt: pull.outcome.prompt, answer });
+    const body = JSON.stringify({ type: "prompt-answer", token: pull.token, day: pull.day, prompt: promptText(pull.outcome.prompt), answer });
     const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
     fetch(cfg.endpointUrl, opts).catch(() => { fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}); });
   } catch (_e) {}
