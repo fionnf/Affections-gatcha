@@ -9,7 +9,10 @@
         {
           "title": "Fünf Monate heute 🌿",
           "message": "Fünf Monate. 🌿\n\nUnd das schönste daran ist nicht, dass alles gleich geblieben ist, sondern dass es jede Woche ein bisschen klarer wird. Wir verstehen uns besser als letzten Monat, und letzten Monat schon besser als davor.\n\nUnd ich mag, dass wir das immer noch herausfinden. Wann du Ruhe brauchst und wann Nähe. Wann ein Blick reicht und kein Satz nötig ist. Wie wir sind, wenn wir müde sind, oder albern, oder uns uneinig. Das fühlt sich nicht nach Arbeit an, das ist das lustigste Teil daran.\n\nEs wird einfacher miteinander. Nicht langweiliger, einfacher. Wir finden schneller zueinander zurück, reden ehrlicher, lachen früher.\n\nFünf Monate, und ich habe trozdem das Gefühl, gerade erst angefangen zu haben, dich richtig kennenzulernen. Auf alles, was wir noch über einander herausfinden. 💚",
-          "prompt": "Was möchtest du, dass ich besser an dir verstehe? Auch etwas Kleines zählt.",
+          "prompt": [
+            "Was möchtest du, dass ich besser an dir verstehe? Auch etwas Kleines zählt.",
+            "Und was möchtest du besser an mir verstehen?"
+          ],
           "token": "💚"
         }
       ]
