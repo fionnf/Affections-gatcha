@@ -497,20 +497,28 @@ export function renderTokenBank() {
   const total = types.reduce((n, t) => n + t.raw, 0);
   const ready = types.filter((t) => t.done).length;
 
-  // Complete first, then closest to complete, then untouched.
-  types.sort((a, b) => (b.done - a.done) || (b.count / b.goal - a.count / a.goal) || a.goal - b.goal);
+  // Only what has actually been collected. Twelve rows of which ten read 0/5
+  // is a list of things you don't have; showing the ones you do turns the
+  // panel into a collection. The hidden ones are still counted below, so the
+  // set stays discoverable without being spelled out.
+  const held = types.filter((t) => t.raw > 0);
+  const hidden = types.length - held.length;
+
+  // Complete first, then closest to complete.
+  held.sort((a, b) => (b.done - a.done) || (b.count / b.goal - a.count / a.goal) || a.goal - b.goal);
 
   const head = $("[data-ag-tokenbank-head]");
   if (head) {
+    const rest = hidden ? ` · ${hidden} ${hidden === 1 ? "Sorte" : "Sorten"} noch unentdeckt` : "";
     head.textContent = total === 0
       ? "Noch keine Sammeltokens — sie fallen bei etwa jeder fünften Kapsel."
       : ready
-        ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar`
-        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt`;
+        ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar${rest}`
+        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt${rest}`;
   }
 
   wrap.innerHTML = "";
-  for (const t of types) {
+  for (const t of held) {
     const row = document.createElement("div");
     row.className = "ag-tokenrow" + (t.done ? " is-done" : "") + (t.raw === 0 ? " is-empty" : "");
     row.innerHTML = `
@@ -1400,8 +1408,70 @@ function renderHistoryTally(allEntries) {
     : `${total} Kapseln geöffnet${since ? `, seit ${since}` : ""}.`;
 }
 
-const HISTORY_PAGE_SIZE = 60;
+// 15 rather than 60: a whole page of capsules is a lot of scrolling to reach
+// anything below the history, and the album now sits under it.
+const HISTORY_PAGE_SIZE = 15;
 let historyShownCount = HISTORY_PAGE_SIZE;
+
+// ── Album (Verlauf) ──────────────────────────────────────────────────────────
+// Every photo this player has actually pulled, newest first. Deliberately not
+// state.photos: that is the whole shared library, and showing an unpulled
+// photo here would spoil a Foto-Drop that hasn't happened yet. The history is
+// the only honest source — a photo is in the album because it was drawn.
+export function pulledPhotos(entries) {
+  const seen = new Set();
+  const shots = [];
+  for (const e of Array.isArray(entries) ? entries : []) {
+    const p = e && e.photo;
+    if (!p || !p.url || p.type === "video") continue;   // stills only
+    if (seen.has(p.url)) continue;                       // same photo, two days
+    seen.add(p.url);
+    shots.push({ url: p.url, caption: (p.caption || "").trim(), alt: p.alt || "", day: e.day });
+  }
+  return shots;
+}
+
+export function renderPulledAlbum(entries) {
+  const card = $("[data-ag-album-card]");
+  const grid = $("[data-ag-album]");
+  const note = $("[data-ag-album-note]");
+  if (!card || !grid) return;
+
+  const shots = pulledPhotos(entries);
+
+  card.hidden = shots.length === 0;
+  if (!shots.length) { grid.innerHTML = ""; return; }
+
+  if (note) {
+    note.textContent = shots.length === 1
+      ? "Ein Bild, das die Maschine schon ausgespuckt hat."
+      : `${shots.length} Bilder, die die Maschine schon ausgespuckt hat.`;
+  }
+
+  grid.innerHTML = "";
+  for (const shot of shots) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ag-album-tile";
+    btn.title = shot.caption || shot.alt || shot.day;
+    btn.setAttribute("aria-label", shot.caption || shot.alt || `Foto vom ${shot.day}`);
+
+    const img = document.createElement("img");
+    img.src = shot.url;
+    img.alt = shot.alt || shot.caption || "Foto von uns";
+    img.loading = "lazy";
+    img.decoding = "async";
+    // A dead URL would otherwise leave a broken-image tile sitting in the grid.
+    img.addEventListener("error", () => btn.remove(), { once: true });
+    btn.appendChild(img);
+
+    btn.addEventListener("click", () => {
+      haptic(8);
+      openLightbox(shot.url, shot.caption, false, shot.alt);
+    });
+    grid.appendChild(btn);
+  }
+}
 
 export function renderHistory() {
   renderTokenBank();
@@ -1419,6 +1489,7 @@ export function renderHistory() {
 
   renderKapselKalender(allEntries);
   renderHistoryTally(allEntries);
+  renderPulledAlbum(allEntries);
 
   // Open (unredeemed) voucher count — used for the badge on the "Offen" chip.
   const openVouchers = allEntries.filter((e) => isVoucherEntry(e) && !e.used).length;

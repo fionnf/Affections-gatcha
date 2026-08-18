@@ -19,6 +19,9 @@ browser. All of that is gone:
 - Outcomes for Fionn are written by **Lennart**, in the Kapsel-Werkstatt
   (`src/werkstatt.js`) — a button at the bottom of his Heute tab. Those
   capsules go through the Apps Script sheet, so no token and no commit.
+  *(The Werkstatt is currently switched off via `features.werkstatt` in
+  `config/theme.json`, so Fionn draws from `config/outcomes.json` like
+  Lennart does. Nothing written is lost while it is off.)*
 - Everything else in `config/` Fionn edits on GitHub directly.
 
 No write credential is stored on the device any more.

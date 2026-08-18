@@ -278,8 +278,13 @@ export const css = `
          app, on the smallest current iPhone. Rather than fatten them to 44pt
          and wreck the chip row, the hit area is extended past the pill:
          28 + 2*8 = 44pt tall, while the visible design is untouched. The row
-         gap is 8px, so ±4px sideways cannot make two chips overlap. */
-      .ag-chip-clickable::after {
+         gap is 8px, so ±4px sideways cannot make two chips overlap.
+
+         On ::before deliberately: .ag-chip-mission-active::after is the gold
+         "you have a mission" dot, and one element only gets one ::after. When
+         a chip went active the dot replaced this box, so the Mission chip lost
+         its 44pt target at exactly the moment it most wanted tapping. */
+      .ag-chip-clickable::before {
         content: "";
         position: absolute;
         inset: -8px -4px;
@@ -1026,6 +1031,8 @@ export const css = `
       .ag-history-filter-chip.is-active{background:var(--ag-green);border-color:var(--ag-green);color:#fff;font-weight:600}
       .ag-voucher-actions{margin-top:10px;display:flex;align-items:center;gap:8px}
       .ag-voucher-use{background:var(--ag-gold,#caa45a);border:none;border-radius:8px;padding:6px 14px;font-size:.86rem;font-weight:600;color:#1a1a1a;cursor:pointer;transition:transform .15s,filter .15s;line-height:1.3}
+      .ag-voucher-use{position:relative}
+      .ag-voucher-use::after{content:"";position:absolute;inset:-7px -2px}
       .ag-voucher-use:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
       .ag-voucher-use:disabled{opacity:.5;cursor:default}
       .ag-voucher-used{display:inline-flex;align-items:center;gap:4px;font-size:.84rem;color:var(--ag-muted);font-style:italic}
@@ -1035,6 +1042,62 @@ export const css = `
         color:var(--ag-muted);font-size:.95rem;line-height:1.55;background:var(--ag-surface-2);
         overflow-wrap:break-word;word-break:break-word;
       }
+      /* Waiting on the sheet, not empty. A turning ring so the difference is
+         visible at a glance rather than only in the wording. */
+      .ag-history-empty.is-loading{
+        display:flex;align-items:center;gap:10px;border-style:solid;
+      }
+      .ag-history-empty.is-loading::before{
+        content:"";width:15px;height:15px;flex:0 0 auto;border-radius:50%;
+        border:2px solid var(--ag-border);border-top-color:var(--ag-primary);
+        animation:ag-spin .7s linear infinite;
+      }
+      @keyframes ag-spin{to{transform:rotate(360deg)}}
+      @media (prefers-reduced-motion:reduce){
+        .ag-history-empty.is-loading::before{animation-duration:2.4s}
+      }
+      /* ── Album (Verlauf) ── */
+      /* Collapsed by default: with a few hundred pulls behind it this grid gets
+         tall, and it sits at the very bottom of the tab. Same chevron
+         behaviour as Maschinenregeln so it reads as the same kind of control. */
+      .ag-album-card{color:var(--ag-text)}
+      .ag-album-summary{
+        list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;
+        flex-wrap:wrap;
+      }
+      .ag-album-summary::-webkit-details-marker{display:none}
+      .ag-album-summary:before{
+        content:"";width:8px;height:8px;flex:0 0 auto;align-self:center;
+        border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+        transform:rotate(-45deg);transition:transform 200ms var(--ag-ease);
+      }
+      .ag-album-card[open] .ag-album-summary:before{transform:rotate(45deg)}
+      .ag-album-summary:focus-visible{outline:2px solid var(--ag-gold);outline-offset:3px;border-radius:4px}
+      .ag-album-summary .ag-wish-label{margin:0}
+      .ag-album-note{margin:0;font-size:.85rem;color:var(--ag-muted)}
+      .ag-album-card[open] .ag-album-grid{margin-top:12px}
+      /* The UA hides a closed <details>' children with display:none, but our
+         own .ag-album-grid rule sets display:grid and is more specific, so it
+         beat the UA rule and the grid stayed on screen while the card
+         reported itself closed. (No backticks in this file — it is one big JS
+         template literal and they terminate it.) */
+      .ag-album-card:not([open]) .ag-album-grid{display:none}
+      /* auto-fill keeps the tiles a sane size at any width instead of
+         stretching three of them across a tablet. */
+      .ag-album-grid{
+        display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));
+        gap:6px;
+      }
+      .ag-album-tile{
+        position:relative;aspect-ratio:1;padding:0;border:0;border-radius:var(--ag-radius-sm,10px);
+        overflow:hidden;cursor:pointer;background:var(--ag-surface-2);
+        box-shadow:var(--ag-shadow-soft);transition:transform .16s ease,box-shadow .16s ease;
+      }
+      .ag-album-tile img{width:100%;height:100%;object-fit:cover;display:block}
+      .ag-album-tile:hover{transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(0,0,0,.5)}
+      .ag-album-tile:focus-visible{outline:2px solid var(--ag-gold);outline-offset:2px}
+      @media (prefers-reduced-motion:reduce){.ag-album-tile{transition:none}}
+
       .ag-history-item{
         padding:12px 14px;border:1px solid var(--ag-border);border-radius:var(--ag-radius-md);
         background:rgba(255,253,248,.85);box-shadow:var(--ag-shadow-soft);
@@ -1223,9 +1286,22 @@ export const css = `
 
       /* ── Gipfelbuch / Berge ── */
       .ag-berge-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-      .ag-berge-stats{display:flex;flex-direction:column;gap:2px}
+      .ag-berge-stats{display:flex;flex-direction:column;gap:8px;min-width:0}
+      /* Two figures share one row and never wrap. Letting them size to their
+         content pushed them to 136px + 154px against 285px of card, so they
+         stacked and the header grew to a full screen before the first summit.
+         flex:1 1 0 splits the row evenly and lets the analogy text wrap
+         instead of the layout. */
+      .ag-berge-figures{display:flex;gap:14px;flex-wrap:nowrap;align-items:flex-start}
+      .ag-berge-figure{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0}
+      .ag-berge-analogy{overflow-wrap:anywhere}
       .ag-berge-total-label{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted)}
-      .ag-berge-total-elev{font-size:2rem;font-weight:800;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1}
+      .ag-berge-total-elev{font-size:2rem;font-weight:800;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+      .ag-berge-gipfel-cmp{font-size:.8rem;color:var(--ag-muted);font-style:italic}
+      .ag-berge-stats-kicker{
+        font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+        color:var(--ag-muted);opacity:.75;
+      }
       .ag-berge-add-btn{flex-shrink:0}
 
       .ag-berge-form-grid{display:grid;gap:10px;margin-bottom:14px}
@@ -1255,11 +1331,15 @@ export const css = `
       }
       .ag-gipfel-card:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       @media (prefers-color-scheme:dark){.ag-gipfel-card{background:rgba(23,32,23,.7)}}
+      /* The elevation and the action buttons are both flex-shrink:0, so a long
+         peak name used to push the edit/delete pair 28px past the right edge
+         of a 375px screen. Let the name block shrink and the row wrap. */
       .ag-gipfel-head{
         display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-        margin-bottom:6px;
+        margin-bottom:6px;flex-wrap:wrap;
       }
-      .ag-gipfel-name{font-size:1rem;font-weight:800;color:var(--ag-text);line-height:1.3;margin-bottom:2px}
+      .ag-gipfel-head-info{flex:1 1 auto;min-width:0}
+      .ag-gipfel-name{font-size:1rem;font-weight:800;color:var(--ag-text);line-height:1.3;margin-bottom:2px;overflow-wrap:anywhere}
       .ag-gipfel-date{font-size:.78rem;color:var(--ag-muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
       .ag-gipfel-elev{
         font-size:1.35rem;font-weight:800;
@@ -1712,6 +1792,12 @@ export const css = `
 
       /* Berge stats counter: bigger */
       .ag-berge-total-elev{font-size:2.4rem}
+      /* Two of them at 2.4rem cannot sit side by side on a phone, so they wrap
+         and the header grew to 331px — a full screen of chrome before the
+         first summit. Smaller here buys the single row back. */
+      @media (max-width:430px){
+        .ag-berge-total-elev{font-size:1.9rem}
+      }
 
       /* ── Glossary language tab strip ── */
       /* Four language tabs already exceed a narrow phone; let the row scroll
@@ -2210,8 +2296,28 @@ export const css = `
         opacity:.55;transition:opacity 120ms,background 120ms,color 120ms;
         -webkit-tap-highlight-color:transparent;
       }
+      .ag-gipfel-edit,.ag-gipfel-delete{position:relative}
+      .ag-gipfel-edit::after,.ag-gipfel-delete::after{content:"";position:absolute;inset:-6px}
       .ag-gipfel-edit:hover,.ag-gipfel-delete:hover{
         opacity:1;background:var(--ag-surface-2);color:var(--ag-text);
+      }
+
+      /* ── Remaining sub-44pt controls ──────────────────────────────────────
+         Each keeps its painted size and gains the target from an absolutely
+         positioned ::after with negative insets, so the layout is untouched.
+         Measured on a 375x812 mini: star 20x16, sync 31x28, filter chips
+         h30, calendar arrows 26x22, <summary> rows h24. */
+      .ag-history-star{position:relative}
+      .ag-history-star::after{content:"";position:absolute;inset:-14px -12px}
+      .ag-sync-btn{position:relative}
+      .ag-sync-btn::after{content:"";position:absolute;inset:-8px -7px}
+      .ag-history-filter-chip{position:relative}
+      .ag-history-filter-chip::after{content:"";position:absolute;inset:-7px 0}
+      .ag-kalender-nav{position:relative}
+      .ag-kalender-nav::after{content:"";position:absolute;inset:-11px -9px}
+      .ag-rules summary,.ag-album-summary{position:relative}
+      .ag-rules summary::after,.ag-album-summary::after{
+        content:"";position:absolute;inset:-10px -4px;
       }
       .ag-gipfel-delete:hover{color:#c0392b}
 

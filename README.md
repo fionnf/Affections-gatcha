@@ -1,6 +1,6 @@
 # Affektions-Gacha
 
-A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn has his own private page, drawing from capsules Lennart writes for him (see **Kapsel-Werkstatt**). It is not linked publicly.
+A daily capsule-pull PWA — served from GitHub Pages. Lennart taps the 3D-printed gacha machine (NFC), the page shows one deterministic result per day: blanks, mini-quests, rare date-credits, photo drops, and jackpots. Fionn has his own private page, not linked publicly, drawing from the same `config/outcomes.json` pool with his own seed. It can instead be fed by capsules Lennart hand-writes for him — see **Kapsel-Werkstatt**, currently switched off.
 
 ---
 
@@ -57,6 +57,8 @@ scripts/
   gen-vapid-keys.cjs         One-off VAPID keypair for Web Push
   send-push.cjs  push-poll.cjs  Web Push senders (manual, and the hug/wish poll)
   push-due.cjs               Daily reminder + evening streak warning sender
+  push-lib.cjs               Shared fetch-with-retry + exit-code policy for both push jobs
+  check-undefined-refs.cjs   Fails CI on an identifier a module never imports
   vendor-lights-ui.py        Re-pulls lichter.html from the lights repo
 media-preview.html          Preview page for all synced photos and videos
 EDITING.md                  Quick-reference for no-code edits
@@ -92,8 +94,19 @@ npm install
 npm run build        # compile src/ and admin/ → dist/
 npm test             # node:test suite over pull, streak, storage, sync, Werkstatt
 npm run validate     # JSON schema, weight totals, duplicate outcome titles
+npm run check:refs   # identifiers a module uses but never imports or declares
 npx serve .          # serve at http://localhost:3000
 ```
+
+`check:refs` exists because of a real outage: `renderPull()` called
+`freikarteCount()` without importing it, and since a free identifier is
+invisible to the bundler, it only threw in the browser — on Niete and Verflucht
+days, one day in six, halfway through the reveal. `validate`, `test` and
+`build` all passed on the broken code. The scan parses every module in `src/`,
+`admin/`, `scripts/` and `sw.js` and reports names that are neither declared
+anywhere in the file nor a known global. It is deliberately conservative — a
+name declared in *any* scope counts as declared — so false positives stay at
+zero and it is safe as a merge gate.
 
 CI rebuilds both bundles on push and stamps the `?v=` cache-buster with the
 commit SHA, so a hand-built `dist/` is only needed for local testing.
@@ -107,7 +120,7 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 | File | What to edit |
 |---|---|
 | `config/outcomes.json` | Response texts, category weights, optional links |
-| `config/theme.json` | Colors, names, timing, loading steps, activity chips |
+| `config/theme.json` | Colors, names, timing, loading steps, activity chips, feature flags |
 | `config/photos.json` | Photo URLs and captions (usually auto-synced) |
 | `config/special-days.json` | Birthdays, anniversaries, one-off events |
 | `config/missions.json` | Daily paired missions (`lennart` + `fionn` keys) |
@@ -117,11 +130,23 @@ See **[EDITING.md](EDITING.md)** for field-by-field details.
 
 ### Kapsel-Werkstatt
 
+> **Currently switched off.** `config/theme.json` → `features.werkstatt: false`
+> hides the entry card and the panel. Flip it to `true` to bring it back — no
+> code change, no rebuild, since config is fetched at runtime. The flag gates
+> *authoring only*: capsules already in the Sheet stay in Fionn's pool and are
+> still drawn, so turning it off loses nothing and turning it on restores
+> everything. Only an explicit `false` disables it, so a config that arrives
+> thin from a failed fetch can't make the feature vanish by accident.
+
 Fionn's outcomes are not in `config/` at all — **Lennart writes them**, from the
 🔧 card at the bottom of his Heute tab. Capsules go to the Google Sheet via
 Apps Script (no token, no commit, no build) and reach Fionn on his next sync.
 The Werkstatt is authoring-side only: it never appears in Fionn's view, so he
 doesn't see his own pool.
+
+To run it the other way round — Fionn writing capsules for Lennart — change
+`WERKSTATT_TARGET` in `src/werkstatt.js`. Every stored row already carries a
+`forToken` column so the direction is a value change, not a schema change.
 
 A capsule has a title and a message, and optionally:
 
@@ -246,6 +271,31 @@ silent request (Chrome), an in-app banner floats above the bottom nav instead.
 Web Push stays dormant until `config/push.json` has `enabled: true` and the
 repo has the VAPID secrets — see **[PUSH-SETUP.md](PUSH-SETUP.md)**.
 
+### When the backend has a bad moment
+
+Apps Script intermittently answers an ordinary GET with an HTML error page
+instead of JSON. Both push scripts used to call `res.json()` straight on that,
+throw `Unexpected token '<'`, and exit 1 — which failed the workflow and mailed
+the owner. Six of sixty runs, several mails a day, none of them actionable: the
+next run five minutes later worked fine.
+
+Feeds now go through `scripts/push-lib.cjs`, which retries three times with
+backoff and then, if the endpoint is still unhappy, prints a `::warning::` and
+finishes green. Push is explicitly the best-effort channel here, and a job that
+could not reach a flaky upstream has not done anything wrong. The retry also
+means a single blip usually succeeds rather than being skipped.
+
+The jobs fail — and so mail you — only for things a human must act on:
+
+| Condition | Exit |
+|---|---|
+| HTML error page or HTTP 500 from the backend | 0 + warning |
+| Fails once, then works | 0, retry rescued it |
+| Push rejected 404/410 (subscription expired) | 0, counted |
+| Push rejected 400 | 0 + warning |
+| Every push rejected 401/403, nothing delivered | **1** — dead VAPID key |
+| Missing `VAPID_*` / `BACKUP_ENDPOINT` | **1** |
+
 ---
 
 ## URL parameters for testing
@@ -264,6 +314,9 @@ Valid `preview-category` values: `niete`, `common`, `quest`, `uncommon`, `cursed
 
 Add entries to `config/special-days.json` to override the draw on specific dates.
 
+> **The list is currently empty.** It was cleared deliberately; the sixteen
+> previous entries are still in git history and can be restored from there.
+
 | Format | Matches |
 |---|---|
 | `"MM-DD"` | Every year (birthday, anniversary) |
@@ -278,8 +331,9 @@ Add entries to `config/special-days.json` to override the draw on specific dates
       "date": "05-29",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
+      "player": "lennart",
       "outcomes": [
-        { "title": "Alles Gute!", "message": "Heute ist dein Geburtstag." }
+        { "title": "Alles Gute!", "message": "Heute ist dein Geburtstag.", "token": "⭐" }
       ],
       "colors": { "primary": "#c8860a", "gold": "#e8a020", "background": "#fffbf0" }
     }
@@ -287,7 +341,19 @@ Add entries to `config/special-days.json` to override the draw on specific dates
 }
 ```
 
-**Fields:** `date`, `label`, `outcomes` (required) · `tone`, `colors`, `darkColors` (optional).
+**Fields:** `date`, `label`, `outcomes` (required) · `tone`, `player`, `colors`,
+`darkColors`, `unlockTime`, `photoAlt` (optional).
+
+**`player`** scopes the entry to `"lennart"` or `"fionn"`. Special days were
+written when Lennart's app was the only one; now that both draw, an entry with
+no `player` fires in **both** apps — which for a capsule addressed to one of
+them means the other reads a message meant for someone else, and banks the
+token twice. Omitting the key keeps the old everybody behaviour.
+
+**`token`** on a special outcome awards a Sammeltoken like any other capsule.
+Special days return early from the draw, so this is threaded through
+explicitly; a token here is otherwise accepted by the validator, rendered
+nowhere, and never credited.
 
 Available color keys: `background`, `surface`, `surfaceAlt`, `text`, `muted`, `border`, `primary`, `primaryDark`, `gold`, `green`, `blue`, `sky`, `mountain`.
 
@@ -319,35 +385,46 @@ The workflow runs every **2 hours** and commits only `config/photos.json`. iClou
 
 ## Outcome categories & odds
 
-Base weights (total = 1400):
+Base weights (total = 1400), across **429 outcomes**:
 
-| Category | ID | Weight | Base chance | Outcomes |
-|---|---|---:|---:|---:|
-| Niete | `niete` | 150 | 10.71% | 46 |
-| Gewöhnlich | `common` | 270 | 19.29% | 123 |
-| Mini-Quest | `quest` | 180 | 12.86% | 47 |
-| Ungewöhnlich | `uncommon` | 150 | 10.71% | 31 |
-| Verflucht | `cursed` | 90 | 6.43% | 54 |
-| Selten | `rare` | 90 | 6.43% | 29 |
-| Sammelkapsel | `collect` | 60 | 4.29% | 17 |
-| Foto-Drop | `photo` | 380 | 27.14% | 15 |
-| JACKPOT | `jackpot` | 30 | 2.14% | 13 |
+| Category | ID | Weight | Base chance | Outcomes | Carry a token |
+|---|---|---:|---:|---:|---:|
+| Niete | `niete` | 150 | 10.71% | 46 | 16 · 35% |
+| Gewöhnlich | `common` | 270 | 19.29% | 147 | 18 · 12% |
+| Mini-Quest | `quest` | 180 | 12.86% | 47 | 6 · 13% |
+| Ungewöhnlich | `uncommon` | 150 | 10.71% | 31 | 4 · 13% |
+| Verflucht | `cursed` | 90 | 6.43% | 54 | 19 · 35% |
+| Selten | `rare` | 90 | 6.43% | 44 | 5 · 11% |
+| Sammelkapsel | `collect` | 60 | 4.29% | 17 | 17 · 100% |
+| Foto-Drop | `photo` | 380 | 27.14% | 30 | 4 · 13% |
+| JACKPOT | `jackpot` | 30 | 2.14% | 13 | 2 · 15% |
 
 Edit `weight` values in `config/outcomes.json` to change odds, then run
 `npm run validate` (which prints the recomputed table) and `npm run simulate`.
 
-**Sammeltokens:** about **20% of pulls** award a collectible emoji. There are
-**12 types**, each buying a different reward, and each reward costs a
-different number — 3 for a film night, 7 for a weekend away. `TOKEN_REWARDS`
-in `src/constants.js` holds both, and `tokenGoal()` is the single source for
-"how many". Goals have only ever been *lowered* from the old flat 5: raising
-one would turn a finished set back into an unfinished one.
+### Sammeltokens
 
-Which outcomes carry a token is balanced by **draw probability, not count** —
-a token on a Foto-Drop is seen four times as often as one on a Verflucht, so
-equal counts would make some rewards unreachable. In practice the pace runs
-from ~140 days for the cheapest to ~450 for the city trip, and roughly **16
-rewards a year** overall.
+About **one pull in five** (20.3%) awards a collectible emoji. There are **12
+types**, each buying a different reward at a different price — 3 for a film
+night, 7 for a weekend away. `TOKEN_REWARDS` in `src/constants.js` holds both,
+and `tokenGoal()` is the single source for "how many". Goals have only ever
+been *lowered* from the old flat 5: raising one would turn a finished set back
+into an unfinished one.
+
+**Bad pulls carry the most.** Niete and Verflucht are at 35% each, roughly
+three times the rest — a blank day is exactly when getting *something* matters.
+Sammelkapsel is 100% because that is what the category is for; everything else
+shares what is left of the one-in-five budget at ~12%. Those three groups are
+the whole design: change one and the others have to absorb it, or the rate
+drifts off 20%.
+
+**Which emoji goes where is computed, not chosen.** A token on a Foto-Drop is
+seen four times as often as one on a Verflucht, so balancing by *count* leaves
+some rewards unreachable — an earlier count-balanced spread gave ⭐ two thirds
+of 🎬's exposure. Every token is now placed greedily against running draw
+probability, which holds all twelve between **16.6 and 17.7 draws per 1000
+days**. If you add or remove outcomes in a category, that arithmetic shifts for
+every token in it; re-derive it rather than eyeballing it.
 
 The **Token-Bank** at the top of Verlauf lists all 12 with progress bars and a
 redeem button when one is full. Counts come from `readTokens()`, which sync
@@ -399,13 +476,57 @@ One-time milestone banners at 7, 14, 21, and 30 days.
 | Tab | Content |
 |---|---|
 | 🎰 **Heute** | Today's capsule pull |
-| 🗓 **Verlauf** | Pull history — month calendar, 60 per page, total counter |
+| 🗓 **Verlauf** | Token-Bank, pull history (month calendar, 60 per page, total counter), and the album |
 | ⭐ **Lieblinge** | Starred favourites |
 | ⛰ **Berge** | Gipfelbuch — mountain log |
 | 💡 **Licht** | Lichtsteuerung (opens `lichter.html`) |
 
 Fionn's page adds a sixth, PIN-gated **📥 Eingänge** tab — see
 [admin/README.md](admin/README.md).
+
+---
+
+## Album (Verlauf)
+
+At the bottom of Verlauf, every photo this player has **actually pulled**, as a
+square grid; tapping one opens the lightbox.
+
+It is built from the pull history, never from `state.photos`. That is the whole
+point — `state.photos` is the entire shared library, so rendering from it would
+show photos that have not been drawn yet and spoil future Foto-Drops. A photo
+appears here because it came out of the machine. Videos are skipped, a photo
+drawn on two different days appears once, and a tile whose URL 404s removes
+itself rather than leaving a broken image in the grid.
+
+---
+
+## Phone layout & safe areas
+
+Both apps ship `viewport-fit=cover` together with
+`apple-mobile-web-app-status-bar-style=black-translucent`, which means that once
+installed to the home screen the web view starts at y=0 — physically underneath
+the notch and the status bar. All four insets are read as variables on `:root`:
+
+```css
+--ag-safe-top / --ag-safe-bottom / --ag-safe-left / --ag-safe-right
+```
+
+Three things to know before editing `src/css.js`:
+
+- **The top inset is as real as the bottom one.** Bottom nav, FAB, toasts and
+  bottom sheets all handled `env(safe-area-inset-bottom)` from the start, but
+  nothing handled the top — so on every notched iPhone the kicker and the title
+  rendered behind the clock. Side insets matter in landscape.
+- **Never set `padding` as a shorthand on a container that carries an inset.**
+  The `max-width: 760px` rule did exactly that and silently dropped the top
+  inset on the widths that need it most.
+- **Chromium has no safe areas**, so `env()` resolves to 0 and none of this is
+  visible in ordinary local testing. To check, substitute real values into the
+  live stylesheet (iPhone 13 mini: top 50, bottom 34) and measure where content
+  actually starts.
+
+Touch targets are ≥44pt. The nav chips get theirs from an `::after` overlay
+rather than being made taller, so the row still looks 28px.
 
 ---
 
@@ -474,8 +595,17 @@ The ⛰ **Berge** tab is a mountain log.
 - **Location search:** Nominatim (OpenStreetMap) autocomplete — saves lat/lng with the entry
 - **Map:** Leaflet dark map below the list showing all located peaks; CH/EU toggle; click a marker to scroll to the entry
 - **AllTrails:** if a widget URL is pasted, the map embeds directly in the card
-- **Total elevation counter** at the top with analogy (e.g. "≈ 0.8× Pilatus")
-- Entries sync to the Google Sheet (`Gipfelbuch` worksheet)
+- **Two counters** at the top — total Höhenmeter and total Strecke — each with
+  an analogy ("≈ 0,8× Titlis", "≈ 2× Marathon"), plus a comparison against
+  *their own* highest logged summit ("≈ 1,5× euer höchster Gipfel (Grosse
+  Mythen)"). The Gipfel comparison reads `elevation` (the summit's real
+  height), never `elevGain`, or the sentence would not be true. Distance
+  references are all fixed numbers — a marathon is exactly 42.195 km — rather
+  than routes, whose length depends on which way you walk.
+- Entries sync to the Google Sheet (`Gipfelbuch` worksheet), but the panel
+  **renders from the local cache first** and refreshes when the sheet answers.
+  Rendering only after the sync left the tab showing "— m" and no entries for
+  as long as the sheet took, which on a cold Apps Script is several seconds.
 
 ---
 
@@ -531,6 +661,48 @@ All worksheets are created on first use — none need to exist beforehand.
 | `Werkstatt` | Hand-written capsules, incl. `Prompt` / `Answer` / `AnsweredAt` |
 | `PushSubscriptions` | Web Push endpoints, one row per device |
 
+Every worksheet has a `getOrCreate…Sheet_` helper in
+`scripts/backup-apps-script.js`. `Stimmung`'s was referenced twice and never
+defined — the read sits in a `try/catch`, so the shared day colour silently
+came back `null` forever, and the write did not, so setting a colour threw.
+Adding a worksheet means adding its helper too.
+
+### How each collection resolves a conflict
+
+The sheet is the shared copy, but "sheet wins" is not uniform, and the
+difference matters if you touch `syncFromSheets`:
+
+| Collection | Rule |
+|---|---|
+| History, favourites | merged by `day\|token` — neither side deletes the other |
+| Streak, quest points | only ever move **upward** (Apps Script also guards streak with `Math.max`) |
+| Bärlauch scores | per-player max |
+| Gipfelbuch, Glossar, Stimmung, Werkstatt | sheet authoritative, with a grace period after a local write |
+| **Sammeltokens** | **three-way merge** — see below |
+
+Tokens were the one collection assigned straight from the sheet
+(`writeTokens(data.tokens)`), so a token earned while the backup POST could not
+land — offline, a dropped request, the app closed before it went out — was
+deleted by the next sync. Silently, and for a collectible.
+
+`TOKENS_SENT_KEY` now records the token map as of the last POST that actually
+came back, written only when the `fetch` resolves. `applySharedTokens()` merges
+the sheet against local using that as the common base: whatever the sheet has,
+plus whatever changed here since the last confirmed send. With nothing unsent
+the result is the sheet exactly, so a redeem on the other phone still lands;
+with something unsent the delta rides on top instead of being discarded, and a
+redeem carries across as a negative delta rather than being undone. Anything
+still pending after the merge is re-posted immediately.
+
+Two invariants that are easy to break:
+
+- **The base seeds from local on first run.** With no record of what was sent,
+  assuming "nothing" would add every local token on top of the sheet's copy of
+  those same tokens.
+- **The base advances to the sheet's copy after every merge.** Leaving it
+  behind re-applies the same difference on each sync — an offline run took 🌿
+  from 2 to 4 that way.
+
 **Setup:**
 
 1. [script.google.com](https://script.google.com) → new project → paste `scripts/backup-apps-script.js` into `Code.gs`.
@@ -549,13 +721,20 @@ After editing the script: Deploy → Manage deployments → ✏️ → New versi
 | `sync-shared-album.yml` | Manual + every 2 h | Validates config, syncs photos from album, commits `config/photos.json` |
 | `sync-lights-ui.yml` | Manual + scheduled | Re-pulls `lichter.html` from the lights repo and re-applies the local touches |
 | `push-notify.yml` | Every 5 min + hourly | Sends queued Web Push (hugs/wishes) and the daily reminder. Dormant unless the `PUSH_ENABLED` variable is `true` |
+| `checks.yml` | Every PR + pushes touching code or config | `validate`, `check:refs`, `test`, `build` |
+
+`checks.yml` closes two gaps: pull requests used to run nothing at all, and
+`build-bundles.yml` only triggers on `src/`, `admin/` and the build files — so
+edits to `config/` were never validated, which is exactly the path this README
+recommends for no-code changes.
 
 Run the checks locally:
 
 ```bash
-npm test         # 47 tests: pull, streak, storage, sync, Werkstatt
-npm run validate # JSON schema, weight totals, duplicate outcome titles
-npm run simulate # draw simulation against the configured weights
+npm run validate  # JSON schema, weight totals, duplicate outcome titles
+npm run check:refs # undefined references across src, admin, scripts, sw.js
+npm test          # 51 tests: pull, streak, storage, sync, Werkstatt
+npm run simulate  # draw simulation against the configured weights
 ```
 
 ---

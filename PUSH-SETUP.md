@@ -21,6 +21,10 @@ subscriptions), `?feed=push-subs` (sender reads them), `?feed=push-pending`
 window, once per player per day). Paste the file into the Apps Script editor
 and redeploy the web app to the **same URL**.
 
+It also gained `getOrCreateStimmungSheet_`, which was referenced twice and
+never defined — the shared colour of the day has been silently broken until
+this redeploy, reading back `null` and throwing on write.
+
 ## Step 2 — Add the secrets & turn the job on
 
 In the GitHub repo → Settings → Secrets and variables → Actions:
@@ -54,6 +58,12 @@ existing install nudge covers this) — Safari tabs can't receive push.
   everything server-side is already in place for that.
 - Expired subscriptions (410/404) are logged and self-heal: the device
   re-subscribes next time the app opens.
+- **A failing run does not always mean something is wrong.** Apps Script
+  intermittently answers a GET with an HTML error page; the jobs retry three
+  times, then warn and finish green rather than mailing you about a blip they
+  cannot fix. They exit non-zero — and so mail — only for a missing secret, or
+  for every push being rejected 401/403 with nothing delivered, which means the
+  VAPID key is dead. See the table in the README's Notifications section.
 - **The daily reminder and streak warning depend on this pipeline.** They were
   previously scheduled in the browser with `setTimeout` inside the service
   worker, which the browser terminates after ~30 seconds idle — so a timer set

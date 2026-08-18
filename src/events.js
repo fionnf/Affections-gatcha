@@ -56,9 +56,15 @@ export function setActiveTab(tab) {
   if (tab === "lieblinge") renderLieblinge();
   if (tab === "berge") {
     invalidateGipfelMap();
+    // Paint from the local cache first, then refresh once the sheet answers —
+    // the same order the Glossar uses. Rendering only in the .then() meant a
+    // slow sheet left the header at "— m" with no entries, even though every
+    // summit was already in localStorage.
+    renderBergePanel({ loading: true });
+    invalidateGipfelMap();
     syncFromSheets()
-      .then(() => { renderBergePanel(); invalidateGipfelMap(); })
-      .catch(() => renderBergePanel());
+      .catch(() => {})
+      .then(() => { renderBergePanel(); invalidateGipfelMap(); });
   }
   const fab = $("[data-ag-fab]");
   if (fab) fab.hidden = tab !== "berge";

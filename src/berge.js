@@ -1,6 +1,6 @@
 // ── Berge / Gipfelbuch ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { formatElev, formatBergeDate, extractKomootId, escapeHtml } from "./utils.js";
+import { formatElev, formatKm, formatBergeDate, extractKomootId, escapeHtml } from "./utils.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
 import { markRecentWrite } from "./sheetSync.js";
@@ -20,6 +20,51 @@ export function elevationAnalogy(m) {
     }
   }
   return null;
+}
+
+function times(t) {
+  return t >= 2 ? String(Math.round(t)) : (Math.round(t * 10) / 10).toString().replace(".", ",");
+}
+
+// Same idea as elevationAnalogy, in kilometres. Every reference here is a
+// fixed number rather than a route: a marathon is exactly 42.195 km and the
+// Camino Francés is always quoted at ~800 km, whereas "Zürich–Genf" depends
+// on which way you go and would be a figure I made up. The steps are also
+// kept ~2× apart — an earlier draft had 40 km next to 42.195 km, which left
+// the smaller one reachable only in a 1.5 km band.
+export function distanceAnalogy(km) {
+  if (!km || km <= 0) return null;
+  const refs = [
+    [800, "Jakobsweg"],
+    [42.195, "Marathon"],
+    [21.0975, "Halbmarathon"],
+    [10, "10-km-Lauf"]
+  ];
+  for (const [d, name] of refs) {
+    const t = km / d;
+    if (t >= 0.7) return `≈ ${times(t)}× ${name}`;
+  }
+  return null;
+}
+
+// The other comparison people actually want: not a mountain from a list, but
+// *their* mountain. How many times over have the two of them climbed the
+// biggest thing in their own Gipfelbuch? Uses `elevation` (the summit's real
+// height), never `elevGain`, so the sentence stays true.
+export function gipfelComparison(totalGain, entries) {
+  if (!totalGain || totalGain <= 0 || !Array.isArray(entries)) return null;
+  let best = null;
+  for (const e of entries) {
+    const h = Number(e && e.elevation);
+    if (!Number.isFinite(h) || h <= 0) continue;
+    if (!best || h > best.h) best = { h, name: (e.name || "").trim() };
+  }
+  if (!best) return null;
+  const t = totalGain / best.h;
+  if (t < 0.7) return null;
+  return best.name
+    ? `≈ ${times(t)}× euer höchster Gipfel (${best.name})`
+    : `≈ ${times(t)}× euer höchster Gipfel`;
 }
 
 export function extractAllTrailsSlug(url) {
@@ -214,11 +259,14 @@ export function renderGipfelCard(entry) {
   return card;
 }
 
-export function renderBergePanel() {
+export function renderBergePanel({ loading = false } = {}) {
   const list = $("[data-ag-berge-list]");
   const empty = $("[data-ag-berge-empty]");
   const totalEl = $("[data-ag-berge-total]");
   const analogyEl = $("[data-ag-berge-analogy]");
+  const distEl = $("[data-ag-berge-total-dist]");
+  const distAnalogyEl = $("[data-ag-berge-dist-analogy]");
+  const gipfelEl = $("[data-ag-berge-gipfel-cmp]");
   if (!list) return;
 
   const entries = readGipfelbuch().sort((a, b) => {
@@ -236,12 +284,40 @@ export function renderBergePanel() {
     else { analogyEl.hidden = true; }
   }
 
+  // Distance is stored per entry but was never summed — the header only ever
+  // showed metres climbed, which undersells a long flat day out.
+  const totalDist = entries.reduce((sum, e) => {
+    const km = Number(e.distance);
+    return sum + (Number.isFinite(km) && km > 0 ? km : 0);
+  }, 0);
+  if (distEl) {
+    distEl.textContent = totalDist > 0 ? `${formatKm(totalDist)} km` : "— km";
+  }
+  if (distAnalogyEl) {
+    const a = distanceAnalogy(totalDist);
+    if (a) { distAnalogyEl.textContent = a; distAnalogyEl.hidden = false; }
+    else { distAnalogyEl.hidden = true; }
+  }
+  if (gipfelEl) {
+    const cmp = gipfelComparison(totalElev, entries);
+    if (cmp) { gipfelEl.textContent = cmp; gipfelEl.hidden = false; }
+    else { gipfelEl.hidden = true; }
+  }
+
   if (!entries.length) {
-    if (empty) empty.hidden = false;
+    // No cached summits yet and the sheet still talking: say so, rather than
+    // claiming the Gipfelbuch is empty.
+    if (empty) {
+      empty.textContent = loading
+        ? "Gipfel werden geladen …"
+        : "Noch kein Gipfel eingetragen. Der erste wartet.";
+      empty.classList.toggle("is-loading", loading);
+      empty.hidden = false;
+    }
     initGipfelMap([]);
     return;
   }
-  if (empty) empty.hidden = true;
+  if (empty) { empty.hidden = true; empty.classList.remove("is-loading"); }
   entries.forEach((entry) => list.appendChild(renderGipfelCard(entry)));
   initGipfelMap(entries);
 }

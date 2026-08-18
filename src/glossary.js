@@ -44,6 +44,12 @@ export function deleteGlossaryWord(id) {
   postGlossaryToSheet("glossary-delete", { id });
 }
 
+// True while a sheet fetch is in flight. On a device with no cached words the
+// panel used to render "Noch kein Wort hier" during that fetch — which reads
+// as "the glossary is empty" when it actually means "not here yet", and the
+// sheet round-trip is slow enough to be seen every time.
+let glossaryLoading = false;
+
 export async function fetchGlossaryFromSheet() {
   const cfg = state.backup;
   if (!cfg || !cfg.enabled || !cfg.endpointUrl) return 0;
@@ -188,10 +194,18 @@ export function renderGlossaryPanel(lang) {
     : allWords.filter(w => w.lang === glossaryUI.lang);
   list.innerHTML = "";
   if (!words.length) {
-    if (empty) { empty.textContent = query ? "Kein Treffer." : "Noch kein Wort hier. Füg eins hinzu."; empty.hidden = false; }
+    if (empty) {
+      empty.textContent = query
+        ? "Kein Treffer."
+        : glossaryLoading
+          ? "Wörter werden geladen …"
+          : "Noch kein Wort hier. Füg eins hinzu.";
+      empty.classList.toggle("is-loading", glossaryLoading && !query);
+      empty.hidden = false;
+    }
     return;
   }
-  if (empty) empty.hidden = true;
+  if (empty) { empty.hidden = true; empty.classList.remove("is-loading"); }
   words.forEach(w => list.appendChild(renderGlossaryWord(w, !!query)));
 }
 
@@ -215,12 +229,19 @@ export function openGlossaryPanel() {
   if (searchEl) searchEl.value = "";
   // Render instantly from local cache, then refresh from the sheet in the
   // background so the panel always reflects words added on another device.
+  glossaryLoading = true;
   renderGlossaryPanel("swabian");
   window.requestAnimationFrame(() => _glossaryMovePill());
   haptic(10);
-  fetchGlossaryFromSheet().then((count) => {
-    if (count > 0) renderGlossaryPanel(glossaryUI.lang);
-  });
+  // Always re-render when the fetch settles, not just when it returned rows.
+  // Gating on count > 0 left the spinner up for good whenever the sheet came
+  // back empty, timed out, or errored.
+  fetchGlossaryFromSheet()
+    .catch(() => 0)
+    .then(() => {
+      glossaryLoading = false;
+      renderGlossaryPanel(glossaryUI.lang);
+    });
 }
 
 export function closeGlossaryPanel() {
