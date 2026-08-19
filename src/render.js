@@ -1751,6 +1751,18 @@ export function hydrateCopy() {
       if (!isMissionDoneToday()) li.classList.add("ag-chip-mission-active");
     }
 
+    if (chip.toLowerCase().includes("skincare") || chip.toLowerCase().includes("pflege")) {
+      // Only clickable when there is a routine to show; otherwise it stays a
+      // plain sticker rather than a chip that opens an empty panel.
+      if (state.skincare) {
+        li.id = "ag-btn-skincare";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", "Skincare-Routine öffnen");
+        li.classList.add("ag-chip-clickable");
+      }
+    }
+
     if (chip.toLowerCase().includes("stimmung")) {
       li.id = "ag-btn-stimmung";
       li.tabIndex = 0;

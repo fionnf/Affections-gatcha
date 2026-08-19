@@ -30,6 +30,7 @@ dist/
   affection-gacha.js        Compiled PWA (built from src/ via Vite)
   fionn-admin.js            Fionn's Eingänge panel (built from admin/)
 src/                        ES module source (edit here, then npm run build)
+  skincare.js               Skincare routine panel (read-only, config-driven)
   werkstatt.js              Kapsel-Werkstatt: Lennart authors Fionn's pool
   pull.js                   Deterministic draw, anti-repeat, pool selection
   sync.js  sheetSync.js     Google Sheet sync + write/read race guard
@@ -46,6 +47,7 @@ config/
   wish-inbox.json           Wunschkapsel → Google Sheet endpoint
   backup.json               Full backup → Google Sheet endpoint
   push.json                 Web Push toggle + VAPID public key
+  skincare.json             Morning/evening routine behind the Skincare chip
   admin.json                PIN hash + poll interval for Fionn's Eingänge
 scripts/
   validate-gacha-config.cjs  Validates JSON, weight totals, duplicate titles
@@ -125,6 +127,7 @@ Everything editable lives in `config/`. Use the GitHub web editor (pencil icon) 
 | `config/special-days.json` | Birthdays, anniversaries, one-off events |
 | `config/missions.json` | Daily paired missions (`lennart` + `fionn` keys) |
 | `config/quest.json` | Photo challenge prompts |
+| `config/skincare.json` | Morning/evening skincare steps |
 
 See **[EDITING.md](EDITING.md)** for field-by-field details.
 
@@ -541,6 +544,32 @@ Configured in `config/theme.json` → `stickers`:
 | **Mission** | Daily mission panel |
 | **Glossar 📖** | Shared vocabulary (Schwäbisch / Português / Gaeilge) |
 | **Stimmung 🎨** | Colour of the day — see below |
+
+---
+
+## Skincare
+
+The **Skincare 🧴** chip opens a read-only routine, morning then evening, from
+`config/skincare.json`. Editing that file is enough — no rebuild, since config
+is fetched at runtime.
+
+Each step takes a `name`, an optional `note`, and an optional `when`. No `when`
+means every day, which is what most steps are; otherwise it is a comma-separated
+list of German weekday abbreviations (`Mo, Di, Mi, Do, Fr, Sa, So`) for the
+handful that are not — retinol twice a week, an exfoliant on Sundays.
+
+```json
+{ "name": "Retinol", "note": "Erbsengrosse Menge.", "when": "Di, Fr" }
+```
+
+A step that is not scheduled for today is **dimmed, not hidden**, with its days
+shown beside the name. Seeing that Friday is a retinol night is the useful part,
+and hiding it would make the list look different every day. If the weekday
+cannot be resolved at all, everything shows rather than everything dimming.
+
+The chip only becomes clickable when the file loads — with no
+`config/skincare.json` it stays a plain sticker instead of opening an empty
+panel. Both players see the same routine.
 
 ---
 

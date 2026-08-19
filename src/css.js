@@ -1370,6 +1370,36 @@ export const css = `
         .ag-gipfel-elev{font-size:1.7rem}
       }
 
+      /* ── Skincare ── */
+      .ag-skin-block + .ag-skin-block{margin-top:18px;padding-top:16px;border-top:1px dashed var(--ag-border)}
+      .ag-skin-block-title{
+        margin:0 0 10px;font-size:.72rem;font-weight:800;letter-spacing:.09em;
+        text-transform:uppercase;color:var(--ag-primary-dark);
+      }
+      .ag-skin-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+      .ag-skin-step{display:flex;gap:10px;align-items:flex-start;min-width:0}
+      /* Not scheduled today: dimmed, not hidden. Seeing that Friday is a
+         retinol night is the useful part, and hiding it would make the list
+         look different every day. */
+      .ag-skin-step.is-off{opacity:.42}
+      .ag-skin-num{
+        flex:0 0 auto;width:22px;height:22px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:.72rem;font-weight:800;font-variant-numeric:tabular-nums;
+        background:var(--ag-surface-2);color:var(--ag-muted);margin-top:1px;
+      }
+      .ag-skin-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+      .ag-skin-name{font-size:.95rem;font-weight:600;color:var(--ag-text);line-height:1.35}
+      .ag-skin-when{
+        margin-left:7px;font-size:.66rem;font-weight:700;letter-spacing:.05em;
+        text-transform:uppercase;color:var(--ag-gold);white-space:nowrap;
+      }
+      .ag-skin-note{font-size:.84rem;color:var(--ag-muted);line-height:1.45}
+      .ag-skin-footer{
+        margin:18px 0 0;padding-top:14px;border-top:1px dashed var(--ag-border);
+        font-size:.83rem;color:var(--ag-muted);font-style:italic;line-height:1.5;
+      }
+
       /* ── Milestone banner ── */
       .ag-milestone{
         display:flex;align-items:center;gap:10px;

@@ -1,0 +1,23 @@
+{
+  "comment": "Skincare routine shown behind the Skincare chip. Steps run in order. Each step needs a name; note and when are optional. 'when' can be 'daily' (default), or a comma-separated list of weekday names in German (Mo, Di, Mi, Do, Fr, Sa, So) for anything that is not every day — retinol twice a week, an exfoliant on Sundays. Editing this file is enough; no rebuild.",
+  "morning": {
+    "title": "Morgens",
+    "steps": [
+      { "name": "Lauwarm abspülen", "note": "Kein Reinigungsmittel nötig, wenn abends gereinigt wurde." },
+      { "name": "Serum", "note": "Auf leicht feuchte Haut, ein paar Tropfen reichen." },
+      { "name": "Feuchtigkeitscreme", "note": "Dünn, bis sie eingezogen ist." },
+      { "name": "Sonnenschutz LSF 30+", "note": "Jeden Tag, auch bei Wolken. Der wichtigste Schritt." }
+    ]
+  },
+  "evening": {
+    "title": "Abends",
+    "steps": [
+      { "name": "Reinigen", "note": "Tag, Sonnenschutz und alles andere runter." },
+      { "name": "Serum", "note": "Wirkstoffe wirken über Nacht am besten." },
+      { "name": "Retinol", "note": "Erbsengrosse Menge, Augenpartie aussparen.", "when": "Di, Fr" },
+      { "name": "Feuchtigkeitscreme", "note": "Abends ruhig etwas reichhaltiger." },
+      { "name": "Lippenpflege", "note": "Der Schritt, den alle vergessen." }
+    ]
+  },
+  "footer": "Konsequenz schlägt Aufwand. Vier Schritte, die du jeden Tag machst, bringen mehr als zehn, die du zweimal machst."
+}
