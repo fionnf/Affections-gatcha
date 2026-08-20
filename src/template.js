@@ -344,7 +344,6 @@ export const html = `
               <span class="ag-badge">Skincare 🧴</span>
               <button class="ag-secondary" type="button" id="ag-skincare-close">✕</button>
             </div>
-            <h2 class="ag-mini-title">Routine</h2>
             <div id="ag-skincare-body"></div>
           </section>
 
