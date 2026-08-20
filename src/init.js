@@ -34,7 +34,7 @@ export async function init() {
   injectStyles();
   renderShell();
   try {
-    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions, push] = await Promise.all([
+    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions, push, skincare] = await Promise.all([
       fetchJson("config/theme.json"),
       fetchJson("config/outcomes.json"),
       fetchJson("config/photos.json", defaultPhotos),
@@ -43,7 +43,8 @@ export async function init() {
       fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/quest.json", { enabled: false }),
       fetchJson("config/missions.json", { pairs: [] }),
-      fetchJson("config/push.json", { enabled: false })
+      fetchJson("config/push.json", { enabled: false }),
+      fetchJson("config/skincare.json", null)
     ]);
     state.theme = theme;
     state.outcomes = outcomes;
@@ -54,6 +55,9 @@ export async function init() {
     state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
     state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
     state.push = push && typeof push === "object" ? push : { enabled: false };
+    // null when the file is absent — renderChips hides the chip rather than
+    // offering one that opens an empty panel.
+    state.skincare = skincare && typeof skincare === "object" ? skincare : null;
     // Seed the Werkstatt from cache before anything can draw, so a capsule
     // written yesterday is in play offline and on the very first paint —
     // syncFromSheets() refreshes it a moment later.

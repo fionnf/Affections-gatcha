@@ -339,6 +339,14 @@ export const html = `
             </div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-skincare-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Skincare 🧴</span>
+              <button class="ag-secondary" type="button" id="ag-skincare-close">✕</button>
+            </div>
+            <div id="ag-skincare-body"></div>
+          </section>
+
           <section class="ag-card ag-mini-panel" id="ag-stimmung-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Stimmung 🎨</span>

@@ -177,6 +177,32 @@ https://your-site.com/?token=Lennart&preview-day=2026-05-29
 
 Remove the `preview-day` parameter to go back to normal.
 
+## Skincare routine
+
+Edit:
+
+```text
+config/skincare.json
+```
+
+Two blocks, `morning` and `evening`, each with a `title` and a list of `steps`.
+A step needs a `name`; `note` and `when` are optional.
+
+| Field | Effect |
+|---|---|
+| `name` | The step itself |
+| `note` | Small grey line underneath |
+| `when` | Days it applies: `Mo, Di, Mi, Do, Fr, Sa, So`. Leave it out for every day |
+| `footer` | One closing line under both blocks (top level, not per step) |
+
+Steps not scheduled for today are shown dimmed with their days beside them,
+rather than hidden, so the routine looks the same every day.
+
+Deleting the file removes the chip entirely — it stops being clickable rather
+than opening an empty panel.
+
+---
+
 ## Auto-sync from a shared album
 
 Instead of pasting URLs by hand you can point the gacha at a public shared

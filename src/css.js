@@ -1370,6 +1370,42 @@ export const css = `
         .ag-gipfel-elev{font-size:1.7rem}
       }
 
+      /* ── Skincare ── */
+      /* Sized to fit a 375x812 phone without scrolling: nine steps, two block
+         titles and a footer inside roughly 700px of usable height. Notes are
+         one short line by design — see the comment in config/skincare.json. */
+      .ag-skin-block + .ag-skin-block{margin-top:12px;padding-top:11px;border-top:1px dashed var(--ag-border)}
+      .ag-skin-block-title{
+        margin:0 0 7px;font-size:.68rem;font-weight:800;letter-spacing:.09em;
+        text-transform:uppercase;color:var(--ag-primary-dark);
+      }
+      .ag-skin-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+      .ag-skin-step{display:flex;gap:9px;align-items:flex-start;min-width:0}
+      /* Not scheduled today: dimmed, not hidden. Seeing that Friday is a
+         retinoid night is the useful part, and hiding it would make the list
+         look different every day. */
+      .ag-skin-step.is-off{opacity:.42}
+      .ag-skin-num{
+        flex:0 0 auto;width:19px;height:19px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:.66rem;font-weight:800;font-variant-numeric:tabular-nums;
+        background:var(--ag-surface-2);color:var(--ag-muted);margin-top:1px;
+      }
+      .ag-skin-body{display:flex;flex-direction:column;min-width:0}
+      .ag-skin-name{font-size:.9rem;font-weight:600;color:var(--ag-text);line-height:1.3}
+      .ag-skin-when{
+        margin-left:6px;font-size:.62rem;font-weight:700;letter-spacing:.05em;
+        text-transform:uppercase;color:var(--ag-gold);white-space:nowrap;
+      }
+      .ag-skin-note{font-size:.78rem;color:var(--ag-muted);line-height:1.35}
+      .ag-skin-footer{
+        margin:12px 0 0;padding-top:10px;border-top:1px dashed var(--ag-border);
+        font-size:.75rem;color:var(--ag-muted);font-style:italic;line-height:1.4;
+      }
+      /* The panel itself gives back a little padding too. */
+      #ag-skincare-panel{padding-top:14px;padding-bottom:14px}
+      #ag-skincare-panel .ag-mini-head{margin-bottom:10px}
+
       /* ── Milestone banner ── */
       .ag-milestone{
         display:flex;align-items:center;gap:10px;

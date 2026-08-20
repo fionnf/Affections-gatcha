@@ -1,0 +1,23 @@
+{
+  "comment": "Skincare routine shown behind the Skincare chip. Steps run in the order listed, which is the order they go on: thin water-based serums first, anything oil- or squalane-based after them, cream last. Keep notes to one short line — the panel is built to fit a phone screen without scrolling. Each step needs a name; note and when are optional. 'when' can be omitted for daily, or a comma-separated list of German weekday abbreviations (Mo, Di, Mi, Do, Fr, Sa, So). Editing this file is enough; no rebuild.",
+  "morning": {
+    "title": "Morgens",
+    "steps": [
+      { "name": "Reinigen", "note": "Lauwarm. Oder nur Wasser." },
+      { "name": "Niacinamide 10% + Zinc", "note": "2–3 Tropfen, feuchte Haut." },
+      { "name": "Balea Peptid-Serum", "note": "Direkt danach, auch dünn." },
+      { "name": "Kiehl's Creme", "note": "Schliesst alles ein." },
+      { "name": "Sonnenschutz LSF 30+", "note": "Fehlt noch. Wichtigster Schritt." }
+    ]
+  },
+  "evening": {
+    "title": "Abends",
+    "steps": [
+      { "name": "Reinigen", "note": "Den ganzen Tag runter." },
+      { "name": "Niacinamide 10% + Zinc", "note": "Nochmal 2–3 Tropfen." },
+      { "name": "Granactive Retinoid", "note": "Nach den Seren. Augen aussparen.", "when": "Mo, Mi, Fr" },
+      { "name": "Kiehl's Creme", "note": "Immer obendrauf." }
+    ]
+  },
+  "footer": "Dünn vor dick, wässrig vor ölig, Creme zuletzt."
+}

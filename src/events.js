@@ -12,6 +12,7 @@ import { triggerConfetti } from "./confetti.js";
 import { haptic } from "./haptic.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
+import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
 import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, openLetter, closeLetter } from "./mission.js";
@@ -1040,6 +1041,12 @@ export function bindEvents() {
   });
 
   // ── Stimmung ─────────────────────────────────────────────────────────────────
+  $("#ag-btn-skincare")?.addEventListener("click", openSkincarePanel);
+  $("#ag-btn-skincare")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSkincarePanel(); }
+  });
+  $("#ag-skincare-close")?.addEventListener("click", closeSkincarePanel);
+
   $("#ag-btn-stimmung")?.addEventListener("click", openStimmungPanel);
   $("#ag-btn-stimmung")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openStimmungPanel(); }
