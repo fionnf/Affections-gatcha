@@ -322,8 +322,12 @@ Add entries to `config/special-days.json` to override the draw on specific dates
 
 | Format | Matches |
 |---|---|
-| `"MM-DD"` | Every year (birthday, anniversary) |
-| `"YYYY-MM-DD"` | One specific date |
+| `"YYYY-MM-DD"` | One specific date — the default, and what almost every entry wants |
+| `"MM-DD"` + `"repeat": "yearly"` | That day every year (birthday, anniversary) |
+
+**A bare `"MM-DD"` without `"repeat": "yearly"` fails `npm run validate`** and
+does not fire in the app. Recurring has to be asked for, because most capsules
+are written for one occasion and read wrong a year later.
 
 **Example:**
 
@@ -332,6 +336,7 @@ Add entries to `config/special-days.json` to override the draw on specific dates
   "days": [
     {
       "date": "05-29",
+      "repeat": "yearly",
       "label": "Geburtstag 🎂",
       "tone": "jackpot",
       "player": "lennart",

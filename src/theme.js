@@ -90,17 +90,10 @@ export function applySpecialDayColors(day) {
   }
 }
 
-// Note: checkSpecialDay is imported lazily to avoid circular deps.
-// We import it from pull.js which defines it. To avoid circular,
-// we accept it as a parameter from init.js or inline it here.
-// The dist bundles this inline, so we inline it here too.
-import { state } from "./state.js";
-
-function checkSpecialDay(day) {
-  const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
-  const mmdd = day.slice(5);
-  for (const entry of days) {
-    if (entry.date === day || entry.date === mmdd) return entry;
-  }
-  return null;
-}
+// The day colours have to agree with the capsule about which entry is today's,
+// so they share one matcher. This used to be a copy living here, on the theory
+// that importing pull.js would close a cycle — it does not; nothing pull.js
+// reaches imports theme.js. The copy had drifted: it never learned about
+// "player", so a day addressed to one of them still recoloured both apps, and
+// it would have kept recurring bare "MM-DD" dates after the capsule stopped.
+import { checkSpecialDay } from "./pull.js";

@@ -10,7 +10,13 @@ export function checkSpecialDay(day) {
   const mmdd = day.slice(5); // "MM-DD" from "YYYY-MM-DD"
   const player = getToken();
   for (const entry of days) {
-    if (entry.date !== day && entry.date !== mmdd) continue;
+    // A bare "MM-DD" only recurs when the entry says so. Most special days are
+    // written for one occasion and read wrong a year later, so recurrence is
+    // opt-in via "repeat": "yearly" rather than a side effect of how the date
+    // happened to be typed. validate-gacha-config rejects a bare date without it.
+    const recurs = entry.repeat === "yearly";
+    const matches = entry.date === day || (recurs && entry.date === mmdd);
+    if (!matches) continue;
     // Special days were written when Lennart's app was the only one. Now that
     // Fionn draws too, a capsule addressed to one of them would otherwise show
     // up in both apps. An entry with no "player" still goes to everybody, so
