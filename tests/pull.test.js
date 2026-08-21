@@ -76,6 +76,45 @@ test("special day (full date) overrides the weighted pull exactly once", () => {
   assert.notEqual(nextYear.category.id, "special", "YYYY-MM-DD date must not recur");
 });
 
+test("a bare MM-DD date does not fire unless it opts into repeating", () => {
+  // Most special days are written for one occasion. A bare "MM-DD" used to
+  // recur forever purely because of how the date was typed, so a capsule about
+  // a specific trip would resurface twelve months later reading like nonsense.
+  // Recurrence is now opt-in, and validate-gacha-config rejects a bare date
+  // without the flag — this covers the app half of that guarantee.
+  state.specialDays = { days: [
+    { date: "08-10", label: "Testtag", tone: "warm",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
+  assert.notEqual(buildPullForDay("2026-08-10", 0).category.id, "special",
+    "a bare MM-DD without repeat:yearly must not fire at all");
+});
+
+test("repeat:yearly brings a MM-DD date back every year", () => {
+  state.specialDays = { days: [
+    { date: "05-29", label: "Geburtstag", tone: "jackpot", repeat: "yearly",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
+  for (const year of ["2026", "2027", "2031"]) {
+    assert.equal(buildPullForDay(`${year}-05-29`, 0).category.id, "special",
+      `birthday must fire in ${year}`);
+  }
+  assert.notEqual(buildPullForDay("2026-05-30", 0).category.id, "special",
+    "the day after is an ordinary day");
+});
+
+test("repeat:yearly on a full date still fires only that year", () => {
+  // The validator calls this combination an error, but the app should not
+  // start recurring a dated entry if one slips through by hand.
+  state.specialDays = { days: [
+    { date: "2026-08-10", label: "Testtag", tone: "warm", repeat: "yearly",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
+  assert.equal(buildPullForDay("2026-08-10", 0).category.id, "special");
+  assert.notEqual(buildPullForDay("2027-08-10", 0).category.id, "special",
+    "a dated entry must not recur even when flagged yearly");
+});
+
 test("a special day can hand out a Sammeltoken", () => {
   // The special branch returns early, and it used to build its result without
   // collectToken — so a token written into special-days.json was accepted by

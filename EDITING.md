@@ -107,14 +107,27 @@ special-day outcome is shown instead. Colors can also be overridden for that day
 
 | Format | Matches |
 |---|---|
-| `"MM-DD"` | That day every year (e.g. birthdays) |
 | `"YYYY-MM-DD"` | One specific date only |
+| `"MM-DD"` + `"repeat": "yearly"` | That day every year (e.g. birthdays) |
+
+**Use the full date unless you really mean every year.** A bare `"MM-DD"` on its
+own is rejected by `npm run validate` and ignored by the app — it would quietly
+come back next year, long after anyone remembers writing it, and a capsule about
+one particular weekend reads strangely twelve months on.
+
+```json
+{ "date": "05-29", "repeat": "yearly", "label": "Geburtstag 🎂", "outcomes": [ ... ] }
+```
+
+Old entries that were written as bare `"MM-DD"` need one of the two fixes: a
+year in front of the date, or `"repeat": "yearly"` beside it.
 
 ### Fields per entry
 
 | Field | Required | Description |
 |---|---|---|
-| `date` | ✅ | `"MM-DD"` or `"YYYY-MM-DD"` |
+| `date` | ✅ | `"YYYY-MM-DD"`, or `"MM-DD"` together with `repeat` |
+| `repeat` | optional | Only value is `"yearly"`. Required for a bare `"MM-DD"`, and not allowed on a dated entry |
 | `label` | ✅ | Shown as the capsule category label |
 | `outcomes` | ✅ | Array of `{title, message}` — one is picked deterministically (stable across reloads) |
 | `tone` | optional | Visual style of the capsule (default: `"jackpot"`). Same values as categories: `quiet`, `soft`, `quest`, `warm`, `cursed`, `rare`, `photo`, `jackpot` |

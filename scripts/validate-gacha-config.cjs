@@ -173,8 +173,24 @@ if (specialDaysConfig !== null) {
       const prefix = `special-days[${index}]`;
       assert(
         typeof entry.date === "string" && (DATE_MMDD.test(entry.date) || DATE_YYYYMMDD.test(entry.date)),
-        `${prefix}.date must be "MM-DD" (yearly) or "YYYY-MM-DD" (one-off).`
+        `${prefix}.date must be "YYYY-MM-DD" (one-off) or "MM-DD" with "repeat": "yearly".`
       );
+      if (entry.repeat !== undefined && entry.repeat !== "yearly") {
+        addError(`${prefix}.repeat must be "yearly" if it is set at all (got ${JSON.stringify(entry.repeat)}).`);
+      }
+      // A bare "MM-DD" fires again every year. Almost every special day here was
+      // written for one occasion and reads wrong twelve months later, so the
+      // recurring ones have to say so out loud. Without this a one-off quietly
+      // resurfaces long after anyone remembers writing it.
+      if (typeof entry.date === "string" && DATE_MMDD.test(entry.date) && entry.repeat !== "yearly") {
+        addError(
+          `${prefix}.date "${entry.date}" has no year, so it fires every year. ` +
+          `Write it as "20XX-${entry.date}" for a one-off, or add "repeat": "yearly" if it really should come back.`
+        );
+      }
+      if (typeof entry.date === "string" && DATE_YYYYMMDD.test(entry.date) && entry.repeat === "yearly") {
+        addError(`${prefix}: "repeat": "yearly" needs a bare "MM-DD" date, but the date is "${entry.date}".`);
+      }
       if (typeof entry.date === "string") {
         if (seenDates.has(entry.date)) addWarning(`${prefix}: duplicate date "${entry.date}".`);
         seenDates.add(entry.date);
