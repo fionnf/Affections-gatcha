@@ -204,6 +204,15 @@ if (specialDaysConfig !== null) {
         entry.outcomes.forEach((outcome, oi) => {
           assert(typeof outcome.title === "string" && outcome.title.trim(), `${prefix}.outcomes[${oi}].title is required.`);
           assert(typeof outcome.message === "string" && outcome.message.trim(), `${prefix}.outcomes[${oi}].message is required.`);
+          // renderLinkInto drops a link it cannot parse and hides the button
+          // rather than showing a broken one, so a typo'd URL costs the whole
+          // point of the capsule and looks like nothing went wrong.
+          if (outcome.link !== undefined) {
+            assert(
+              typeof outcome.link === "string" && isValidHttpUrl(outcome.link),
+              `${prefix}.outcomes[${oi}].link must be a valid http(s) URL when present.`
+            );
+          }
         });
       }
       if (entry.tone !== undefined && !KNOWN_TONES.has(entry.tone)) {
