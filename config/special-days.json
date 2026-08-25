@@ -18,6 +18,43 @@
       ]
     },
     {
+      "date": "2026-08-25",
+      "label": "Athen 🏛",
+      "tone": "quest",
+      "player": "lennart",
+      "outcomes": [
+        {
+          "title": "Drei Aufträge, kein Sightseeing",
+          "message": "Heute bist du nicht Tourist, heute hast du Aufträge. Drei Stück. 🏛\n\n1 · Verbanne etwas\nIn der Agora liegen Ostraka: Tonscherben, auf die Athener den Namen von jemandem kratzten, den sie loswerden wollten. Zehn Jahre weg, einfach so. Such eine, auf der du den Namen noch lesen kannst. Und dann schreib auf irgendeinen Zettel, was du dieses Jahr loswerden willst, und wirf ihn weg. Uralte Technologie, funktioniert immer noch.\n\n2 · Beweis, dass die Akropolis lügt\nKeine einzige Linie am Parthenon ist gerade. Säulen in der Mitte dicker, nach innen geneigt, der Boden gewölbt, alles nur damit dein Auge es für gerade hält. Deine Aufgabe: ein Foto, auf dem man die Krümmung wirklich sieht. Geh nah ran und schau die Säule entlang nach oben.\n\n3 · Sei die sechste\nIm Akropolismuseum stehen fünf der sechs echten Karyatiden. Die sechste ist in London. Stell dich vor die leere Stelle, Gewicht auf ein Bein, Blick geradeaus, und lass dich so fotografieren. Das Foto will ich haben.\n\nDrei von drei, und der Rest vom Tag gehört dir."
+        }
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "label": "Serifos 🪨",
+      "tone": "quest",
+      "player": "lennart",
+      "outcomes": [
+        {
+          "title": "Drei Aufträge auf Stein",
+          "message": "Perseus ist hier aufgewachsen. Er kam mit dem Kopf der Medusa zurück, und der halbe Hof des Königs wurde zu Stein. Daher liegen überall diese riesigen runden Felsen herum. Heute hast du drei Aufträge. 🪨\n\n1 · Gib einem einen Namen\nSuch den Felsen, der noch am ehesten aussieht wie jemand, der gerade wirklich nicht damit gerechnet hat. Gib ihm einen Namen und schick ihn mir. Ab dann heisst er so, für immer.\n\n2 · Trag einen Stein hoch\nVon Livadi führt ein alter Eselspfad mit Stufen hinauf in die Chora. Nimm unten einen kleinen Stein mit, der dir gefällt, und leg ihn oben beim Kastro ab. Der Bus nimmt die Strasse, du nimmst die Treppen. Und mehr Wasser mit, als du denkst.\n\n3 · Sag mir, was du siehst\nGanz oben bei der kleinen weissen Kirche: schreib mir, was du von da oben siehst. Aber nur Dinge, keine Adjektive. Mal sehen, ob du das aushältst.\n\nDrei von drei, und du hast dir das Abendessen verdient. 💚"
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "label": "Megalo Livadi ⛏",
+      "tone": "quest",
+      "player": "lennart",
+      "outcomes": [
+        {
+          "title": "Drei Aufträge im Rost",
+          "message": "Heute die andere Seite von Serifos. Nicht die weisse, die rostige. Megalo Livadi war mal eine Eisenmine. ⛏\n\n1 · Find das Erz\nDer Boden ist hier stellenweise rostrot, weil überall noch Eisenerz liegt. Such dir einen richtig roten Stein, klein genug für die Hosentasche. Der kommt mit nach Hause, das ist dein Souvenir.\n\n2 · Ein Foto ohne Ferien\nAm Strand läuft eine eiserne Verladebrücke ins Meer hinaus und hört einfach auf. Da wurde das Erz in die Schiffe gekippt. Mach ein Foto davon, auf dem es nicht nach Urlaub aussieht.\n\n3 · Acht Minuten\n1916 haben die Bergleute hier gestreikt, für den Achtstundentag. Vier sind dabei gestorben. Es war einer der ersten Streiks in Griechenland, der wirklich gewonnen hat. Such das Denkmal, setz dich hin und tu acht Minuten lang gar nichts. Kein Handy. Danach ab ins Wasser.\n\nDrei von drei. Der Strand ist fast leer, weil alle anderen in der Chora sitzen. 🔥",
+          "token": "🔥"
+        }
+      ]
+    },
+    {
       "date": "2026-08-28",
       "label": "Sifnos Φ",
       "tone": "quest",
