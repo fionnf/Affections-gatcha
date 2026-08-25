@@ -81,6 +81,30 @@ test("a sheet row that does carry bestanden applies it to a fresh device", async
   assert.equal(entry.bestanden, true, "a redeployed backend's flag reaches a device that never tapped the button");
 });
 
+test("the proof URL survives a sheet that does not know the column, and arrives from one that does", async () => {
+  writeHistory([
+    { day: "2026-07-27", token: "lennart", tone: "quest", title: "Q", message: "m",
+      bestanden: true, bestandenAt: "2026-07-27", beweisUrl: "https://lh3.googleusercontent.com/d/abc" },
+  ]);
+  _nextPayload = { ok: true, history: [
+    { day: "2026-07-27", token: "lennart", tone: "quest", title: "Q", message: "m" },
+  ]};
+  await syncFromSheets();
+  let entry = readHistory().find((e) => e.day === "2026-07-27");
+  assert.equal(entry.beweisUrl, "https://lh3.googleusercontent.com/d/abc", "a silent sheet must not drop the proof");
+
+  // And the other direction: a redeployed backend delivers it to a device
+  // that never uploaded anything.
+  writeHistory([{ day: "2026-07-27", token: "lennart", tone: "quest", title: "Q", message: "m" }]);
+  _nextPayload = { ok: true, history: [
+    { day: "2026-07-27", token: "lennart", tone: "quest", title: "Q", message: "m",
+      beweisUrl: "https://lh3.googleusercontent.com/d/xyz" },
+  ]};
+  await syncFromSheets();
+  entry = readHistory().find((e) => e.day === "2026-07-27");
+  assert.equal(entry.beweisUrl, "https://lh3.googleusercontent.com/d/xyz");
+});
+
 test("favourites merge is also keyed by day+token", async () => {
   writeFavorites([
     { day: "2026-07-02", token: "lennart", title: "LFav" },

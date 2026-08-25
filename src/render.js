@@ -1,7 +1,8 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden } from "./storage.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl } from "./storage.js";
+import { uploadBeweis } from "./beweis.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
@@ -849,28 +850,82 @@ export function renderPull(pull) {
     if (isQuest) {
       const hint = $("[data-ag-quest-hint]");
       const doneBtn = $("[data-ag-quest-done]");
+      const photoBtn = $("[data-ag-quest-photo]");
+      const fileInput = $("[data-ag-beweis-file]");
+      const thumb = $("[data-ag-beweis-thumb]");
       const { formatHistoryDate } = _getFormatHistoryDate();
       const questRec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
-      if (questRec && questRec.bestanden) {
-        if (hint) hint.textContent = `🏆 Bestanden am ${formatHistoryDate(questRec.bestandenAt || questRec.day)}`;
-        if (doneBtn) doneBtn.hidden = true;
-      } else {
-        if (hint) hint.textContent = "🏆 Auftrag erledigt? Schick Fionn dein Beweisstück und hol dir den Haken.";
-        if (doneBtn) {
-          doneBtn.hidden = false;
-          doneBtn.onclick = () => {
-            const ok = typeof window === "undefined" || !window.confirm
-              ? true
-              : window.confirm("Quest wirklich geschafft? Das wandert dauerhaft ins Trophäenregal.");
-            if (!ok) return;
-            if (!markQuestBestanden(pull.day, pull.token)) return;
+      const done = !!(questRec && questRec.bestanden);
+      const proofUrl = questRec && questRec.beweisUrl;
+
+      if (thumb) {
+        thumb.hidden = !proofUrl;
+        if (proofUrl) {
+          thumb.src = safeUrl(proofUrl);
+          thumb.onclick = () => openLightbox(proofUrl, "Beweisfoto", false);
+        }
+      }
+
+      if (hint) {
+        hint.textContent = done
+          ? `🏆 Bestanden am ${formatHistoryDate(questRec.bestandenAt || questRec.day)}`
+          : "🏆 Auftrag erledigt? Häng ein Beweisfoto an, oder schick es Fionn und hol dir den Haken.";
+      }
+
+      if (doneBtn) {
+        doneBtn.hidden = done;
+        doneBtn.onclick = () => {
+          const ok = typeof window === "undefined" || !window.confirm
+            ? true
+            : window.confirm("Quest wirklich geschafft? Das wandert dauerhaft ins Trophäenregal.");
+          if (!ok) return;
+          if (!markQuestBestanden(pull.day, pull.token)) return;
+          backupToSheets();
+          try { triggerConfetti(60); } catch (_e) {}
+          try { showToast("Bestanden 🏆"); } catch (_e) {}
+          renderPull(pull);
+          if (state.activeTab === "history") renderHistory();
+        };
+      }
+
+      // The photo button stays after passing (a proof can be added late, or a
+      // better shot can replace the first) — it only disappears mid-upload.
+      if (photoBtn && fileInput) {
+        photoBtn.hidden = false;
+        photoBtn.disabled = false;
+        photoBtn.textContent = proofUrl ? "📸 Foto ersetzen" : "📸 Beweis anhängen";
+        photoBtn.onclick = () => { fileInput.value = ""; fileInput.click(); };
+        fileInput.onchange = async () => {
+          const file = fileInput.files && fileInput.files[0];
+          // Re-read at event time: the first render happens before the draw
+          // flow records the pull, so the questRec captured above can be
+          // undefined on exactly the reveal where the button gets used.
+          const rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
+          if (!file || !rec) return;
+          photoBtn.disabled = true;
+          photoBtn.textContent = "Lädt hoch…";
+          try {
+            const url = await uploadBeweis(pull.day, pull.token, file);
+            setBeweisUrl(pull.day, pull.token, url);
+            // A proof photo IS the pass — no extra confirm on this path,
+            // because picking a photo was already the deliberate act.
+            markQuestBestanden(pull.day, pull.token);
             backupToSheets();
             try { triggerConfetti(60); } catch (_e) {}
-            try { showToast("Bestanden 🏆"); } catch (_e) {}
-            renderPull(pull);
-            if (state.activeTab === "history") renderHistory();
-          };
-        }
+            try { showToast("Beweis angenommen 🏆"); } catch (_e) {}
+          } catch (err) {
+            const msg = err && err.code === "old-script"
+              ? "Upload noch nicht bereit — das Tabellen-Skript muss neu deployt werden."
+              : err && err.code === "no-endpoint"
+                ? "Sync ist aus — Beweis kann gerade nicht hochgeladen werden."
+                : err && err.code === "network"
+                  ? "Kein Netz — versuch es später nochmal."
+                  : "Foto konnte nicht gelesen werden.";
+            try { showToast(msg); } catch (_e) {}
+          }
+          renderPull(pull);
+          if (state.activeTab === "history") renderHistory();
+        };
       }
     }
   }
@@ -1330,6 +1385,20 @@ export function renderHistoryItemEl(entry) {
     const { formatHistoryDate } = _getFormatHistoryDate();
     done.textContent = `🏆 Bestanden${entry.bestandenAt ? ` am ${formatHistoryDate(entry.bestandenAt)}` : ""}`;
     li.appendChild(done);
+    if (entry.beweisUrl) {
+      const proof = document.createElement("img");
+      proof.className = "ag-history-beweis";
+      proof.src = safeUrl(entry.beweisUrl);
+      proof.alt = "Beweisfoto";
+      proof.loading = "lazy";
+      proof.decoding = "async";
+      proof.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openLightbox(entry.beweisUrl, "Beweisfoto", false);
+      });
+      proof.addEventListener("error", () => proof.remove(), { once: true });
+      li.appendChild(proof);
+    }
   }
 
   if (isVoucherEntry(entry)) {
@@ -1585,6 +1654,22 @@ export function renderTrophyShelf(entries) {
     emoji.className = "ag-trophy-emoji";
     const pict = (entry.categoryLabel || "").match(/\p{Extended_Pictographic}/gu);
     emoji.textContent = pict ? pict[pict.length - 1] : "🏆";
+
+    // With a proof photo the tile becomes the photo, the emoji shrinks to a
+    // corner badge, and tapping opens the shot — the shelf turns into a
+    // little album of proofs as they accumulate.
+    if (entry.beweisUrl) {
+      tile.classList.add("has-beweis");
+      const shot = document.createElement("img");
+      shot.className = "ag-trophy-shot";
+      shot.src = safeUrl(entry.beweisUrl);
+      shot.alt = "Beweisfoto";
+      shot.loading = "lazy";
+      shot.decoding = "async";
+      shot.addEventListener("error", () => { shot.remove(); tile.classList.remove("has-beweis"); }, { once: true });
+      tile.appendChild(shot);
+      tile.addEventListener("click", () => openLightbox(entry.beweisUrl, entry.title || "Beweisfoto", false));
+    }
 
     const label = document.createElement("span");
     label.className = "ag-trophy-title";

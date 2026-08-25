@@ -440,7 +440,12 @@ export const html = `
               <div data-ag-token-wrap hidden></div>
               <div class="ag-quest-wrap" data-ag-quest-wrap hidden>
                 <p class="ag-quest-hint" data-ag-quest-hint></p>
-                <button class="ag-secondary ag-quest-done-btn" type="button" data-ag-quest-done hidden>Bestanden ✓</button>
+                <img class="ag-beweis-thumb" data-ag-beweis-thumb alt="Beweisfoto" hidden />
+                <div class="ag-quest-actions">
+                  <button class="ag-secondary ag-quest-photo-btn" type="button" data-ag-quest-photo hidden>📸 Beweis anhängen</button>
+                  <button class="ag-secondary ag-quest-done-btn" type="button" data-ag-quest-done hidden>Bestanden ✓</button>
+                </div>
+                <input type="file" accept="image/*" data-ag-beweis-file hidden />
               </div>
               <div class="ag-freikarte-wrap" data-ag-freikarte-wrap hidden>
                 <p class="ag-freikarte-hint">🎟️ Du hast eine Freikarte. Nochmal ziehen?</p>

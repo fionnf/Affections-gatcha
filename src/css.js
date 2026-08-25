@@ -1476,6 +1476,27 @@ export const css = `
         .ag-trophy-tile{background:linear-gradient(180deg,rgba(224,167,93,.12),rgba(224,167,93,.03));border-color:rgba(224,167,93,.3)}
       }
 
+      .ag-quest-actions{display:flex;gap:8px;flex-wrap:wrap}
+      .ag-quest-actions .ag-secondary{flex:none}
+      .ag-beweis-thumb{
+        width:100%;max-height:180px;object-fit:cover;border-radius:var(--ag-radius-sm,10px);
+        border:1px solid rgba(185,120,46,.3);cursor:pointer;display:block;
+      }
+      .ag-history-beweis{
+        margin-top:8px;width:96px;height:96px;object-fit:cover;display:block;
+        border-radius:var(--ag-radius-sm,10px);border:1px solid rgba(185,120,46,.3);cursor:pointer;
+      }
+      .ag-trophy-tile{position:relative}
+      .ag-trophy-tile.has-beweis{cursor:pointer;padding-top:6px}
+      .ag-trophy-shot{
+        width:100%;aspect-ratio:1;object-fit:cover;display:block;
+        border-radius:calc(var(--ag-radius-sm,10px) - 3px);
+      }
+      .ag-trophy-tile.has-beweis .ag-trophy-emoji{
+        position:absolute;top:10px;right:10px;font-size:1.05rem;
+        filter:drop-shadow(0 1px 3px rgba(0,0,0,.55));
+      }
+
       /* ── Install-to-home-screen nudge ── */
       .ag-install-nudge{
         display:flex;align-items:center;justify-content:space-between;gap:12px;

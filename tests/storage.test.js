@@ -5,7 +5,7 @@ import { setupBrowserEnv } from "./helpers.js";
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
 const {
-  readHistory, writeHistory, markQuestBestanden,
+  readHistory, writeHistory, markQuestBestanden, setBeweisUrl,
   readTokens, writeTokens, addToken, resetToken,
   applySharedTokens, readTokensSent, writeTokensSent,
   readQuestPoints, addQuestPoints,
@@ -196,4 +196,19 @@ test("markQuestBestanden refuses a day that was never pulled", () => {
   state.theme = { timezone: "UTC" };
   writeHistory([]);
   assert.equal(markQuestBestanden("2026-08-25", "lennart"), null);
+});
+
+test("setBeweisUrl attaches to the entry and allows replacing", () => {
+  state.theme = { timezone: "UTC" };
+  writeHistory([
+    { day: "2026-08-25", token: "lennart", tone: "quest", title: "Q", message: "m" },
+  ]);
+  setBeweisUrl("2026-08-25", "lennart", "https://lh3.googleusercontent.com/d/first");
+  assert.equal(readHistory()[0].beweisUrl, "https://lh3.googleusercontent.com/d/first");
+
+  // A better photo of the same quest is still the same proof.
+  setBeweisUrl("2026-08-25", "lennart", "https://lh3.googleusercontent.com/d/second");
+  assert.equal(readHistory()[0].beweisUrl, "https://lh3.googleusercontent.com/d/second");
+
+  assert.equal(setBeweisUrl("2026-01-01", "lennart", "https://x"), null, "no entry, no attach");
 });

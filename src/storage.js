@@ -93,6 +93,17 @@ export function markQuestBestanden(day, token) {
   return match;
 }
 
+// Attach the proof photo's URL to a day's entry. Replacing an earlier proof
+// is allowed — a better photo of the same quest is still the same proof.
+export function setBeweisUrl(day, token, url) {
+  const history = readHistory();
+  const match = history.find((e) => e.day === day && e.token === token);
+  if (!match) return null;
+  match.beweisUrl = url;
+  writeHistory(history);
+  return match;
+}
+
 export function readFavorites() {
   try {
     if (typeof window === "undefined" || !window.localStorage) return [];

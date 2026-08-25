@@ -117,6 +117,12 @@ export async function syncFromSheets() {
           next.bestanden = true;
           next.bestandenAt = prev.bestandenAt || null;
         }
+        // Same union for the proof photo: a sheet row without the field means
+        // the deployed script doesn't know the column, not that the proof is
+        // gone. When both sides carry one, the sheet stays authoritative.
+        if (prev && prev.beweisUrl && !next.beweisUrl) {
+          next.beweisUrl = prev.beweisUrl;
+        }
         localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
