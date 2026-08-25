@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#eef5ea"/>
+  <!-- L, upside down (bar at the top, pointing left into the F's mouth) -->
+  <g fill="#b9782e">
+    <rect x="180" y="172" width="216" height="74" rx="24"/>
+    <rect x="322" y="172" width="74" height="268" rx="24"/>
+  </g>
+  <!-- weave gap: the F's middle arm passes over the L's stem -->
+  <rect x="313" y="257" width="92" height="92" fill="#eef5ea"/>
+  <!-- F, upright -->
+  <g fill="#2f7a4f">
+    <rect x="116" y="72" width="74" height="368" rx="24"/>
+    <rect x="116" y="72" width="228" height="74" rx="24"/>
+    <rect x="116" y="266" width="280" height="74" rx="24"/>
+  </g>
+</svg>
