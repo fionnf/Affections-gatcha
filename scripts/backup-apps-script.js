@@ -84,7 +84,9 @@ function doGet(e) {
         revealedAt:    row[10] || null,
         promptAnswer:  row[11] || null,
         used:          row[12] === "yes" || row[12] === true,
-        usedAt:        row[13] || null
+        usedAt:        row[13] || null,
+        bestanden:     row[14] === "yes" || row[14] === true,
+        bestandenAt:   row[15] || null
       });
     }
 
@@ -722,7 +724,9 @@ function doPost(e) {
           entry.revealedAt    || "",
           entry.promptAnswer  || "",
           entry.used ? "yes" : "",
-          entry.usedAt        || ""
+          entry.usedAt        || "",
+          entry.bestanden ? "yes" : "",
+          entry.bestandenAt   || ""
         ];
         if (existingByDay[day]) {
           histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
@@ -768,10 +772,15 @@ function getOrCreateHistorySheet_(ss) {
   let sheet = ss.getSheetByName(HISTORY_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(HISTORY_SHEET_NAME);
-    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer", "Used", "UsedAt"]);
+    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer", "Used", "UsedAt", "Bestanden", "BestandenAt"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(7, 400);
     sheet.setColumnWidth(12, 400);
+  }
+  // Sheets created before the Bestanden columns existed get the two headers
+  // filled in, so the columns are labelled rather than mystery cells.
+  if (sheet.getRange(1, 15).getValue() === "") {
+    sheet.getRange(1, 15, 1, 2).setValues([["Bestanden", "BestandenAt"]]);
   }
   return sheet;
 }

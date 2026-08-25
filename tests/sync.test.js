@@ -45,6 +45,42 @@ test("history merge keeps both players' same-day entries (day+token key)", async
   assert.equal(days.length, 2, "exactly one row per player, none dropped");
 });
 
+test("a sheet row without bestanden cannot strip a local trophy", async () => {
+  // The deployed Apps Script may predate the Bestanden column, so the sheet
+  // echoes quest entries without the flag. Bestanden is one-way; the union
+  // must keep the local true or a trophy vanishes minutes after it's earned.
+  writeHistory([
+    { day: "2026-07-27", token: "lennart", categoryId: "special", tone: "quest",
+      title: "Drei Aufträge im Rost", message: "m", bestanden: true, bestandenAt: "2026-07-27" },
+  ]);
+  _nextPayload = { ok: true, history: [
+    { day: "2026-07-27", token: "lennart", categoryId: "special", tone: "quest",
+      title: "Drei Aufträge im Rost", message: "m" },
+  ]};
+
+  await syncFromSheets();
+
+  const entry = readHistory().find((e) => e.day === "2026-07-27" && e.token === "lennart");
+  assert.equal(entry.bestanden, true, "the sheet's ignorance must not unset the flag");
+  assert.equal(entry.bestandenAt, "2026-07-27", "the earned date survives too");
+});
+
+test("a sheet row that does carry bestanden applies it to a fresh device", async () => {
+  writeHistory([
+    { day: "2026-07-27", token: "lennart", categoryId: "special", tone: "quest",
+      title: "Drei Aufträge im Rost", message: "m" },
+  ]);
+  _nextPayload = { ok: true, history: [
+    { day: "2026-07-27", token: "lennart", categoryId: "special", tone: "quest",
+      title: "Drei Aufträge im Rost", message: "m", bestanden: true, bestandenAt: "2026-07-27" },
+  ]};
+
+  await syncFromSheets();
+
+  const entry = readHistory().find((e) => e.day === "2026-07-27" && e.token === "lennart");
+  assert.equal(entry.bestanden, true, "a redeployed backend's flag reaches a device that never tapped the button");
+});
+
 test("favourites merge is also keyed by day+token", async () => {
   writeFavorites([
     { day: "2026-07-02", token: "lennart", title: "LFav" },

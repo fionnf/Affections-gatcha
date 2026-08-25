@@ -5,6 +5,7 @@ import { setupBrowserEnv } from "./helpers.js";
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
 const {
+  readHistory, writeHistory, markQuestBestanden,
   readTokens, writeTokens, addToken, resetToken,
   applySharedTokens, readTokensSent, writeTokensSent,
   readQuestPoints, addQuestPoints,
@@ -171,4 +172,28 @@ test("a confirmed send makes the sheet authoritative again", () => {
   writeTokensSent(readTokens());
   assert.equal(applySharedTokens({ "🌿": 2, "⭐": 1 }), false, "nothing left pending");
   assert.deepEqual(readTokens(), { "🌿": 2, "⭐": 1 });
+});
+
+test("markQuestBestanden flips the entry once and stamps the date", () => {
+  state.theme = { timezone: "UTC" };
+  writeHistory([
+    { day: "2026-08-25", token: "lennart", tone: "quest", title: "Drei Aufträge", message: "m" },
+  ]);
+  const marked = markQuestBestanden("2026-08-25", "lennart");
+  assert.equal(marked.bestanden, true);
+  assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(marked.bestandenAt), "bestandenAt is a day key");
+
+  // One-way and idempotent: marking again must not move the earned date.
+  const firstDate = marked.bestandenAt;
+  const again = markQuestBestanden("2026-08-25", "lennart");
+  assert.equal(again.bestandenAt, firstDate);
+
+  const stored = readHistory().find((e) => e.day === "2026-08-25");
+  assert.equal(stored.bestanden, true, "the flag is persisted, not just returned");
+});
+
+test("markQuestBestanden refuses a day that was never pulled", () => {
+  state.theme = { timezone: "UTC" };
+  writeHistory([]);
+  assert.equal(markQuestBestanden("2026-08-25", "lennart"), null);
 });
