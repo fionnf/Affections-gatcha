@@ -76,6 +76,34 @@ export function writeHistory(entries) {
   }
 }
 
+// Beweisstück: mark today's quest as passed. One-way, like a voucher's
+// "used" — a trophy once earned is never silently taken back, which is also
+// what makes the sync-side union merge safe. Returns the updated entry, or
+// null when no matching history record exists yet (nothing was pulled, or a
+// preview day that never wrote one).
+export function markQuestBestanden(day, token) {
+  const history = readHistory();
+  const match = history.find((e) => e.day === day && e.token === token);
+  if (!match) return null;
+  if (!match.bestanden) {
+    match.bestanden = true;
+    match.bestandenAt = dateKeyInTimezone(state.theme?.timezone || "UTC");
+    writeHistory(history);
+  }
+  return match;
+}
+
+// Attach the proof photo's URL to a day's entry. Replacing an earlier proof
+// is allowed — a better photo of the same quest is still the same proof.
+export function setBeweisUrl(day, token, url) {
+  const history = readHistory();
+  const match = history.find((e) => e.day === day && e.token === token);
+  if (!match) return null;
+  match.beweisUrl = url;
+  writeHistory(history);
+  return match;
+}
+
 export function readFavorites() {
   try {
     if (typeof window === "undefined" || !window.localStorage) return [];

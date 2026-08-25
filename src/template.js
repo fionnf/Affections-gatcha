@@ -438,6 +438,15 @@ export const html = `
               <div class="ag-message" data-ag-message hidden></div>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
               <div data-ag-token-wrap hidden></div>
+              <div class="ag-quest-wrap" data-ag-quest-wrap hidden>
+                <p class="ag-quest-hint" data-ag-quest-hint></p>
+                <img class="ag-beweis-thumb" data-ag-beweis-thumb alt="Beweisfoto" hidden />
+                <div class="ag-quest-actions">
+                  <button class="ag-secondary ag-quest-photo-btn" type="button" data-ag-quest-photo hidden>📸 Beweis anhängen</button>
+                  <button class="ag-secondary ag-quest-done-btn" type="button" data-ag-quest-done hidden>Bestanden ✓</button>
+                </div>
+                <input type="file" accept="image/*" data-ag-beweis-file hidden />
+              </div>
               <div class="ag-freikarte-wrap" data-ag-freikarte-wrap hidden>
                 <p class="ag-freikarte-hint">🎟️ Du hast eine Freikarte. Nochmal ziehen?</p>
                 <button class="ag-secondary ag-freikarte-btn" type="button" data-ag-freikarte-redeem>Freikarte einlösen</button>
@@ -560,6 +569,11 @@ export const html = `
               <button class="ag-secondary ag-history-more" type="button" data-ag-history-more hidden>Mehr anzeigen</button>
             </div>
 
+            <div class="ag-card ag-trophy-card" data-ag-trophy-card hidden>
+              <p class="ag-wish-label">Trophäenregal 🏆</p>
+              <p class="ag-trophy-note" data-ag-trophy-note></p>
+              <div class="ag-trophy-shelf" data-ag-trophies></div>
+            </div>
             <details class="ag-card ag-album-card" data-ag-album-card hidden>
               <summary class="ag-album-summary">
                 <span class="ag-wish-label">Unser Album</span>

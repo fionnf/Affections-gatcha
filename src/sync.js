@@ -104,7 +104,26 @@ export async function syncFromSheets() {
         const day = normaliseDay(entry.day);
         if (!day || day > today) continue;
         const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
-        localByDay.set(`${day}|${normToken}`, { ...entry, day, token: normToken });
+        const key = `${day}|${normToken}`;
+        const next = { ...entry, day, token: normToken };
+        // Bestanden is a one-way flag, and the deployed Apps Script may
+        // predate its column — a sheet row without the field means "the sheet
+        // does not know", not "not passed". Blindly taking the sheet copy here
+        // would strip a trophy minutes after it was earned, so the union keeps
+        // a local true. A sheet that does carry the flag simply agrees; it can
+        // never carry a false that has to win, because nothing ever unsets it.
+        const prev = localByDay.get(key);
+        if (prev && prev.bestanden && !next.bestanden) {
+          next.bestanden = true;
+          next.bestandenAt = prev.bestandenAt || null;
+        }
+        // Same union for the proof photo: a sheet row without the field means
+        // the deployed script doesn't know the column, not that the proof is
+        // gone. When both sides carry one, the sheet stays authoritative.
+        if (prev && prev.beweisUrl && !next.beweisUrl) {
+          next.beweisUrl = prev.beweisUrl;
+        }
+        localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
       writeHistory(merged);

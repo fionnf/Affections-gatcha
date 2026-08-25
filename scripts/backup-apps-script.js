@@ -84,7 +84,10 @@ function doGet(e) {
         revealedAt:    row[10] || null,
         promptAnswer:  row[11] || null,
         used:          row[12] === "yes" || row[12] === true,
-        usedAt:        row[13] || null
+        usedAt:        row[13] || null,
+        bestanden:     row[14] === "yes" || row[14] === true,
+        bestandenAt:   row[15] || null,
+        beweisUrl:     row[16] || null
       });
     }
 
@@ -385,6 +388,41 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
+
+    // ── Beweis-Foto upload ────────────────────────────────────────────────────
+    // A quest's proof photo, sent by the app as base64 JPEG (compressed
+    // client-side to ~1400px). Stored in a Drive folder, shared by link, and
+    // the googleusercontent URL — the same form config/photos.json uses — is
+    // written onto the day's History row and returned to the app.
+    if (data.type === "beweis-upload") {
+      const token = (data.token || "").toLowerCase();
+      const day = String(data.day || "").slice(0, 10);
+      if (!token || !day || !data.image) return jsonOut_({ ok: false, error: "missing fields" });
+
+      const folder = getOrCreateBeweisFolder_();
+      const bytes = Utilities.base64Decode(data.image);
+      const name = token + "-" + day + ".jpg";
+      // A re-upload replaces the earlier proof for the same day — trash the
+      // old file rather than piling up near-duplicates in the folder.
+      const dupes = folder.getFilesByName(name);
+      while (dupes.hasNext()) dupes.next().setTrashed(true);
+      const file = folder.createFile(Utilities.newBlob(bytes, data.mime || "image/jpeg", name));
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      const url = "https://lh3.googleusercontent.com/d/" + file.getId();
+
+      const histSheet = getOrCreateHistorySheet_(ss);
+      const values = histSheet.getDataRange().getValues();
+      for (let i = 1; i < values.length; i++) {
+        if ((values[i][0] || "").toLowerCase() !== token) continue;
+        const d = values[i][1] instanceof Date
+          ? Utilities.formatDate(values[i][1], "UTC", "yyyy-MM-dd")
+          : String(values[i][1]).slice(0, 10);
+        if (d !== day) continue;
+        histSheet.getRange(i + 1, 17).setValue(url);
+        break;
+      }
+      return jsonOut_({ ok: true, url: url, fileId: file.getId() });
+    }
 
     // ── Prompt answer ─────────────────────────────────────────────────────────
     if (data.type === "prompt-answer") {
@@ -709,6 +747,16 @@ function doPost(e) {
         if (!entry || !entry.day || entry.title === "(wiederhergestellt)") continue;
         const day = String(entry.day || "").slice(0, 10);
         if (!day) continue;
+        // Bestanden and the proof URL are one-way: a second device that
+        // hasn't synced them yet backs up entries without them, and a plain
+        // overwrite would blank what the first device earned. Keep the
+        // existing cell whenever the incoming entry is silent about it.
+        const prevRow = existingByDay[day]
+          ? histSheet.getRange(existingByDay[day], 1, 1, 17).getValues()[0]
+          : null;
+        const bestanden   = entry.bestanden || (prevRow && prevRow[14] === "yes");
+        const bestandenAt = entry.bestandenAt || (prevRow && prevRow[15]) || "";
+        const beweisUrl   = entry.beweisUrl || (prevRow && prevRow[16]) || "";
         const row = [
           token, day,
           entry.categoryId    || "",
@@ -722,7 +770,10 @@ function doPost(e) {
           entry.revealedAt    || "",
           entry.promptAnswer  || "",
           entry.used ? "yes" : "",
-          entry.usedAt        || ""
+          entry.usedAt        || "",
+          bestanden ? "yes" : "",
+          bestandenAt,
+          beweisUrl
         ];
         if (existingByDay[day]) {
           histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
@@ -768,12 +819,26 @@ function getOrCreateHistorySheet_(ss) {
   let sheet = ss.getSheetByName(HISTORY_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(HISTORY_SHEET_NAME);
-    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer", "Used", "UsedAt"]);
+    sheet.appendRow(["Token", "Day", "CategoryId", "CategoryLabel", "Tone", "Title", "Message", "Link", "UnlockTime", "Photo", "RevealedAt", "PromptAnswer", "Used", "UsedAt", "Bestanden", "BestandenAt", "BeweisUrl"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(7, 400);
     sheet.setColumnWidth(12, 400);
   }
+  // Sheets created before the Bestanden columns existed get the two headers
+  // filled in, so the columns are labelled rather than mystery cells.
+  if (sheet.getRange(1, 15).getValue() === "") {
+    sheet.getRange(1, 15, 1, 2).setValues([["Bestanden", "BestandenAt"]]);
+  }
+  if (sheet.getRange(1, 17).getValue() === "") {
+    sheet.getRange(1, 17).setValue("BeweisUrl");
+  }
   return sheet;
+}
+
+function getOrCreateBeweisFolder_() {
+  const it = DriveApp.getFoldersByName("Gacha Beweise");
+  if (it.hasNext()) return it.next();
+  return DriveApp.createFolder("Gacha Beweise");
 }
 
 function getOrCreateQuestSheet_(ss) {
