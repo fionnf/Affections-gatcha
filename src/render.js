@@ -808,7 +808,7 @@ export function messageText(pull) {
     pull.outcome.message,
     (pull.outcome.link && (!pull.unlockTime || (() => {
       const [h, m] = pull.unlockTime.split(":").map(Number);
-      const now = hmInTimezone(state.theme?.timezone || "UTC");
+      const now = hmInTimezone(pull.unlockTimezone || state.theme?.timezone || "UTC");
       return now.h > h || (now.h === h && now.m >= m);
     })()))
       ? `🔗 ${pull.outcome.link}` : "",
@@ -999,7 +999,10 @@ export function renderPull(pull) {
 
   if (pull.outcome.link && pull.unlockTime) {
     const [h, m] = pull.unlockTime.split(":").map(Number);
-    const now = hmInTimezone(state.theme?.timezone || "UTC");
+    // The entry's own timezone wins: "11:00" on a Sifnos capsule means 11:00
+    // on Sifnos, not 11:00 in Zurich — the lock line shows the raw string,
+    // so the clock it is checked against must be the clock they are reading.
+    const now = hmInTimezone(pull.unlockTimezone || state.theme?.timezone || "UTC");
     const lpin = pull.outcome.linkPin;
     if (lpin) {
       if (isPinUnlocked("link-" + lpin)) {

@@ -215,6 +215,19 @@ if (specialDaysConfig !== null) {
           }
         });
       }
+      if (entry.unlockTime !== undefined && !/^\d{2}:\d{2}$/.test(String(entry.unlockTime))) {
+        addError(`${prefix}.unlockTime must be "HH:MM" (got ${JSON.stringify(entry.unlockTime)}).`);
+      }
+      if (entry.unlockTimezone !== undefined) {
+        try {
+          new Intl.DateTimeFormat("en-US", { timeZone: entry.unlockTimezone });
+        } catch (_e) {
+          addError(`${prefix}.unlockTimezone ${JSON.stringify(entry.unlockTimezone)} is not a recognised IANA timezone.`);
+        }
+        if (entry.unlockTime === undefined) {
+          addWarning(`${prefix}.unlockTimezone does nothing without unlockTime.`);
+        }
+      }
       if (entry.tone !== undefined && !KNOWN_TONES.has(entry.tone)) {
         addWarning(`${prefix}.tone "${entry.tone}" is not a recognised tone. Known tones: ${[...KNOWN_TONES].join(", ")}.`);
       }

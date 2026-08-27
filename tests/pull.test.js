@@ -153,6 +153,19 @@ test("a special day can be addressed to one player", () => {
   assert.equal(buildPullForDay("2026-08-12", 0).category.id, "special");
 });
 
+test("a special day's unlock time and timezone travel with the pull", () => {
+  // The link gate reads pull.unlockTime/unlockTimezone; the special branch
+  // returns early, so a field it forgets to copy silently never gates.
+  state.specialDays = { days: [
+    { date: "2026-08-28", label: "Sifnos", tone: "quest",
+      unlockTime: "11:00", unlockTimezone: "Europe/Athens",
+      outcomes: [{ title: "S", message: "m", link: "https://example.com/x" }] },
+  ]};
+  const pull = buildPullForDay("2026-08-28", 0);
+  assert.equal(pull.unlockTime, "11:00");
+  assert.equal(pull.unlockTimezone, "Europe/Athens");
+});
+
 test("Freikarte reroll never lands on Niete or Verflucht", () => {
   for (let i = 1; i <= 28; i++) {
     const day = `2026-09-${String(i).padStart(2, "0")}`;
