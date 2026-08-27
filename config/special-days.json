@@ -65,7 +65,9 @@
           "message": "Ihr seid da. 🏝️\n\nBevor der Tag euch einfach so wegläuft: auf der Insel liegen sechs Buchstaben verteilt. Der Link unten ist der Anfang.\n\nBerühren, dann zeigt er euch, wo der erste liegt. Ohne den ersten geht der Rest nicht, also fangt damit an.\n\nUnd das hier hat eine Uhr. Wenn ihr zu lange im Hafen sitzen bleibt und den Frappé zu ernst nehmt, schafft ihr die sechs nicht mehr rechtzeitig. Also lieber gleich los, mit Wasser und was auf dem Kopf.\n\nAlle sechs zusammen, und es gibt was dafür. Was, sage ich nicht. 🌿",
           "link": "https://phi-sifnos-fionns-projects-f720fb77.vercel.app/"
         }
-      ]
+      ],
+      "unlockTime": "11:00",
+      "unlockTimezone": "Europe/Athens"
     },
     {
       "date": "2026-08-29",

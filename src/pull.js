@@ -99,7 +99,10 @@ export function buildPullForDay(day, streak, opts = {}) {
       day, token, category, outcome,
       photo: specialPhoto,
       collectToken: outcome.token || null,
-      unlockTime: special.unlockTime || null
+      unlockTime: special.unlockTime || null,
+      // A capsule on a trip unlocks on the trip's clock, not Zurich's — the
+      // written time is what their phones show where they are.
+      unlockTimezone: special.unlockTimezone || null
     };
   }
 
