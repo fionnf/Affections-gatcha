@@ -80,6 +80,23 @@
           "message": "Alle sechs. Einmal quer über die Insel gesammelt, und am Ende steht da: K A I R O S. Der richtige Moment. 🌿\n\nEin Spiel mit so einem Namen wartet nicht im Regal. Also heute, ihr drei: hinlegen, auspacken, spielen. Erste Runde zum Lernen, zweite mit Ehrgeiz, dritte um die Ehre.\n\nUnd irgendwann dazwischen, mitten im Spiel, schaut kurz hoch und merkt euch das Bild: ihr drei, ein Tisch, eine Insel. Genau dafür heisst es so.\n\nWer verliert, holt das Dessert. 💚"
         }
       ]
+    },
+    {
+      "date": "2026-09-27",
+      "label": "Foto-Drop 📸",
+      "tone": "photo",
+      "player": "lennart",
+      "outcomes": [
+        {
+          "title": "Ein Bild von uns",
+          "message": "Heute keine Aufgabe, kein Rätsel, kein Gutschein. Nur das hier.\n\nWir zwei, ganz oben, und hinter uns hört die Welt einfach nicht mehr auf. Ich schau es mir immer noch gern an.\n\nAuf den nächsten Gipfel. 💚"
+        }
+      ],
+      "photo": {
+        "url": "media/gipfel-2026-09-27.jpg",
+        "alt": "Gipfel-Selfie, wir zwei über den Bergen",
+        "caption": "Oben. Wir zwei, und die halbe Welt liegt darunter."
+      }
     }
   ]
 }

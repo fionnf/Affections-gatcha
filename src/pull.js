@@ -88,9 +88,15 @@ export function buildPullForDay(day, streak, opts = {}) {
       tone: special.tone || "jackpot",
       outcomes: specialOutcomes
     };
-    const specialPhoto = (special.photoAlt && state.photos.length)
-      ? (imagePhotos().find((p) => p.alt === special.photoAlt) || null)
-      : null;
+    // An inline "photo" beats photoAlt: photos.json is regenerated wholesale
+    // by the shared-album sync ("manual edits will be overwritten"), so a
+    // capsule that must show one specific picture carries it itself, with the
+    // file committed under media/ where the sync never reaches.
+    const specialPhoto = (special.photo && special.photo.url)
+      ? { type: "image", ...special.photo }
+      : (special.photoAlt && state.photos.length)
+        ? (imagePhotos().find((p) => p.alt === special.photoAlt) || null)
+        : null;
     // collectToken is threaded through here so a special day can hand out a
     // Sammeltoken like any other capsule. The ordinary return below builds it
     // from outcome.token; this branch returns early and used to drop it, so a

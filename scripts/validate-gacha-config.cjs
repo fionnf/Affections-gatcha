@@ -215,6 +215,14 @@ if (specialDaysConfig !== null) {
           }
         });
       }
+      if (entry.photo !== undefined) {
+        if (!entry.photo || typeof entry.photo.url !== "string" || !entry.photo.url.trim()) {
+          addError(`${prefix}.photo needs a url.`);
+        }
+        if (!entry.photo || typeof entry.photo.alt !== "string" || !entry.photo.alt.trim()) {
+          addError(`${prefix}.photo needs an alt.`);
+        }
+      }
       if (entry.unlockTime !== undefined && !/^\d{2}:\d{2}$/.test(String(entry.unlockTime))) {
         addError(`${prefix}.unlockTime must be "HH:MM" (got ${JSON.stringify(entry.unlockTime)}).`);
       }
