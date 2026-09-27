@@ -166,6 +166,23 @@ test("a special day's unlock time and timezone travel with the pull", () => {
   assert.equal(pull.unlockTimezone, "Europe/Athens");
 });
 
+test("a special day can carry its own photo, independent of photos.json", () => {
+  // photos.json is regenerated wholesale by the shared-album sync, so a
+  // photoAlt pointing at a hand-added manifest entry dies within hours. An
+  // inline photo must work with an EMPTY photo pool and win over photoAlt.
+  state.photos = [];
+  state.specialDays = { days: [
+    { date: "2026-09-27", label: "Foto-Drop", tone: "photo",
+      photo: { url: "media/gipfel.jpg", alt: "Gipfel", caption: "Oben." },
+      photoAlt: "irgendwas anderes",
+      outcomes: [{ title: "S", message: "m" }] },
+  ]};
+  const pull = buildPullForDay("2026-09-27", 0);
+  assert.equal(pull.photo.url, "media/gipfel.jpg");
+  assert.equal(pull.photo.type, "image");
+  assert.equal(pull.photo.caption, "Oben.");
+});
+
 test("Freikarte reroll never lands on Niete or Verflucht", () => {
   for (let i = 1; i <= 28; i++) {
     const day = `2026-09-${String(i).padStart(2, "0")}`;
