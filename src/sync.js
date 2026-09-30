@@ -123,6 +123,9 @@ export async function syncFromSheets() {
         if (prev && prev.beweisUrl && !next.beweisUrl) {
           next.beweisUrl = prev.beweisUrl;
         }
+        if (prev && prev.reaction && !next.reaction) {
+          next.reaction = prev.reaction;
+        }
         localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));

@@ -105,6 +105,13 @@ test("the proof URL survives a sheet that does not know the column, and arrives 
   assert.equal(entry.beweisUrl, "https://lh3.googleusercontent.com/d/xyz");
 });
 
+test("a reaction survives a sheet row that does not carry it", async () => {
+  writeHistory([{ day: "2026-07-27", token: "lennart", categoryId: "common", title: "Q", message: "m", reaction: "🥹" }]);
+  _nextPayload = { ok: true, history: [{ day: "2026-07-27", token: "lennart", categoryId: "common", title: "Q", message: "m" }] };
+  await syncFromSheets();
+  assert.equal(readHistory().find((e) => e.day === "2026-07-27").reaction, "🥹");
+});
+
 test("favourites merge is also keyed by day+token", async () => {
   writeFavorites([
     { day: "2026-07-02", token: "lennart", title: "LFav" },

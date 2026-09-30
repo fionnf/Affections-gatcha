@@ -104,6 +104,17 @@ export function setBeweisUrl(day, token, url) {
   return match;
 }
 
+// A one-tap reaction to a capsule. Replaceable — he may change his mind
+// between 🥹 and 😂 — and unioned on sync like bestanden.
+export function setReaction(day, token, emoji) {
+  const history = readHistory();
+  const match = history.find((e) => e.day === day && e.token === token);
+  if (!match) return null;
+  match.reaction = emoji;
+  writeHistory(history);
+  return match;
+}
+
 export function readFavorites() {
   try {
     if (typeof window === "undefined" || !window.localStorage) return [];

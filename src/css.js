@@ -2684,6 +2684,47 @@ body{
     backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(18,30,22,.96);
   }
 }
+
+/* ── Reactions ── */
+.ag-widget .ag-reactions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ag-widget .ag-reactions-label{font-size:.78rem;color:var(--ag-muted);margin-right:2px}
+.ag-widget .ag-reaction{
+  width:40px;height:40px;border-radius:999px;font-size:1.25rem;line-height:1;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  transition:transform 140ms var(--ag-ease),background 140ms var(--ag-ease),border-color 140ms var(--ag-ease);
+}
+.ag-widget .ag-reaction:active{transform:scale(.9)}
+.ag-widget .ag-reaction.is-chosen{background:rgba(143,207,158,.24);border-color:rgba(143,207,158,.55);transform:scale(1.08)}
+.ag-widget .ag-history-reaction{font-size:.95rem;line-height:1}
+
+/* ── Ferien-Schutz ── */
+.ag-widget .ag-ferien{margin:0 0 12px;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
+.ag-widget .ag-ferien-summary{cursor:pointer;list-style:none;font-size:.9rem;color:var(--ag-text)}
+.ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
+.ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}
+.ag-widget .ag-ferien-note{margin:8px 0 10px;font-size:.82rem;color:var(--ag-muted);line-height:1.45}
+.ag-widget .ag-ferien-form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ag-widget .ag-ferien-input{flex:1 1 120px;min-width:0;padding:8px 10px;border-radius:12px;font-family:inherit;color-scheme:dark}
+.ag-widget .ag-ferien-sep{font-size:.82rem;color:var(--ag-muted)}
+.ag-widget .ag-ferien-add{min-height:38px;padding:0 14px;font-size:.88rem}
+.ag-widget .ag-ferien-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ag-widget .ag-ferien-item{display:flex;align-items:center;justify-content:space-between;font-size:.86rem;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.05)}
+.ag-widget .ag-ferien-remove{background:none;border:none;color:var(--ag-muted);cursor:pointer;font-size:.9rem;padding:4px 6px}
+
+/* ── Capsule press-and-hold ── */
+.ag-widget .ag-machine-capsule{cursor:pointer;touch-action:none;pointer-events:auto;z-index:4}
+.ag-widget.is-charging .ag-machine-capsule{
+  animation:none;
+  transform:translate(-50%,-50%) scale(1.22);
+  box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 34px rgba(255,236,170,.45);
+  transition:transform 650ms cubic-bezier(.2,.8,.2,1),box-shadow 650ms ease;
+}
+.ag-widget.is-charged .ag-machine-capsule{
+  transform:translate(-50%,-50%) scale(1.32);
+  box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 56px rgba(255,236,170,.75);
+}
+.ag-widget.is-charging .ag-mach-glow{animation-duration:.6s}
     `;
 
 export function injectStyles() {

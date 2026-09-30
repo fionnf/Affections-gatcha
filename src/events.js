@@ -2,7 +2,7 @@
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone } from "./utils.js";
 import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll } from "./storage.js";
-import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak } from "./streak.js";
+import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak, addVacation } from "./streak.js";
 import { buildPull, rerollPullForDay } from "./pull.js";
 import { playPullSound } from "./sound.js";
 import { getPreviewDay } from "./utils.js";
@@ -12,7 +12,7 @@ import { triggerConfetti } from "./confetti.js";
 import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
@@ -408,6 +408,64 @@ export function downloadResultAsImage(pull) {
   link.download = `gacha-${pull.category.id}-${pull.day}.png`;
   link.href = canvas.toDataURL("image/png");
   link.click();
+}
+
+// A phone-shaped image of the pulled photo with its caption, to set as the
+// lock screen. Drawn from the same URL the app displays; if the host will
+// not serve it with CORS the canvas is tainted and export throws, which is
+// caught and explained rather than silently producing a blank file.
+export async function downloadWallpaper(pull) {
+  const W = 1170, H = 2532, PAD = 96;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  try {
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = pull.photo.url; });
+  } catch (_e) {
+    showToast("Foto konnte nicht geladen werden.");
+    return;
+  }
+  // cover-fit
+  const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+  const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  // bottom veil for the caption
+  const veil = ctx.createLinearGradient(0, H * 0.62, 0, H);
+  veil.addColorStop(0, "rgba(8,20,14,0)");
+  veil.addColorStop(1, "rgba(8,20,14,.82)");
+  ctx.fillStyle = veil;
+  ctx.fillRect(0, H * 0.62, W, H * 0.38);
+  const caption = pull.photo.caption || pull.photo.alt || "";
+  ctx.font = "500 56px Boska, Georgia, serif";
+  ctx.fillStyle = "#fffdf2";
+  const lines = wrapText(ctx, caption, W - PAD * 2).slice(0, 3);
+  let y = H - PAD - 160 - (lines.length - 1) * 68;
+  for (const line of lines) { ctx.fillText(line, PAD, y); y += 68; }
+  ctx.font = "500 34px Satoshi, Inter, system-ui, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,.62)";
+  ctx.fillText(pull.day, PAD, H - PAD - 80);
+  ctx.fillStyle = "rgba(255,255,255,.35)";
+  ctx.font = "28px Satoshi, Inter, system-ui, sans-serif";
+  ctx.fillText(state.theme?.brand?.machineName || "Affektions-Gacha", PAD, H - PAD - 30);
+
+  let blob;
+  try {
+    blob = await new Promise((res, rej) => canvas.toBlob((b) => b ? res(b) : rej(new Error("blob")), "image/jpeg", 0.92));
+  } catch (_e) {
+    showToast("Dieses Foto lässt sich nicht exportieren (CORS).");
+    return;
+  }
+  const file = new File([blob], `gacha-hintergrund-${pull.day}.jpg`, { type: "image/jpeg" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: caption }); return; } catch (_e) { /* dismissed */ return; }
+  }
+  const link = document.createElement("a");
+  link.download = file.name;
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 4000);
 }
 
 export function renderError(error) {
@@ -833,6 +891,58 @@ export function bindEvents() {
     haptic(8);
     toggleFavorite(state.todaysPull);
   });
+  $("[data-ag-wallpaper]")?.addEventListener("click", () => {
+    if (!state.todaysPull || !state.todaysPull.photo) return;
+    haptic(8);
+    downloadWallpaper(state.todaysPull);
+  });
+
+  // Ferien-Schutz: declare a holiday window in Verlauf.
+  $("[data-ag-ferien-add]")?.addEventListener("click", () => {
+    const from = ($("[data-ag-ferien-from]")?.value || "").trim();
+    const to = ($("[data-ag-ferien-to]")?.value || from).trim();
+    if (!from) { showToast("Erst ein Datum wählen"); return; }
+    const added = addVacation(from, to);
+    if (!added) { showToast("Höchstens 60 Tage am Stück"); return; }
+    showToast("🏖️ Eingetragen — der Streak wartet");
+    haptic([12, 20, 12]);
+    renderFerien();
+    renderStreak();
+  });
+
+  // Press-and-hold on the capsule itself: the machine is physical, the
+  // capsule is the thing you want to touch. Holding charges it (haptic
+  // ticks quicken, the capsule swells and glows); letting go after the
+  // charge pulls. A short tap does nothing, so a stray touch cannot draw.
+  // The draw button keeps the 3 s hold for the hidden letter untouched.
+  const capsule = $("[data-capsule]");
+  if (capsule) {
+    const HOLD_MS = 650;
+    let holdTimer = null, tickTimer = null, armed = false, ticks = 0;
+    const drawable = () => !mount.classList.contains("has-drawn") && !mount.classList.contains("is-revealing") && !getPreviewDay();
+    const stop = () => {
+      clearTimeout(holdTimer); clearInterval(tickTimer);
+      holdTimer = tickTimer = null; ticks = 0;
+      mount.classList.remove("is-charging", "is-charged");
+    };
+    capsule.addEventListener("pointerdown", (e) => {
+      if (!drawable()) return;
+      e.preventDefault();
+      armed = false;
+      mount.classList.add("is-charging");
+      tickTimer = setInterval(() => { ticks++; haptic(6 + ticks * 2); }, 130);
+      holdTimer = setTimeout(() => { armed = true; mount.classList.add("is-charged"); haptic([20, 30, 40]); }, HOLD_MS);
+    });
+    const release = () => {
+      const fire = armed && drawable();
+      stop();
+      armed = false;
+      if (fire) reveal();
+    };
+    capsule.addEventListener("pointerup", release);
+    capsule.addEventListener("pointercancel", () => { stop(); armed = false; });
+    capsule.addEventListener("pointerleave", () => { stop(); armed = false; });
+  }
 
   $("[data-ag-freikarte-redeem]")?.addEventListener("click", () => {
     const pull = state.todaysPull;

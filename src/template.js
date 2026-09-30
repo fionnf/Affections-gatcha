@@ -155,7 +155,7 @@ export const html = `
             <header class="ag-hero">
               <div class="ag-machine-wrap" aria-hidden="true">
                 ${machineSvg()}
-                <div class="ag-machine-capsule" data-capsule>
+                <div class="ag-machine-capsule" data-capsule title="Halten zum Ziehen">
                   <span class="ag-capsule-shine"></span>
                 </div>
                 <div class="ag-orbit">
@@ -455,10 +455,17 @@ export const html = `
                 <div class="ag-media-stage" data-ag-photo-media></div>
                 <figcaption data-ag-photo-caption hidden></figcaption>
               </figure>
+              <div class="ag-reactions" data-ag-reactions hidden>
+                <span class="ag-reactions-label">Kurz reagieren</span>
+                <button class="ag-reaction" type="button" data-ag-react="🥹" aria-label="Reaktion: gerührt">🥹</button>
+                <button class="ag-reaction" type="button" data-ag-react="😂" aria-label="Reaktion: lachen">😂</button>
+                <button class="ag-reaction" type="button" data-ag-react="🙃" aria-label="Reaktion: na gut">🙃</button>
+              </div>
               <div class="ag-actions">
                 <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
                 <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
                 <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
+                <button class="ag-secondary" type="button" data-ag-wallpaper hidden>Als Hintergrund</button>
                 <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
               </div>
               <div class="ag-memory" data-ag-memory hidden>
@@ -554,6 +561,17 @@ export const html = `
 
             <div class="ag-card">
               <div class="ag-history-header">
+                <details class="ag-ferien" data-ag-ferien>
+                  <summary class="ag-ferien-summary">🏖️ Ferien-Schutz <span class="ag-ferien-count" data-ag-ferien-count hidden></span></summary>
+                  <p class="ag-ferien-note">Tage in den Ferien unterbrechen den Streak nicht. Sie zählen auch nicht mit.</p>
+                  <div class="ag-ferien-form">
+                    <input class="ag-ferien-input" type="date" data-ag-ferien-from aria-label="Von">
+                    <span class="ag-ferien-sep">bis</span>
+                    <input class="ag-ferien-input" type="date" data-ag-ferien-to aria-label="Bis">
+                    <button class="ag-secondary ag-ferien-add" type="button" data-ag-ferien-add>Eintragen</button>
+                  </div>
+                  <ul class="ag-ferien-list" data-ag-ferien-list></ul>
+                </details>
                 <p class="ag-history-note" data-ag-history-note></p>
                 <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
               </div>

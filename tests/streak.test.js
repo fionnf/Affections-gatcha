@@ -4,7 +4,7 @@ import { setupBrowserEnv, TEST_SECRET } from "./helpers.js";
 
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
-const { computeStreak, boostedCategories, pickWeightedWithStreak, historyBalancedCategories } = await import("../src/streak.js");
+const { computeStreak, boostedCategories, pickWeightedWithStreak, historyBalancedCategories, addVacation, removeVacation, readVacations, streakRestoreGapDay } = await import("../src/streak.js");
 const { writeHistory, writeStreakCache, writeSyncedStreak } = await import("../src/storage.js");
 const { dateKeyInTimezone } = await import("../src/utils.js");
 
@@ -129,4 +129,26 @@ test("with no history yet, the sheet's last number stands in until the log arriv
   writeSyncedStreak(9);
   writeHistory([]);
   assert.equal(computeStreak(), 9);
+});
+
+test("a declared holiday bridges the streak without counting", () => {
+  writeHistory([
+    { day: zurichDay(0),  token: "lennart", categoryId: "common", title: "a", message: "m" },
+    // zurichDay(-1) .. zurichDay(-4): away
+    { day: zurichDay(-5), token: "lennart", categoryId: "common", title: "b", message: "m" },
+    { day: zurichDay(-6), token: "lennart", categoryId: "common", title: "c", message: "m" },
+  ]);
+  assert.equal(computeStreak(), 1, "without the window the gap breaks it");
+  assert.ok(addVacation(zurichDay(-4), zurichDay(-1)));
+  assert.equal(computeStreak(), 3, "with the window: today + the two before the trip, holiday days not counted");
+  assert.equal(streakRestoreGapDay(), null, "nothing for the Streak-Retter to mend");
+  removeVacation(zurichDay(-4), zurichDay(-1));
+  assert.equal(readVacations().length, 0);
+  assert.equal(computeStreak(), 1);
+});
+
+test("a holiday longer than sixty days is refused, and reversed bounds are tolerated", () => {
+  assert.equal(addVacation("2026-01-01", "2026-12-31"), null);
+  const v = addVacation("2026-10-10", "2026-10-03");
+  assert.deepEqual(v, { from: "2026-10-03", to: "2026-10-10" });
 });

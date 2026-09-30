@@ -9,6 +9,40 @@ import { dateKeyInTimezone, getToken, seededRandom } from "./utils.js";
 
 export { readStreakCache, writeStreakCache, readSyncedStreak, writeSyncedStreak, readStreakRestore, writeStreakRestore };
 
+// ── Ferien-Schutz ────────────────────────────────────────────────────────────
+// A holiday window declared in advance: days inside it bridge the streak
+// without counting toward it. The current Streak-Retter treats every gap as
+// a failure to be paid for; a trip announced beforehand is not a failure.
+// Stored in the player's streak-restore slot, local to the phone.
+const VACATION_MAX_DAYS = 60;
+
+export function readVacations() {
+  const r = readStreakRestore();
+  return Array.isArray(r.vacations) ? r.vacations.filter((v) => v && v.from && v.to) : [];
+}
+
+export function addVacation(from, to) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return null;
+  if (to < from) [from, to] = [to, from];
+  const days = (Date.parse(to) - Date.parse(from)) / 86400000 + 1;
+  if (days > VACATION_MAX_DAYS) return null;
+  const r = readStreakRestore();
+  const vacations = readVacations().filter((v) => !(v.from === from && v.to === to));
+  vacations.push({ from, to });
+  vacations.sort((a, b) => a.from.localeCompare(b.from));
+  writeStreakRestore({ ...r, vacations });
+  return { from, to };
+}
+
+export function removeVacation(from, to) {
+  const r = readStreakRestore();
+  writeStreakRestore({ ...r, vacations: readVacations().filter((v) => !(v.from === from && v.to === to)) });
+}
+
+export function isVacationDay(dayKey) {
+  return readVacations().some((v) => dayKey >= v.from && dayKey <= v.to);
+}
+
 export function computeStreak() {
   const token = getToken();
   const history = readHistory().filter((e) => e.token === token);
@@ -30,8 +64,10 @@ export function computeStreak() {
   }
 
   let streak = 0;
-  while (pulledDays.has(dayKey)) {
-    streak++;
+  // Holiday days bridge the run without counting: a fortnight away is not
+  // fourteen pulls, but it is not a broken streak either.
+  while (pulledDays.has(dayKey) || isVacationDay(dayKey)) {
+    if (pulledDays.has(dayKey)) streak++;
     cur.setUTCDate(cur.getUTCDate() - 1);
     dayKey = cur.toISOString().slice(0, 10);
   }
@@ -154,7 +190,7 @@ export function streakRestoreGapDay() {
     cur.setUTCDate(cur.getUTCDate() - 1);
     key = cur.toISOString().slice(0, 10);
   }
-  while (pulled.has(key)) {
+  while (pulled.has(key) || isVacationDay(key)) {
     cur.setUTCDate(cur.getUTCDate() - 1);
     key = cur.toISOString().slice(0, 10);
   }

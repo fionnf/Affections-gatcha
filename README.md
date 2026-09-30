@@ -514,6 +514,31 @@ Any outcome can have an optional `link` field:
 
 ---
 
+## Reactions
+
+Under every capsule: **🥹 😂 🙃**. One tap stores the emoji on the day's
+history entry (unioned on sync like `bestanden`, shown beside the badge in
+Verlauf) and posts it through the existing `prompt-answer` endpoint — a row in
+the PromptAnswers sheet and a mail to Fionn — so the deployed script already
+understands it. A reaction can be changed; the last one wins.
+
+## Wallpaper
+
+A Foto-Drop gets **Als Hintergrund**: the photo cover-fitted to a phone canvas
+(1170×2532) with a dark veil, the caption in Boska, the date and a small
+watermark, handed to the share sheet as a JPEG (or downloaded where sharing
+files is unsupported). Drawn from the same URL the app displays; a host that
+does not send CORS headers taints the canvas and the export explains itself
+instead of producing a blank file.
+
+## Capsule press-and-hold
+
+The capsule on the hero is a draw target: hold it and it charges — haptic ticks
+quicken, it swells and glows — and letting go after ~650 ms pulls. A short tap
+does nothing, so a stray touch cannot draw; it is inert once today's capsule is
+out, and in preview mode. The draw button keeps its own 3 s hold for the hidden
+letter.
+
 ## Streak bonus & milestones
 
 Consecutive-day streaks boost better outcomes:
@@ -529,6 +554,14 @@ One-time milestone banners at 7, 14, 21, and 30 days.
 **Streak restore:** earn one restore token per 20-day streak milestone. A restore fills in a missed day with a placeholder entry so the streak continues.
 
 ---
+
+
+### Ferien-Schutz
+
+A holiday declared in advance in Verlauf (**🏖️ Ferien-Schutz**, from/to,
+up to 60 days): days inside the window **bridge** the streak without counting
+toward it, and the Streak-Retter does not see them as a gap. Stored in the
+player's streak-restore slot — local to the phone, like the Retter itself.
 
 ## Tabs
 

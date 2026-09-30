@@ -1,9 +1,9 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl } from "./storage.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
-import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore } from "./streak.js";
+import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
 import { setCapsuleTone, emojiForTone } from "./pull.js";
@@ -275,6 +275,18 @@ export function buildPromptGate(prompt, onSubmit) {
 
 function promptText(prompt) {
   return Array.isArray(prompt) ? prompt.join("\n") : prompt;
+}
+
+// Rides on the prompt-answer endpoint (sheet row + mail to Fionn), which the
+// deployed script already knows — no redeploy needed for reactions.
+function _fireReactionNotification(pull, emoji) {
+  try {
+    const cfg = state.backup;
+    if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
+    const body = JSON.stringify({ type: "prompt-answer", token: pull.token, day: pull.day, prompt: `Reaktion auf «${pull.outcome.title}»`, answer: emoji });
+    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+    fetch(cfg.endpointUrl, opts).catch(() => { fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}); });
+  } catch (_e) {}
 }
 
 function _firePromptNotification(pull, answer) {
@@ -1080,6 +1092,33 @@ export function renderPull(pull) {
   if (saveImgBtn) {
     saveImgBtn.hidden = !(pull.category.id === "rare" || pull.category.id === "jackpot");
   }
+  const wallpaperBtn = $("[data-ag-wallpaper]");
+  if (wallpaperBtn) {
+    wallpaperBtn.hidden = !(pull.photo && pull.photo.type !== "video" && pull.photo.url);
+  }
+
+  // Reactions: one tap, costs nothing, and gives Fionn a daily signal. The
+  // chosen emoji is read back from the day's record so it survives reloads;
+  // the record is re-read at click time because the first render runs
+  // before the draw is recorded.
+  const reactions = $("[data-ag-reactions]");
+  if (reactions) {
+    reactions.hidden = !!getPreviewDay();
+    const rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
+    const chosen = rec && rec.reaction;
+    for (const btn of reactions.querySelectorAll("[data-ag-react]")) {
+      btn.classList.toggle("is-chosen", btn.dataset.agReact === chosen);
+      btn.onclick = () => {
+        const emoji = btn.dataset.agReact;
+        if (!setReaction(pull.day, pull.token, emoji)) return;
+        _fireReactionNotification(pull, emoji);
+        backupToSheets();
+        try { haptic([12, 30, 18]); } catch (_e) {}
+        try { showToast(`${emoji} Fionn weiss Bescheid`); } catch (_e) {}
+        renderPull(pull);
+      };
+    }
+  }
 
   $("[data-ag-result]").hidden = false;
   updateStarButton();
@@ -1284,6 +1323,13 @@ export function renderHistoryItemEl(entry) {
 
   head.appendChild(date);
   head.appendChild(badge);
+  if (entry.reaction) {
+    const re = document.createElement("span");
+    re.className = "ag-history-reaction";
+    re.textContent = entry.reaction;
+    re.title = "Deine Reaktion";
+    head.appendChild(re);
+  }
   head.appendChild(starBtn);
 
   const title = document.createElement("p");
@@ -1689,6 +1735,31 @@ export function renderTrophyShelf(entries) {
   }
 }
 
+export function renderFerien() {
+  const list = $("[data-ag-ferien-list]");
+  const count = $("[data-ag-ferien-count]");
+  if (!list) return;
+  const { formatHistoryDate } = _getFormatHistoryDate();
+  const vacations = readVacations();
+  list.innerHTML = "";
+  if (count) { count.hidden = !vacations.length; count.textContent = vacations.length ? `· ${vacations.length}` : ""; }
+  for (const v of vacations) {
+    const li = document.createElement("li");
+    li.className = "ag-ferien-item";
+    const label = document.createElement("span");
+    label.textContent = v.from === v.to ? formatHistoryDate(v.from) : `${formatHistoryDate(v.from)} – ${formatHistoryDate(v.to)}`;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "ag-ferien-remove";
+    del.setAttribute("aria-label", "Ferien entfernen");
+    del.textContent = "✕";
+    del.addEventListener("click", () => { removeVacation(v.from, v.to); renderFerien(); renderStreak(); });
+    li.appendChild(label);
+    li.appendChild(del);
+    list.appendChild(li);
+  }
+}
+
 export function renderHistory() {
   renderTokenBank();
   const list = $("[data-ag-history]");
@@ -1705,6 +1776,7 @@ export function renderHistory() {
 
   renderKapselKalender(allEntries);
   renderHistoryTally(allEntries);
+  renderFerien();
   renderTrophyShelf(allEntries);
   renderPulledAlbum(allEntries);
 
