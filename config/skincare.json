@@ -3,20 +3,52 @@
   "morning": {
     "title": "Morgens",
     "steps": [
-      { "name": "Reinigen", "note": "Lauwarm. Oder nur Wasser." },
-      { "name": "Niacinamide 10% + Zinc", "note": "2–3 Tropfen, feuchte Haut." },
-      { "name": "Balea Peptid-Serum", "note": "Direkt danach, auch dünn." },
-      { "name": "Kiehl's Creme", "note": "Schliesst alles ein." },
-      { "name": "Sonnenschutz LSF 30+", "note": "Fehlt noch. Wichtigster Schritt." }
+      {
+        "name": "Reinigen",
+        "note": "Lauwarm. Oder nur Wasser."
+      },
+      {
+        "name": "Caffeine Solution 5%",
+        "note": "Ein Tropfen unter jedes Auge, einklopfen."
+      },
+      {
+        "name": "Niacinamide 10% + Zinc",
+        "note": "2–3 Tropfen, feuchte Haut."
+      },
+      {
+        "name": "Balea Peptid-Serum",
+        "note": "Direkt danach, auch dünn."
+      },
+      {
+        "name": "Kiehl's Creme",
+        "note": "Schliesst alles ein."
+      },
+      {
+        "name": "Sonnenschutz LSF 30+",
+        "note": "Fehlt noch. Wichtigster Schritt."
+      }
     ]
   },
   "evening": {
     "title": "Abends",
     "steps": [
-      { "name": "Reinigen", "note": "Den ganzen Tag runter." },
-      { "name": "Niacinamide 10% + Zinc", "note": "Nochmal 2–3 Tropfen." },
-      { "name": "Granactive Retinoid", "note": "Nach den Seren. Augen aussparen.", "when": "Mo, Mi, Fr" },
-      { "name": "Kiehl's Creme", "note": "Immer obendrauf." }
+      {
+        "name": "Reinigen",
+        "note": "Den ganzen Tag runter."
+      },
+      {
+        "name": "Niacinamide 10% + Zinc",
+        "note": "Nochmal 2–3 Tropfen."
+      },
+      {
+        "name": "Granactive Retinoid",
+        "note": "Nach den Seren. Augen aussparen.",
+        "when": "Mo, Mi, Fr"
+      },
+      {
+        "name": "Kiehl's Creme",
+        "note": "Immer obendrauf."
+      }
     ]
   },
   "footer": "Dünn vor dick, wässrig vor ölig, Creme zuletzt."
