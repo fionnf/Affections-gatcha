@@ -5,7 +5,7 @@ import { setupBrowserEnv, TEST_SECRET } from "./helpers.js";
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
 const { computeStreak, boostedCategories, pickWeightedWithStreak, historyBalancedCategories } = await import("../src/streak.js");
-const { writeHistory } = await import("../src/storage.js");
+const { writeHistory, writeStreakCache, writeSyncedStreak } = await import("../src/storage.js");
 const { dateKeyInTimezone } = await import("../src/utils.js");
 
 const TZ = "Europe/Zurich";
@@ -108,4 +108,25 @@ test("history balancing is inert below ten recorded pulls and ignores special da
   // 26 entries, but only 6 are draws (special days carry no odds) — not enough.
   const out = historyBalancedCategories(cats, "lennart", zurichDay(0));
   assert.equal(out[0].weight, 520);
+});
+
+test("a missed day resets the streak even when the cache and the sheet remember a bigger number", () => {
+  // The bug on the phone: cache and synced value were floors, so after a
+  // gap the display stayed at the all-time high for good.
+  writeStreakCache(23);
+  writeSyncedStreak(23);
+  writeHistory([
+    { day: zurichDay(0),  token: "lennart", categoryId: "common", title: "t", message: "m" },
+    { day: zurichDay(-1), token: "lennart", categoryId: "common", title: "y", message: "m" },
+    // zurichDay(-2) missing — the gap
+    { day: zurichDay(-3), token: "lennart", categoryId: "common", title: "x", message: "m" },
+  ]);
+  assert.equal(computeStreak(), 2, "two consecutive days is two, whatever the cache says");
+});
+
+test("with no history yet, the sheet's last number stands in until the log arrives", () => {
+  writeStreakCache(0);
+  writeSyncedStreak(9);
+  writeHistory([]);
+  assert.equal(computeStreak(), 9);
 });

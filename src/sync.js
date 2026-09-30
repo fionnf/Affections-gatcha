@@ -154,9 +154,10 @@ export async function syncFromSheets() {
       writeQuestPoints(data.questPoints);
     }
 
+    // Kept only as the fresh-device placeholder computeStreak uses before
+    // any history exists; it no longer raises anything once the log is here.
     if (typeof data.streak === "number" && data.streak > 0) {
       writeSyncedStreak(data.streak);
-      if (data.streak > computeStreak()) writeStreakCache(data.streak);
     }
 
     if (data.baerlauchScores && typeof data.baerlauchScores === "object") {

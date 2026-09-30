@@ -12,7 +12,10 @@ export { readStreakCache, writeStreakCache, readSyncedStreak, writeSyncedStreak,
 export function computeStreak() {
   const token = getToken();
   const history = readHistory().filter((e) => e.token === token);
-  if (!history.length) return 0;
+  // No history at all means a fresh device before its first sync — the
+  // last number the sheet knew is a better placeholder than 0 for the few
+  // seconds until the log arrives and this recomputes from it.
+  if (!history.length) return Math.max(readStreakCache(), readSyncedStreak());
   const tz = state.theme?.timezone || "UTC";
   const today = dateKeyInTimezone(tz);
   const pulledDays = new Set(history.map((e) => e.day));
@@ -32,7 +35,12 @@ export function computeStreak() {
     cur.setUTCDate(cur.getUTCDate() - 1);
     dayKey = cur.toISOString().slice(0, 10);
   }
-  return Math.max(streak, readStreakCache(), readSyncedStreak());
+  // The history is the only truth. This used to be max(streak, cache,
+  // synced), and both of those were themselves written from this function
+  // (or from the sheet, which kept its own max) — so nothing could ever go
+  // down, and after a missed day the number stayed frozen at the all-time
+  // high. Restored days are real history rows, so they count on their own.
+  return streak;
 }
 
 export function streakInfo(streak) {
