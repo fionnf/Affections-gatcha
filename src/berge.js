@@ -439,10 +439,14 @@ export async function initGipfelMap(entries) {
 
   if (!_map) {
     _map = L.map(mapEl).fitBounds(CH_BOUNDS);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 19
+    // CARTO's free basemap started answering with "API token required"
+    // tiles. OpenTopoMap needs no key, and contour lines under a mountain
+    // log are the right map anyway; the tile filter in css.js dims it to
+    // sit in the dark UI.
+    L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+      subdomains: "abc",
+      maxZoom: 17
     }).addTo(_map);
 
     // Toggle buttons

@@ -183,6 +183,28 @@ test("a special day can carry its own photo, independent of photos.json", () => 
   assert.equal(pull.photo.caption, "Oben.");
 });
 
+test("an opened day keeps its recorded category even when the weights move", () => {
+  // The streak boost steps at 5/10/20 and today's own draw is what pushes
+  // the streak over the step, and the history balancer moves weights with
+  // every entry — so a seed re-rolled after the draw can land elsewhere.
+  // The record must win, or the capsule changes on reload.
+  writeHistory([
+    { day: "2026-08-04", token: "lennart", categoryId: "jackpot", title: "J1", message: "j" },
+  ]);
+  const before = buildPullForDay("2026-08-04", 0);
+  assert.equal(before.category.id, "jackpot");
+  assert.equal(before.outcome.title, "J1");
+
+  // Now make jackpot practically impossible to roll and hand the streak a
+  // boost; the recorded day must not notice.
+  state.outcomes.categories.find((c) => c.id === "jackpot").weight = 1;
+  state.outcomes.categories.find((c) => c.id === "niete").weight = 100000;
+  const after = buildPullForDay("2026-08-04", 20);
+  assert.equal(after.category.id, "jackpot", "recorded category pins the day");
+  assert.equal(after.outcome.title, "J1");
+  state.outcomes = outcomesFixture();
+});
+
 test("Freikarte reroll never lands on Niete or Verflucht", () => {
   for (let i = 1; i <= 28; i++) {
     const day = `2026-09-${String(i).padStart(2, "0")}`;

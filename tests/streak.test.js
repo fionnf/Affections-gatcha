@@ -4,8 +4,8 @@ import { setupBrowserEnv, TEST_SECRET } from "./helpers.js";
 
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
-const { computeStreak, boostedCategories, pickWeightedWithStreak } = await import("../src/streak.js");
-const { writeHistory } = await import("../src/storage.js");
+const { computeStreak, boostedCategories, pickWeightedWithStreak, historyBalancedCategories, addVacation, removeVacation, readVacations, streakRestoreGapDay } = await import("../src/streak.js");
+const { writeHistory, writeStreakCache, writeSyncedStreak } = await import("../src/storage.js");
 const { dateKeyInTimezone } = await import("../src/utils.js");
 
 const TZ = "Europe/Zurich";
@@ -78,4 +78,77 @@ test("excludeIds in pickWeightedWithStreak really excludes", () => {
     const cat = pickWeightedWithStreak(`seed-${i}`, 0, ["niete"]);
     assert.equal(cat.id, "common", "heavily-weighted excluded category must never be picked");
   }
+});
+
+test("history balancing starves a flooded category and feeds a starved one, within clamps", () => {
+  const cats = [
+    { id: "photo",   label: "Foto",    weight: 520, tone: "photo",   outcomes: [{ title: "P", message: "p" }] },
+    { id: "common",  label: "Gew.",    weight: 270, tone: "soft",    outcomes: [{ title: "C", message: "c" }] },
+    { id: "jackpot", label: "JACKPOT", weight: 8,   tone: "jackpot", outcomes: [{ title: "J", message: "j" }] },
+  ];
+  // 30 recent days: 2 photos where ~20 were due, 5 jackpots where ~0.3 were due.
+  const hist = [];
+  for (let i = 1; i <= 30; i++) {
+    const categoryId = i <= 2 ? "photo" : i <= 7 ? "jackpot" : "common";
+    hist.push({ day: zurichDay(-i), token: "lennart", categoryId, title: "x", message: "m" });
+  }
+  writeHistory(hist);
+  const out = Object.fromEntries(historyBalancedCategories(cats, "lennart", zurichDay(0)).map((c) => [c.id, c.weight]));
+  assert.equal(out.photo, Math.round(520 * 1.8), "starved photo hits the upper clamp");
+  assert.equal(out.jackpot, 4, "five jackpots in a month halves the weight (lower clamp)");
+  assert.equal(out.common, 135, "23 of 30 where ~10 were due: pinned to the lower clamp, never below");
+});
+
+test("history balancing is inert below ten recorded pulls and ignores special days", () => {
+  const cats = [{ id: "photo", label: "Foto", weight: 520, tone: "photo", outcomes: [{ title: "P", message: "p" }] }];
+  writeHistory([
+    ...Array.from({ length: 6 }, (_, i) => ({ day: zurichDay(-1 - i), token: "lennart", categoryId: "photo", title: "x", message: "m" })),
+    ...Array.from({ length: 20 }, (_, i) => ({ day: zurichDay(-10 - i), token: "lennart", categoryId: "special", title: "s", message: "m" })),
+  ]);
+  // 26 entries, but only 6 are draws (special days carry no odds) — not enough.
+  const out = historyBalancedCategories(cats, "lennart", zurichDay(0));
+  assert.equal(out[0].weight, 520);
+});
+
+test("a missed day resets the streak even when the cache and the sheet remember a bigger number", () => {
+  // The bug on the phone: cache and synced value were floors, so after a
+  // gap the display stayed at the all-time high for good.
+  writeStreakCache(23);
+  writeSyncedStreak(23);
+  writeHistory([
+    { day: zurichDay(0),  token: "lennart", categoryId: "common", title: "t", message: "m" },
+    { day: zurichDay(-1), token: "lennart", categoryId: "common", title: "y", message: "m" },
+    // zurichDay(-2) missing — the gap
+    { day: zurichDay(-3), token: "lennart", categoryId: "common", title: "x", message: "m" },
+  ]);
+  assert.equal(computeStreak(), 2, "two consecutive days is two, whatever the cache says");
+});
+
+test("with no history yet, the sheet's last number stands in until the log arrives", () => {
+  writeStreakCache(0);
+  writeSyncedStreak(9);
+  writeHistory([]);
+  assert.equal(computeStreak(), 9);
+});
+
+test("a declared holiday bridges the streak without counting", () => {
+  writeHistory([
+    { day: zurichDay(0),  token: "lennart", categoryId: "common", title: "a", message: "m" },
+    // zurichDay(-1) .. zurichDay(-4): away
+    { day: zurichDay(-5), token: "lennart", categoryId: "common", title: "b", message: "m" },
+    { day: zurichDay(-6), token: "lennart", categoryId: "common", title: "c", message: "m" },
+  ]);
+  assert.equal(computeStreak(), 1, "without the window the gap breaks it");
+  assert.ok(addVacation(zurichDay(-4), zurichDay(-1)));
+  assert.equal(computeStreak(), 3, "with the window: today + the two before the trip, holiday days not counted");
+  assert.equal(streakRestoreGapDay(), null, "nothing for the Streak-Retter to mend");
+  removeVacation(zurichDay(-4), zurichDay(-1));
+  assert.equal(readVacations().length, 0);
+  assert.equal(computeStreak(), 1);
+});
+
+test("a holiday longer than sixty days is refused, and reversed bounds are tolerated", () => {
+  assert.equal(addVacation("2026-01-01", "2026-12-31"), null);
+  const v = addVacation("2026-10-10", "2026-10-03");
+  assert.deepEqual(v, { from: "2026-10-03", to: "2026-10-10" });
 });

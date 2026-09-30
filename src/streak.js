@@ -9,10 +9,47 @@ import { dateKeyInTimezone, getToken, seededRandom } from "./utils.js";
 
 export { readStreakCache, writeStreakCache, readSyncedStreak, writeSyncedStreak, readStreakRestore, writeStreakRestore };
 
+// ── Ferien-Schutz ────────────────────────────────────────────────────────────
+// A holiday window declared in advance: days inside it bridge the streak
+// without counting toward it. The current Streak-Retter treats every gap as
+// a failure to be paid for; a trip announced beforehand is not a failure.
+// Stored in the player's streak-restore slot, local to the phone.
+const VACATION_MAX_DAYS = 60;
+
+export function readVacations() {
+  const r = readStreakRestore();
+  return Array.isArray(r.vacations) ? r.vacations.filter((v) => v && v.from && v.to) : [];
+}
+
+export function addVacation(from, to) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return null;
+  if (to < from) [from, to] = [to, from];
+  const days = (Date.parse(to) - Date.parse(from)) / 86400000 + 1;
+  if (days > VACATION_MAX_DAYS) return null;
+  const r = readStreakRestore();
+  const vacations = readVacations().filter((v) => !(v.from === from && v.to === to));
+  vacations.push({ from, to });
+  vacations.sort((a, b) => a.from.localeCompare(b.from));
+  writeStreakRestore({ ...r, vacations });
+  return { from, to };
+}
+
+export function removeVacation(from, to) {
+  const r = readStreakRestore();
+  writeStreakRestore({ ...r, vacations: readVacations().filter((v) => !(v.from === from && v.to === to)) });
+}
+
+export function isVacationDay(dayKey) {
+  return readVacations().some((v) => dayKey >= v.from && dayKey <= v.to);
+}
+
 export function computeStreak() {
   const token = getToken();
   const history = readHistory().filter((e) => e.token === token);
-  if (!history.length) return 0;
+  // No history at all means a fresh device before its first sync — the
+  // last number the sheet knew is a better placeholder than 0 for the few
+  // seconds until the log arrives and this recomputes from it.
+  if (!history.length) return Math.max(readStreakCache(), readSyncedStreak());
   const tz = state.theme?.timezone || "UTC";
   const today = dateKeyInTimezone(tz);
   const pulledDays = new Set(history.map((e) => e.day));
@@ -27,12 +64,19 @@ export function computeStreak() {
   }
 
   let streak = 0;
-  while (pulledDays.has(dayKey)) {
-    streak++;
+  // Holiday days bridge the run without counting: a fortnight away is not
+  // fourteen pulls, but it is not a broken streak either.
+  while (pulledDays.has(dayKey) || isVacationDay(dayKey)) {
+    if (pulledDays.has(dayKey)) streak++;
     cur.setUTCDate(cur.getUTCDate() - 1);
     dayKey = cur.toISOString().slice(0, 10);
   }
-  return Math.max(streak, readStreakCache(), readSyncedStreak());
+  // The history is the only truth. This used to be max(streak, cache,
+  // synced), and both of those were themselves written from this function
+  // (or from the sheet, which kept its own max) — so nothing could ever go
+  // down, and after a missed day the number stayed frozen at the all-time
+  // high. Restored days are real history rows, so they count on their own.
+  return streak;
 }
 
 export function streakInfo(streak) {
@@ -57,8 +101,46 @@ export function boostedCategories(streak) {
   }));
 }
 
-export function pickWeightedWithStreak(seedText, streak, excludeIds = []) {
-  const allCats = boostedCategories(streak);
+// How far back the balancer looks, and how hard it is allowed to lean.
+// 45 days is long enough that a 0.5% category has a real expectation in it
+// and short enough that last winter's luck stops mattering by spring.
+const BALANCE_WINDOW_DAYS = 45;
+const BALANCE_MIN_PULLS = 10;
+const BALANCE_FACTOR_MIN = 0.5;
+const BALANCE_FACTOR_MAX = 1.8;
+
+// Nudges each category's weight toward what this player has actually seen
+// lately: a category that came up more often than its odds say gets lighter,
+// a starved one gets heavier. Laplace-smoothed ((expected+1)/(observed+1))
+// so a 0.24-expected jackpot cannot blow up to infinity on a lucky month,
+// and clamped so the correction stays a nudge rather than a guarantee. Only
+// entries with a categoryId count, which leaves special days out — they are
+// not draws. Below BALANCE_MIN_PULLS there is nothing to correct yet.
+export function historyBalancedCategories(cats, token, day) {
+  if (!token || !day) return cats;
+  // Only real draws count: a special day is recorded with its own
+  // categoryId and no odds, so it is neither expected nor observed here.
+  const ids = new Set(cats.map((c) => c.id));
+  const recent = readHistory()
+    .filter((e) => e.token === token && e.day < day && ids.has(e.categoryId))
+    .sort((a, b) => b.day.localeCompare(a.day))
+    .slice(0, BALANCE_WINDOW_DAYS);
+  if (recent.length < BALANCE_MIN_PULLS) return cats;
+  const total = cats.reduce((sum, c) => sum + c.weight, 0);
+  if (!total) return cats;
+  const observed = {};
+  for (const e of recent) observed[e.categoryId] = (observed[e.categoryId] || 0) + 1;
+  return cats.map((c) => {
+    const expected = recent.length * c.weight / total;
+    const factor = Math.min(BALANCE_FACTOR_MAX, Math.max(BALANCE_FACTOR_MIN,
+      (expected + 1) / ((observed[c.id] || 0) + 1)));
+    return { ...c, weight: Math.max(1, Math.round(c.weight * factor)) };
+  });
+}
+
+export function pickWeightedWithStreak(seedText, streak, excludeIds = [], balance = null) {
+  const boosted = boostedCategories(streak);
+  const allCats = balance ? historyBalancedCategories(boosted, balance.token, balance.day) : boosted;
   const cats = excludeIds.length ? allCats.filter((c) => !excludeIds.includes(c.id)) : allCats;
   const pool = cats.length ? cats : allCats;
   const total = pool.reduce((sum, cat) => sum + cat.weight, 0);
@@ -108,7 +190,7 @@ export function streakRestoreGapDay() {
     cur.setUTCDate(cur.getUTCDate() - 1);
     key = cur.toISOString().slice(0, 10);
   }
-  while (pulled.has(key)) {
+  while (pulled.has(key) || isVacationDay(key)) {
     cur.setUTCDate(cur.getUTCDate() - 1);
     key = cur.toISOString().slice(0, 10);
   }

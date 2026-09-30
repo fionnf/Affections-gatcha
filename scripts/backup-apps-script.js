@@ -711,7 +711,11 @@ function doPost(e) {
     for (let i = 1; i < backupValues.length; i++) {
       if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
     }
-    const streak = Math.max(incomingStreak, existingStreak);
+    // Latest wins. The old max() meant the sheet could only ever go up, and
+    // since the app used the sheet's number as a floor, a missed day never
+    // showed — the streak froze at its all-time high on every phone. The
+    // client computes from the full synced history, so its number is right.
+    const streak = incomingStreak;
     const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp];
     if (metaRow === -1) {
       backupSheet.appendRow(metaRowData);

@@ -240,13 +240,13 @@ export const css = `
       .ag-copy{min-width:0;color:#fffdf2}
       .ag-kicker{
         margin:0;color:#cfe7d4;font-size:clamp(.74rem,.7rem + .2vw,.84rem);
-        letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+        letter-spacing:.14em;text-transform:uppercase;font-weight:500;
       }
       .ag-copy h1{
         margin:8px 0 12px;
         font-family:"Boska",Georgia,serif;
         font-size:clamp(2.1rem,1.2rem + 3.8vw,4.4rem);
-        line-height:.96;letter-spacing:-.035em;font-weight:700;
+        line-height:.96;letter-spacing:-.035em;font-weight:500;
         color:#fffdf2;
         text-shadow:0 2px 24px rgba(0,0,0,.5);
       }
@@ -263,7 +263,7 @@ export const css = `
         display:inline-flex;align-items:center;min-height:28px;padding:0 12px;
         border-radius:999px;border:1px solid rgba(255,255,255,.18);
         background:rgba(8,28,18,.45);backdrop-filter:blur(8px);
-        color:#e7f5e3;font-size:.78rem;font-weight:700;letter-spacing:.04em;
+        color:#e7f5e3;font-size:.78rem;font-weight:500;letter-spacing:.04em;
       }
 
 
@@ -333,7 +333,7 @@ export const css = `
       
       .ag-forage-timer {
         font-variant-numeric: tabular-nums;
-        font-weight: 700;
+        font-weight:500;
         letter-spacing: .04em;
       }
       
@@ -396,7 +396,7 @@ export const css = `
         margin: 0 auto;
         color: #fff;
         text-align: center;
-        font-weight: 600;
+        font-weight:500;
       }
 
       .ag-baerlauch-actions {
@@ -413,7 +413,7 @@ export const css = `
         text-align: center;
         background: rgba(255,255,255,.10);
         border: 1px solid rgba(255,255,255,.12);
-        font-weight: 700;
+        font-weight:500;
         color: #fff !important;
         width: fit-content;
         max-width: min(92%, 640px);
@@ -443,7 +443,7 @@ export const css = `
       .ag-chip-quest-active {
         position: relative;
         box-shadow: 0 0 0 2px var(--ag-primary);
-        font-weight: 600;
+        font-weight:500;
       }
       .ag-chip-quest-active::after {
         content: '';
@@ -456,7 +456,7 @@ export const css = `
       .ag-chip-mission-active {
         position: relative;
         box-shadow: 0 0 0 2px var(--ag-gold);
-        font-weight: 600;
+        font-weight:500;
       }
       .ag-chip-mission-active::after {
         content: '';
@@ -496,7 +496,7 @@ export const css = `
       .ag-stimmung-preview-label {
         font-size: .68rem;
         color: rgba(255,255,255,.28);
-        font-weight: 700;
+        font-weight:500;
         letter-spacing: .09em;
         text-transform: uppercase;
         user-select: none;
@@ -565,7 +565,7 @@ export const css = `
         margin: 0 0 10px;
         font-size: .88rem;
         color: var(--ag-muted);
-        font-weight: 600;
+        font-weight:500;
         text-transform: uppercase;
         letter-spacing: .06em;
       }
@@ -644,7 +644,7 @@ export const css = `
         padding: 2px 10px;
         border-radius: 999px;
         font-size: .78rem;
-        font-weight: 700;
+        font-weight:500;
       }
       .ag-score-mine {
         background: rgba(47,122,79,.14);
@@ -669,7 +669,7 @@ export const css = `
       .ag-mission-log-title {
         margin: 0 0 12px;
         font-size: .78rem;
-        font-weight: 700;
+        font-weight:500;
         text-transform: uppercase;
         letter-spacing: .07em;
         color: var(--ag-muted);
@@ -677,11 +677,11 @@ export const css = `
       .ag-log-day {
         margin-bottom: 14px;
       }
-      .ag-log-today .ag-log-date { color: var(--ag-primary); font-weight: 700; }
+      .ag-log-today .ag-log-date { color: var(--ag-primary); font-weight:500; }
       .ag-log-date {
         display: block;
         font-size: .78rem;
-        font-weight: 600;
+        font-weight:500;
         color: var(--ag-muted);
         margin-bottom: 5px;
         letter-spacing: .03em;
@@ -697,7 +697,7 @@ export const css = `
       .ag-log-who {
         flex-shrink: 0;
         font-size: .72rem;
-        font-weight: 700;
+        font-weight:500;
         padding: 1px 7px;
         border-radius: 999px;
         letter-spacing: .04em;
@@ -763,7 +763,7 @@ export const css = `
       .ag-hint-num{
         flex-shrink:0;width:18px;height:18px;border-radius:50%;
         background:var(--ag-primary);color:#fff;
-        font-size:.7rem;font-weight:700;
+        font-size:.7rem;font-weight:500;
         display:flex;align-items:center;justify-content:center;
         margin-top:2px;opacity:.7;
       }
@@ -786,7 +786,7 @@ export const css = `
         background: transparent;
         color: var(--ag-primary);
         font-size: .95rem;
-        font-weight: 600;
+        font-weight:500;
         transition: background .15s, color .15s;
       }
       .ag-quest-upload-label:hover {
@@ -806,7 +806,7 @@ export const css = `
         margin-top: .5rem;
         font-size: .85rem;
         color: var(--ag-gold);
-        font-weight: 600;
+        font-weight:500;
         letter-spacing: .02em;
       }
 
@@ -829,7 +829,7 @@ export const css = `
       .ag-tab{
         appearance:none;border:none;background:transparent;
         min-height:36px;padding:0 18px;border-radius:999px;cursor:pointer;
-        color:#bdd6c4;font-weight:700;font-size:.92rem;letter-spacing:.01em;
+        color:#bdd6c4;font-weight:500;font-size:.92rem;letter-spacing:.01em;
         transition:background 180ms var(--ag-ease), color 180ms var(--ag-ease), transform 180ms var(--ag-ease);
         font-family:inherit;
       }
@@ -875,14 +875,14 @@ export const css = `
       .ag-pill{
         display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
         border-radius:999px;background:var(--ag-surface-2);
-        color:var(--ag-primary-dark);font-size:.74rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+        color:var(--ag-primary-dark);font-size:.74rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
       }
       .ag-draw-hint{color:var(--ag-muted);font-size:.92rem}
 
       .ag-streak{
         display:inline-flex;align-items:center;gap:4px;align-self:flex-start;
         min-height:24px;padding:0 10px;border-radius:999px;
-        font-size:.75rem;font-weight:800;letter-spacing:.04em;
+        font-size:.75rem;font-weight:500;letter-spacing:.04em;
         background:rgba(47,122,79,.12);color:var(--ag-primary-dark);
         transition:background 240ms ease, color 240ms ease;
       }
@@ -896,7 +896,7 @@ export const css = `
       .ag-streak-restore{
         display:inline-flex;align-items:center;gap:4px;align-self:flex-start;
         min-height:24px;padding:0 10px;border-radius:999px;cursor:pointer;
-        font-size:.72rem;font-weight:800;letter-spacing:.03em;font-family:inherit;
+        font-size:.72rem;font-weight:500;letter-spacing:.03em;font-family:inherit;
         border:1px solid rgba(185,120,46,.5);
         background:linear-gradient(90deg,rgba(232,164,164,.2),rgba(185,120,46,.22));
         color:var(--ag-gold);
@@ -913,7 +913,7 @@ export const css = `
 
       .ag-button,.ag-secondary{
         min-height:46px;border:1px solid transparent;border-radius:999px;padding:0 22px;
-        font-weight:700;font-family:inherit;font-size:.98rem;letter-spacing:.01em;cursor:pointer;
+        font-weight:500;font-family:inherit;font-size:.98rem;letter-spacing:.01em;cursor:pointer;
         transition:transform 180ms var(--ag-ease), background 180ms var(--ag-ease), border-color 180ms var(--ag-ease), color 180ms var(--ag-ease), box-shadow 180ms var(--ag-ease);
       }
       .ag-button{
@@ -945,7 +945,7 @@ export const css = `
       .ag-badge{
         display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;
         background:var(--ag-surface-2);color:var(--ag-primary-dark);
-        font-size:.78rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+        font-size:.78rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase;
       }
       .ag-result h2{margin:0 0 8px;font-family:"Boska",Georgia,serif;font-size:clamp(1.3rem,1rem + 1vw,1.8rem);line-height:1.15;letter-spacing:-.015em;overflow-wrap:break-word;word-break:break-word}
       .ag-result p{margin:0;color:var(--ag-muted);line-height:1.6}
@@ -954,7 +954,7 @@ export const css = `
       .ag-message p:last-child{margin-bottom:0}
       .ag-history-message p{margin:0 0 .5em}
       .ag-history-message p:last-child{margin-bottom:0}
-      .ag-date{color:var(--ag-muted);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+      .ag-date{color:var(--ag-muted);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
 
       .ag-photo{margin:16px 0 0;overflow:hidden;border-radius:var(--ag-radius-md);border:1px solid var(--ag-border);background:var(--ag-surface-2)}
       .ag-photo figcaption{padding:11px 14px;color:var(--ag-muted);font-size:.92rem;border-top:1px solid var(--ag-border)}
@@ -1006,7 +1006,7 @@ export const css = `
 
       .ag-rules{color:var(--ag-text)}
       .ag-rules summary{
-        list-style:none;cursor:pointer;font-weight:800;letter-spacing:.02em;
+        list-style:none;cursor:pointer;font-weight:500;letter-spacing:.02em;
         display:inline-flex;align-items:center;gap:8px;
       }
       .ag-rules summary::-webkit-details-marker{display:none}
@@ -1028,9 +1028,9 @@ export const css = `
       .ag-history-filter{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
       .ag-history-filter-chip{background:none;border:1px solid var(--ag-border);border-radius:999px;padding:4px 12px;font-size:.82rem;cursor:pointer;color:var(--ag-muted);transition:all .15s;line-height:1.5}
       .ag-history-filter-chip:hover{border-color:var(--ag-green);color:var(--ag-green)}
-      .ag-history-filter-chip.is-active{background:var(--ag-green);border-color:var(--ag-green);color:#fff;font-weight:600}
+      .ag-history-filter-chip.is-active{background:var(--ag-green);border-color:var(--ag-green);color:#fff;font-weight:500}
       .ag-voucher-actions{margin-top:10px;display:flex;align-items:center;gap:8px}
-      .ag-voucher-use{background:var(--ag-gold,#caa45a);border:none;border-radius:8px;padding:6px 14px;font-size:.86rem;font-weight:600;color:#1a1a1a;cursor:pointer;transition:transform .15s,filter .15s;line-height:1.3}
+      .ag-voucher-use{background:var(--ag-gold,#caa45a);border:none;border-radius:8px;padding:6px 14px;font-size:.86rem;font-weight:500;color:#1a1a1a;cursor:pointer;transition:transform .15s,filter .15s;line-height:1.3}
       .ag-voucher-use{position:relative}
       .ag-voucher-use::after{content:"";position:absolute;inset:-7px -2px}
       .ag-voucher-use:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
@@ -1109,13 +1109,13 @@ export const css = `
       @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
       .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
-      .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+      .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
       .ag-history-badge{
         display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:999px;
         background:var(--ag-surface-2);color:var(--ag-primary-dark);
-        font-size:.7rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+        font-size:.7rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
       }
-      .ag-history-title{margin:0 0 2px;font-size:1rem;font-weight:700;color:var(--ag-text);line-height:1.3}
+      .ag-history-title{margin:0 0 2px;font-size:1rem;font-weight:500;color:var(--ag-text);line-height:1.3}
       .ag-history-message{margin:0;color:var(--ag-muted);font-size:.9rem;line-height:1.5}
       .ag-history-body{display:flex;gap:12px;align-items:flex-start}
       .ag-history-thumb{
@@ -1132,17 +1132,17 @@ export const css = `
         flex-direction:column;gap:2px;
       }
       .ag-history-video-icon{font-size:1.1rem;line-height:1}
-      .ag-history-video-label{font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+      .ag-history-video-label{font-size:.6rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
       .ag-history-text{min-width:0;flex:1}
 
       /* ── Kapsel-Kalender ── */
       .ag-kalender{margin:4px 0 14px;padding:12px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
       .ag-kalender-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-      .ag-kalender-label{font-size:.8rem;font-weight:700;color:var(--ag-muted);letter-spacing:.03em}
+      .ag-kalender-label{font-size:.8rem;font-weight:500;color:var(--ag-muted);letter-spacing:.03em}
       .ag-kalender-nav{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1.15rem;line-height:1;padding:2px 10px;border-radius:8px}
       .ag-kalender-nav:hover{color:var(--ag-text);background:rgba(255,255,255,.06)}
       .ag-kalender-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;justify-items:center}
-      .ag-kalender-wd{font-size:.6rem;font-weight:800;color:var(--ag-muted);opacity:.55;letter-spacing:.05em}
+      .ag-kalender-wd{font-size:.6rem;font-weight:500;color:var(--ag-muted);opacity:.55;letter-spacing:.05em}
       .ag-kalender-day{
         width:28px;height:28px;display:grid;place-items:center;
         font-size:.68rem;color:var(--ag-muted);opacity:.55;border-radius:50%;
@@ -1150,7 +1150,7 @@ export const css = `
       }
       .ag-kalender-day.is-future{opacity:.22}
       .ag-kalender-day.is-today{box-shadow:0 0 0 1.5px var(--ag-primary) inset;opacity:1}
-      .ag-kalender-day.has-pull{opacity:1;color:#fffdf8;font-weight:700;background:var(--ag-primary)}
+      .ag-kalender-day.has-pull{opacity:1;color:#fffdf8;font-weight:500;background:var(--ag-primary)}
       .ag-kalender-day.has-pull[data-tone="quiet"]{background:rgba(150,165,150,.55)}
       .ag-kalender-day.has-pull[data-tone="quest"]{background:var(--ag-blue)}
       .ag-kalender-day.has-pull[data-tone="warm"],
@@ -1168,7 +1168,7 @@ export const css = `
       }
       .ag-memory[data-ag-memory]:not([hidden]){display:flex}
       .ag-memory-label{
-        font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+        font-size:.66rem;font-weight:500;letter-spacing:.09em;text-transform:uppercase;
         color:var(--ag-muted);opacity:.75;flex:none;
       }
       .ag-memory-text{font-size:.86rem;color:var(--ag-muted);line-height:1.45;min-width:0}
@@ -1269,9 +1269,18 @@ export const css = `
                   calc(clamp(8px,3vw,16px) + var(--ag-safe-left));
         }
         .ag-shell{padding:clamp(16px,4vw,24px)}
-        .ag-machine-wrap{max-width:220px}
-        .ag-emoji{font-size:clamp(.85rem,2.4vw,1.05rem)}
-        .ag-copy h1{font-size:clamp(1.9rem,1rem + 6vw,3rem)}
+        /* The hero used to take a whole phone screen (about 610px on a
+           375px-wide phone) before the first card. Smaller machine, a
+           title that fits on one or two lines, tighter copy: the draw
+           button is now visible without scrolling. */
+        .ag-hero{gap:10px}
+        .ag-machine-wrap{max-width:172px}
+        .ag-emoji{font-size:clamp(.8rem,2.2vw,.95rem)}
+        .ag-kicker{font-size:.66rem;letter-spacing:.12em}
+        .ag-copy h1{font-size:clamp(1.6rem,1rem + 4.4vw,2.3rem);margin:6px 0 8px}
+        .ag-intro{font-size:.92rem;line-height:1.5;margin:0 0 12px}
+        .ag-chips{margin:0 0 6px;gap:6px}
+        .ag-chips li{min-height:27px;padding:0 11px;font-size:.75rem;letter-spacing:.03em}
         .ag-rules ul{columns:1}
         .ag-history-thumb{width:56px;height:56px}
         .ag-draw-card{flex-direction:column;align-items:stretch}
@@ -1295,11 +1304,11 @@ export const css = `
       .ag-berge-figures{display:flex;gap:14px;flex-wrap:nowrap;align-items:flex-start}
       .ag-berge-figure{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0}
       .ag-berge-analogy{overflow-wrap:anywhere}
-      .ag-berge-total-label{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted)}
-      .ag-berge-total-elev{font-size:2rem;font-weight:800;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+      .ag-berge-total-label{font-size:.75rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted)}
+      .ag-berge-total-elev{font-size:2rem;font-weight:500;color:var(--ag-primary-dark);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
       .ag-berge-gipfel-cmp{font-size:.8rem;color:var(--ag-muted);font-style:italic}
       .ag-berge-stats-kicker{
-        font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+        font-size:.7rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
         color:var(--ag-muted);opacity:.75;
       }
       .ag-berge-add-btn{flex-shrink:0}
@@ -1312,7 +1321,7 @@ export const css = `
         box-sizing:border-box;
       }
       .ag-berge-input:focus{outline:2px solid var(--ag-primary);outline-offset:1px}
-      .ag-berge-elev-input{font-size:1rem;font-weight:700}
+      .ag-berge-elev-input{font-size:1rem;font-weight:500}
       .ag-berge-notes{resize:vertical;min-height:60px}
 
       /* Gipfel list: same grid gap as history */
@@ -1339,10 +1348,10 @@ export const css = `
         margin-bottom:6px;flex-wrap:wrap;
       }
       .ag-gipfel-head-info{flex:1 1 auto;min-width:0}
-      .ag-gipfel-name{font-size:1rem;font-weight:800;color:var(--ag-text);line-height:1.3;margin-bottom:2px;overflow-wrap:anywhere}
-      .ag-gipfel-date{font-size:.78rem;color:var(--ag-muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+      .ag-gipfel-name{font-size:1rem;font-weight:500;color:var(--ag-text);line-height:1.3;margin-bottom:2px;overflow-wrap:anywhere}
+      .ag-gipfel-date{font-size:.78rem;color:var(--ag-muted);font-weight:500;letter-spacing:.04em;text-transform:uppercase}
       .ag-gipfel-elev{
-        font-size:1.35rem;font-weight:800;
+        font-size:1.35rem;font-weight:500;
         color:var(--ag-primary-dark);
         letter-spacing:-.02em;line-height:1;
         white-space:nowrap;flex-shrink:0;
@@ -1353,7 +1362,7 @@ export const css = `
       .ag-gipfel-embed-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
       .ag-gipfel-trail-arrow{
         color:var(--ag-primary);text-decoration:none;
-        font-size:.82rem;font-weight:700;opacity:.65;
+        font-size:.82rem;font-weight:500;opacity:.65;
         transition:opacity 150ms;
       }
       .ag-gipfel-trail-arrow:hover{opacity:1}
@@ -1376,7 +1385,7 @@ export const css = `
          one short line by design — see the comment in config/skincare.json. */
       .ag-skin-block + .ag-skin-block{margin-top:12px;padding-top:11px;border-top:1px dashed var(--ag-border)}
       .ag-skin-block-title{
-        margin:0 0 7px;font-size:.68rem;font-weight:800;letter-spacing:.09em;
+        margin:0 0 7px;font-size:.68rem;font-weight:500;letter-spacing:.09em;
         text-transform:uppercase;color:var(--ag-primary-dark);
       }
       .ag-skin-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
@@ -1388,13 +1397,13 @@ export const css = `
       .ag-skin-num{
         flex:0 0 auto;width:19px;height:19px;border-radius:50%;
         display:flex;align-items:center;justify-content:center;
-        font-size:.66rem;font-weight:800;font-variant-numeric:tabular-nums;
+        font-size:.66rem;font-weight:500;font-variant-numeric:tabular-nums;
         background:var(--ag-surface-2);color:var(--ag-muted);margin-top:1px;
       }
       .ag-skin-body{display:flex;flex-direction:column;min-width:0}
-      .ag-skin-name{font-size:.9rem;font-weight:600;color:var(--ag-text);line-height:1.3}
+      .ag-skin-name{font-size:.9rem;font-weight:500;color:var(--ag-text);line-height:1.3}
       .ag-skin-when{
-        margin-left:6px;font-size:.62rem;font-weight:700;letter-spacing:.05em;
+        margin-left:6px;font-size:.62rem;font-weight:500;letter-spacing:.05em;
         text-transform:uppercase;color:var(--ag-gold);white-space:nowrap;
       }
       .ag-skin-note{font-size:.78rem;color:var(--ag-muted);line-height:1.35}
@@ -1416,7 +1425,7 @@ export const css = `
         animation:ag-enter 500ms var(--ag-ease);
       }
       .ag-milestone[data-ag-milestone]:not([hidden]){display:flex}
-      .ag-milestone span{font-size:.95rem;font-weight:700;color:var(--ag-primary-dark);line-height:1.4}
+      .ag-milestone span{font-size:.95rem;font-weight:500;color:var(--ag-primary-dark);line-height:1.4}
       @media (prefers-color-scheme:dark){
         .ag-milestone{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
         .ag-milestone span{color:#d4c07a}
@@ -1431,7 +1440,7 @@ export const css = `
         margin-bottom:14px;
         animation:ag-enter 500ms var(--ag-ease);
       }
-      .ag-freikarte-hint{margin:0;font-size:.9rem;font-weight:600;color:var(--ag-primary-dark);line-height:1.4}
+      .ag-freikarte-hint{margin:0;font-size:.9rem;font-weight:500;color:var(--ag-primary-dark);line-height:1.4}
       .ag-freikarte-btn{white-space:nowrap;flex:none}
       @media (prefers-color-scheme:dark){
         .ag-freikarte-wrap{background:linear-gradient(135deg,rgba(185,120,46,.18),rgba(47,122,79,.14));border-color:rgba(185,120,46,.35)}
@@ -1448,10 +1457,10 @@ export const css = `
         margin-bottom:14px;
         animation:ag-enter 500ms var(--ag-ease);
       }
-      .ag-quest-hint{margin:0;font-size:.9rem;font-weight:600;color:var(--ag-primary-dark);line-height:1.4}
+      .ag-quest-hint{margin:0;font-size:.9rem;font-weight:500;color:var(--ag-primary-dark);line-height:1.4}
       .ag-quest-done-btn{white-space:nowrap;flex:none}
       .ag-history-bestanden{
-        margin:10px 0 0;font-size:.85rem;font-weight:700;color:var(--ag-gold);
+        margin:10px 0 0;font-size:.85rem;font-weight:500;color:var(--ag-gold);
       }
       .ag-trophy-note{margin:2px 0 10px;font-size:.85rem;color:var(--ag-muted)}
       .ag-trophy-shelf{
@@ -1466,7 +1475,7 @@ export const css = `
       }
       .ag-trophy-emoji{font-size:1.5rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))}
       .ag-trophy-title{
-        font-size:.72rem;font-weight:600;color:var(--ag-text);line-height:1.25;
+        font-size:.72rem;font-weight:500;color:var(--ag-text);line-height:1.25;
         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
       }
       .ag-trophy-date{font-size:.68rem;color:var(--ag-muted)}
@@ -1497,6 +1506,54 @@ export const css = `
         filter:drop-shadow(0 1px 3px rgba(0,0,0,.55));
       }
 
+
+      /* ── Evening mode: after 22:00 the machine winds down ── */
+      .ag-widget.is-evening .ag-mach-orbit{animation-duration:70s}
+      .ag-widget.is-evening .ag-mach-glow{animation-duration:9s;opacity:.7}
+      .ag-widget.is-evening .ag-orbit span{opacity:.45}
+      .ag-widget.is-evening .ag-emoji{opacity:.55;animation-duration:calc(var(--ag-emoji-duration,32s) * 2.2)}
+      .ag-widget.is-evening .ag-machine-capsule{animation-duration:9s}
+      .ag-widget.is-evening .ag-hero{filter:saturate(.85) brightness(.92)}
+
+      /* ── Foil: a holographic sheen on Selten and JACKPOT cards ──
+         An overlay that sweeps on its own, and follows the phone's tilt once
+         motion access is granted (.has-tilt swaps the keyframes for the two
+         custom properties motion.js writes). Screen blend keeps the text
+         readable underneath; the card just catches light like a foil card. */
+      .ag-widget[data-tone="rare"] .ag-result,
+      .ag-widget[data-tone="jackpot"] .ag-result{position:relative;overflow:hidden;isolation:isolate}
+      .ag-widget[data-tone="rare"] .ag-result::after,
+      .ag-widget[data-tone="jackpot"] .ag-result::after{
+        content:"";position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;
+        background:
+          linear-gradient(115deg,transparent 32%,rgba(255,255,255,.10) 44%,rgba(255,230,160,.30) 50%,rgba(180,220,255,.16) 56%,transparent 68%);
+        background-size:260% 260%;
+        background-position:var(--ag-foil-x,0%) var(--ag-foil-y,0%);
+        mix-blend-mode:screen;
+        animation:ag-foil-sweep 6s ease-in-out infinite alternate;
+      }
+      .ag-widget[data-tone="jackpot"] .ag-result::after{
+        background:
+          linear-gradient(115deg,transparent 30%,rgba(255,215,130,.16) 42%,rgba(255,240,190,.42) 50%,rgba(255,200,120,.18) 58%,transparent 70%);
+      }
+      .ag-widget.has-tilt[data-tone="rare"] .ag-result::after,
+      .ag-widget.has-tilt[data-tone="jackpot"] .ag-result::after{
+        animation:none;transition:background-position .12s linear;
+      }
+      .ag-widget[data-tone="rare"] .ag-result > *,
+      .ag-widget[data-tone="jackpot"] .ag-result > *{position:relative;z-index:1}
+      @keyframes ag-foil-sweep{from{background-position:0% 0%}to{background-position:100% 100%}}
+      @media (prefers-reduced-motion:reduce){
+        .ag-widget[data-tone="rare"] .ag-result::after,
+        .ag-widget[data-tone="jackpot"] .ag-result::after{animation:none}
+      }
+
+      /* Topo tiles are pale; dim them so the map sits in the dark UI without
+         inverting the colours (an inverted topo map reads as nonsense). */
+      #ag-gipfel-map .leaflet-tile{filter:brightness(.78) saturate(.85) contrast(1.05)}
+      #ag-gipfel-map .leaflet-control-attribution{background:rgba(10,20,16,.7);color:#b5c8b2;font-size:.6rem}
+      #ag-gipfel-map .leaflet-control-attribution a{color:#8fcf9e}
+
       /* ── Install-to-home-screen nudge ── */
       .ag-install-nudge{
         display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -1508,7 +1565,7 @@ export const css = `
       }
       .ag-install-nudge[data-ag-install-nudge]:not([hidden]){display:flex}
       .ag-install-nudge-text{min-width:0;flex:1}
-      .ag-install-nudge-title{margin:0 0 2px;font-size:.9rem;font-weight:700;color:var(--ag-primary-dark)}
+      .ag-install-nudge-title{margin:0 0 2px;font-size:.9rem;font-weight:500;color:var(--ag-primary-dark)}
       .ag-install-nudge-copy{margin:0;font-size:.82rem;color:var(--ag-muted);line-height:1.4}
       .ag-install-nudge-actions{display:flex;align-items:center;gap:8px;flex:none}
       /* 21x20 before. Apple's minimum is 44pt, and this is the one control on
@@ -1536,7 +1593,7 @@ export const css = `
         animation:ag-enter 400ms var(--ag-ease);
       }
       .ag-ping-banner[data-ag-ping-banner]:not([hidden]){display:flex}
-      .ag-ping-banner [data-ag-ping-text]{font-size:.92rem;font-weight:600;color:var(--ag-primary-dark);line-height:1.4}
+      .ag-ping-banner [data-ag-ping-text]{font-size:.92rem;font-weight:500;color:var(--ag-primary-dark);line-height:1.4}
       .ag-ping-dismiss{background:none;border:none;cursor:pointer;color:var(--ag-muted);font-size:1rem;padding:2px 4px;line-height:1;border-radius:4px}
       .ag-ping-dismiss:hover{color:var(--ag-text)}
       @media (prefers-color-scheme:dark){
@@ -1553,7 +1610,7 @@ export const css = `
         padding:12px 16px;border-radius:999px;
         border:1px solid var(--ag-border);
         background:linear-gradient(135deg,rgba(232,164,164,.22),rgba(185,120,46,.18));
-        color:var(--ag-text);font-weight:700;font-size:.95rem;font-family:inherit;
+        color:var(--ag-text);font-weight:500;font-size:.95rem;font-family:inherit;
         cursor:pointer;transition:transform 120ms var(--ag-ease),box-shadow 150ms var(--ag-ease),background 150ms var(--ag-ease);
         box-shadow:0 1px 0 rgba(0,0,0,.04);
         flex-shrink:0;white-space:nowrap;
@@ -1568,6 +1625,10 @@ export const css = `
 
       @media (max-width:380px){
         .ag-hug-row{flex-direction:column;align-items:stretch}
+        /* flex:1 1 200px is a width hint in the row layout, but once the
+           row turns into a column that 200px becomes a HEIGHT, and two
+           short lines of text sit above 150px of nothing. */
+        .ag-hug-text{flex-basis:auto}
         .ag-hug-button{justify-content:center;width:100%}
       }
       .ag-hug-status{margin:10px 0 0;color:var(--ag-muted);font-size:.88rem;line-height:1.5}
@@ -1606,7 +1667,7 @@ export const css = `
       }
       .ag-tokenrow.is-done .ag-tokenrow-fill{background:var(--ag-gold)}
       .ag-tokenrow-count{
-        flex:none;font-size:.86rem;font-weight:700;font-variant-numeric:tabular-nums;
+        flex:none;font-size:.86rem;font-weight:500;font-variant-numeric:tabular-nums;
       }
       .ag-tokenrow-goal{font-weight:500;opacity:.5}
       /* Completed rows wrap so the button gets its own line — inline it stole
@@ -1614,7 +1675,7 @@ export const css = `
       .ag-tokenrow.is-done{flex-wrap:wrap}
       .ag-tokenrow-redeem{
         flex:1 0 100%;margin-top:9px;
-        cursor:pointer;font:inherit;font-size:.8rem;font-weight:600;
+        cursor:pointer;font:inherit;font-size:.8rem;font-weight:500;
         padding:8px 11px;border-radius:11px;
         border:none;background:var(--ag-gold);color:#1c1405;
       }
@@ -1622,7 +1683,7 @@ export const css = `
 
       /* ── Wunschkapsel card ── */
       .ag-wish-card{}
-      .ag-wish-label{margin:0 0 6px;font-weight:800;font-size:1rem;color:var(--ag-text);letter-spacing:.01em}
+      .ag-wish-label{margin:0 0 6px;font-weight:500;font-size:1rem;color:var(--ag-text);letter-spacing:.01em}
       .ag-wish-note{margin:0 0 14px;color:var(--ag-muted);font-size:.92rem;line-height:1.55}
       .ag-wish-meta{margin:6px 0 0;color:var(--ag-muted);font-size:.82rem;font-style:italic}
       .ag-wish-input{
@@ -1676,7 +1737,7 @@ export const css = `
       .ag-prompt-textarea{width:100%;padding:10px 12px;border-radius:var(--ag-radius);border:1px solid var(--ag-border);background:var(--ag-background);color:var(--ag-text);font-size:.95rem;line-height:1.5;font-family:inherit;resize:none;outline:none;transition:border-color .15s;box-sizing:border-box;display:block;margin:0 0 10px}
       .ag-prompt-textarea:focus{border-color:var(--ag-primary)}
       .ag-history-answer-wrap{margin:12px 0 0}
-      .ag-history-answer-label{margin:0 0 4px;font-size:.75rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ag-primary);opacity:.8}
+      .ag-history-answer-label{margin:0 0 4px;font-size:.75rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ag-primary);opacity:.8}
       .ag-history-answer{margin:0;padding:8px 12px;border-left:3px solid var(--ag-primary);border-radius:0 var(--ag-radius) var(--ag-radius) 0;background:rgba(0,0,0,.03);font-size:.88rem;color:var(--ag-muted);font-style:italic;line-height:1.5;white-space:pre-wrap}
       .ag-pin-hint{margin:0 0 10px;font-size:.88rem;color:var(--ag-muted);line-height:1.45}
       .ag-pin-row{display:flex;gap:8px;align-items:center}
@@ -1789,10 +1850,10 @@ export const css = `
 
       .ag-letter-eyebrow{
         margin:0 0 .45rem;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;
-        color:rgba(224,167,80,.85);font-weight:700;
+        color:rgba(224,167,80,.85);font-weight:500;
       }
       .ag-letter-title{
-        margin:0 0 1.1rem;font-size:1.3rem;font-weight:800;line-height:1.2;
+        margin:0 0 1.1rem;font-size:1.3rem;font-weight:500;line-height:1.2;
         color:rgba(238,248,236,.97);
         animation:ag-letter-rise 800ms cubic-bezier(.16,1,.3,1) both;
         animation-delay:200ms;
@@ -1802,7 +1863,7 @@ export const css = `
         margin:0 0 .8rem;line-height:1.7;font-size:.98rem;color:rgba(238,248,236,.88);
       }
       .ag-letter-body p:last-child{margin-bottom:0}
-      .ag-letter-sign{font-style:italic;font-weight:600;color:rgba(143,207,158,.9)!important;}
+      .ag-letter-sign{font-style:italic;font-weight:500;color:rgba(143,207,158,.9)!important;}
 
       /* ═══════════════════════════════════
          UI / UX OVERHAUL — Refinement pass
@@ -1851,7 +1912,7 @@ export const css = `
       }
 
       /* History title & date: sharper */
-      .ag-history-title{font-size:1.02rem;font-weight:800}
+      .ag-history-title{font-size:1.02rem;font-weight:500}
       .ag-history-date{font-size:.75rem;letter-spacing:.06em}
 
       /* Empty state: solid border, centred */
@@ -1919,12 +1980,12 @@ export const css = `
         appearance:none;-webkit-appearance:none;
         border:none;background:transparent;
         padding:6px 16px;border-radius:999px;
-        font-size:.82rem;font-weight:600;
+        font-size:.82rem;font-weight:500;
         color:var(--ag-muted);
         cursor:pointer;white-space:nowrap;
         transition:color 200ms;
       }
-      .ag-glossary-tab.is-active{color:#fff;font-weight:700}
+      .ag-glossary-tab.is-active{color:#fff;font-weight:500}
       .ag-glossary-tab:focus-visible{outline:2px solid var(--ag-primary);outline-offset:2px}
 
       /* Glossary search */
@@ -1944,7 +2005,7 @@ export const css = `
       .ag-glossary-search:focus{border-color:var(--ag-primary)}
       .ag-glossary-search::-webkit-search-cancel-button{display:none}
       .ag-glossary-lang-badge{
-        font-size:.65rem;font-weight:700;letter-spacing:.02em;
+        font-size:.65rem;font-weight:500;letter-spacing:.02em;
         color:var(--ag-primary);background:rgba(47,122,79,.12);
         border-radius:4px;padding:1px 5px;vertical-align:middle;margin-left:6px
       }
@@ -2018,7 +2079,7 @@ export const css = `
       .ag-intro{max-width:32rem;font-size:clamp(.97rem,.93rem + .2vw,1.06rem)}
 
       /* Score pill: tighter */
-      .ag-score-pill{font-weight:800;letter-spacing:.03em}
+      .ag-score-pill{font-weight:500;letter-spacing:.03em}
 
       /* Draw hint: italic */
       .ag-draw-hint{font-style:italic;font-size:.9rem}
@@ -2122,7 +2183,7 @@ export const css = `
         }
         .ag-bottomnav-btn.is-active .ag-bottomnav-btn-icon{transform:scale(1.08)}
         .ag-bottomnav-btn-label{
-          font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+          font-size:.58rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase;
           opacity:.85;
         }
 
@@ -2160,7 +2221,7 @@ export const css = `
         background:rgba(8,28,18,.92);color:#fffdf2;
         backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
         border:1px solid rgba(255,255,255,.16);border-radius:999px;
-        padding:10px 20px;font-size:.9rem;font-weight:600;font-family:inherit;
+        padding:10px 20px;font-size:.9rem;font-weight:500;font-family:inherit;
         white-space:nowrap;
         animation:ag-toast-in 280ms var(--ag-ease) both;
         box-shadow:0 4px 20px rgba(0,0,0,.28);
@@ -2217,7 +2278,7 @@ export const css = `
       .ag-werkstatt-entry:active{transform:scale(.99)}
       .ag-werkstatt-entry-ico{font-size:1.5rem;line-height:1;flex-shrink:0}
       .ag-werkstatt-entry-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-      .ag-werkstatt-entry-title{font-weight:600;font-size:.95rem}
+      .ag-werkstatt-entry-title{font-weight:500;font-size:.95rem}
       .ag-werkstatt-entry-sub{font-size:.8rem;opacity:.72}
       .ag-werkstatt-entry-chev{font-size:1.3rem;opacity:.5;flex-shrink:0}
 
@@ -2255,11 +2316,11 @@ export const css = `
       }
       .ag-werkstatt-tab:active{transform:scale(.94)}
       .ag-werkstatt-tab.is-active{
-        background:var(--ag-primary);border-color:transparent;color:#08150d;opacity:1;font-weight:600;
+        background:var(--ag-primary);border-color:transparent;color:#08150d;opacity:1;font-weight:500;
       }
       .ag-werkstatt-count{
         display:inline-block;margin-left:4px;padding:0 5px;border-radius:999px;
-        background:rgba(0,0,0,.22);font-size:.72rem;font-weight:600;
+        background:rgba(0,0,0,.22);font-size:.72rem;font-weight:500;
       }
       .ag-werkstatt-tab:not(.is-active) .ag-werkstatt-count{background:rgba(255,255,255,.14)}
       .ag-werkstatt-note{margin:11px 0 0;font-size:.8rem;opacity:.62;line-height:1.5}
@@ -2281,13 +2342,13 @@ export const css = `
         from{opacity:0;transform:translateY(6px)}
         to{opacity:1;transform:none}
       }
-      .ag-werkstatt-card-title{font-weight:600;font-size:.94rem;line-height:1.35}
+      .ag-werkstatt-card-title{font-weight:500;font-size:.94rem;line-height:1.35}
       .ag-werkstatt-card-msg{font-size:.84rem;opacity:.75;margin-top:4px;line-height:1.5}
 
       /* Question and answer share one label treatment so the pair reads as a
          little exchange rather than two unrelated notes. */
       .ag-werkstatt-block-label{
-        display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;
+        display:block;font-size:.66rem;font-weight:500;text-transform:uppercase;
         letter-spacing:.07em;opacity:.55;margin-bottom:3px;
       }
       .ag-werkstatt-card-prompt{
@@ -2304,7 +2365,7 @@ export const css = `
       .ag-werkstatt-card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
       .ag-werkstatt-card-tags:empty{display:none}
       .ag-werkstatt-tag{
-        font-size:.68rem;font-weight:600;letter-spacing:.03em;
+        font-size:.68rem;font-weight:500;letter-spacing:.03em;
         padding:2px 8px;border-radius:999px;
         background:rgba(255,255,255,.09);opacity:.8;
       }
@@ -2325,7 +2386,7 @@ export const css = `
       .ag-werkstatt-delete-btn:hover{opacity:1}
       .ag-werkstatt-delete-btn.is-armed{
         background:rgba(220,120,120,.14);border-color:rgba(232,155,155,.45);
-        color:#f4b4b4;opacity:1;font-weight:600;
+        color:#f4b4b4;opacity:1;font-weight:500;
       }
 
       .ag-werkstatt-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
@@ -2430,7 +2491,7 @@ export const css = `
         -webkit-tap-highlight-color:transparent;
       }
       .ag-glossary-play-btn{width:34px;height:34px;font-size:.85rem}
-      .ag-glossary-edit-btn{padding:0 12px;height:34px;font-size:.82rem;font-weight:600}
+      .ag-glossary-edit-btn{padding:0 12px;height:34px;font-size:.82rem;font-weight:500}
       .ag-glossary-del-btn{width:34px;height:34px;font-size:.82rem;color:var(--ag-muted)}
       .ag-glossary-play-btn:hover,.ag-glossary-edit-btn:hover{background:rgba(47,122,79,.12);border-color:var(--ag-primary)}
       .ag-glossary-del-btn:hover{background:rgba(192,57,43,.1);border-color:rgba(192,57,43,.4);color:#c0392b}
@@ -2465,12 +2526,12 @@ export const css = `
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:10px;
 }
-.ag-gipfel-map-title{font-weight:700;font-size:.9rem;color:var(--ag-muted)}
+.ag-gipfel-map-title{font-weight:500;font-size:.9rem;color:var(--ag-muted)}
 .ag-gipfel-map-toggles{display:flex;gap:6px}
 .ag-gipfel-map-toggle{
   padding:5px 14px;border-radius:999px;border:1px solid var(--ag-border);
   background:none;cursor:pointer;font-family:inherit;font-size:.8rem;
-  font-weight:600;color:var(--ag-muted);transition:background 140ms,color 140ms,border-color 140ms;
+  font-weight:500;color:var(--ag-muted);transition:background 140ms,color 140ms,border-color 140ms;
 }
 .ag-gipfel-map-toggle.is-active{
   background:var(--ag-primary);color:#fff;border-color:var(--ag-primary);
@@ -2496,6 +2557,274 @@ export const css = `
 .leaflet-popup-content{margin:12px 16px!important;font-size:.88rem}
 .leaflet-popup-close-button{color:#a8d5b5!important;font-size:1.1rem!important}
 .leaflet-popup-close-button:hover{color:#7ecfa3!important}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIQUID GLASS — the surface language for the whole app.
+   Appended last on purpose: everything above defines layout and the
+   older flat surfaces; this layer restyles the surfaces only, so it
+   wins the cascade without touching a single layout rule. The app is
+   dark-only, so there is one set of values, not two.
+   ═══════════════════════════════════════════════════════════════════ */
+.ag-widget{
+  --glass-bg:rgba(255,255,255,.055);
+  --glass-bg-2:rgba(255,255,255,.085);
+  --glass-border:rgba(255,255,255,.13);
+  --glass-hi:rgba(255,255,255,.20);
+  --glass-blur:blur(22px) saturate(1.6);
+  --glass-blur-light:blur(12px) saturate(1.4);
+  --ag-radius-lg:26px;
+  --ag-radius-md:18px;
+}
+/* Ambient colour behind the glass — soft green, gold and lake-blue pools
+   the frosted surfaces actually have something to refract. */
+body{
+  background:
+    radial-gradient(70% 45% at 12% -5%, rgba(47,122,79,.38), transparent 62%),
+    radial-gradient(55% 38% at 92% 18%, rgba(185,120,46,.20), transparent 60%),
+    radial-gradient(60% 40% at 50% 105%, rgba(55,106,131,.26), transparent 62%),
+    #0a1410;
+}
+/* Cards: frosted, thin luminous rim, a specular line along the top. */
+.ag-widget .ag-card{
+  background:var(--glass-bg);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--ag-radius-lg);
+  box-shadow:inset 0 1px 0 var(--glass-hi),inset 0 -1px 0 rgba(0,0,0,.18),0 18px 48px rgba(0,0,0,.34);
+}
+.ag-widget .ag-stage{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.45);
+  border:1px solid rgba(255,255,255,.08);
+}
+/* Nested surfaces inside cards: translucent, no blur (there can be
+   dozens in Verlauf and a phone should not have to composite them all). */
+.ag-widget .ag-history-item,
+.ag-widget .ag-gipfel-card,
+.ag-widget .ag-trophy-tile,
+.ag-widget .ag-album-tile,
+.ag-widget .ag-kalender,
+.ag-widget .ag-mission-card,
+.ag-widget .ag-gesprach-card,
+.ag-widget .ag-stimmung-preview{
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
+}
+.ag-widget .ag-history-item:hover,.ag-widget .ag-gipfel-card:hover{border-color:rgba(255,255,255,.18)}
+/* Primary button: a lit glass pill. Secondary: a clear one. */
+.ag-widget .ag-button{
+  background:linear-gradient(180deg,rgba(143,207,158,.96),rgba(47,122,79,.96));
+  color:#07130b;
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.18),0 12px 32px rgba(47,122,79,.38);
+}
+.ag-widget .ag-button:active{transform:scale(.97)}
+.ag-widget .ag-secondary{
+  background:var(--glass-bg-2);
+  color:var(--ag-text);
+  border:1px solid var(--glass-border);
+  backdrop-filter:var(--glass-blur-light);-webkit-backdrop-filter:var(--glass-blur-light);
+  box-shadow:inset 0 1px 0 var(--glass-hi);
+}
+.ag-widget .ag-secondary:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22)}
+.ag-widget .ag-secondary:active{transform:scale(.97)}
+/* Pills: badges, chips, streak, date, filter tabs. */
+.ag-widget .ag-badge,
+.ag-widget .ag-streak,
+.ag-widget .ag-history-badge,
+.ag-widget .ag-history-filter-chip,
+.ag-widget .ag-pill{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  color:var(--ag-primary-dark);
+}
+.ag-widget .ag-history-filter-chip.is-active{background:rgba(143,207,158,.22);border-color:rgba(143,207,158,.45);color:#eef8ec}
+.ag-widget .ag-chips li{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+.ag-widget .ag-chip-clickable:active{transform:scale(.96)}
+/* Inputs. */
+.ag-widget .ag-wish-input,
+.ag-widget .ag-prompt-textarea,
+.ag-widget textarea,
+.ag-widget input[type="text"],
+.ag-widget input[type="number"]{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  color:var(--ag-text);
+}
+.ag-widget .ag-wish-input:focus,.ag-widget textarea:focus,.ag-widget input:focus{border-color:rgba(143,207,158,.6)}
+/* Tinted panels keep their hue but become glass. */
+.ag-widget .ag-hug-button{
+  background:linear-gradient(135deg,rgba(232,164,164,.22),rgba(185,120,46,.18));
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+  backdrop-filter:var(--glass-blur-light);-webkit-backdrop-filter:var(--glass-blur-light);
+}
+.ag-widget .ag-quest-wrap,.ag-widget .ag-freikarte-wrap,.ag-widget .ag-install-nudge,.ag-widget .ag-milestone{
+  backdrop-filter:var(--glass-blur-light);-webkit-backdrop-filter:var(--glass-blur-light);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+}
+/* Bottom nav: a little clearer, a little more lit. */
+.ag-widget .ag-bottomnav{
+  background:rgba(14,28,17,.55);
+  backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);
+  border-color:rgba(255,255,255,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 14px 48px rgba(0,0,0,.55);
+}
+/* Type: a touch tighter, so the glass reads calm. */
+.ag-widget .ag-result h2{letter-spacing:-.02em}
+.ag-widget .ag-wish-label{letter-spacing:-.01em}
+@media (prefers-reduced-transparency:reduce){
+  .ag-widget .ag-card,.ag-widget .ag-secondary,.ag-widget .ag-bottomnav{
+    backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(18,30,22,.96);
+  }
+}
+
+/* ── Reactions ── */
+.ag-widget .ag-reactions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ag-widget .ag-reactions-label{font-size:.78rem;color:var(--ag-muted);margin-right:2px}
+.ag-widget .ag-reaction{
+  width:40px;height:40px;border-radius:999px;font-size:1.25rem;line-height:1;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  transition:transform 140ms var(--ag-ease),background 140ms var(--ag-ease),border-color 140ms var(--ag-ease);
+}
+.ag-widget .ag-reaction:active{transform:scale(.9)}
+.ag-widget .ag-reaction.is-chosen{background:rgba(143,207,158,.24);border-color:rgba(143,207,158,.55);transform:scale(1.08)}
+.ag-widget .ag-history-reaction{font-size:.95rem;line-height:1}
+
+/* ── Ferien-Schutz ── */
+.ag-widget .ag-ferien{margin:14px 0 0;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
+.ag-widget .ag-ferien-summary{cursor:pointer;list-style:none;font-size:.9rem;color:var(--ag-text)}
+.ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
+.ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}
+.ag-widget .ag-ferien-note{margin:8px 0 10px;font-size:.82rem;color:var(--ag-muted);line-height:1.45}
+.ag-widget .ag-ferien-form{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.ag-widget .ag-ferien-input{min-width:0;width:100%;padding:8px 10px;border-radius:12px;font-family:inherit;font-size:16px;color-scheme:dark}
+.ag-widget .ag-ferien-sep{font-size:.82rem;color:var(--ag-muted)}
+.ag-widget .ag-ferien-add{grid-column:1 / -1;justify-self:start;min-height:38px;padding:0 14px;font-size:.88rem}
+.ag-widget .ag-ferien-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ag-widget .ag-ferien-item{display:flex;align-items:center;justify-content:space-between;font-size:.86rem;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.05)}
+.ag-widget .ag-ferien-remove{background:none;border:none;color:var(--ag-muted);cursor:pointer;font-size:.9rem;padding:4px 6px}
+
+/* ── Capsule press-and-hold ── */
+.ag-widget .ag-machine-capsule{cursor:pointer;touch-action:none;pointer-events:auto;z-index:4}
+.ag-widget.is-charging .ag-machine-capsule{
+  animation:none;
+  transform:translate(-50%,-50%) scale(1.22);
+  box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 34px rgba(255,236,170,.45);
+  transition:transform 650ms cubic-bezier(.2,.8,.2,1),box-shadow 650ms ease;
+}
+.ag-widget.is-charged .ag-machine-capsule{
+  transform:translate(-50%,-50%) scale(1.32);
+  box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 56px rgba(255,236,170,.75);
+}
+.ag-widget.is-charging .ag-mach-glow{animation-duration:.6s}
+
+/* ── Draw button: aurora glass ──
+   A blurred conic halo behind the pill cycles its hue, a sheen sweeps over
+   the face, the orb breathes. Pressed, it sinks. */
+@keyframes ag-hue{to{filter:blur(10px) hue-rotate(360deg)}}
+@keyframes ag-sheen{0%{background-position:200% 0}100%{background-position:-60% 0}}
+.ag-widget .ag-button{
+  position:relative;isolation:isolate;overflow:visible;
+  background:linear-gradient(135deg,#a9e3b5 0%,#5fb27a 45%,#2f7a4f 100%);
+  color:#07130b;letter-spacing:.01em;
+  border:1px solid rgba(255,255,255,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -2px 0 rgba(0,0,0,.18),0 10px 28px rgba(47,122,79,.42);
+  transition:transform 160ms var(--ag-ease),box-shadow 220ms var(--ag-ease);
+}
+.ag-widget .ag-button::before{
+  content:"";position:absolute;inset:-3px;border-radius:inherit;z-index:-1;
+  background:conic-gradient(from 0deg,#8fcf9e,#e0a75d,#8ab8cf,#c9a7ff,#8fcf9e);
+  filter:blur(10px) hue-rotate(0deg);opacity:.8;
+  animation:ag-hue 5s linear infinite;
+}
+.ag-widget .ag-button::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.55) 50%,transparent 58%);
+  background-size:260% 100%;
+  animation:ag-sheen 3.4s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+.ag-widget .ag-button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.18),0 16px 36px rgba(47,122,79,.5)}
+.ag-widget .ag-button:active{transform:translateY(1px) scale(.97);box-shadow:inset 0 2px 6px rgba(0,0,0,.28),0 6px 18px rgba(47,122,79,.35)}
+.ag-widget .ag-button[disabled]::before{animation-duration:1.2s;opacity:1}
+.ag-widget .ag-button-orb{width:16px;height:16px;box-shadow:0 0 14px rgba(255,236,170,.9),0 0 4px #fff;animation:ag-pulse 2.6s ease-in-out infinite}
+.ag-widget.has-drawn .ag-button::before{opacity:.35;animation-duration:12s}
+
+/* ── Reveal spectacle ── */
+@keyframes ag-rumble{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  20%{transform:translate(-2px,1px) rotate(-.3deg)}
+  40%{transform:translate(2px,-1px) rotate(.3deg)}
+  60%{transform:translate(-1px,-2px) rotate(-.2deg)}
+  80%{transform:translate(1px,2px) rotate(.2deg)}
+}
+.ag-widget.is-rumbling .ag-stage{animation:ag-rumble 90ms linear infinite}
+.ag-widget.is-rumbling-hard .ag-stage{animation:ag-rumble 60ms linear infinite;transform-origin:50% 60%}
+.ag-widget.is-rumbling .ag-machine-capsule{animation:ag-shake 260ms var(--ag-ease) infinite}
+@keyframes ag-flash-in{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+.ag-flash{
+  position:fixed;inset:0;z-index:2000;pointer-events:none;
+  background:radial-gradient(circle at 50% 38%,var(--ag-flash-color),transparent 72%);
+  mix-blend-mode:screen;opacity:0;
+  animation:ag-flash-in 760ms ease-out both;
+}
+.ag-widget.is-shutter .ag-stage{animation:ag-shutter 520ms ease-out}
+@keyframes ag-shutter{0%{filter:brightness(1)}12%{filter:brightness(3.2) contrast(.6)}100%{filter:brightness(1)}}
+@keyframes ag-shockwave{
+  0%{transform:translate(-50%,-50%) scale(.2);opacity:.95;border-width:6px}
+  100%{transform:translate(-50%,-50%) scale(3.6);opacity:0;border-width:1px}
+}
+.ag-shockwave{
+  position:absolute;left:50%;top:46%;width:60px;height:60px;border-radius:999px;
+  border:6px solid rgba(255,236,170,.85);
+  box-shadow:0 0 24px rgba(255,236,170,.6),inset 0 0 18px rgba(255,236,170,.4);
+  pointer-events:none;z-index:5;
+  animation:ag-shockwave 1100ms cubic-bezier(.16,.84,.3,1) both;
+}
+/* The card lands: drops in from above with a little tilt and a settle. */
+@keyframes ag-card-land{
+  0%{opacity:0;transform:perspective(900px) translateY(-26px) rotateX(-16deg) scale(.94);filter:blur(6px)}
+  60%{opacity:1;transform:perspective(900px) translateY(6px) rotateX(2deg) scale(1.01);filter:blur(0)}
+  100%{transform:perspective(900px) translateY(0) rotateX(0) scale(1)}
+}
+.ag-widget.is-revealed .ag-result{animation:ag-card-land 760ms cubic-bezier(.2,.9,.25,1.05) both}
+.ag-widget.is-revealed[data-tone=jackpot] .ag-result,
+.ag-widget.is-revealed[data-tone=special] .ag-result{animation:ag-card-land 760ms cubic-bezier(.2,.9,.25,1.05) both,ag-tone-pulse 3.2s ease-in-out .8s infinite}
+@media (prefers-reduced-motion:reduce){
+  .ag-widget .ag-button::before,.ag-widget .ag-button::after,.ag-widget .ag-button-orb{animation:none}
+  .ag-widget.is-rumbling .ag-stage,.ag-widget.is-rumbling .ag-machine-capsule{animation:none}
+  .ag-shockwave{display:none}
+  .ag-widget.is-revealed .ag-result{animation:none}
+}
+
+/* ── Actions: one row — Kopieren · An Fionn schicken · ☆ ── */
+.ag-widget .ag-actions-row{display:flex;flex-wrap:nowrap;gap:8px;margin-top:14px}
+.ag-widget .ag-action{min-height:38px;padding:0 12px;font-size:.82rem;letter-spacing:0;white-space:nowrap}
+.ag-widget .ag-actions-row .ag-action{flex:1 1 0;min-width:0;justify-content:center}
+.ag-widget .ag-actions-row .ag-action-send{flex:1.35 1 0}
+.ag-widget .ag-actions-row .ag-star{flex:0 0 40px;width:40px;padding:0;font-size:1rem}
+.ag-widget .ag-actions-extra{margin-top:8px;gap:8px}
+.ag-widget .ag-actions-extra .ag-action{flex:1 1 0;min-width:0;justify-content:center}
+
+/* ── Ferien-Schutz: the icon is the switch ── */
+.ag-widget .ag-ferien-head{display:flex;align-items:center;gap:10px}
+.ag-widget .ag-ferien-toggle{
+  width:36px;height:36px;border-radius:999px;font-size:1.1rem;line-height:1;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);transition:transform 140ms var(--ag-ease),background 140ms;
+}
+.ag-widget .ag-ferien-toggle:active{transform:scale(.92)}
+.ag-widget .ag-ferien-toggle[aria-expanded="true"]{background:rgba(143,207,158,.2);border-color:rgba(143,207,158,.45)}
+.ag-widget .ag-ferien-title{font-size:.9rem;color:var(--ag-text)}
+.ag-widget .ag-ferien-body{margin-top:10px}
     `;
 
 export function injectStyles() {

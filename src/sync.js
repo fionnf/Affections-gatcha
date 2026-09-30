@@ -123,6 +123,9 @@ export async function syncFromSheets() {
         if (prev && prev.beweisUrl && !next.beweisUrl) {
           next.beweisUrl = prev.beweisUrl;
         }
+        if (prev && prev.reaction && !next.reaction) {
+          next.reaction = prev.reaction;
+        }
         localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
@@ -154,9 +157,10 @@ export async function syncFromSheets() {
       writeQuestPoints(data.questPoints);
     }
 
+    // Kept only as the fresh-device placeholder computeStreak uses before
+    // any history exists; it no longer raises anything once the log is here.
     if (typeof data.streak === "number" && data.streak > 0) {
       writeSyncedStreak(data.streak);
-      if (data.streak > computeStreak()) writeStreakCache(data.streak);
     }
 
     if (data.baerlauchScores && typeof data.baerlauchScores === "object") {
