@@ -626,6 +626,16 @@ two lines, tighter copy): about 500px on a 375px-wide phone, so the draw button
 is on the first screen. It used to be 610px, which was a full screen of header
 before the first card.
 
+**Surface language: liquid glass.** The last block in `src/css.js` restyles
+every surface — cards, pills, buttons, inputs, the bottom nav — as frosted
+translucent glass over an ambient background (green, gold and lake-blue
+pools on the body), with a thin luminous rim and a specular line along the
+top. It is appended last so it wins the cascade without touching layout;
+tokens live on `.ag-widget` (`--glass-bg`, `--glass-border`, `--glass-blur`).
+Cards blur what is behind them; the dozens of nested items in Verlauf are
+translucent without blur, so a phone does not composite them all. The
+`prefers-reduced-transparency` query falls back to opaque surfaces.
+
 **The app is dark-only.** `index.html` declares `color-scheme: dark` and both
 palettes in `theme.json` are the dark one in practice; the `colors` block is
 kept so a light theme could be reinstated, but nothing currently renders it.

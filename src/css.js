@@ -2557,6 +2557,133 @@ export const css = `
 .leaflet-popup-content{margin:12px 16px!important;font-size:.88rem}
 .leaflet-popup-close-button{color:#a8d5b5!important;font-size:1.1rem!important}
 .leaflet-popup-close-button:hover{color:#7ecfa3!important}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIQUID GLASS — the surface language for the whole app.
+   Appended last on purpose: everything above defines layout and the
+   older flat surfaces; this layer restyles the surfaces only, so it
+   wins the cascade without touching a single layout rule. The app is
+   dark-only, so there is one set of values, not two.
+   ═══════════════════════════════════════════════════════════════════ */
+.ag-widget{
+  --glass-bg:rgba(255,255,255,.055);
+  --glass-bg-2:rgba(255,255,255,.085);
+  --glass-border:rgba(255,255,255,.13);
+  --glass-hi:rgba(255,255,255,.20);
+  --glass-blur:blur(22px) saturate(1.6);
+  --glass-blur-light:blur(12px) saturate(1.4);
+  --ag-radius-lg:26px;
+  --ag-radius-md:18px;
+}
+/* Ambient colour behind the glass — soft green, gold and lake-blue pools
+   the frosted surfaces actually have something to refract. */
+body{
+  background:
+    radial-gradient(70% 45% at 12% -5%, rgba(47,122,79,.38), transparent 62%),
+    radial-gradient(55% 38% at 92% 18%, rgba(185,120,46,.20), transparent 60%),
+    radial-gradient(60% 40% at 50% 105%, rgba(55,106,131,.26), transparent 62%),
+    #0a1410;
+}
+/* Cards: frosted, thin luminous rim, a specular line along the top. */
+.ag-widget .ag-card{
+  background:var(--glass-bg);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--ag-radius-lg);
+  box-shadow:inset 0 1px 0 var(--glass-hi),inset 0 -1px 0 rgba(0,0,0,.18),0 18px 48px rgba(0,0,0,.34);
+}
+.ag-widget .ag-stage{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.45);
+  border:1px solid rgba(255,255,255,.08);
+}
+/* Nested surfaces inside cards: translucent, no blur (there can be
+   dozens in Verlauf and a phone should not have to composite them all). */
+.ag-widget .ag-history-item,
+.ag-widget .ag-gipfel-card,
+.ag-widget .ag-trophy-tile,
+.ag-widget .ag-album-tile,
+.ag-widget .ag-kalender,
+.ag-widget .ag-mission-card,
+.ag-widget .ag-gesprach-card,
+.ag-widget .ag-stimmung-preview{
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
+}
+.ag-widget .ag-history-item:hover,.ag-widget .ag-gipfel-card:hover{border-color:rgba(255,255,255,.18)}
+/* Primary button: a lit glass pill. Secondary: a clear one. */
+.ag-widget .ag-button{
+  background:linear-gradient(180deg,rgba(143,207,158,.96),rgba(47,122,79,.96));
+  color:#07130b;
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.18),0 12px 32px rgba(47,122,79,.38);
+}
+.ag-widget .ag-button:active{transform:scale(.97)}
+.ag-widget .ag-secondary{
+  background:var(--glass-bg-2);
+  color:var(--ag-text);
+  border:1px solid var(--glass-border);
+  backdrop-filter:var(--glass-blur-light);-webkit-backdrop-filter:var(--glass-blur-light);
+  box-shadow:inset 0 1px 0 var(--glass-hi);
+}
+.ag-widget .ag-secondary:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22)}
+.ag-widget .ag-secondary:active{transform:scale(.97)}
+/* Pills: badges, chips, streak, date, filter tabs. */
+.ag-widget .ag-badge,
+.ag-widget .ag-streak,
+.ag-widget .ag-history-badge,
+.ag-widget .ag-history-filter-chip,
+.ag-widget .ag-pill{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  color:var(--ag-primary-dark);
+}
+.ag-widget .ag-history-filter-chip.is-active{background:rgba(143,207,158,.22);border-color:rgba(143,207,158,.45);color:#eef8ec}
+.ag-widget .ag-chips li{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+.ag-widget .ag-chip-clickable:active{transform:scale(.96)}
+/* Inputs. */
+.ag-widget .ag-wish-input,
+.ag-widget .ag-prompt-textarea,
+.ag-widget textarea,
+.ag-widget input[type="text"],
+.ag-widget input[type="number"]{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  color:var(--ag-text);
+}
+.ag-widget .ag-wish-input:focus,.ag-widget textarea:focus,.ag-widget input:focus{border-color:rgba(143,207,158,.6)}
+/* Tinted panels keep their hue but become glass. */
+.ag-widget .ag-hug-button{
+  background:linear-gradient(135deg,rgba(232,164,164,.22),rgba(185,120,46,.18));
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+  backdrop-filter:var(--glass-blur-light);-webkit-backdrop-filter:var(--glass-blur-light);
+}
+.ag-widget .ag-quest-wrap,.ag-widget .ag-freikarte-wrap,.ag-widget .ag-install-nudge,.ag-widget .ag-milestone{
+  backdrop-filter:var(--glass-blur-light);-webkit-backdrop-filter:var(--glass-blur-light);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+}
+/* Bottom nav: a little clearer, a little more lit. */
+.ag-widget .ag-bottomnav{
+  background:rgba(14,28,17,.55);
+  backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);
+  border-color:rgba(255,255,255,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 14px 48px rgba(0,0,0,.55);
+}
+/* Type: a touch tighter, so the glass reads calm. */
+.ag-widget .ag-result h2{letter-spacing:-.02em}
+.ag-widget .ag-wish-label{letter-spacing:-.01em}
+@media (prefers-reduced-transparency:reduce){
+  .ag-widget .ag-card,.ag-widget .ag-secondary,.ag-widget .ag-bottomnav{
+    backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(18,30,22,.96);
+  }
+}
     `;
 
 export function injectStyles() {
