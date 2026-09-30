@@ -1269,9 +1269,18 @@ export const css = `
                   calc(clamp(8px,3vw,16px) + var(--ag-safe-left));
         }
         .ag-shell{padding:clamp(16px,4vw,24px)}
-        .ag-machine-wrap{max-width:220px}
-        .ag-emoji{font-size:clamp(.85rem,2.4vw,1.05rem)}
-        .ag-copy h1{font-size:clamp(1.9rem,1rem + 6vw,3rem)}
+        /* The hero used to take a whole phone screen (about 610px on a
+           375px-wide phone) before the first card. Smaller machine, a
+           title that fits on one or two lines, tighter copy: the draw
+           button is now visible without scrolling. */
+        .ag-hero{gap:10px}
+        .ag-machine-wrap{max-width:172px}
+        .ag-emoji{font-size:clamp(.8rem,2.2vw,.95rem)}
+        .ag-kicker{font-size:.66rem;letter-spacing:.12em}
+        .ag-copy h1{font-size:clamp(1.6rem,1rem + 4.4vw,2.3rem);margin:6px 0 8px}
+        .ag-intro{font-size:.92rem;line-height:1.5;margin:0 0 12px}
+        .ag-chips{margin:0 0 6px;gap:6px}
+        .ag-chips li{min-height:27px;padding:0 11px;font-size:.75rem;letter-spacing:.03em}
         .ag-rules ul{columns:1}
         .ag-history-thumb{width:56px;height:56px}
         .ag-draw-card{flex-direction:column;align-items:stretch}
@@ -1568,6 +1577,10 @@ export const css = `
 
       @media (max-width:380px){
         .ag-hug-row{flex-direction:column;align-items:stretch}
+        /* flex:1 1 200px is a width hint in the row layout, but once the
+           row turns into a column that 200px becomes a HEIGHT, and two
+           short lines of text sit above 150px of nothing. */
+        .ag-hug-text{flex-basis:auto}
         .ag-hug-button{justify-content:center;width:100%}
       }
       .ag-hug-status{margin:10px 0 0;color:var(--ag-muted);font-size:.88rem;line-height:1.5}
