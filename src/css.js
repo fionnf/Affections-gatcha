@@ -1548,6 +1548,12 @@ export const css = `
         .ag-widget[data-tone="jackpot"] .ag-result::after{animation:none}
       }
 
+      /* Topo tiles are pale; dim them so the map sits in the dark UI without
+         inverting the colours (an inverted topo map reads as nonsense). */
+      #ag-gipfel-map .leaflet-tile{filter:brightness(.78) saturate(.85) contrast(1.05)}
+      #ag-gipfel-map .leaflet-control-attribution{background:rgba(10,20,16,.7);color:#b5c8b2;font-size:.6rem}
+      #ag-gipfel-map .leaflet-control-attribution a{color:#8fcf9e}
+
       /* ── Install-to-home-screen nudge ── */
       .ag-install-nudge{
         display:flex;align-items:center;justify-content:space-between;gap:12px;
