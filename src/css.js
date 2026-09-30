@@ -2704,10 +2704,10 @@ body{
 .ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
 .ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}
 .ag-widget .ag-ferien-note{margin:8px 0 10px;font-size:.82rem;color:var(--ag-muted);line-height:1.45}
-.ag-widget .ag-ferien-form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ag-widget .ag-ferien-input{flex:1 1 120px;min-width:0;padding:8px 10px;border-radius:12px;font-family:inherit;color-scheme:dark}
+.ag-widget .ag-ferien-form{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.ag-widget .ag-ferien-input{min-width:0;width:100%;padding:8px 10px;border-radius:12px;font-family:inherit;font-size:16px;color-scheme:dark}
 .ag-widget .ag-ferien-sep{font-size:.82rem;color:var(--ag-muted)}
-.ag-widget .ag-ferien-add{min-height:38px;padding:0 14px;font-size:.88rem}
+.ag-widget .ag-ferien-add{grid-column:1 / -1;justify-self:start;min-height:38px;padding:0 14px;font-size:.88rem}
 .ag-widget .ag-ferien-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ag-widget .ag-ferien-item{display:flex;align-items:center;justify-content:space-between;font-size:.86rem;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.05)}
 .ag-widget .ag-ferien-remove{background:none;border:none;color:var(--ag-muted);cursor:pointer;font-size:.9rem;padding:4px 6px}
