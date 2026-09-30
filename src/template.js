@@ -153,12 +153,12 @@ export const html = `
           <div class="ag-stage-veil" aria-hidden="true"></div>
           <div class="ag-shell">
             <header class="ag-hero">
-              <div class="ag-machine-wrap" aria-hidden="true">
+              <div class="ag-machine-wrap">
                 ${machineSvg()}
-                <div class="ag-machine-capsule" data-capsule title="Halten zum Ziehen">
+                <div class="ag-machine-capsule" data-capsule role="button" tabindex="0" aria-label="Kapsel: halten zum Ziehen" title="Halten zum Ziehen">
                   <span class="ag-capsule-shine"></span>
                 </div>
-                <div class="ag-orbit">
+                <div class="ag-orbit" aria-hidden="true">
                   <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="ag-emoji-orbit" data-ag-emoji-orbit aria-hidden="true"></div>

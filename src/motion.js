@@ -5,9 +5,10 @@
 // iOS gates both sensors behind DeviceMotionEvent/DeviceOrientationEvent
 // .requestPermission(), which must be called from a user gesture — and the
 // answer is remembered by Safari, so a second call after a grant resolves
-// without a prompt but still needs the gesture. So: the first pointerdown on
-// the page asks once (never again after a denial), Android and desktop just
-// listen. The draw button stays; this is an extra way in, not the only one.
+// without a prompt but still needs the gesture. So: the first click on the
+// page asks once (never again after a denial), Android and desktop just
+// listen. click, not pointerdown: WebKit only counts click/touchend as user
+// activation, and requestPermission() from anything else rejects silently. The draw button stays; this is an extra way in, not the only one.
 import { mount } from "./state.js";
 
 const MOTION_KEY = "affektions-gacha:motion:v1";
@@ -80,7 +81,7 @@ export function initMotion({ onShake, onTilt } = {}) {
   if (typeof Motion.requestPermission !== "function") { listen(); return; }
   // iOS: wait for the first real tap anywhere in the app.
   const onFirstTap = () => {
-    askOnce().then(() => { if (_listening || remembered() === "denied") document.removeEventListener("pointerdown", onFirstTap); });
+    askOnce().then(() => { if (_listening || remembered() === "denied") document.removeEventListener("click", onFirstTap); });
   };
-  document.addEventListener("pointerdown", onFirstTap);
+  document.addEventListener("click", onFirstTap);
 }

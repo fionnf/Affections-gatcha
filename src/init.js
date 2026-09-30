@@ -102,8 +102,21 @@ export async function init() {
       }
     } catch (_error) {}
     registerServiceWorker();
+    // iOS keeps an installed web app alive in the background for days. Resumed
+    // the next morning, nothing here knew the date had changed: yesterday's
+    // capsule stayed revealed, the button still said "Heute nochmal anzeigen",
+    // and today's pull was unreachable without a manual reload. Every state
+    // worth keeping lives in localStorage and the sheet, so a reload on the
+    // first sight of a new day is the whole fix.
+    state.renderedDay = dateKeyInTimezone(theme.timezone);
+    const reloadOnNewDay = () => {
+      if (getPreviewDay()) return;
+      if (dateKeyInTimezone(theme.timezone) !== state.renderedDay) window.location.reload();
+    };
+    window.setInterval(reloadOnNewDay, 60000);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "visible") return;
+      reloadOnNewDay();
       scheduleStreakWarning();
       updateAppBadge();
       applyEveningMode(theme.timezone);
