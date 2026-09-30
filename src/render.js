@@ -56,17 +56,21 @@ export function defaultChips() {
 
 // ── Today formatting ─────────────────────────────────────────────────────────
 
+// The pill shows the machine's day, not the wall clock's — at 03:00 that is
+// still yesterday. Formatting the day key at UTC noon keeps the weekday right
+// without a second timezone conversion.
 export function formatToday() {
+  const key = dateKeyInTimezone(state.theme.timezone);
   try {
-    const date = new Date();
+    const [y, m, d] = key.split("-").map(Number);
     return new Intl.DateTimeFormat("de-CH", {
       weekday: "long",
       day: "2-digit",
       month: "long",
-      timeZone: state.theme.timezone
-    }).format(date);
+      timeZone: "UTC"
+    }).format(new Date(Date.UTC(y, m - 1, d, 12)));
   } catch (error) {
-    return dateKeyInTimezone(state.theme.timezone);
+    return key;
   }
 }
 
@@ -1284,9 +1288,11 @@ export function redeemVoucher(entry, btnEl) {
 function buildHistoryLink(entry) {
   if (!entry.link) return null;
   if (entry.unlockTime) {
-    const now = new Date();
+    // Same clock as the live capsule: the entry's own timezone if it has
+    // one, else the app's — not the device's, which the old getHours() read.
+    const now = hmInTimezone(entry.unlockTimezone || state.theme?.timezone || "UTC");
     const [h, m] = entry.unlockTime.split(":").map(Number);
-    const unlocked = now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+    const unlocked = now.h > h || (now.h === h && now.m >= m);
     if (!unlocked) {
       const span = document.createElement("span");
       span.className = "ag-outcome-link-locked";

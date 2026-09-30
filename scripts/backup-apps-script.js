@@ -30,6 +30,7 @@
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
 const BACKUP_SHEET_NAME = "Backup";
 const HISTORY_SHEET_NAME = "History";
+const DAY_START_HOUR = 4;   // keep in step with config/theme.json dayStartHour
 const WISH_SHEET_NAME = "Wünsche";
 
 const FIONN_EMAIL = "fionn@fionnferreira.com";
@@ -268,7 +269,11 @@ function doGet(e) {
       const props = PropertiesService.getScriptProperties();
       const zNow = new Date();
       const zHour = Number(Utilities.formatDate(zNow, "Europe/Zurich", "H"));
-      const zDay = Utilities.formatDate(zNow, "Europe/Zurich", "yyyy-MM-dd");
+      // The app's day starts at DAY_START_HOUR, not midnight (theme.json
+      // dayStartHour) — a 01:00 pull is filed under the evening before. The
+      // "pulled today?" check has to use the same day, or a late pull would
+      // earn a morning reminder for a capsule already opened.
+      const zDay = Utilities.formatDate(new Date(zNow.getTime() - DAY_START_HOUR * 3600000), "Europe/Zurich", "yyyy-MM-dd");
 
       // Two windows an hour wide on either side, so an hourly cron that
       // GitHub delays by 10-15 minutes still lands inside one.

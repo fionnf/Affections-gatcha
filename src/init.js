@@ -12,7 +12,7 @@ import { bindEvents, retryPendingWishSend, renderError } from "./events.js";
 import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
 import { updateAppBadge } from "./badge.js";
-import { hmInTimezone } from "./utils.js";
+import { hmInTimezone, setDayStartHour } from "./utils.js";
 import { readWerkstatt } from "./werkstatt.js";
 import { initInstallPrompt } from "./installPrompt.js";
 
@@ -52,6 +52,7 @@ export async function init() {
     state.outcomes = outcomes;
     state.photos = normalizePhotos(photos);
     state.specialDays = specialDays;
+    setDayStartHour(theme.dayStartHour);
     state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
     state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
     state.quest = quest && typeof quest === "object" ? quest : { enabled: false };

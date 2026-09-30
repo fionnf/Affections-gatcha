@@ -38,6 +38,10 @@ if (theme.brand) {
 assert(typeof theme.secret === "string" && theme.secret.length >= 24, "theme.secret should be at least 24 characters.");
 assert(theme.secret !== "AENDERN-geheimes-wort-damit-die-kapseln-nicht-vorhersagbar-sind", "Change theme.secret from the placeholder value.");
 assert(typeof theme.timezone === "string" && theme.timezone, "theme.timezone is required.");
+if (theme.dayStartHour !== undefined) {
+  assert(Number.isInteger(theme.dayStartHour) && theme.dayStartHour >= 0 && theme.dayStartHour < 24,
+    "theme.dayStartHour must be a whole hour from 0 to 23 (the hour the machine's day begins).");
+}
 assert(typeof theme.tokenParam === "string" && theme.tokenParam, "theme.tokenParam is required.");
 assert(typeof theme.messageTarget === "string" && theme.messageTarget, "theme.messageTarget is required.");
 assert(Number.isInteger(theme.revealDelayMs) && theme.revealDelayMs >= 1000, "theme.revealDelayMs should be an integer >= 1000.");

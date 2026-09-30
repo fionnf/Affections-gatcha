@@ -17,6 +17,7 @@
     "werkstatt": false
   },
   "timezone": "Europe/Zurich",
+  "dayStartHour": 4,
   "tokenParam": "token",
   "messageTarget": "https://wa.me/+41778089500?text={text}",
   "revealDelayMs": 5200,
