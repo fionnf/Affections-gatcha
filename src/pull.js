@@ -117,12 +117,26 @@ export function buildPullForDay(day, streak, opts = {}) {
   // recomputing the original deterministic (and now-discarded) pull.
   const rerollRecord = !seedSuffix ? readFreikarteReroll(token, day) : null;
 
+  // The day's record, if it was already opened. It pins the category below,
+  // and the outcome further down.
+  const drawn = !seedSuffix ? readHistory().find((e) => e.token === token && e.day === day) : null;
+
   let category;
   if (rerollRecord) {
     category = state.outcomes.categories.find((c) => c.id === rerollRecord.categoryId);
   }
+  // Weights are not constant for a day: the streak boost steps at 5/10/20,
+  // and today's draw is what pushes the streak over the step — so the same
+  // seed rolled before and after the draw can land in different categories.
+  // The history balancer makes weights depend on the log outright. Either
+  // way, the capsule that was opened is the capsule; the record wins over a
+  // recomputation. (The reroll path skips this: its record is the original
+  // pull, not the rerolled one.)
+  if (!category && drawn && drawn.categoryId) {
+    category = state.outcomes.categories.find((c) => c.id === drawn.categoryId) || null;
+  }
   if (!category) {
-    category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0, excludeCategoryIds);
+    category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0, excludeCategoryIds, { token, day });
   }
 
   const previewCategory = getPreviewCategory();
@@ -168,7 +182,6 @@ export function buildPullForDay(day, streak, opts = {}) {
   // category evicts the shipped ones, so searching only the current pool
   // would fail to find a shipped outcome that was opened this morning —
   // exactly the case this guards against.
-  const drawn = readHistory().find((e) => e.token === token && e.day === day);
   const alreadyDrawn = drawn && drawn.categoryId === category.id
     ? (categoryPool.find((o) => o.title === drawn.title)
        || category.outcomes.find((o) => o.title === drawn.title))

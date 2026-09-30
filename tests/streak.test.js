@@ -4,7 +4,7 @@ import { setupBrowserEnv, TEST_SECRET } from "./helpers.js";
 
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
-const { computeStreak, boostedCategories, pickWeightedWithStreak } = await import("../src/streak.js");
+const { computeStreak, boostedCategories, pickWeightedWithStreak, historyBalancedCategories } = await import("../src/streak.js");
 const { writeHistory } = await import("../src/storage.js");
 const { dateKeyInTimezone } = await import("../src/utils.js");
 
@@ -78,4 +78,34 @@ test("excludeIds in pickWeightedWithStreak really excludes", () => {
     const cat = pickWeightedWithStreak(`seed-${i}`, 0, ["niete"]);
     assert.equal(cat.id, "common", "heavily-weighted excluded category must never be picked");
   }
+});
+
+test("history balancing starves a flooded category and feeds a starved one, within clamps", () => {
+  const cats = [
+    { id: "photo",   label: "Foto",    weight: 520, tone: "photo",   outcomes: [{ title: "P", message: "p" }] },
+    { id: "common",  label: "Gew.",    weight: 270, tone: "soft",    outcomes: [{ title: "C", message: "c" }] },
+    { id: "jackpot", label: "JACKPOT", weight: 8,   tone: "jackpot", outcomes: [{ title: "J", message: "j" }] },
+  ];
+  // 30 recent days: 2 photos where ~20 were due, 5 jackpots where ~0.3 were due.
+  const hist = [];
+  for (let i = 1; i <= 30; i++) {
+    const categoryId = i <= 2 ? "photo" : i <= 7 ? "jackpot" : "common";
+    hist.push({ day: zurichDay(-i), token: "lennart", categoryId, title: "x", message: "m" });
+  }
+  writeHistory(hist);
+  const out = Object.fromEntries(historyBalancedCategories(cats, "lennart", zurichDay(0)).map((c) => [c.id, c.weight]));
+  assert.equal(out.photo, Math.round(520 * 1.8), "starved photo hits the upper clamp");
+  assert.equal(out.jackpot, 4, "five jackpots in a month halves the weight (lower clamp)");
+  assert.equal(out.common, 135, "23 of 30 where ~10 were due: pinned to the lower clamp, never below");
+});
+
+test("history balancing is inert below ten recorded pulls and ignores special days", () => {
+  const cats = [{ id: "photo", label: "Foto", weight: 520, tone: "photo", outcomes: [{ title: "P", message: "p" }] }];
+  writeHistory([
+    ...Array.from({ length: 6 }, (_, i) => ({ day: zurichDay(-1 - i), token: "lennart", categoryId: "photo", title: "x", message: "m" })),
+    ...Array.from({ length: 20 }, (_, i) => ({ day: zurichDay(-10 - i), token: "lennart", categoryId: "special", title: "s", message: "m" })),
+  ]);
+  // 26 entries, but only 6 are draws (special days carry no odds) — not enough.
+  const out = historyBalancedCategories(cats, "lennart", zurichDay(0));
+  assert.equal(out[0].weight, 520);
 });

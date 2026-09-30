@@ -57,8 +57,46 @@ export function boostedCategories(streak) {
   }));
 }
 
-export function pickWeightedWithStreak(seedText, streak, excludeIds = []) {
-  const allCats = boostedCategories(streak);
+// How far back the balancer looks, and how hard it is allowed to lean.
+// 45 days is long enough that a 0.5% category has a real expectation in it
+// and short enough that last winter's luck stops mattering by spring.
+const BALANCE_WINDOW_DAYS = 45;
+const BALANCE_MIN_PULLS = 10;
+const BALANCE_FACTOR_MIN = 0.5;
+const BALANCE_FACTOR_MAX = 1.8;
+
+// Nudges each category's weight toward what this player has actually seen
+// lately: a category that came up more often than its odds say gets lighter,
+// a starved one gets heavier. Laplace-smoothed ((expected+1)/(observed+1))
+// so a 0.24-expected jackpot cannot blow up to infinity on a lucky month,
+// and clamped so the correction stays a nudge rather than a guarantee. Only
+// entries with a categoryId count, which leaves special days out — they are
+// not draws. Below BALANCE_MIN_PULLS there is nothing to correct yet.
+export function historyBalancedCategories(cats, token, day) {
+  if (!token || !day) return cats;
+  // Only real draws count: a special day is recorded with its own
+  // categoryId and no odds, so it is neither expected nor observed here.
+  const ids = new Set(cats.map((c) => c.id));
+  const recent = readHistory()
+    .filter((e) => e.token === token && e.day < day && ids.has(e.categoryId))
+    .sort((a, b) => b.day.localeCompare(a.day))
+    .slice(0, BALANCE_WINDOW_DAYS);
+  if (recent.length < BALANCE_MIN_PULLS) return cats;
+  const total = cats.reduce((sum, c) => sum + c.weight, 0);
+  if (!total) return cats;
+  const observed = {};
+  for (const e of recent) observed[e.categoryId] = (observed[e.categoryId] || 0) + 1;
+  return cats.map((c) => {
+    const expected = recent.length * c.weight / total;
+    const factor = Math.min(BALANCE_FACTOR_MAX, Math.max(BALANCE_FACTOR_MIN,
+      (expected + 1) / ((observed[c.id] || 0) + 1)));
+    return { ...c, weight: Math.max(1, Math.round(c.weight * factor)) };
+  });
+}
+
+export function pickWeightedWithStreak(seedText, streak, excludeIds = [], balance = null) {
+  const boosted = boostedCategories(streak);
+  const allCats = balance ? historyBalancedCategories(boosted, balance.token, balance.day) : boosted;
   const cats = excludeIds.length ? allCats.filter((c) => !excludeIds.includes(c.id)) : allCats;
   const pool = cats.length ? cats : allCats;
   const total = pool.reduce((sum, cat) => sum + cat.weight, 0);

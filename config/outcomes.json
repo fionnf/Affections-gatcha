@@ -1815,7 +1815,7 @@
     {
       "id": "photo",
       "label": "Foto-Drop",
-      "weight": 380,
+      "weight": 520,
       "tone": "photo",
       "outcomes": [
         {
@@ -1947,7 +1947,7 @@
     {
       "id": "jackpot",
       "label": "JACKPOT",
-      "weight": 30,
+      "weight": 8,
       "tone": "jackpot",
       "outcomes": [
         {
