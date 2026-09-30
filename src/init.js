@@ -11,6 +11,8 @@ import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
 import { bindEvents, retryPendingWishSend, renderError } from "./events.js";
 import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
+import { updateAppBadge } from "./badge.js";
+import { hmInTimezone } from "./utils.js";
 import { readWerkstatt } from "./werkstatt.js";
 import { initInstallPrompt } from "./installPrompt.js";
 
@@ -103,6 +105,8 @@ export async function init() {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "visible") return;
       scheduleStreakWarning();
+      updateAppBadge();
+      applyEveningMode(theme.timezone);
       // Re-sync on focus so a Stimmung (or anything else) changed on the
       // other phone shows up when you come back, without a manual reload.
       syncFromSheets().catch(() => {});
@@ -114,6 +118,8 @@ export async function init() {
     if (readHistory().some(e => e.token === getToken() && e.day === todayKey)) {
       mount.classList.add("has-drawn");
     }
+    updateAppBadge();
+    applyEveningMode(theme.timezone);
     syncFromSheets().catch(() => {});
 
     // Ask about notifications on load, not only after a draw — the draw is
@@ -124,4 +130,21 @@ export async function init() {
   } catch (error) {
     renderError(error);
   }
+}
+
+// Late in the evening the machine winds down: the orbit slows, the sparks
+// dim, and the kicker says good night. Purely cosmetic, re-checked whenever
+// the app comes back to the foreground so a phone left open overnight wakes
+// up in the right mood.
+export function applyEveningMode(timezone) {
+  try {
+    const { h } = hmInTimezone(timezone || "UTC");
+    const evening = h >= 22 || h < 5;
+    mount.classList.toggle("is-evening", evening);
+    const kicker = mount.querySelector("[data-ag-kicker]");
+    if (kicker) {
+      const base = kicker.textContent.replace(/ · Gute Nacht 🌙$/, "");
+      kicker.textContent = evening ? base + " · Gute Nacht 🌙" : base;
+    }
+  } catch (_e) {}
 }

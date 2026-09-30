@@ -19,8 +19,21 @@ const BROKER = "wss://broker.hivemq.com:8884/mqtt";
 const TOPIC = "picolight_lf26/events";
 const FROM_ID = "web_app";
 const NUM_LEDS = 10;
-// TINT_PALETTE index 17 of 30 is pure green (0,220,0).
+// Positions on the firmware's 30-entry TINT_PALETTE (index / 29): 0 golden
+// yellow, 4 pure red, 12 sky blue, 14 cyan, 17 pure green, 25 purple. w is
+// the white level; 1.0 swamps the hue, which is the point for a Foto-Drop.
+// The room reacts to what he drew before he has read it.
 const GREEN_POS = 17 / 29;
+const TONE_LIGHT = {
+  jackpot:  { pos: 0 / 29,  w: 0.0 },
+  special:  { pos: 0 / 29,  w: 0.0 },
+  rare:     { pos: 25 / 29, w: 0.0 },
+  quest:    { pos: 12 / 29, w: 0.0 },
+  cursed:   { pos: 4 / 29,  w: 0.0 },
+  uncommon: { pos: 14 / 29, w: 0.0 },
+  photo:    { pos: GREEN_POS, w: 1.0 },
+  quiet:    { pos: 1 / 29,  w: 0.3 }
+};
 const FLASH_MS = 10000;
 const ECHO_WAIT_MS = 2500;
 const BOARD_IDS = ["board_a", "board_b"];
@@ -48,8 +61,9 @@ function _restorePayload(state) {
   };
 }
 
-export async function flashLightsForPull() {
+export async function flashLightsForPull(tone) {
   if (_busy) return;
+  const light = TONE_LIGHT[tone] || { pos: GREEN_POS, w: 0.0 };
   _busy = true;
   try {
     await _loadMqtt();
@@ -117,7 +131,7 @@ export async function flashLightsForPull() {
           setTimeout(() => {
             if (!Object.keys(captured).length) { finish(); return; }
             flashed = true;
-            publish({ on: true, groups: [{ pos: GREEN_POS, w: 0.0, size: NUM_LEDS }] });
+            publish({ on: true, groups: [{ pos: light.pos, w: light.w, size: NUM_LEDS }] });
             restoreTimer = setTimeout(restore, FLASH_MS);
           }, ECHO_WAIT_MS);
         });

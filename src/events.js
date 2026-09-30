@@ -9,7 +9,9 @@ import { getPreviewDay } from "./utils.js";
 import { syncFromSheets, backupToSheets } from "./sync.js";
 import { NOTIF_KEY } from "./constants.js";
 import { triggerConfetti } from "./confetti.js";
-import { haptic } from "./haptic.js";
+import { haptic, hapticForTone } from "./haptic.js";
+import { updateAppBadge } from "./badge.js";
+import { initMotion } from "./motion.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
@@ -487,6 +489,7 @@ export function reveal() {
     buttonText.textContent = state.theme.brand.buttonShown;
     state.revealed = true;
     if (!getPreviewDay()) recordHistoryEntry(state.todaysPull);
+    updateAppBadge();
     scheduleStreakWarning();
     const streak = computeStreak();
     renderStreak();
@@ -515,13 +518,13 @@ export function reveal() {
     // state. Best-effort and fully async — never blocks or breaks the reveal,
     // and skipped in preview/testing so we don't strobe the real lamps.
     if (!getPreviewDay()) {
-      import("./lightsFx.js").then((m) => m.flashLightsForPull()).catch(() => {});
+      import("./lightsFx.js").then((m) => m.flashLightsForPull(pullCategoryId === "special" ? "special" : pullTone)).catch(() => {});
     }
 
     if (MILESTONE_MESSAGES[streak]) {
       haptic([30, 20, 30, 20, 60]);
     } else {
-      haptic([20, 20, 40]);
+      hapticForTone(pullCategoryId === "special" ? "special" : pullTone);
     }
     if (state.activeTab === "history") renderHistory();
     showNotifPrompt();
@@ -551,6 +554,21 @@ export function bindEvents() {
   $("[data-ag-draw]").addEventListener("click", () => {
     haptic(12);
     reveal();
+  });
+  // Shake to draw — only while today's capsule is still in the machine, so a
+  // bumpy tram ride after the pull cannot re-run the reveal. Tilt feeds the
+  // foil sheen on rare/jackpot cards via two custom properties.
+  initMotion({
+    onShake: () => {
+      if (mount.classList.contains("has-drawn") || mount.classList.contains("is-revealing")) return;
+      if (getPreviewDay()) return;
+      haptic(12);
+      reveal();
+    },
+    onTilt: (x, y) => {
+      mount.style.setProperty("--ag-foil-x", x.toFixed(1) + "%");
+      mount.style.setProperty("--ag-foil-y", y.toFixed(1) + "%");
+    }
   });
   $("#ag-btn-rave")?.addEventListener("click", () => {
     window.open("https://rave-board.vercel.app/", "_blank", "noopener");

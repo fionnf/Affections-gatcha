@@ -1506,6 +1506,48 @@ export const css = `
         filter:drop-shadow(0 1px 3px rgba(0,0,0,.55));
       }
 
+
+      /* ── Evening mode: after 22:00 the machine winds down ── */
+      .ag-widget.is-evening .ag-mach-orbit{animation-duration:70s}
+      .ag-widget.is-evening .ag-mach-glow{animation-duration:9s;opacity:.7}
+      .ag-widget.is-evening .ag-orbit span{opacity:.45}
+      .ag-widget.is-evening .ag-emoji{opacity:.55;animation-duration:calc(var(--ag-emoji-duration,32s) * 2.2)}
+      .ag-widget.is-evening .ag-machine-capsule{animation-duration:9s}
+      .ag-widget.is-evening .ag-hero{filter:saturate(.85) brightness(.92)}
+
+      /* ── Foil: a holographic sheen on Selten and JACKPOT cards ──
+         An overlay that sweeps on its own, and follows the phone's tilt once
+         motion access is granted (.has-tilt swaps the keyframes for the two
+         custom properties motion.js writes). Screen blend keeps the text
+         readable underneath; the card just catches light like a foil card. */
+      .ag-widget[data-tone="rare"] .ag-result,
+      .ag-widget[data-tone="jackpot"] .ag-result{position:relative;overflow:hidden;isolation:isolate}
+      .ag-widget[data-tone="rare"] .ag-result::after,
+      .ag-widget[data-tone="jackpot"] .ag-result::after{
+        content:"";position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;
+        background:
+          linear-gradient(115deg,transparent 32%,rgba(255,255,255,.10) 44%,rgba(255,230,160,.30) 50%,rgba(180,220,255,.16) 56%,transparent 68%);
+        background-size:260% 260%;
+        background-position:var(--ag-foil-x,0%) var(--ag-foil-y,0%);
+        mix-blend-mode:screen;
+        animation:ag-foil-sweep 6s ease-in-out infinite alternate;
+      }
+      .ag-widget[data-tone="jackpot"] .ag-result::after{
+        background:
+          linear-gradient(115deg,transparent 30%,rgba(255,215,130,.16) 42%,rgba(255,240,190,.42) 50%,rgba(255,200,120,.18) 58%,transparent 70%);
+      }
+      .ag-widget.has-tilt[data-tone="rare"] .ag-result::after,
+      .ag-widget.has-tilt[data-tone="jackpot"] .ag-result::after{
+        animation:none;transition:background-position .12s linear;
+      }
+      .ag-widget[data-tone="rare"] .ag-result > *,
+      .ag-widget[data-tone="jackpot"] .ag-result > *{position:relative;z-index:1}
+      @keyframes ag-foil-sweep{from{background-position:0% 0%}to{background-position:100% 100%}}
+      @media (prefers-reduced-motion:reduce){
+        .ag-widget[data-tone="rare"] .ag-result::after,
+        .ag-widget[data-tone="jackpot"] .ag-result::after{animation:none}
+      }
+
       /* ── Install-to-home-screen nudge ── */
       .ag-install-nudge{
         display:flex;align-items:center;justify-content:space-between;gap:12px;
