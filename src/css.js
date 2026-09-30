@@ -2699,7 +2699,7 @@ body{
 .ag-widget .ag-history-reaction{font-size:.95rem;line-height:1}
 
 /* ── Ferien-Schutz ── */
-.ag-widget .ag-ferien{margin:0 0 12px;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
+.ag-widget .ag-ferien{margin:14px 0 0;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
 .ag-widget .ag-ferien-summary{cursor:pointer;list-style:none;font-size:.9rem;color:var(--ag-text)}
 .ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
 .ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}

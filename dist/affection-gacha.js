@@ -2709,7 +2709,7 @@ body{
 .ag-widget .ag-history-reaction{font-size:.95rem;line-height:1}
 
 /* ── Ferien-Schutz ── */
-.ag-widget .ag-ferien{margin:0 0 12px;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
+.ag-widget .ag-ferien{margin:14px 0 0;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
 .ag-widget .ag-ferien-summary{cursor:pointer;list-style:none;font-size:.9rem;color:var(--ag-text)}
 .ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
 .ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}
@@ -3283,10 +3283,6 @@ body{
               </div>
               <p class="ag-tokenbank-head" data-ag-tokenbank-head></p>
               <div class="ag-tokenbank" data-ag-tokenbank></div>
-            </div>
-
-            <div class="ag-card">
-              <div class="ag-history-header">
                 <details class="ag-ferien" data-ag-ferien>
                   <summary class="ag-ferien-summary">🏖️ Ferien-Schutz <span class="ag-ferien-count" data-ag-ferien-count hidden></span></summary>
                   <p class="ag-ferien-note">Tage in den Ferien unterbrechen den Streak nicht. Sie zählen auch nicht mit.</p>
@@ -3298,6 +3294,10 @@ body{
                   </div>
                   <ul class="ag-ferien-list" data-ag-ferien-list></ul>
                 </details>
+            </div>
+
+            <div class="ag-card">
+              <div class="ag-history-header">
                 <p class="ag-history-note" data-ag-history-note></p>
                 <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
               </div>

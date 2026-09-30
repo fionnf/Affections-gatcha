@@ -557,10 +557,6 @@ export const html = `
               </div>
               <p class="ag-tokenbank-head" data-ag-tokenbank-head></p>
               <div class="ag-tokenbank" data-ag-tokenbank></div>
-            </div>
-
-            <div class="ag-card">
-              <div class="ag-history-header">
                 <details class="ag-ferien" data-ag-ferien>
                   <summary class="ag-ferien-summary">🏖️ Ferien-Schutz <span class="ag-ferien-count" data-ag-ferien-count hidden></span></summary>
                   <p class="ag-ferien-note">Tage in den Ferien unterbrechen den Streak nicht. Sie zählen auch nicht mit.</p>
@@ -572,6 +568,10 @@ export const html = `
                   </div>
                   <ul class="ag-ferien-list" data-ag-ferien-list></ul>
                 </details>
+            </div>
+
+            <div class="ag-card">
+              <div class="ag-history-header">
                 <p class="ag-history-note" data-ag-history-note></p>
                 <button class="ag-sync-btn" data-ag-sync-btn type="button" title="Verlauf aus Cloud neu laden">☁</button>
               </div>
