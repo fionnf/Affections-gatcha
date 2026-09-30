@@ -461,12 +461,14 @@ export const html = `
                 <button class="ag-reaction" type="button" data-ag-react="😂" aria-label="Reaktion: lachen">😂</button>
                 <button class="ag-reaction" type="button" data-ag-react="🙃" aria-label="Reaktion: na gut">🙃</button>
               </div>
-              <div class="ag-actions">
-                <button class="ag-secondary" type="button" data-ag-copy>Resultat kopieren</button>
-                <a class="ag-secondary ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
-                <button class="ag-secondary ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
-                <button class="ag-secondary" type="button" data-ag-wallpaper hidden>Als Hintergrund</button>
-                <button class="ag-secondary ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
+              <div class="ag-actions ag-actions-row">
+                <button class="ag-secondary ag-action" type="button" data-ag-copy>Kopieren</button>
+                <a class="ag-secondary ag-action ag-action-send ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
+                <button class="ag-secondary ag-action ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
+              </div>
+              <div class="ag-actions ag-actions-extra" data-ag-actions-extra hidden>
+                <button class="ag-secondary ag-action ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>
+                <button class="ag-secondary ag-action" type="button" data-ag-wallpaper hidden>Als Hintergrund</button>
               </div>
               <div class="ag-memory" data-ag-memory hidden>
                 <span class="ag-memory-label" data-ag-memory-label></span>
@@ -557,8 +559,12 @@ export const html = `
               </div>
               <p class="ag-tokenbank-head" data-ag-tokenbank-head></p>
               <div class="ag-tokenbank" data-ag-tokenbank></div>
-                <details class="ag-ferien" data-ag-ferien>
-                  <summary class="ag-ferien-summary">🏖️ Ferien-Schutz <span class="ag-ferien-count" data-ag-ferien-count hidden></span></summary>
+                <div class="ag-ferien" data-ag-ferien>
+                <div class="ag-ferien-head">
+                  <button class="ag-ferien-toggle" type="button" data-ag-ferien-toggle aria-expanded="false" aria-label="Ferien-Schutz öffnen">🏖️</button>
+                  <span class="ag-ferien-title">Ferien-Schutz <span class="ag-ferien-count" data-ag-ferien-count hidden></span></span>
+                </div>
+                <div class="ag-ferien-body" data-ag-ferien-body hidden>
                   <p class="ag-ferien-note">Tage in den Ferien unterbrechen den Streak nicht. Sie zählen auch nicht mit.</p>
                   <div class="ag-ferien-form">
                     <input class="ag-ferien-input" type="date" data-ag-ferien-from aria-label="Von">
@@ -567,7 +573,8 @@ export const html = `
                     <button class="ag-secondary ag-ferien-add" type="button" data-ag-ferien-add>Eintragen</button>
                   </div>
                   <ul class="ag-ferien-list" data-ag-ferien-list></ul>
-                </details>
+                </div>
+              </div>
             </div>
 
             <div class="ag-card">

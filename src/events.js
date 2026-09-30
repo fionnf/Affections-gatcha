@@ -12,6 +12,7 @@ import { triggerConfetti } from "./confetti.js";
 import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
+import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
@@ -523,9 +524,15 @@ export function reveal() {
   }
   rafId = requestAnimationFrame(rampEmojis);
 
+  // The machine shakes for the last stretch of the fall.
+  const toneForFx = state.todaysPull?.category?.id === "special" ? "special" : state.todaysPull?.category?.tone;
+  window.setTimeout(() => startRumble(toneForFx), Math.max(0, revealDuration - 900));
+
   window.setTimeout(() => {
     window.clearInterval(stepTimer);
     cancelAnimationFrame(rafId);
+    stopRumble();
+    playRevealSpectacle(toneForFx);
     emojiSpans.forEach((span, i) => {
       span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
     });
@@ -896,6 +903,18 @@ export function bindEvents() {
     haptic(8);
     downloadWallpaper(state.todaysPull);
   });
+
+  // Ferien-Schutz opens from its icon only — the label is a label.
+  const ferienToggle = $("[data-ag-ferien-toggle]");
+  const ferienBody = $("[data-ag-ferien-body]");
+  if (ferienToggle && ferienBody) {
+    ferienToggle.addEventListener("click", () => {
+      const open = ferienBody.hidden;
+      ferienBody.hidden = !open;
+      ferienToggle.setAttribute("aria-expanded", String(open));
+      haptic(6);
+    });
+  }
 
   // Ferien-Schutz: declare a holiday window in Verlauf.
   $("[data-ag-ferien-add]")?.addEventListener("click", () => {

@@ -1096,6 +1096,8 @@ export function renderPull(pull) {
   if (wallpaperBtn) {
     wallpaperBtn.hidden = !(pull.photo && pull.photo.type !== "video" && pull.photo.url);
   }
+  const extraRow = $("[data-ag-actions-extra]");
+  if (extraRow) extraRow.hidden = !(saveImgBtn && !saveImgBtn.hidden) && !(wallpaperBtn && !wallpaperBtn.hidden);
 
   // Reactions: one tap, costs nothing, and gives Fionn a daily signal. The
   // chosen emoji is read back from the day's record so it survives reloads;

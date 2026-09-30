@@ -2725,6 +2725,106 @@ body{
   box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 56px rgba(255,236,170,.75);
 }
 .ag-widget.is-charging .ag-mach-glow{animation-duration:.6s}
+
+/* ── Draw button: aurora glass ──
+   A blurred conic halo behind the pill cycles its hue, a sheen sweeps over
+   the face, the orb breathes. Pressed, it sinks. */
+@keyframes ag-hue{to{filter:blur(10px) hue-rotate(360deg)}}
+@keyframes ag-sheen{0%{background-position:200% 0}100%{background-position:-60% 0}}
+.ag-widget .ag-button{
+  position:relative;isolation:isolate;overflow:visible;
+  background:linear-gradient(135deg,#a9e3b5 0%,#5fb27a 45%,#2f7a4f 100%);
+  color:#07130b;letter-spacing:.01em;
+  border:1px solid rgba(255,255,255,.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -2px 0 rgba(0,0,0,.18),0 10px 28px rgba(47,122,79,.42);
+  transition:transform 160ms var(--ag-ease),box-shadow 220ms var(--ag-ease);
+}
+.ag-widget .ag-button::before{
+  content:"";position:absolute;inset:-3px;border-radius:inherit;z-index:-1;
+  background:conic-gradient(from 0deg,#8fcf9e,#e0a75d,#8ab8cf,#c9a7ff,#8fcf9e);
+  filter:blur(10px) hue-rotate(0deg);opacity:.8;
+  animation:ag-hue 5s linear infinite;
+}
+.ag-widget .ag-button::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.55) 50%,transparent 58%);
+  background-size:260% 100%;
+  animation:ag-sheen 3.4s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+.ag-widget .ag-button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.18),0 16px 36px rgba(47,122,79,.5)}
+.ag-widget .ag-button:active{transform:translateY(1px) scale(.97);box-shadow:inset 0 2px 6px rgba(0,0,0,.28),0 6px 18px rgba(47,122,79,.35)}
+.ag-widget .ag-button[disabled]::before{animation-duration:1.2s;opacity:1}
+.ag-widget .ag-button-orb{width:16px;height:16px;box-shadow:0 0 14px rgba(255,236,170,.9),0 0 4px #fff;animation:ag-pulse 2.6s ease-in-out infinite}
+.ag-widget.has-drawn .ag-button::before{opacity:.35;animation-duration:12s}
+
+/* ── Reveal spectacle ── */
+@keyframes ag-rumble{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  20%{transform:translate(-2px,1px) rotate(-.3deg)}
+  40%{transform:translate(2px,-1px) rotate(.3deg)}
+  60%{transform:translate(-1px,-2px) rotate(-.2deg)}
+  80%{transform:translate(1px,2px) rotate(.2deg)}
+}
+.ag-widget.is-rumbling .ag-stage{animation:ag-rumble 90ms linear infinite}
+.ag-widget.is-rumbling-hard .ag-stage{animation:ag-rumble 60ms linear infinite;transform-origin:50% 60%}
+.ag-widget.is-rumbling .ag-machine-capsule{animation:ag-shake 260ms var(--ag-ease) infinite}
+@keyframes ag-flash-in{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+.ag-flash{
+  position:fixed;inset:0;z-index:2000;pointer-events:none;
+  background:radial-gradient(circle at 50% 38%,var(--ag-flash-color),transparent 72%);
+  mix-blend-mode:screen;opacity:0;
+  animation:ag-flash-in 760ms ease-out both;
+}
+.ag-widget.is-shutter .ag-stage{animation:ag-shutter 520ms ease-out}
+@keyframes ag-shutter{0%{filter:brightness(1)}12%{filter:brightness(3.2) contrast(.6)}100%{filter:brightness(1)}}
+@keyframes ag-shockwave{
+  0%{transform:translate(-50%,-50%) scale(.2);opacity:.95;border-width:6px}
+  100%{transform:translate(-50%,-50%) scale(3.6);opacity:0;border-width:1px}
+}
+.ag-shockwave{
+  position:absolute;left:50%;top:46%;width:60px;height:60px;border-radius:999px;
+  border:6px solid rgba(255,236,170,.85);
+  box-shadow:0 0 24px rgba(255,236,170,.6),inset 0 0 18px rgba(255,236,170,.4);
+  pointer-events:none;z-index:5;
+  animation:ag-shockwave 1100ms cubic-bezier(.16,.84,.3,1) both;
+}
+/* The card lands: drops in from above with a little tilt and a settle. */
+@keyframes ag-card-land{
+  0%{opacity:0;transform:perspective(900px) translateY(-26px) rotateX(-16deg) scale(.94);filter:blur(6px)}
+  60%{opacity:1;transform:perspective(900px) translateY(6px) rotateX(2deg) scale(1.01);filter:blur(0)}
+  100%{transform:perspective(900px) translateY(0) rotateX(0) scale(1)}
+}
+.ag-widget.is-revealed .ag-result{animation:ag-card-land 760ms cubic-bezier(.2,.9,.25,1.05) both}
+.ag-widget.is-revealed[data-tone=jackpot] .ag-result,
+.ag-widget.is-revealed[data-tone=special] .ag-result{animation:ag-card-land 760ms cubic-bezier(.2,.9,.25,1.05) both,ag-tone-pulse 3.2s ease-in-out .8s infinite}
+@media (prefers-reduced-motion:reduce){
+  .ag-widget .ag-button::before,.ag-widget .ag-button::after,.ag-widget .ag-button-orb{animation:none}
+  .ag-widget.is-rumbling .ag-stage,.ag-widget.is-rumbling .ag-machine-capsule{animation:none}
+  .ag-shockwave{display:none}
+  .ag-widget.is-revealed .ag-result{animation:none}
+}
+
+/* ── Actions: one row — Kopieren · An Fionn schicken · ☆ ── */
+.ag-widget .ag-actions-row{display:flex;flex-wrap:nowrap;gap:8px;margin-top:14px}
+.ag-widget .ag-action{min-height:38px;padding:0 12px;font-size:.82rem;letter-spacing:0;white-space:nowrap}
+.ag-widget .ag-actions-row .ag-action{flex:1 1 0;min-width:0;justify-content:center}
+.ag-widget .ag-actions-row .ag-action-send{flex:1.35 1 0}
+.ag-widget .ag-actions-row .ag-star{flex:0 0 40px;width:40px;padding:0;font-size:1rem}
+.ag-widget .ag-actions-extra{margin-top:8px;gap:8px}
+.ag-widget .ag-actions-extra .ag-action{flex:1 1 0;min-width:0;justify-content:center}
+
+/* ── Ferien-Schutz: the icon is the switch ── */
+.ag-widget .ag-ferien-head{display:flex;align-items:center;gap:10px}
+.ag-widget .ag-ferien-toggle{
+  width:36px;height:36px;border-radius:999px;font-size:1.1rem;line-height:1;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);transition:transform 140ms var(--ag-ease),background 140ms;
+}
+.ag-widget .ag-ferien-toggle:active{transform:scale(.92)}
+.ag-widget .ag-ferien-toggle[aria-expanded="true"]{background:rgba(143,207,158,.2);border-color:rgba(143,207,158,.45)}
+.ag-widget .ag-ferien-title{font-size:.9rem;color:var(--ag-text)}
+.ag-widget .ag-ferien-body{margin-top:10px}
     `;
 
 export function injectStyles() {
