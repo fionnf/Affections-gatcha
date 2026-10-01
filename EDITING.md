@@ -14,6 +14,7 @@ Useful fields:
 
 - `brand.displayNameDefault`: default name, currently `Lennart`
 - `brand.titleTemplate`: page title, currently `{name}s Affektions-Gacha`
+- `dayStartHour`: the hour the machine's day begins, currently `4` — a capsule pulled at 01:00 still counts for the evening before, and the new one arrives at 04:00 (streak, history and the new-day reload all follow it)
 - `revealDelayMs`: how long the machine works before revealing
 - `loadingSteps`: the little progress messages
 - `colors.primary`, `colors.green`, etc.

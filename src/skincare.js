@@ -10,13 +10,17 @@
 import { state } from "./state.js";
 import { escapeHtml } from "./utils.js";
 import { haptic } from "./haptic.js";
+import { dateKeyInTimezone } from "./utils.js";
 
 const DAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
+// The routine follows the machine's day: a retinoid night at 01:00 is still
+// the evening of the weekday it started on.
 export function todayShort(timezone) {
   try {
-    const name = new Intl.DateTimeFormat("en-CH", { weekday: "short", timeZone: timezone || "UTC" })
-      .format(new Date());
+    const [y, m, d] = dateKeyInTimezone(timezone || "UTC").split("-").map(Number);
+    const name = new Intl.DateTimeFormat("en-CH", { weekday: "short", timeZone: "UTC" })
+      .format(new Date(Date.UTC(y, m - 1, d, 12)));
     return DAYS[["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(name)] || null;
   } catch (_e) { return null; }
 }

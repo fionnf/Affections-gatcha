@@ -79,10 +79,13 @@ manifest.json  manifest-fionn.json   PWA manifests
 The result is computed deterministically from:
 
 - `machine.secret` in `config/theme.json`
-- Today's date in `Europe/Zurich`
+- Today's date in `Europe/Zurich` — where the day begins at **04:00**
+  (`dayStartHour` in `theme.json`), so a capsule pulled at 01:00 belongs to
+  the evening before and the new one arrives at four
 - The player token (`lennart` or `fionn`)
 
-Same day → same result. Refreshing never re-rolls. Tomorrow gets a new pull automatically.
+Same day → same result. Refreshing never re-rolls. The next pull arrives at
+04:00 automatically; an app left open reloads itself when the day turns.
 
 > **Fionn's gacha lives on its own page**, not on Lennart's URL. `index.html`
 > ignores `?player=fionn` (see `FIONN_GACHA_READY` there), so the link everyone

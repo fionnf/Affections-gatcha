@@ -460,7 +460,15 @@ export async function downloadWallpaper(pull) {
   }
   const file = new File([blob], `gacha-hintergrund-${pull.day}.jpg`, { type: "image/jpeg" });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: caption }); return; } catch (_e) { /* dismissed */ return; }
+    try {
+      await navigator.share({ files: [file], title: caption });
+      return;
+    } catch (err) {
+      // AbortError is the user closing the sheet — done. Anything else
+      // (typically NotAllowedError: the tap's activation expired while the
+      // photo was loading) falls through to a plain download.
+      if (err && err.name === "AbortError") return;
+    }
   }
   const link = document.createElement("a");
   link.download = file.name;
@@ -959,6 +967,9 @@ export function bindEvents() {
       if (fire) reveal();
     };
     capsule.addEventListener("pointerup", release);
+    capsule.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && drawable()) { e.preventDefault(); haptic(12); reveal(); }
+    });
     capsule.addEventListener("pointercancel", () => { stop(); armed = false; });
     capsule.addEventListener("pointerleave", () => { stop(); armed = false; });
   }

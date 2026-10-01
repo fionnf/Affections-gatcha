@@ -1,12 +1,24 @@
 // ── Pure utility functions — no DOM, no state mutations ─────────────────────
 
+// The machine's day does not start at midnight. A capsule pulled at 01:00
+// belongs to the evening it was pulled in, and the new one arrives at
+// dayStartHour (theme.json, 4 = 04:00). Every day key in the app — pull
+// seed, history, streak, badge, the new-day reload — comes through here,
+// so the shift lives here and nowhere else. Set once from init.
+let _dayStartHour = 0;
+export function setDayStartHour(h) {
+  _dayStartHour = Number.isInteger(h) && h >= 0 && h < 24 ? h : 0;
+}
+export function dayStartHour() { return _dayStartHour; }
+
 export function dateKeyInTimezone(timezone, date) {
+  const instant = (date || new Date()).getTime() - _dayStartHour * 3600000;
   const parts = new Intl.DateTimeFormat("de-CH", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
-  }).formatToParts(date || new Date());
+  }).formatToParts(new Date(instant));
   const get = (type) => parts.find((part) => part.type === type).value;
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
