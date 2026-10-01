@@ -124,15 +124,10 @@ export function extractDriveFileId(url) {
   return m ? (m[1] || m[2]) : null;
 }
 
+// One player. The token still travels on every history row, backup payload
+// and sheet column (that is how the data is keyed), it just never changes.
 export function getToken() {
-  return getMissionPlayer() === "fionn" ? "fionn" : "lennart";
-}
-
-export function getMissionPlayer() {
-  try {
-    const p = new URLSearchParams(window.location.search).get("player");
-    return p === "fionn" ? "fionn" : "lennart";
-  } catch (_) { return "lennart"; }
+  return "lennart";
 }
 
 export function getPreviewDay() {

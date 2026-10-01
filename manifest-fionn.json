@@ -1,14 +1,14 @@
 {
   "id": "/fionn",
-  "name": "Affektions-Gacha · Fionn",
-  "short_name": "Gacha · Fionn",
-  "description": "Fionns tägliche Gacha-Maschine.",
+  "name": "Eingänge · Fionn",
+  "short_name": "Eingänge",
+  "description": "Was Lennart aus der Gacha-Maschine zurückschickt.",
   "start_url": "./fionn-gacha.html",
   "scope": "./",
   "display": "standalone",
   "lang": "de",
   "background_color": "#11181a",
-  "theme_color": "#1a3a2c",
+  "theme_color": "#11181a",
   "icons": [
     {
       "src": "./media/icon-192.png",

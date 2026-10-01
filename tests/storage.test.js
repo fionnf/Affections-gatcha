@@ -30,32 +30,25 @@ test("legacy flat token value migrates into the acting player's slot", () => {
   assert.deepEqual(stored, { lennart: { "🌿": 3 } }, "flat value must be replaced by the nested shape");
 });
 
-test("players' Sammelkapsel counts stay isolated in shared localStorage", () => {
+test("the player slot is always lennart, whatever the URL says", () => {
   addToken("🌿");
   addToken("🌿");
   env.setSearch("?player=fionn");
-  assert.deepEqual(readTokens(), {}, "fionn must not see lennart's tokens");
+  assert.deepEqual(readTokens(), { "🌿": 2 }, "no second slot exists any more");
   addToken("🏔");
   env.setSearch("?player=lennart");
-  assert.deepEqual(readTokens(), { "🌿": 2 }, "lennart's slot untouched by fionn's write");
-  env.setSearch("?player=fionn");
-  assert.deepEqual(readTokens(), { "🏔": 1 });
+  assert.deepEqual(readTokens(), { "🌿": 2, "🏔": 1 });
 });
 
-test("quest points, wish and streak cache are per-player too", () => {
+test("quest points, wish and streak cache live in the same slot", () => {
   addQuestPoints(50);
   writeWish({ day: "2026-08-01", text: "wish-l" });
   writeStreakCache(7);
-
   env.setSearch("?player=fionn");
-  assert.equal(readQuestPoints(), 0);
-  assert.equal(readWish(), null);
-  assert.equal(readStreakCache(), 0);
-
-  env.setSearch("?player=lennart");
   assert.equal(readQuestPoints(), 50);
   assert.equal(readWish()?.text, "wish-l");
   assert.equal(readStreakCache(), 7);
+  env.setSearch("?player=lennart");
 });
 
 test("Freikarte spend is refused at zero and never goes negative", () => {
@@ -68,12 +61,10 @@ test("Freikarte spend is refused at zero and never goes negative", () => {
   assert.equal(freikarteCount("lennart"), 0);
 });
 
-test("writeTokens for one player preserves the other's existing slot", () => {
+test("writeTokens keeps the nested per-token shape the sheet and old builds expect", () => {
   writeTokens({ "🌿": 4 });
-  env.setSearch("?player=fionn");
-  writeTokens({ "💚": 1 });
   const raw = JSON.parse(env.localStorage.getItem(TOKENS_KEY));
-  assert.deepEqual(raw, { lennart: { "🌿": 4 }, fionn: { "💚": 1 } });
+  assert.deepEqual(raw, { lennart: { "🌿": 4 } });
 });
 
 // ── Token sync ───────────────────────────────────────────────────────────────
@@ -125,17 +116,18 @@ test("first sync after upgrading seeds the base instead of double-counting", () 
   assert.deepEqual(readTokensSent(), { "🌿": 3 }, "base is seeded for later syncs");
 });
 
-test("token counts stay per player through a merge", () => {
+test("a stale fionn slot left in storage is ignored by the merge", () => {
   writeTokens({ "🌿": 2 });
   writeTokensSent({ "🌿": 2 });
-  env.setSearch("?player=fionn");
-  writeTokens({ "💚": 1 });
-  writeTokensSent({ "💚": 1 });
+  // An older build may have left a second slot behind; it is dead weight now
+  // and must neither leak into the bank nor be touched by a merge.
+  const raw = JSON.parse(env.localStorage.getItem(TOKENS_KEY));
+  raw.fionn = { "💚": 1 };
+  env.localStorage.setItem(TOKENS_KEY, JSON.stringify(raw));
   addToken("💚");
-  applySharedTokens({ "💚": 1 });
-  assert.deepEqual(readTokens(), { "💚": 2 });
-  env.setSearch("?player=lennart");
-  assert.deepEqual(readTokens(), { "🌿": 2 }, "Lennart's bank is untouched by Fionn's merge");
+  applySharedTokens({ "🌿": 2, "💚": 1 });
+  assert.deepEqual(readTokens(), { "🌿": 2, "💚": 2 });
+  assert.deepEqual(JSON.parse(env.localStorage.getItem(TOKENS_KEY)).fionn, { "💚": 1 });
 });
 
 test("junk from the sheet never yields a negative or non-numeric balance", () => {

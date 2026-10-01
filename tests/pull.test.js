@@ -29,17 +29,16 @@ test("same day + token + secret always produces the same pull", () => {
   }
 });
 
-test("players get independent pulls from the same day", () => {
+test("one player: ?player= in the URL changes nothing", () => {
   const day = "2026-08-05";
-  const lennart = buildPullForDay(day, 0);
+  const plain = buildPullForDay(day, 0);
   env.setSearch("?player=fionn");
-  const fionnA = buildPullForDay(day, 0);
-  const fionnB = buildPullForDay(day, 0);
-  // Fionn's pull is deterministic too, seeded by his own token — it must not
-  // depend on (or equal, by construction rather than chance) Lennart's seed.
-  assert.equal(fionnA.outcome.title, fionnB.outcome.title);
-  assert.equal(lennart.token, "lennart");
-  assert.equal(fionnA.token, "fionn");
+  const other = buildPullForDay(day, 0);
+  // The second player's door is gone; the token is a constant and so is the
+  // seed, whatever the query string says.
+  assert.equal(other.token, "lennart");
+  assert.equal(other.outcome.title, plain.outcome.title);
+  env.setSearch("?player=lennart");
 });
 
 test("anti-repeat: a category never repeats a title before exhausting the pool", () => {
@@ -139,9 +138,14 @@ test("a special day can be addressed to one player", () => {
       outcomes: [{ title: "S1", message: "s1" }] },
   ]};
   assert.equal(buildPullForDay("2026-08-12", 0).category.id, "special");
-  env.setSearch("?player=fionn");
+  // An entry scoped to any other token never fires — the field is kept as an
+  // optional scope, and the only token there is now is "lennart".
+  state.specialDays = { days: [
+    { date: "2026-08-12", label: "Nicht für Lennart", tone: "jackpot", player: "fionn",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
   assert.notEqual(buildPullForDay("2026-08-12", 0).category.id, "special",
-    "an entry addressed to Lennart must not fire in Fionn's app");
+    "an entry addressed to another token must not fire");
 
   // No "player" key means both, which is what every pre-existing entry relies on.
   state.specialDays = { days: [

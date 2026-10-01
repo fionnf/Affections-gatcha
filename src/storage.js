@@ -2,7 +2,7 @@
 import {
   STORAGE_KEY, FAVORITES_KEY, TOKENS_KEY, TOKENS_SENT_KEY, STREAK_CACHE_KEY, STREAK_SYNCED_KEY,
   STREAK_RESTORE_KEY, WISH_KEY, MILESTONE_KEY,
-  BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY, MISSION_LOG_KEY,
+  BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY,
   GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY,
   FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken
 } from "./constants.js";
@@ -350,18 +350,6 @@ export function readGipfelbuch() {
 
 export function writeGipfelbuch(entries) {
   try { window.localStorage.setItem(GIPFELBUCH_KEY, JSON.stringify(entries)); } catch (_) {}
-}
-
-export function readMissionLog() {
-  try {
-    const raw = localStorage.getItem(MISSION_LOG_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) { return []; }
-}
-
-export function writeMissionLog(entries) {
-  try { localStorage.setItem(MISSION_LOG_KEY, JSON.stringify(entries)); } catch (_) {}
 }
 
 export function readBaerlauchScores() {

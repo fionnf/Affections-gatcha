@@ -177,10 +177,9 @@ self.addEventListener("fetch", (event) => {
         const cached = await caches.match(req, { ignoreSearch: url.pathname.endsWith(".js") || req.mode === "navigate" });
         if (cached) return cached;
         // Navigations fall back to a cached entry page so a cold offline open
-        // still boots instead of showing the browser error page — but only to
-        // THIS player's page. index.html forces ?player=lennart, so using it
-        // as a blanket fallback would quietly hand Fionn Lennart's pull,
-        // history and name whenever his own page wasn't cached yet.
+        // still boots instead of showing the browser error page — and only to
+        // the page that was asked for: fionn-gacha.html is the Eingänge, not
+        // the gacha, so neither may stand in for the other.
         if (req.mode === "navigate") {
           const shell = shellFor(url.pathname);
           if (shell) {

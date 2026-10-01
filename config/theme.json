@@ -12,10 +12,6 @@
     "rulesText": "Refreshing bringt nichts: Für denselben Tag kommt immer dieselbe Kapsel. Morgen würfelt die Maschine neu."
   },
   "secret": "lennart-fionn-gruene-souvenir-gacha-maschine-2026",
-  "features": {
-    "_comment": "werkstatt: the authoring side, where Lennart writes capsules for Fionn to pull. Off while it is going unused — flip to true to bring the entry card and panel back. Capsules already written stay in the sheet and are not deleted.",
-    "werkstatt": false
-  },
   "timezone": "Europe/Zurich",
   "dayStartHour": 4,
   "tokenParam": "token",

@@ -13,7 +13,6 @@ import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from ".
 import { restoreStimmung } from "./stimmung.js";
 import { updateAppBadge } from "./badge.js";
 import { hmInTimezone, setDayStartHour } from "./utils.js";
-import { readWerkstatt } from "./werkstatt.js";
 import { initInstallPrompt } from "./installPrompt.js";
 
 const defaultPhotos = { photos: [] };
@@ -36,7 +35,7 @@ export async function init() {
   injectStyles();
   renderShell();
   try {
-    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, missions, push, skincare] = await Promise.all([
+    const [theme, outcomes, photos, specialDays, wishInbox, backup, quest, push, skincare] = await Promise.all([
       fetchJson("config/theme.json"),
       fetchJson("config/outcomes.json"),
       fetchJson("config/photos.json", defaultPhotos),
@@ -44,7 +43,6 @@ export async function init() {
       fetchJson("config/wish-inbox.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/quest.json", { enabled: false }),
-      fetchJson("config/missions.json", { pairs: [] }),
       fetchJson("config/push.json", { enabled: false }),
       fetchJson("config/skincare.json", null)
     ]);
@@ -56,15 +54,10 @@ export async function init() {
     state.wishInbox = wishInbox && typeof wishInbox === "object" ? wishInbox : { enabled: false, endpointUrl: "" };
     state.backup = backup && typeof backup === "object" ? backup : { enabled: false, endpointUrl: "" };
     state.quest = quest && typeof quest === "object" ? quest : { enabled: false };
-    state.missions = missions && Array.isArray(missions.pairs) ? missions : { pairs: [] };
     state.push = push && typeof push === "object" ? push : { enabled: false };
     // null when the file is absent — renderChips hides the chip rather than
     // offering one that opens an empty panel.
     state.skincare = skincare && typeof skincare === "object" ? skincare : null;
-    // Seed the Werkstatt from cache before anything can draw, so a capsule
-    // written yesterday is in play offline and on the very first paint —
-    // syncFromSheets() refreshes it a moment later.
-    state.werkstatt = readWerkstatt();
     applyTheme(theme);
     applySpecialDayColors(getPreviewDay() || dateKeyInTimezone(theme.timezone));
     restoreStimmung();

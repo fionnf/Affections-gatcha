@@ -6,10 +6,8 @@ export const state = {
   photos: null,
   specialDays: null,
   quest: null,
-  missions: null,
   push: null,
   skincare: null,        // config/skincare.json, or null when absent
-  werkstatt: [],         // capsules written by one player for the other
   todaysPull: null,
   activeTab: "today",
   revealed: false,

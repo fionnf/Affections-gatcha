@@ -13,16 +13,15 @@
  *   "Backup"         — one row per token, stores metadata (streak, favourites, tokens, questPoints)
  *   "History"        — one row per history entry, never fully overwritten
  *   "Quests"         — one row per solved quest
- *   "MissionFeedback"— one row per feedback submission (append-only)
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
  *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
  *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
  *   "PromptAnswers"  — one row per prompt answer (append-only); triggers email to Fionn
- *   "Werkstatt"      — one row per hand-written capsule, upsert by id. Lennart
- *                      writes these for Fionn; ForToken says whose pool they
- *                      belong to. Answer/AnsweredAt hold the reply to a
- *                      capsule's Prompt, so it reaches whoever asked.
+ *
+ * Retired sheets (left in place, no longer read or written): "MissionLog",
+ * "MissionFeedback" and "Werkstatt" belonged to the two-player half of the
+ * app, which was removed.
  *
  * Google Drive folder: "Glossar-Audio" — audio recordings for glossary words
  */
@@ -104,19 +103,6 @@ function doGet(e) {
       if (scoreValues[i][0]) baerlauchScores[scoreValues[i][0]] = scoreValues[i][1] || 0;
     }
 
-    // Read mission log (all players, last 60 entries)
-    const missionLogSheet = getOrCreateMissionLogSheet_(ss);
-    const missionLogValues = missionLogSheet.getDataRange().getValues();
-    const missionLog = [];
-    for (let i = Math.max(1, missionLogValues.length - 60); i < missionLogValues.length; i++) {
-      const row = missionLogValues[i];
-      if (!row[0]) continue;
-      const entry = { day: normDay(row[0]), player: row[1] || "", mission: row[2] || "", doneAt: row[3] || null };
-      if (row[4]) entry.rating = row[4];
-      if (row[5]) entry.comment = row[5];
-      missionLog.push(entry);
-    }
-
     const latestPing = PropertiesService.getScriptProperties().getProperty("latestPing") || null;
 
     // Read Gipfelbuch entries (all players share one log)
@@ -159,31 +145,6 @@ function doGet(e) {
         audioUrl:  row[4] || null,
         createdBy: row[5] || "",
         createdAt: row[6] || ""
-      });
-    }
-
-    // Kapsel-Werkstatt: capsules one player hand-wrote for the other. Shared
-    // with both sides — the author lists and edits them, the recipient draws
-    // from them (see poolForCategory in src/pull.js).
-    const werkSheet = getOrCreateWerkstattSheet_(ss);
-    const werkValues = werkSheet.getDataRange().getValues();
-    const werkstatt = [];
-    for (let i = 1; i < werkValues.length; i++) {
-      const row = werkValues[i];
-      if (!row[0]) continue;
-      werkstatt.push({
-        id:         row[0],
-        categoryId: row[1] || "",
-        forToken:   row[2] || "fionn",
-        title:      row[3] || "",
-        message:    row[4] || "",
-        link:       row[5] || null,
-        voucher:    row[6] === true || String(row[6]).toLowerCase() === "true",
-        createdBy:  row[7] || "",
-        createdAt:  row[8] || "",
-        prompt:     row[9] || null,
-        answer:     row[10] || null,
-        answeredAt: row[11] || null
       });
     }
 
@@ -292,7 +253,7 @@ function doGet(e) {
       }
 
       const due = [];
-      ["lennart", "fionn"].forEach(function (who) {
+      ["lennart"].forEach(function (who) {
         if (pulledToday[who]) return;
         // One nudge per player, per kind, per day — a retry or a double cron
         // must not send twice.
@@ -372,12 +333,10 @@ function doGet(e) {
       questPoints:   meta ? meta.questPoints : 0,
       lastUpdated:   meta ? meta.lastUpdated : null,
       baerlauchScores,
-      missionLog,
       latestPing,
       gipfelbuch,
       glossary,
       stimmung,
-      werkstatt,
       activity,
     });
   } catch (err) {
@@ -448,39 +407,6 @@ function doPost(e) {
           body: "Frage: " + (data.prompt || "") + "\n\nAntwort:\n" + (data.answer || "") + "\n\n" + tsLocal
         });
       } catch (_mailErr) { /* answer safe in sheet */ }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Mission log entry ─────────────────────────────────────────────────────
-    if (data.type === "mission-log") {
-      const sheet = getOrCreateMissionLogSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      const dayStr = (data.day || "").slice(0, 10);
-      const player = data.player || "";
-      let rowIdx = -1;
-      for (let i = 1; i < values.length; i++) {
-        const d = values[i][0] instanceof Date
-          ? Utilities.formatDate(values[i][0], "UTC", "yyyy-MM-dd")
-          : String(values[i][0]).slice(0, 10);
-        if (d === dayStr && values[i][1] === player) { rowIdx = i + 1; break; }
-      }
-      const row = [dayStr, player, data.mission || "", data.doneAt || "", data.rating || "", data.comment || ""];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Mission feedback ──────────────────────────────────────────────────────
-    if (data.type === "mission-feedback") {
-      const sheet = getOrCreateMissionFeedbackSheet_(ss);
-      sheet.appendRow([
-        new Date().toISOString(),
-        data.player || "",
-        data.day    || "",
-        data.rating || "",
-        data.comment || "",
-        (data.mission || "").slice(0, 500)
-      ]);
       return jsonOut_({ ok: true });
     }
 
@@ -573,58 +499,6 @@ function doPost(e) {
     // ── Gipfelbuch delete ─────────────────────────────────────────────────────
     if (data.type === "gipfel-delete") {
       const sheet = getOrCreateGipfelbuchSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      for (let i = values.length - 1; i >= 1; i--) {
-        if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
-      }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Kapsel-Werkstatt upsert ───────────────────────────────────────────────
-    // One row per hand-written capsule. ForToken says whose pool it belongs
-    // to, so the same sheet serves either direction.
-    if (data.type === "werkstatt-upsert") {
-      const sheet = getOrCreateWerkstattSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      const id = data.id || "";
-      if (!id) return jsonOut_({ ok: false, error: "missing id" });
-      let rowIdx = -1;
-      for (let i = 1; i < values.length; i++) {
-        if (values[i][0] === id) { rowIdx = i + 1; break; }
-      }
-      // The answer belongs to the capsule, not to this edit — carry the
-      // existing one over so rewording a question doesn't erase the reply.
-      const prev = rowIdx === -1 ? [] : values[rowIdx - 1];
-      // Take the answer from the payload when it carries one — a client
-      // re-sending an unconfirmed capsule is how a lost answer gets back in —
-      // and otherwise keep whatever the row already holds, so an ordinary
-      // edit can't blank a reply.
-      const ans   = (data.answer === undefined || data.answer === null) ? (prev[10] || "") : data.answer;
-      const ansAt = (data.answeredAt === undefined || data.answeredAt === null) ? (prev[11] || "") : data.answeredAt;
-      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString(), data.prompt || "", ans, ansAt];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
-      return jsonOut_({ ok: true });
-    }
-
-    // The recipient answered a question capsule. Filed on the capsule itself
-    // so the author sees it in the Werkstatt — the generic prompt-answer
-    // path only ever emails Fionn, which is the wrong direction when Lennart
-    // asked the question.
-    if (data.type === "werkstatt-answer" && data.id) {
-      const sheet = getOrCreateWerkstattSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      for (let i = 1; i < values.length; i++) {
-        if (values[i][0] === data.id) {
-          sheet.getRange(i + 1, 11, 1, 2).setValues([[data.answer || "", data.answeredAt || new Date().toISOString()]]);
-          break;
-        }
-      }
-      return jsonOut_({ ok: true });
-    }
-
-    if (data.type === "werkstatt-delete") {
-      const sheet = getOrCreateWerkstattSheet_(ss);
       const values = sheet.getDataRange().getValues();
       for (let i = values.length - 1; i >= 1; i--) {
         if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
@@ -860,28 +734,6 @@ function getOrCreateQuestSheet_(ss) {
   return sheet;
 }
 
-function getOrCreateMissionLogSheet_(ss) {
-  let sheet = ss.getSheetByName("MissionLog");
-  if (!sheet) {
-    sheet = ss.insertSheet("MissionLog");
-    sheet.appendRow(["Day", "Player", "Mission", "DoneAt", "Rating", "Comment"]);
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(3, 500);
-  }
-  return sheet;
-}
-
-function getOrCreateMissionFeedbackSheet_(ss) {
-  let sheet = ss.getSheetByName("MissionFeedback");
-  if (!sheet) {
-    sheet = ss.insertSheet("MissionFeedback");
-    sheet.appendRow(["Timestamp", "Player", "Day", "Rating", "Comment", "Mission"]);
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(6, 400);
-  }
-  return sheet;
-}
-
 function getOrCreateBaerlauchScoresSheet_(ss) {
   let sheet = ss.getSheetByName("BaerlauchScores");
   if (!sheet) {
@@ -937,19 +789,6 @@ function getOrCreateGipfelbuchSheet_(ss) {
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
     sheet.setColumnWidth(6, 300);
-  }
-  return sheet;
-}
-
-function getOrCreateWerkstattSheet_(ss) {
-  let sheet = ss.getSheetByName("Werkstatt");
-  if (!sheet) {
-    sheet = ss.insertSheet("Werkstatt");
-    sheet.appendRow(["ID", "CategoryId", "ForToken", "Title", "Message", "Link", "Voucher", "CreatedBy", "CreatedAt", "Prompt", "Answer", "AnsweredAt"]);
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(4, 200);
-    sheet.setColumnWidth(5, 360);
-    sheet.setColumnWidth(6, 260);
   }
   return sheet;
 }

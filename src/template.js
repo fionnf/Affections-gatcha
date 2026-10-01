@@ -264,34 +264,6 @@ export const html = `
             <div class="ag-quest-points" id="ag-quest-points" hidden></div>
           </section>
 
-          <section class="ag-card ag-mini-panel" id="ag-mission-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Mission</span>
-              <button class="ag-secondary" type="button" id="ag-mission-close">✕</button>
-            </div>
-            <p class="ag-mini-copy">Deine Aufgabe für heute — Fionn hat eine andere.</p>
-            <div class="ag-mission-card" id="ag-mission-text"></div>
-            <div class="ag-mission-actions" id="ag-mission-actions">
-              <button class="ag-button" type="button" id="ag-mission-done">
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span>Erledigt ✓</span>
-              </button>
-            </div>
-            <div class="ag-mission-feedback" id="ag-mission-feedback" hidden>
-              <p class="ag-mission-feedback-label">Wie war's?</p>
-              <div class="ag-mission-rating" id="ag-mission-rating">
-                <button class="ag-mission-rate-btn" type="button" data-rating="fire">🔥</button>
-                <button class="ag-mission-rate-btn" type="button" data-rating="ok">👍</button>
-                <button class="ag-mission-rate-btn" type="button" data-rating="meh">😴</button>
-              </div>
-              <textarea class="ag-mission-comment" id="ag-mission-comment" rows="2" maxlength="200" placeholder="Optional: was hat funktioniert oder nicht?"></textarea>
-              <button class="ag-secondary ag-mission-feedback-send" type="button" id="ag-mission-feedback-send">Feedback senden</button>
-              <p class="ag-mission-feedback-sent" id="ag-mission-feedback-sent" hidden>Danke — die Maschine lernt.</p>
-            </div>
-            <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
-            <div class="ag-mission-log" id="ag-mission-log" hidden></div>
-          </section>
-
           <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Glossar 📖</span>
@@ -367,44 +339,6 @@ export const html = `
                 <span>Anwenden</span>
               </button>
               <button class="ag-secondary" type="button" id="ag-stimmung-reset">Zurücksetzen</button>
-            </div>
-          </section>
-
-          <section class="ag-card ag-mini-panel" id="ag-werkstatt-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Werkstatt 🔧</span>
-              <button class="ag-secondary" type="button" id="ag-werkstatt-close">✕</button>
-            </div>
-            <h2 class="ag-mini-title">Kapseln für Fionn</h2>
-            <p class="ag-mini-copy">Was du hier schreibst, zieht Fionn.</p>
-            <div class="ag-werkstatt-tabs" id="ag-werkstatt-tabs"></div>
-            <p class="ag-werkstatt-note" id="ag-werkstatt-note"></p>
-            <div class="ag-werkstatt-list" id="ag-werkstatt-list"></div>
-            <button class="ag-button ag-werkstatt-add-btn" type="button" id="ag-werkstatt-add" style="width:100%;justify-content:center;margin-top:12px">
-              <span class="ag-button-orb" aria-hidden="true"></span>
-              <span>Kapsel schreiben</span>
-            </button>
-            <div class="ag-werkstatt-form" id="ag-werkstatt-form" hidden>
-              <p class="ag-wish-label" id="ag-werkstatt-form-title">Neue Kapsel</p>
-              <div class="ag-werkstatt-form-fields">
-                <input class="ag-berge-input" type="text" id="ag-werkstatt-title" placeholder="Titel" maxlength="80">
-                <textarea class="ag-berge-input ag-werkstatt-textarea" id="ag-werkstatt-message" rows="3" maxlength="400" placeholder="Was steht in der Kapsel?"></textarea>
-                <input class="ag-berge-input" type="text" id="ag-werkstatt-prompt" placeholder="Frage an ihn (optional)" maxlength="180" autocomplete="off">
-                <input class="ag-berge-input" type="url" id="ag-werkstatt-link" placeholder="Link (optional, z. B. Spotify)" inputmode="url" autocomplete="off" spellcheck="false">
-                <label class="ag-werkstatt-check">
-                  <input type="checkbox" id="ag-werkstatt-voucher">
-                  <span>Gutschein — Fionn kann ihn einlösen</span>
-                </label>
-              </div>
-              <p class="ag-werkstatt-error" id="ag-werkstatt-error" hidden></p>
-              <div class="ag-werkstatt-form-actions">
-                <button class="ag-secondary" type="button" id="ag-werkstatt-cancel">Abbrechen</button>
-                <button class="ag-button" type="button" id="ag-werkstatt-save">
-                  <span class="ag-button-orb" aria-hidden="true"></span>
-                  <span>Speichern</span>
-                </button>
-              </div>
-              <button class="ag-werkstatt-delete-btn" type="button" id="ag-werkstatt-delete" hidden>Kapsel löschen</button>
             </div>
           </section>
 
@@ -512,29 +446,6 @@ export const html = `
                 <p class="ag-wish-meta" data-ag-wish-done-meta></p>
               </div>
             </div>
-
-            <div class="ag-card ag-ping-card" data-ag-ping-card hidden>
-              <div class="ag-hug-row">
-                <div class="ag-hug-text">
-                  <p class="ag-wish-label">Lennart anstupsen</p>
-                  <p class="ag-wish-note" style="margin-bottom:0">Schick Lennart einen kleinen Stups — er erscheint als kurze Meldung beim nächsten App-Öffnen.</p>
-                </div>
-                <button class="ag-hug-button" type="button" data-ag-ping-send aria-label="Ping an Lennart senden">
-                  <span class="ag-hug-emoji" aria-hidden="true">👋</span>
-                  <span class="ag-hug-label">Stups senden</span>
-                </button>
-              </div>
-              <p class="ag-hug-status" data-ag-ping-status hidden></p>
-            </div>
-
-            <button class="ag-card ag-werkstatt-entry" type="button" data-ag-werkstatt-open hidden>
-              <span class="ag-werkstatt-entry-ico" aria-hidden="true">🔧</span>
-              <span class="ag-werkstatt-entry-text">
-                <span class="ag-werkstatt-entry-title">Kapseln für Fionn schreiben</span>
-                <span class="ag-werkstatt-entry-sub" data-ag-werkstatt-entry-sub>Werkstatt öffnen</span>
-              </span>
-              <span class="ag-werkstatt-entry-chev" aria-hidden="true">›</span>
-            </button>
 
             <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
               <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>

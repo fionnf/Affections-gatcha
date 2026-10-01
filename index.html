@@ -31,24 +31,11 @@
   <body>
     <section id="affektions-gacha" style="opacity:0"></section>
     <script>
-      // Fionn's own gacha view isn't finished yet. Until it is, this public
-      // entry point always renders Lennart's view — ?player=fionn here is
-      // ignored, so the unfinished side can't be stumbled into from the URL
-      // everyone has. Fionn's own door (fionn.html) is unaffected and keeps
-      // full access. Flip this to true to open it up; nothing else changes.
-      const FIONN_GACHA_READY = false;
-
-      // Ensure ?player=lennart is always present, mirroring fionn.html's
-      // pattern — this is Lennart's dedicated entry point, not an implicit
-      // default. (getMissionPlayer() would still fall back to lennart
-      // without this, but making it explicit keeps the two entry points
-      // symmetric and keeps identity resolution independent of that
-      // fallback ever changing.)
+      // One player. ?player=lennart is kept on the URL for the sake of old
+      // links and the service worker's cache key, nothing reads it any more.
       (function () {
         const params = new URLSearchParams(location.search);
-        const player = params.get("player");
-        if (!FIONN_GACHA_READY && player === "fionn") params.delete("player");
-        if (!params.has("player")) {
+        if (params.get("player") !== "lennart") {
           params.set("player", "lennart");
           history.replaceState({}, "", location.pathname + "?" + params.toString());
         }

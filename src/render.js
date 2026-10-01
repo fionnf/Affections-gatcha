@@ -1,6 +1,6 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
+import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
 import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
@@ -10,10 +10,9 @@ import { setCapsuleTone, emojiForTone } from "./pull.js";
 import { TOKEN_REWARDS, tokenGoal, tokenReward } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { extractDriveFileId } from "./utils.js";
-import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
+import { isQuestAvailable } from "./extras.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
-import { renderWerkstattEntry, answerKapsel, werkstattEnabled } from "./werkstatt.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -319,7 +318,7 @@ export function buildPinGate(pin, onUnlock, hintText) {
   wrap.className = "ag-pin-gate";
   const hint = document.createElement("p");
   hint.className = "ag-pin-hint";
-  hint.textContent = hintText || "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";
+  hint.textContent = hintText || "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Kapsel.";
   const row = document.createElement("div");
   row.className = "ag-pin-row";
   const input = document.createElement("input");
@@ -966,10 +965,6 @@ export function renderPull(pull) {
         promptGate.remove();
         if (!getPreviewDay()) {
           _firePromptNotification(pull, answer);
-          // Written capsules carry an id; shipped outcomes don't. When the
-          // question came from one, the answer also goes back onto that
-          // capsule so its author sees it in the Werkstatt.
-          if (pull.outcome.id) answerKapsel(pull.outcome.id, answer);
           const hist = readHistory();
           const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
           if (idx !== -1) { hist[idx] = { ...hist[idx], promptAnswer: answer }; writeHistory(hist); backupToSheets(); }
@@ -1939,9 +1934,8 @@ export function renderWunschkapsel() {
 // ── hydrateCopy ───────────────────────────────────────────────────────────────
 
 export function hydrateCopy() {
-  const isFionn = getMissionPlayer() === "fionn";
-  const name = isFionn ? state.theme.brand.fromName : displayNameFromToken();
-  const recipientName = isFionn ? displayNameFromToken() : state.theme.brand.fromName;
+  const name = displayNameFromToken();
+  const recipientName = state.theme.brand.fromName;
   const elTitle = $("[data-ag-main-title]"); if (elTitle) elTitle.textContent = state.theme.brand.titleTemplate.replace("{name}", name);
   const elKicker = $("[data-ag-kicker]"); if (elKicker) elKicker.textContent = `${state.theme.brand.kicker}\u2009·\u2009${state.photos.length} Erinnerungen`;
   const elIntro = $("[data-ag-intro]"); if (elIntro) elIntro.textContent = state.theme.brand.intro;
@@ -1951,15 +1945,6 @@ export function hydrateCopy() {
   const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
   const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
   const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel\u2009·\u2009ein Tag\u2009·\u2009ein Souvenir.";
-
-  // The Werkstatt is the authoring side: Lennart writes what Fionn pulls, so
-  // it only exists in Lennart's view. Fionn never sees his own pool. It is
-  // also behind a config flag, currently off — see theme.json features.
-  const werkstattEntry = $("[data-ag-werkstatt-open]");
-  if (werkstattEntry) werkstattEntry.hidden = isFionn || !werkstattEnabled();
-  const werkstattPanel = document.getElementById("ag-werkstatt-panel");
-  if (werkstattPanel && !werkstattEnabled()) werkstattPanel.hidden = true;
-  renderWerkstattEntry();
 
   const chips = $("[data-ag-chips]");
   if (chips) chips.innerHTML = "";
@@ -2013,15 +1998,6 @@ export function hydrateCopy() {
       li.setAttribute("role", "button");
       li.setAttribute("aria-label", "Glossar öffnen");
       li.classList.add("ag-chip-clickable");
-    }
-
-    if (chip.toLowerCase() === "mission") {
-      li.id = "ag-btn-mission";
-      li.tabIndex = 0;
-      li.setAttribute("role", "button");
-      li.setAttribute("aria-label", "Mission öffnen");
-      li.classList.add("ag-chip-clickable");
-      if (!isMissionDoneToday()) li.classList.add("ag-chip-mission-active");
     }
 
     if (chip.toLowerCase().includes("skincare") || chip.toLowerCase().includes("pflege")) {

@@ -1,6 +1,6 @@
 // ── Bärlauch mini-game ────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
-import { getMissionPlayer } from "./utils.js";
+import { getToken } from "./utils.js";
 import { triggerConfetti } from "./confetti.js";
 import { imagePhotos } from "./pull.js";
 import { renderMediaInto } from "./render.js";
@@ -69,7 +69,7 @@ export function failBaerlauchGame(reason) {
         ? "Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei. Jetzt ist es vorbei."
         : "Oops. Ich fürchte, wir haben toten Lauch oder etwas Giftiges gesammelt und sind tragisch eingegangen. Jetzt ist es vorbei.";
   }
-  saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, false);
+  saveBaerlauchRound(getToken(), state.baerlauch.level, false);
   updateBaerlauchScoreDisplay();
 }
 
@@ -84,8 +84,8 @@ export function winBaerlauchGame() {
   stopBaerlauchTimer();
 
   state.baerlauch.level += 1;
-  const isNewHighscore = saveBaerlauchScore(getMissionPlayer(), state.baerlauch.level);
-  saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, true);
+  const isNewHighscore = saveBaerlauchScore(getToken(), state.baerlauch.level);
+  saveBaerlauchRound(getToken(), state.baerlauch.level, true);
   updateBaerlauchScoreDisplay();
   updateBaerlauchLevelText();
   if (isNewHighscore) triggerConfetti();
@@ -306,7 +306,7 @@ export function saveBaerlauchRound(player, level, won) {
 export function updateBaerlauchScoreDisplay() {
   const el = $("#ag-baerlauch-scores");
   if (!el) return;
-  const player = getMissionPlayer();
+  const player = getToken();
   const myKey = player === "fionn" ? "fionn" : "lennart";
   const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
   const scores = readBaerlauchScores();

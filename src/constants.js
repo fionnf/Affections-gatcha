@@ -20,9 +20,6 @@ export const NOTIF_KEY             = "affektions-gacha:notif:v2";
 export const PIN_UNLOCK_PREFIX     = "affektions-gacha:pin-unlock:";
 export const BAERLAUCH_SCORE_KEY   = "affektions-gacha:baerlauch-scores:v1";
 export const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
-export const MISSION_LOG_KEY       = "affektions-gacha:mission-log:v1";
-export const MISSION_DONE_KEY      = "affektions-gacha:mission-done:v1";
-export const MISSION_FEEDBACK_KEY  = "affektions-gacha:mission-feedback:v1";
 export const GESPRACH_IDX_KEY      = "affektions-gacha:gesprach-idx:v1";
 export const LAST_PING_KEY         = "affektions-gacha:last-ping:v1";
 export const SOUND_KEY             = "affektions-gacha:sound:v1";
@@ -40,7 +37,6 @@ export const GLOSSARY_KEY            = "affektions-gacha:glossary:v1";
 export const STIMMUNG_KEY            = "affektions-gacha:stimmung:v1";
 export const FREIKARTE_KEY           = "affektions-gacha:freikarte:v1";
 export const FREIKARTE_REROLL_KEY    = "affektions-gacha:freikarte-reroll:v1";
-export const WERKSTATT_KEY           = "affektions-gacha:werkstatt:v1";
 
 // Each token type is one reward, and each reward costs a different number of
 // tokens. Six types, not twelve: with the one-in-five token rate spread
