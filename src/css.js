@@ -2825,6 +2825,44 @@ body{
 .ag-widget .ag-ferien-toggle[aria-expanded="true"]{background:rgba(143,207,158,.2);border-color:rgba(143,207,158,.45)}
 .ag-widget .ag-ferien-title{font-size:.9rem;color:var(--ag-text)}
 .ag-widget .ag-ferien-body{margin-top:10px}
+
+/* ── Elegance pass ── */
+/* Icons: one stroke weight, tinted by state. */
+.ag-widget .ag-bottomnav-btn-icon svg,.ag-widget .ag-tab svg{
+  width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+}
+.ag-widget .ag-bottomnav-btn-icon{display:flex;align-items:center;justify-content:center;height:24px;filter:none}
+.ag-widget .ag-bottomnav-btn.is-active .ag-bottomnav-btn-icon svg{stroke-width:1.9}
+.ag-widget .ag-bottomnav-btn[data-ag-tab="lieblinge"].is-active svg path{fill:currentColor;fill-opacity:.25}
+.ag-widget .ag-tab{display:inline-flex;align-items:center;justify-content:center}
+/* Type: numbers that line up, German that hyphenates, dates without ISO. */
+.ag-widget .ag-streak,.ag-widget .ag-kalender,.ag-widget .ag-history-date,.ag-widget .ag-date,
+.ag-widget .ag-berge-figure,.ag-widget .ag-tokenbank,.ag-widget .ag-history-tally{font-variant-numeric:tabular-nums}
+.ag-widget .ag-result p,.ag-widget .ag-history-message,.ag-widget .ag-wish-note,.ag-widget .ag-mini-copy{
+  hyphens:auto;-webkit-hyphens:auto;hyphenate-limit-chars:8 4 4;
+}
+.ag-widget .ag-date{font-size:.8rem;color:var(--ag-muted);letter-spacing:.01em}
+/* Photo: the picture bleeds to the card edge, caption set over its foot. */
+.ag-widget .ag-card{--ag-card-pad:clamp(16px,2.6vw,24px);padding:var(--ag-card-pad)}
+.ag-widget .ag-result .ag-photo{
+  position:relative;margin:14px calc(-1 * var(--ag-card-pad)) 0;
+  border-radius:0;border:0;background:#0b1310;
+}
+.ag-widget .ag-result .ag-photo figcaption{
+  position:absolute;left:0;right:0;bottom:0;z-index:2;border-top:0;
+  padding:34px var(--ag-card-pad) 14px;
+  background:linear-gradient(180deg,rgba(5,12,8,0),rgba(5,12,8,.78));
+  color:#fffdf2;font-family:"Boska",Georgia,serif;font-style:italic;font-size:1.02rem;line-height:1.35;
+  text-shadow:0 1px 8px rgba(0,0,0,.5);
+}
+.ag-widget .ag-result .ag-photo[hidden]{display:none}
+/* The intro paragraph: charming once, read three hundred times. */
+.ag-widget .ag-intro{display:none}
+.ag-widget .ag-copy h1{margin-bottom:14px}
+/* Tabs: a rise-and-fade, so the switch reads as one surface changing. */
+@keyframes ag-panel-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.ag-widget .ag-panel.is-entering{animation:ag-panel-in 200ms var(--ag-ease) both}
+@media (prefers-reduced-motion:reduce){.ag-widget .ag-panel.is-entering{animation:none}}
     `;
 
 export function injectStyles() {

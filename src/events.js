@@ -52,10 +52,20 @@ export function setActiveTab(tab) {
       pill.style.left = `${centre - PILL_W / 2}px`;
     }
   }
-  $("[data-ag-panel-today]").hidden = tab !== "today";
-  $("[data-ag-panel-history]").hidden = tab !== "history";
-  $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
-  $("[data-ag-panel-berge]").hidden = tab !== "berge";
+  for (const name of ["today", "history", "lieblinge", "berge"]) {
+    const panel = $(`[data-ag-panel-${name}]`);
+    if (!panel) continue;
+    const show = tab === name;
+    if (show && panel.hidden) {
+      // A short rise-and-fade so the switch reads as one surface changing,
+      // not a page being swapped. Re-triggered by removing and re-adding.
+      panel.classList.remove("is-entering");
+      void panel.offsetWidth;
+      panel.classList.add("is-entering");
+      panel.addEventListener("animationend", () => panel.classList.remove("is-entering"), { once: true });
+    }
+    panel.hidden = !show;
+  }
   if (tab === "history") renderHistory();
   if (tab === "lieblinge") renderLieblinge();
   if (tab === "berge") {

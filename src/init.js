@@ -157,8 +157,8 @@ export function applyEveningMode(timezone) {
     mount.classList.toggle("is-evening", evening);
     const kicker = mount.querySelector("[data-ag-kicker]");
     if (kicker) {
-      const base = kicker.textContent.replace(/ · Gute Nacht 🌙$/, "");
-      kicker.textContent = evening ? base + " · Gute Nacht 🌙" : base;
+      const base = kicker.textContent.replace(/\u2009·\u2009Gute Nacht 🌙$/, "");
+      kicker.textContent = evening ? base + "\u2009·\u2009Gute Nacht 🌙" : base;
     }
   } catch (_e) {}
 }
