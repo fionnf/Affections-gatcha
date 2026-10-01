@@ -2614,7 +2614,11 @@ body{
 .ag-widget .ag-ping-banner{margin:0 0 12px}
 
 /* ── Licht tab: the lamps on the same glass ─────────────────────────────── */
-.ag-widget .ag-licht-card{display:flex;flex-direction:column;gap:14px}
+/* The panel is a grid; a 1fr track takes the item's min-content width as its
+   floor, and the scrolling mood row would hand it 700px. min-width:0 keeps the
+   card at the panel's width and lets the row scroll inside it. */
+.ag-widget .ag-licht-card{display:flex;flex-direction:column;gap:14px;min-width:0;width:100%}
+.ag-widget .ag-licht-moods{min-width:0}
 .ag-widget .ag-licht-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ag-widget .ag-licht-lamps{display:flex;gap:8px;flex-wrap:wrap}
 .ag-widget .ag-licht-lamp{
@@ -2681,8 +2685,8 @@ body{
 .ag-widget .ag-licht-scene:disabled{opacity:.45;cursor:default}
 .ag-widget .ag-licht-scene-dots{display:inline-flex;gap:3px}
 .ag-widget .ag-licht-scene-dots i{width:9px;height:9px;border-radius:999px}
-.ag-widget .ag-licht-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ag-widget .ag-licht-foot .ag-secondary{display:inline-flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;min-width:0;padding-inline:10px}
+.ag-widget .ag-licht-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.ag-widget .ag-licht-foot .ag-secondary{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding-inline:10px;font-size:.84rem}
 .ag-widget .ag-licht-note{margin:0;font-size:.74rem;line-height:1.45;color:var(--ag-muted)}
     `;function us(){if(document.querySelector("[data-ag-styles]"))return;const e=document.createElement("style");e.dataset.agStyles="true",e.textContent=ps.replace(/@media\s*\(prefers-color-scheme:dark\)/g,"@media all"),document.head.appendChild(e)}function hs(){return`
       <svg class="ag-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
