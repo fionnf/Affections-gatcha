@@ -1,35 +1,33 @@
 # Fionn: Eingänge
 
-A small PIN-gated panel that rides along on Fionn's page
-(**`/fionn-gacha.html`**) as an extra 📥 tab.
+Fionn's side of the machine: a small PIN-gated page at **`/fionn-gacha.html`**
+(the file name is historical — it was his gacha once, and the installed
+home-screen app still points there).
 
 What it does:
-- **Eingänge** — a feed of what Lennart sends back (hugs 🫂, wishes, prompt
-  answers and quest solves).
-- **Notifications** — local notification when a hug/wish arrives while the app
-  is open or installed as a PWA. Email stays the guaranteed channel.
+- **Eingänge** — a feed of what Lennart sends back: hugs 🫂, wishes ✨,
+  reactions, prompt answers and redeemed vouchers.
+- **Reply on a wish** — *✓ erfüllt*, *🕰 irgendwann* or *✗ lieber nicht*. The
+  choice is stored on the wish row in the sheet and shows up on Lennart's next
+  capsule as one quiet line.
+- **Stups** — a 👋 that appears as a banner on Lennart's next open.
+- **Notifications** — local notification when a hug/wish arrives while the
+  page is open or installed as a PWA. Email stays the guaranteed channel.
 
 ## What used to be here
 
 This started as a curator app with **Outcomes** and **Tage** editors that
 committed `config/outcomes.json` and `config/special-days.json` straight to
 GitHub via the Contents API, using a fine-grained token pasted into the
-browser. All of that is gone:
-
-- Outcomes for Fionn are written by **Lennart**, in the Kapsel-Werkstatt
-  (`src/werkstatt.js`) — a button at the bottom of his Heute tab. Those
-  capsules go through the Apps Script sheet, so no token and no commit.
-  *(The Werkstatt is currently switched off via `features.werkstatt` in
-  `config/theme.json`, so Fionn draws from `config/outcomes.json` like
-  Lennart does. Nothing written is lost while it is off.)*
-- Everything else in `config/` Fionn edits on GitHub directly.
-
-No write credential is stored on the device any more.
+browser. Then it rode along as a tab inside a second gacha app for Fionn,
+whose capsules Lennart wrote in a Werkstatt. All of that is gone: config is
+edited on GitHub, there is one player, and no write credential is stored on
+the device.
 
 ## Setup (one-time)
 
 ### 1. Set the PIN
-The panel is gated by a PIN. Generate a hash and paste it into
+The page is gated by a PIN. Generate a hash and paste it into
 `config/admin.json`:
 
 ```bash
@@ -40,23 +38,24 @@ node scripts/hash-admin-pin.cjs <your-pin>
 Put `salt` and `pinHash` into `config/admin.json`. **Do not commit the PIN
 itself.** (The default shipped PIN is a placeholder — change it.)
 
-### 2. Enable the feed
-The feed reads from the existing Google Apps Script backend. Re-deploy
-`scripts/backup-apps-script.js` — its `doGet` returns an `activity` array when
-called with `?feed=activity`. No new spreadsheet or secret needed.
+### 2. The backend
+Everything here talks to the Apps Script in `scripts/backup-apps-script.js`
+through `config/backup.json`: `?feed=activity` for the feed, `wish-status` to
+reply on a wish, `ping` for a Stups. Redeploy the script after pulling a change
+to it (Deploy → Manage deployments → ✏️ → New version).
 
 ### 3. Notifications
 The 🔔 button at the top of the feed asks for permission. Best results when the
 page is installed as a PWA (Add to Home Screen). Background polling uses
 periodic sync (Chrome/installed-PWA only, throttled); the reliable path is a
-poll whenever you open the app. iOS does not background-poll — email remains
+poll whenever you open the page. iOS does not background-poll — email remains
 the alert channel.
 
 ## Build
 
 `npm run build` builds both bundles:
 - `dist/affection-gacha.js` (the gacha app itself)
-- `dist/fionn-admin.js` (this panel)
+- `dist/fionn-admin.js` (this page)
 
 Or just this one: `npm run build:admin`.
 

@@ -6,45 +6,29 @@
     <meta name="color-scheme" content="dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Gacha · Fionn" />
-    <title>Fionns Affektions-Gacha</title>
-    <meta name="description" content="Eine kleine tägliche Gacha-Maschine für Fionn." />
-    <meta name="theme-color" content="#1a3a2c" />
+    <meta name="apple-mobile-web-app-title" content="Eingänge" />
+    <title>Fionns Eingänge</title>
+    <meta name="description" content="Was Lennart aus der Gacha-Maschine zurückschickt." />
+    <meta name="theme-color" content="#11181a" />
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <link rel="icon" href="./media/icon-192.png" type="image/png" />
     <link rel="manifest" href="./manifest-fionn.json" />
     <link rel="apple-touch-icon" href="./media/apple-touch-icon.png" />
     <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        background: #0a1410;
-      }
+      body { margin: 0; min-height: 100vh; background: #11181a; }
     </style>
   </head>
   <body>
-    <section id="affektions-gacha" style="opacity:0"></section>
-    <script>
-      // Fionn's own door. Unlike index.html this one always resolves to
-      // ?player=fionn, so the pull, the missions and the history are his.
-      // The capsules he draws are the ones Lennart wrote in the Werkstatt
-      // (see src/werkstatt.js); there is deliberately no editing here.
-      if (!new URLSearchParams(location.search).has("player")) {
-        const params = new URLSearchParams(location.search);
-        params.set("player", "fionn");
-        history.replaceState({}, "", location.pathname + "?" + params.toString());
-      }
-    </script>
-    <script
-      src="./dist/affection-gacha.js?v=e22449160"
-      data-mount="#affektions-gacha"
-      data-config-base="./"
-      defer
-    ></script>
-    <script src="./dist/fionn-admin.js?v=e22449160" data-mode="tab" defer></script>
+    <!--
+      Fionn's side of the machine. It used to be a second gacha with its own
+      pull, missions and a Werkstatt where Lennart wrote his capsules; that
+      half went unused and was removed. What stays is the private, PIN-gated
+      feed of what Lennart sends: hugs, wishes (with a reply), reactions,
+      prompt answers — plus a Stups button back to his phone. The file keeps
+      its name so the installed home-screen app and old links still open it.
+    -->
+    <section id="fionn-admin"></section>
+    <script src="./dist/fionn-admin.js?v=e22449160" data-mount="#fionn-admin" data-config-base="./" defer></script>
   </body>
 </html>

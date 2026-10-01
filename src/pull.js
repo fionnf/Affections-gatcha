@@ -1,9 +1,8 @@
 // ── Pull building ─────────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
-import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone } from "./utils.js";
+import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone, isVoucherEntry } from "./utils.js";
 import { readHistory, readFreikarteReroll } from "./storage.js";
 import { computeStreak, pickWeightedWithStreak } from "./streak.js";
-import { werkstattFor } from "./werkstatt.js";
 
 export function checkSpecialDay(day) {
   const days = Array.isArray(state.specialDays && state.specialDays.days) ? state.specialDays.days : [];
@@ -17,14 +16,26 @@ export function checkSpecialDay(day) {
     const recurs = entry.repeat === "yearly";
     const matches = entry.date === day || (recurs && entry.date === mmdd);
     if (!matches) continue;
-    // Special days were written when Lennart's app was the only one. Now that
-    // Fionn draws too, a capsule addressed to one of them would otherwise show
-    // up in both apps. An entry with no "player" still goes to everybody, so
-    // every existing entry keeps its current behaviour.
+    // "player" is kept as an optional scope so an entry can be addressed to
+    // one token (always "lennart" now). An entry without it goes to everybody.
     if (entry.player && entry.player !== player) continue;
     return entry;
   }
   return null;
+}
+
+// JACKPOT is one draw in two hundred; the balancer can lean it to about one
+// in a hundred but never promises it. This does: a player with 270 recorded
+// draws and no jackpot among them gets one. Special days are not draws and
+// do not count, and a player with fewer than 270 draws is simply new.
+const JACKPOT_PITY_DRAWS = 270;
+export function jackpotPityDue(token, day) {
+  const draws = readHistory()
+    .filter((e) => e.token === token && e.day < day && typeof e.categoryId === "string" && e.categoryId !== "special")
+    .sort((a, b) => b.day.localeCompare(a.day))
+    .slice(0, JACKPOT_PITY_DRAWS);
+  if (draws.length < JACKPOT_PITY_DRAWS) return false;
+  return !draws.some((e) => e.categoryId === "jackpot");
 }
 
 export function emojiForTone(tone) {
@@ -61,13 +72,10 @@ export function imagePhotos() {
   return (state.photos || []).filter((p) => p.type !== "video");
 }
 
-// The capsules a category actually offers this player. A category that the
-// other player has hand-written capsules for (Kapsel-Werkstatt) is taken over
-// by them entirely; everything else keeps the shipped pool from
-// config/outcomes.json.
-export function poolForCategory(category, token) {
-  const written = werkstattFor(category.id, token);
-  return written.length ? written : category.outcomes;
+// How many unredeemed vouchers may be open before new ones are held back.
+export const OPEN_VOUCHER_CAP = 4;
+export function openVoucherCount(token, day) {
+  return readHistory().filter((e) => e.token === token && e.day < day && isVoucherEntry(e) && !e.used).length;
 }
 
 export function buildPullForDay(day, streak, opts = {}) {
@@ -137,6 +145,9 @@ export function buildPullForDay(day, streak, opts = {}) {
   }
   if (!category) {
     category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0, excludeCategoryIds, { token, day });
+    if (!seedSuffix && jackpotPityDue(token, day)) {
+      category = state.outcomes.categories.find((c) => c.id === "jackpot") || category;
+    }
   }
 
   const previewCategory = getPreviewCategory();
@@ -149,46 +160,39 @@ export function buildPullForDay(day, streak, opts = {}) {
     category = state.outcomes.categories.find((item) => item.id === "common") || category;
   }
 
-  const categoryPool = poolForCategory(category, token);
-
   const usedTitles = new Set(
     readHistory()
       .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
       .map((e) => e.title)
   );
-  const unseen = (list) => list.filter((o) => !usedTitles.has(o.title));
+  const unseen = category.outcomes.filter((o) => !usedTitles.has(o.title));
+  // Nothing comes back until the whole category is used up.
+  let outcomePool = unseen.length ? unseen : category.outcomes;
 
-  // Same promise as the shipped pool: nothing comes back until the pool is
-  // used up. But a hand-written pool is small — often a single capsule — so
-  // exhausting it must not mean handing back that same capsule every time
-  // the category comes up. Once the written ones are spent, fall through to
-  // the shipped outcomes this player hasn't seen, and only start repeating
-  // when the whole category really is exhausted. When nothing is written,
-  // both branches are the same list, so this is a no-op for Lennart.
-  const unseenWritten = unseen(categoryPool);
-  const unseenShipped = unseenWritten.length ? [] : unseen(category.outcomes);
-  const outcomePool = unseenWritten.length ? unseenWritten
-    : unseenShipped.length ? unseenShipped
-    : categoryPool;
+  // Vouchers pile up: a Gutschein is only worth something once it is used,
+  // and a stack of open ones turns each new one into noise. With OPEN_VOUCHER_CAP
+  // of them unredeemed, voucher capsules step aside for the plain texts in the
+  // same category — the odds between categories are untouched, only which
+  // text comes out. Once some are used the vouchers come back on their own.
+  // A day already opened is pinned above (alreadyDrawn), so the cap can never
+  // rewrite a card that was seen.
+  if (!seedSuffix && openVoucherCount(token, day) >= OPEN_VOUCHER_CAP) {
+    const plain = outcomePool.filter((o) => o.voucher !== true);
+    if (plain.length) outcomePool = plain;
+  }
 
   // Seeding picks by index, so a pool that grows or shrinks re-rolls every
   // day that still uses it — including today, which the player may already
-  // have opened. That was survivable while pools only changed on a deploy;
-  // now that capsules are written live from a phone it isn't. If this day is
-  // already in the history under the same category, the recorded title wins,
-  // looked up in the current pool so pins, prompts and vouchers still come
-  // from config rather than being reconstructed from the log.
-  // The lookup spans both pools on purpose. The first capsule written for a
-  // category evicts the shipped ones, so searching only the current pool
-  // would fail to find a shipped outcome that was opened this morning —
-  // exactly the case this guards against.
+  // have opened. If this day is already in the history under the same
+  // category, the recorded title wins, looked up in the config so pins,
+  // prompts and vouchers still come from the source rather than being
+  // reconstructed from the log.
   const alreadyDrawn = drawn && drawn.categoryId === category.id
-    ? (categoryPool.find((o) => o.title === drawn.title)
-       || category.outcomes.find((o) => o.title === drawn.title))
+    ? category.outcomes.find((o) => o.title === drawn.title)
     : null;
 
   const outcome = alreadyDrawn
-    || (rerollRecord && categoryPool.find((o) => o.title === rerollRecord.outcomeTitle))
+    || (rerollRecord && category.outcomes.find((o) => o.title === rerollRecord.outcomeTitle))
     || outcomePool[seededIndex(`${baseSeed}|${category.id}|outcome`, outcomePool.length)];
 
   const imgs = imagePhotos();

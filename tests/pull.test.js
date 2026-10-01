@@ -4,7 +4,7 @@ import { setupBrowserEnv, outcomesFixture, TEST_SECRET } from "./helpers.js";
 
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
-const { buildPullForDay, rerollPullForDay } = await import("../src/pull.js");
+const { buildPullForDay, rerollPullForDay, jackpotPityDue } = await import("../src/pull.js");
 const { writeHistory } = await import("../src/storage.js");
 
 state.theme = { secret: TEST_SECRET, timezone: "Europe/Zurich" };
@@ -29,17 +29,16 @@ test("same day + token + secret always produces the same pull", () => {
   }
 });
 
-test("players get independent pulls from the same day", () => {
+test("one player: ?player= in the URL changes nothing", () => {
   const day = "2026-08-05";
-  const lennart = buildPullForDay(day, 0);
+  const plain = buildPullForDay(day, 0);
   env.setSearch("?player=fionn");
-  const fionnA = buildPullForDay(day, 0);
-  const fionnB = buildPullForDay(day, 0);
-  // Fionn's pull is deterministic too, seeded by his own token — it must not
-  // depend on (or equal, by construction rather than chance) Lennart's seed.
-  assert.equal(fionnA.outcome.title, fionnB.outcome.title);
-  assert.equal(lennart.token, "lennart");
-  assert.equal(fionnA.token, "fionn");
+  const other = buildPullForDay(day, 0);
+  // The second player's door is gone; the token is a constant and so is the
+  // seed, whatever the query string says.
+  assert.equal(other.token, "lennart");
+  assert.equal(other.outcome.title, plain.outcome.title);
+  env.setSearch("?player=lennart");
 });
 
 test("anti-repeat: a category never repeats a title before exhausting the pool", () => {
@@ -139,9 +138,14 @@ test("a special day can be addressed to one player", () => {
       outcomes: [{ title: "S1", message: "s1" }] },
   ]};
   assert.equal(buildPullForDay("2026-08-12", 0).category.id, "special");
-  env.setSearch("?player=fionn");
+  // An entry scoped to any other token never fires — the field is kept as an
+  // optional scope, and the only token there is now is "lennart".
+  state.specialDays = { days: [
+    { date: "2026-08-12", label: "Nicht für Lennart", tone: "jackpot", player: "fionn",
+      outcomes: [{ title: "S1", message: "s1" }] },
+  ]};
   assert.notEqual(buildPullForDay("2026-08-12", 0).category.id, "special",
-    "an entry addressed to Lennart must not fire in Fionn's app");
+    "an entry addressed to another token must not fire");
 
   // No "player" key means both, which is what every pre-existing entry relies on.
   state.specialDays = { days: [
@@ -203,6 +207,25 @@ test("an opened day keeps its recorded category even when the weights move", () 
   assert.equal(after.category.id, "jackpot", "recorded category pins the day");
   assert.equal(after.outcome.title, "J1");
   state.outcomes = outcomesFixture();
+});
+
+test("jackpot pity: 270 recorded draws without one forces one; fewer draws never do", () => {
+  const days = (n, from) => Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(2025, 0, 1 + i)); return d.toISOString().slice(0, 10);
+  });
+  const dry = days(270).map((day) => ({ day, token: "lennart", categoryId: "common", title: "x", message: "m" }));
+  writeHistory(dry.slice(0, 269));
+  assert.equal(jackpotPityDue("lennart", "2026-06-01"), false, "269 draws: still a new player");
+  writeHistory(dry);
+  assert.equal(jackpotPityDue("lennart", "2026-06-01"), true, "270 dry draws: pity is due");
+  assert.equal(buildPullForDay("2026-06-01", 0).category.id, "jackpot", "and the draw honours it");
+  // one jackpot inside the window resets the clock
+  const withJackpot = dry.map((e, i) => i === 100 ? { ...e, categoryId: "jackpot", title: "J" } : e);
+  writeHistory(withJackpot);
+  assert.equal(jackpotPityDue("lennart", "2026-06-01"), false);
+  // special days are not draws and do not pad the count
+  writeHistory([...dry.slice(0, 200), ...days(70, 0).map((day) => ({ day: "2027-" + day.slice(5), token: "lennart", categoryId: "special", title: "s", message: "m" }))]);
+  assert.equal(jackpotPityDue("2028-01-01" && "lennart", "2028-01-01"), false, "200 draws + 70 special days is not 270 draws");
 });
 
 test("Freikarte reroll never lands on Niete or Verflucht", () => {

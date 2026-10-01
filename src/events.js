@@ -1,6 +1,6 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone } from "./utils.js";
+import { getToken, dateKeyInTimezone, formatHistoryDate } from "./utils.js";
 import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll } from "./storage.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak, addVacation } from "./streak.js";
 import { buildPull, rerollPullForDay } from "./pull.js";
@@ -13,16 +13,17 @@ import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
 import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
 import { openBaerlauchGame, closeBaerlauchGame } from "./baerlauch.js";
-import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openMissionPanel, closeMissionPanel, markMissionDone, sendMissionFeedback, isFeedbackSentToday, openLetter, closeLetter } from "./mission.js";
+import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachToWhatsApp, openQuestPanel, closeQuestPanel, handleQuestPhoto, openLetter, closeLetter } from "./extras.js";
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
-import { openWerkstatt, closeWerkstatt, openKapselForm, closeKapselForm, submitKapselForm, requestKapselDelete, renderWerkstatt, renderWerkstattEntry } from "./werkstatt.js";
 import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
+import { openLicht } from "./licht.js";
+import { armConfirm } from "./confirm.js";
 import { currentWeekKey } from "./utils.js";
 
 // Moved to toast.js; re-exported so the existing importers stay unchanged.
@@ -52,7 +53,7 @@ export function setActiveTab(tab) {
       pill.style.left = `${centre - PILL_W / 2}px`;
     }
   }
-  for (const name of ["today", "history", "lieblinge", "berge"]) {
+  for (const name of ["today", "history", "lieblinge", "berge", "licht"]) {
     const panel = $(`[data-ag-panel-${name}]`);
     if (!panel) continue;
     const show = tab === name;
@@ -67,6 +68,7 @@ export function setActiveTab(tab) {
     panel.hidden = !show;
   }
   if (tab === "history") renderHistory();
+  if (tab === "licht") openLicht();
   if (tab === "lieblinge") renderLieblinge();
   if (tab === "berge") {
     invalidateGipfelMap();
@@ -82,41 +84,6 @@ export function setActiveTab(tab) {
   }
   const fab = $("[data-ag-fab]");
   if (fab) fab.hidden = tab !== "berge";
-}
-
-export function sendPingToBackend() {
-  const cfg = state.backup;
-  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-  const button = $("[data-ag-ping-send]");
-  const status = $("[data-ag-ping-status]");
-  if (button) button.disabled = true;
-  if (status) { status.hidden = false; status.textContent = "Wird gesendet…"; delete status.dataset.agHugState; }
-  const body = JSON.stringify({
-    type: "ping",
-    token: getToken(),
-    pageUrl: (typeof window !== "undefined" && window.location) ? window.location.href : "",
-    userAgent: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : ""
-  });
-  const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
-  fetch(cfg.endpointUrl, opts)
-    .then((r) => {
-      if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
-      if (button) window.setTimeout(() => { button.disabled = false; }, 4000);
-    })
-    .catch(() => {
-      // CORS rejection is expected from Apps Script sometimes — the no-cors
-      // retry still delivers. Only a rejection of THAT means it truly failed
-      // (offline), and pretending otherwise would leave Lennart thinking a
-      // Stups arrived when it never did.
-      fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" })
-        .then(() => {
-          if (status) { status.textContent = "Stups gesendet 👋"; status.dataset.agHugState = "ok"; }
-        })
-        .catch(() => {
-          if (status) { status.textContent = "Gerade keine Verbindung – gleich nochmal probieren."; status.dataset.agHugState = "error"; }
-        })
-        .finally(() => { if (button) window.setTimeout(() => { button.disabled = false; }, 2000); });
-    });
 }
 
 export function setHugStatus(text, hugState) {
@@ -209,7 +176,6 @@ export function sendHugToInbox() {
 // voucher is redeemed. Best-effort, never blocks the UI.
 export function notifyPartnerVoucherRedeemed(entry) {
   const token = getToken();
-  if (token === "fionn") return; // avoid Fionn emailing himself
   const config = state.wishInbox;
   if (!config || !config.enabled) return;
   const endpoint = typeof config.endpointUrl === "string" ? config.endpointUrl.trim() : "";
@@ -847,40 +813,6 @@ export function bindEvents() {
     audio.play().catch(() => {});
   });
 
-  $("#ag-btn-mission")?.addEventListener("click", openMissionPanel);
-  $("#ag-btn-mission")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMissionPanel(); }
-  });
-  $("#ag-mission-close")?.addEventListener("click", closeMissionPanel);
-  $("#ag-mission-done")?.addEventListener("click", () => {
-    markMissionDone();
-    const actionsEl = $("#ag-mission-actions");
-    const feedbackEl = $("#ag-mission-feedback");
-    const doneNote = $("#ag-mission-done-note");
-    const chip = $("#ag-btn-mission");
-    if (actionsEl) actionsEl.hidden = true;
-    if (doneNote) doneNote.hidden = false;
-    if (feedbackEl && !isFeedbackSentToday()) feedbackEl.hidden = false;
-    if (chip) chip.classList.remove("ag-chip-mission-active");
-  });
-  $("#ag-mission-panel")?.querySelectorAll(".ag-mission-rate-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      $("#ag-mission-panel")?.querySelectorAll(".ag-mission-rate-btn")
-        .forEach(b => b.classList.remove("is-selected"));
-      btn.classList.add("is-selected");
-    });
-  });
-  $("#ag-mission-feedback-send")?.addEventListener("click", () => {
-    const panel = $("#ag-mission-panel");
-    const selected = panel?.querySelector(".ag-mission-rate-btn.is-selected");
-    const rating = selected?.dataset.rating || null;
-    const comment = ($("#ag-mission-comment")?.value || "").trim();
-    sendMissionFeedback(rating, comment);
-    const sentEl = $("#ag-mission-feedback-sent");
-    panel?.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
-      .forEach(el => { el.hidden = true; });
-    if (sentEl) sentEl.hidden = false;
-  });
   $("#ag-letter-close")?.addEventListener("click", closeLetter);
   $("#ag-letter-overlay")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeLetter();
@@ -1088,11 +1020,13 @@ export function bindEvents() {
       const gapDay = streakRestoreGapDay();
       const left = streakRestoresLeft();
       const isBirthdayBonus = birthdayBonusLeft() > 0 && (left - birthdayBonusLeft()) <= 0;
-      const confirmMsg = isBirthdayBonus
-        ? `🎂 Geburtstagsgeschenk! Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen?`
-        : `Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${left - 1} Streak-Retter übrig.`;
-      const ok = window.confirm(confirmMsg);
-      if (!ok) return;
+      // Two taps instead of confirm(): iOS swallows the dialog in an installed
+      // app, and the button sat there doing nothing.
+      const rest = left - 1;
+      const label = isBirthdayBonus
+        ? `🎂 Geschenk: ${formatHistoryDate(gapDay)} retten? Nochmal tippen`
+        : `${formatHistoryDate(gapDay)} retten${rest > 0 ? ` (${rest} übrig)` : ", der letzte"}? Nochmal tippen`;
+      if (!armConfirm(restoreBtn, label)) return;
       restoreBtn.disabled = true;
       const mended = restoreStreak();
       renderHistory();
@@ -1220,23 +1154,21 @@ export function bindEvents() {
 
   mount.addEventListener("ag-synced", () => {
     try {
-      renderWerkstattEntry();
-      // Token counts are sheet-authoritative — a token earned on the other
+      // Token counts are sheet-authoritative — a token earned on another
       // device shows up here as soon as the sync lands.
       renderTokenBank();
-      if (!document.getElementById("ag-werkstatt-panel")?.hidden) renderWerkstatt();
+      // A reply on a wish that landed since the last sync.
+      if (state.todaysPull && state.revealed) renderWishReply(state.todaysPull);
+      renderWunschkapsel();
+      // A Stups from Fionn's Eingänge. The sync noted a newer ping than the
+      // last one seen; the banner used to be wired to nothing.
+      if (state._newPing) {
+        state._newPing = false;
+        const banner = $("[data-ag-ping-banner]");
+        if (banner) banner.hidden = false;
+        try { haptic([10, 40, 10]); } catch (_err) {}
+      }
     } catch (_e) {}
-  });
-
-  // ── Kapsel-Werkstatt (Lennart writes Fionn's pool) ──────────────────────────
-  $("[data-ag-werkstatt-open]")?.addEventListener("click", openWerkstatt);
-  $("#ag-werkstatt-close")?.addEventListener("click", closeWerkstatt);
-  document.getElementById("ag-werkstatt-add")?.addEventListener("click", () => openKapselForm(null));
-  document.getElementById("ag-werkstatt-cancel")?.addEventListener("click", closeKapselForm);
-  document.getElementById("ag-werkstatt-delete")?.addEventListener("click", requestKapselDelete);
-  document.getElementById("ag-werkstatt-save")?.addEventListener("click", () => {
-    submitKapselForm();
-    renderWerkstattEntry();
   });
 
   // ── Stimmung ─────────────────────────────────────────────────────────────────
@@ -1331,27 +1263,12 @@ export function bindEvents() {
   // Bind berge-specific events (location search, etc.)
   bindBergeEvents();
 
-  // Show Fionn's ping card only for Fionn token (when backup is enabled)
-  const pingCard = $("[data-ag-ping-card]");
-  if (pingCard) {
-    pingCard.hidden = !(getToken() === "fionn" && state.backup?.enabled);
-  }
-
   // Ping dismiss button
   const pingDismiss = $("[data-ag-ping-dismiss]");
   if (pingDismiss) {
     pingDismiss.addEventListener("click", () => {
       const banner = $("[data-ag-ping-banner]");
       if (banner) banner.hidden = true;
-    });
-  }
-
-  // Fionn ping send button
-  const pingSend = $("[data-ag-ping-send]");
-  if (pingSend) {
-    pingSend.addEventListener("click", () => {
-      haptic([20, 30, 20]);
-      try { sendPingToBackend(); } catch (_error) { /* never block UI */ }
     });
   }
 

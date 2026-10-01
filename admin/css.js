@@ -93,13 +93,14 @@ body{margin:0}
 .fa-gate h1{font-size:1.3rem;margin:0}
 .fa-pin{font-size:1.6rem;letter-spacing:.4em;text-align:center;max-width:220px}
 
-/* Tab-inject mode: admin panel embedded inside the main Lennart app */
-.fa-tab-mode{min-height:unset;background:#11181a;padding-bottom:16px;border-radius:0}
-.fa-tab-mode .fa-tabs{position:sticky;top:0;z-index:5;flex-direction:row;
-  justify-content:flex-start;border-top:none;border-bottom:1px solid var(--line);
-  padding:6px max(env(safe-area-inset-left),10px) 6px max(env(safe-area-inset-left),10px)}
-.fa-tab-mode .fa-gate{min-height:60vh}
-[data-ag-panel-admin]{background:#11181a;border-radius:16px 16px 0 0;overflow:hidden}
+/* Stups + wish replies */
+.fa-ping-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0 4px}
+.fa-ping-note{font-size:.8rem;margin:0}
+.fa-reply-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.fa-reply-btn{appearance:none;border:1px solid var(--line);background:transparent;color:var(--muted);
+  border-radius:999px;padding:5px 10px;font-size:.78rem;font-family:inherit;cursor:pointer}
+.fa-reply-btn.active{border-color:var(--primary);color:var(--text);background:rgba(74,170,90,.16)}
+.fa-reply-note{font-size:.74rem;color:var(--muted)}
 
 /* inbox feed */
 .fa-feed-item{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}

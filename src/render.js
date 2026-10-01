@@ -1,19 +1,20 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, getMissionPlayer, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction } from "./storage.js";
+import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
-import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
+import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, streakRestoresLeft, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
 import { setCapsuleTone, emojiForTone } from "./pull.js";
 import { TOKEN_REWARDS, tokenGoal, tokenReward } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { extractDriveFileId } from "./utils.js";
-import { isQuestAvailable, isMissionDoneToday } from "./mission.js";
+import { isQuestAvailable } from "./extras.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
-import { renderWerkstattEntry, answerKapsel, werkstattEnabled } from "./werkstatt.js";
+import { isBaerlauchSaison } from "./baerlauch.js";
+import { letterHintDue, LETTER_HINT } from "./extras.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -27,7 +28,8 @@ export function setHistoryFilter(value) {
 }
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
-import { escapeHtml as escHtml } from "./utils.js";
+import { escapeHtml as escHtml, formatHistoryDate } from "./utils.js";
+import { armConfirm } from "./confirm.js";
 import { haptic } from "./haptic.js";
 export { escHtml };
 
@@ -57,11 +59,12 @@ export function defaultChips() {
 // ── Today formatting ─────────────────────────────────────────────────────────
 
 // "Mi, 30. Sept." — weekday, day, short month, no ISO on the card.
+let _cardDateFmt = null;
 export function formatCardDate(dayKey) {
   try {
     const [y, m, d] = dayKey.split("-").map(Number);
-    const parts = new Intl.DateTimeFormat("de-CH", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
-      .formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
+    _cardDateFmt ||= new Intl.DateTimeFormat("de-CH", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+    const parts = _cardDateFmt.formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
     const get = (t) => (parts.find((p) => p.type === t) || {}).value || "";
     return `${get("weekday").replace(/\.$/, "")}, ${get("day")}. ${get("month")}`;
   } catch (_e) { return dayKey; }
@@ -182,8 +185,50 @@ export function renderStreak() {
 
 export function renderStreakRestore() {
   const btn = $("[data-ag-streak-restore]");
-  if (!btn) return;
-  btn.hidden = !streakRestoreAvailable();
+  if (btn) btn.hidden = !streakRestoreAvailable();
+  // The restores earned (one per twenty days of best streak) used to be
+  // invisible until the day they were needed — a safety net nobody knew they
+  // had. A quiet gem count beside the streak says how many are in the bank,
+  // next to the rescue button on the day one of them is needed.
+  const gems = $("[data-ag-streak-gems]");
+  if (gems) {
+    const left = streakRestoresLeft();
+    gems.hidden = !(left > 0);
+    gems.textContent = `💎\u2009×${left}`;
+    gems.title = `${left} Streak-Retter in der Bank — springt ein, wenn mal ein Tag fehlt`;
+    gems.setAttribute("aria-label", gems.title);
+  }
+}
+
+// ── Fionn's reply on a wish ──────────────────────────────────────────────────
+// Closes the Wunschkapsel loop: a wish went out, nothing ever came back. Now
+// the reply Fionn picks in the Eingänge sits at the top of the next capsule
+// for one day, then rests. Shown even on a day already opened — the reply is
+// news, the capsule is not.
+export const WISH_REPLY_LABELS = {
+  "erfuellt": "erfüllt 🌿",
+  "irgendwann": "irgendwann 🕰",
+  "lieber-nicht": "lieber nicht ✗"
+};
+export function wishReplyLine(reply, today) {
+  const label = WISH_REPLY_LABELS[reply.status];
+  if (!label) return "";
+  const ageDays = Math.round((Date.parse(today + "T12:00:00Z") - Date.parse(reply.timestamp)) / 86400000);
+  const when = ageDays >= 14 ? "von neulich" : ageDays >= 6 ? "von letzter Woche" : "von dieser Woche";
+  return `Dein Wunsch ${when}: ${label}`;
+}
+export function renderWishReply(pull) {
+  const el = $("[data-ag-wish-reply]");
+  if (!el) return;
+  if (getPreviewDay()) { el.hidden = true; return; }
+  const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
+  const reply = freshWishReply(today);
+  const line = reply ? wishReplyLine(reply, today) : "";
+  if (!line) { el.hidden = true; return; }
+  el.textContent = line;
+  el.title = reply.text ? `„${reply.text}"` : "";
+  el.hidden = false;
+  markWishReplyShown(reply.statusAt, today);
 }
 
 // ── Milestone banner ─────────────────────────────────────────────────────────
@@ -319,7 +364,7 @@ export function buildPinGate(pin, onUnlock, hintText) {
   wrap.className = "ag-pin-gate";
   const hint = document.createElement("p");
   hint.className = "ag-pin-hint";
-  hint.textContent = hintText || "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Mission.";
+  hint.textContent = hintText || "🔐 Wie viele Tage kennen wir uns? Die Zahl öffnet die Kapsel.";
   const row = document.createElement("div");
   row.className = "ag-pin-row";
   const input = document.createElement("input");
@@ -880,7 +925,6 @@ export function renderPull(pull) {
       const photoBtn = $("[data-ag-quest-photo]");
       const fileInput = $("[data-ag-beweis-file]");
       const thumb = $("[data-ag-beweis-thumb]");
-      const { formatHistoryDate } = _getFormatHistoryDate();
       const questRec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
       const done = !!(questRec && questRec.bestanden);
       const proofUrl = questRec && questRec.beweisUrl;
@@ -902,10 +946,7 @@ export function renderPull(pull) {
       if (doneBtn) {
         doneBtn.hidden = done;
         doneBtn.onclick = () => {
-          const ok = typeof window === "undefined" || !window.confirm
-            ? true
-            : window.confirm("Quest wirklich geschafft? Das wandert dauerhaft ins Trophäenregal.");
-          if (!ok) return;
+          if (!armConfirm(doneBtn, "Wirklich geschafft? Nochmal tippen")) return;
           if (!markQuestBestanden(pull.day, pull.token)) return;
           backupToSheets();
           try { triggerConfetti(60); } catch (_e) {}
@@ -966,10 +1007,6 @@ export function renderPull(pull) {
         promptGate.remove();
         if (!getPreviewDay()) {
           _firePromptNotification(pull, answer);
-          // Written capsules carry an id; shipped outcomes don't. When the
-          // question came from one, the answer also goes back onto that
-          // capsule so its author sees it in the Werkstatt.
-          if (pull.outcome.id) answerKapsel(pull.outcome.id, answer);
           const hist = readHistory();
           const idx = hist.findIndex(e => e.day === pull.day && e.token === pull.token);
           if (idx !== -1) { hist[idx] = { ...hist[idx], promptAnswer: answer }; writeHistory(hist); backupToSheets(); }
@@ -1136,6 +1173,8 @@ export function renderPull(pull) {
     }
   }
 
+  renderWishReply(pull);
+
   $("[data-ag-result]").hidden = false;
   updateStarButton();
 }
@@ -1264,10 +1303,7 @@ export function recordHistoryEntry(pull) {
 // Mark a voucher history entry as redeemed (single-use, one-way).
 export function redeemVoucher(entry, btnEl) {
   if (!entry || entry.used) return;
-  const ok = typeof window === "undefined" || !window.confirm
-    ? true
-    : window.confirm("Diesen Gutschein jetzt einlösen? Das lässt sich nicht rückgängig machen.");
-  if (!ok) return;
+  if (!armConfirm(btnEl, "Einlösen? Nochmal tippen")) return;
 
   const usedAt = dateKeyInTimezone(state.theme?.timezone || "UTC");
   entry.used = true;
@@ -1323,7 +1359,6 @@ export function renderHistoryItemEl(entry) {
   head.className = "ag-history-head";
   const date = document.createElement("span");
   date.className = "ag-history-date";
-  const { formatHistoryDate } = _getFormatHistoryDate();
   date.textContent = formatHistoryDate(entry.day);
   const badge = document.createElement("span");
   badge.className = "ag-history-badge";
@@ -1449,7 +1484,6 @@ export function renderHistoryItemEl(entry) {
   if (entry.bestanden) {
     const done = document.createElement("p");
     done.className = "ag-history-bestanden";
-    const { formatHistoryDate } = _getFormatHistoryDate();
     done.textContent = `🏆 Bestanden${entry.bestandenAt ? ` am ${formatHistoryDate(entry.bestandenAt)}` : ""}`;
     li.appendChild(done);
     if (entry.beweisUrl) {
@@ -1474,7 +1508,6 @@ export function renderHistoryItemEl(entry) {
     if (entry.used) {
       const used = document.createElement("span");
       used.className = "ag-voucher-used";
-      const { formatHistoryDate } = _getFormatHistoryDate();
       used.textContent = `✓ Benutzt am ${entry.usedAt ? formatHistoryDate(entry.usedAt) : "–"}`;
       actions.appendChild(used);
     } else {
@@ -1492,24 +1525,6 @@ export function renderHistoryItemEl(entry) {
   }
 
   return li;
-}
-
-function _getFormatHistoryDate() {
-  return {
-    formatHistoryDate: (dayKey) => {
-      const [y, m, d] = dayKey.split("-").map(Number);
-      const date = new Date(Date.UTC(y, m - 1, d));
-      try {
-        return new Intl.DateTimeFormat("de-CH", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric"
-        }).format(date);
-      } catch (error) {
-        return dayKey;
-      }
-    }
-  };
 }
 
 function updateVoucherFilterUi(openVouchers) {
@@ -1710,7 +1725,6 @@ export function renderTrophyShelf(entries) {
       : `${passed.length} bestandene Quests.`;
   }
 
-  const { formatHistoryDate } = _getFormatHistoryDate();
   shelf.innerHTML = "";
   for (const entry of passed) {
     const tile = document.createElement("div");
@@ -1757,7 +1771,6 @@ export function renderFerien() {
   const list = $("[data-ag-ferien-list]");
   const count = $("[data-ag-ferien-count]");
   if (!list) return;
-  const { formatHistoryDate } = _getFormatHistoryDate();
   const vacations = readVacations();
   list.innerHTML = "";
   if (count) { count.hidden = !vacations.length; count.textContent = vacations.length ? `· ${vacations.length}` : ""; }
@@ -1928,7 +1941,11 @@ export function renderWunschkapsel() {
     done.hidden = false;
     $("[data-ag-wish-done-title]").textContent = "✨ Wunsch eingereicht";
     $("[data-ag-wish-done-note]").textContent = `„${wish.text}"`;
-    $("[data-ag-wish-done-meta]").textContent = wishMetaText(wish.remoteStatus);
+    const reply = latestWishReply();
+    const replied = reply && Math.abs(Date.parse(reply.timestamp) - Number(wish.submittedAt || 0)) < 120000 && WISH_REPLY_LABELS[reply.status];
+    $("[data-ag-wish-done-meta]").textContent = replied
+      ? `Fionn sagt: ${WISH_REPLY_LABELS[reply.status]}`
+      : wishMetaText(wish.remoteStatus);
   } else {
     idle.hidden = false;
     form.hidden = true;
@@ -1939,9 +1956,8 @@ export function renderWunschkapsel() {
 // ── hydrateCopy ───────────────────────────────────────────────────────────────
 
 export function hydrateCopy() {
-  const isFionn = getMissionPlayer() === "fionn";
-  const name = isFionn ? state.theme.brand.fromName : displayNameFromToken();
-  const recipientName = isFionn ? displayNameFromToken() : state.theme.brand.fromName;
+  const name = displayNameFromToken();
+  const recipientName = state.theme.brand.fromName;
   const elTitle = $("[data-ag-main-title]"); if (elTitle) elTitle.textContent = state.theme.brand.titleTemplate.replace("{name}", name);
   const elKicker = $("[data-ag-kicker]"); if (elKicker) elKicker.textContent = `${state.theme.brand.kicker}\u2009·\u2009${state.photos.length} Erinnerungen`;
   const elIntro = $("[data-ag-intro]"); if (elIntro) elIntro.textContent = state.theme.brand.intro;
@@ -1950,16 +1966,13 @@ export function hydrateCopy() {
   const elRulesText = $("[data-ag-rules-text]"); if (elRulesText) elRulesText.textContent = state.theme.brand.rulesText;
   const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
   const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
-  const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel\u2009·\u2009ein Tag\u2009·\u2009ein Souvenir.";
-
-  // The Werkstatt is the authoring side: Lennart writes what Fionn pulls, so
-  // it only exists in Lennart's view. Fionn never sees his own pool. It is
-  // also behind a config flag, currently off — see theme.json features.
-  const werkstattEntry = $("[data-ag-werkstatt-open]");
-  if (werkstattEntry) werkstattEntry.hidden = isFionn || !werkstattEnabled();
-  const werkstattPanel = document.getElementById("ag-werkstatt-panel");
-  if (werkstattPanel && !werkstattEnabled()) werkstattPanel.hidden = true;
-  renderWerkstattEntry();
+  const elHint = $("[data-ag-draw-hint]");
+  if (elHint) {
+    const pulls = readHistory().filter((e) => e.token === getToken()).length;
+    const hint = letterHintDue(pulls);
+    elHint.textContent = hint ? LETTER_HINT : "Eine Kapsel\u2009·\u2009ein Tag\u2009·\u2009ein Souvenir.";
+    elHint.classList.toggle("is-secret", hint);
+  }
 
   const chips = $("[data-ag-chips]");
   if (chips) chips.innerHTML = "";
@@ -1977,6 +1990,12 @@ export function hydrateCopy() {
       li.setAttribute("role", "button");
       li.setAttribute("aria-label", "Bärlauch öffnen");
       li.classList.add("ag-chip-clickable");
+      // March–May the chip glows: the real forest is in season, and so is
+      // the weekly token for clearing level 5.
+      if (isBaerlauchSaison()) {
+        li.classList.add("ag-chip-saison");
+        li.title = "Bärlauch-Saison — Level 5 schaffen, 🌿 kassieren";
+      }
     }
 
     if (chip.toLowerCase().includes("gespräch") || chip.toLowerCase().includes("gesprach")) {
@@ -2013,15 +2032,6 @@ export function hydrateCopy() {
       li.setAttribute("role", "button");
       li.setAttribute("aria-label", "Glossar öffnen");
       li.classList.add("ag-chip-clickable");
-    }
-
-    if (chip.toLowerCase() === "mission") {
-      li.id = "ag-btn-mission";
-      li.tabIndex = 0;
-      li.setAttribute("role", "button");
-      li.setAttribute("aria-label", "Mission öffnen");
-      li.classList.add("ag-chip-clickable");
-      if (!isMissionDoneToday()) li.classList.add("ag-chip-mission-active");
     }
 
     if (chip.toLowerCase().includes("skincare") || chip.toLowerCase().includes("pflege")) {

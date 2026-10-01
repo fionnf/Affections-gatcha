@@ -34,15 +34,15 @@ export function hmInTimezone(timezone) {
   return { h: get("hour"), m: get("minute") };
 }
 
+// One formatter, not one per history row: Intl.DateTimeFormat construction
+// is the expensive part, formatting is cheap.
+let _historyDateFmt = null;
 export function formatHistoryDate(dayKey) {
   const [y, m, d] = dayKey.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   try {
-    return new Intl.DateTimeFormat("de-CH", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }).format(date);
+    _historyDateFmt ||= new Intl.DateTimeFormat("de-CH", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+    return _historyDateFmt.format(date);
   } catch (error) {
     return dayKey;
   }
@@ -124,15 +124,10 @@ export function extractDriveFileId(url) {
   return m ? (m[1] || m[2]) : null;
 }
 
+// One player. The token still travels on every history row, backup payload
+// and sheet column (that is how the data is keyed), it just never changes.
 export function getToken() {
-  return getMissionPlayer() === "fionn" ? "fionn" : "lennart";
-}
-
-export function getMissionPlayer() {
-  try {
-    const p = new URLSearchParams(window.location.search).get("player");
-    return p === "fionn" ? "fionn" : "lennart";
-  } catch (_) { return "lennart"; }
+  return "lennart";
 }
 
 export function getPreviewDay() {
@@ -203,18 +198,29 @@ export function normaliseDay(raw) {
 }
 
 // Decide whether a history entry is a redeemable voucher (Gutschein).
-// Explicit flag wins; otherwise fall back to keyword detection so older
-// entries (recorded before the flag existed) still get a Benutzen button.
-const VOUCHER_KEYWORDS = /gutschein|lädt\s+(dich\s+)?(zum|zur|ein)|einladung|voucher/i;
-const VOUCHER_NEGATIVE = /nicht\s+einlös|kein\s+gutschein/i;
-const VOUCHER_SKIP_CATEGORIES = new Set(["photo", "collect", "niete"]);
+// A capsule is a voucher when config says so: "voucher": true on the outcome,
+// recorded onto the history entry at pull time. There used to be a keyword
+// fallback (Gutschein, "lädt dich ein"…) for entries recorded before the flag
+// existed; it also caught texts that only mention a voucher, so the Benutzen
+// button appeared on capsules that weren't one. Now every voucher in
+// config/outcomes.json carries the flag, and an old entry without one is
+// recognised by its title instead — registered from the config at load, so
+// a renamed outcome simply stops matching rather than guessing.
+const VOUCHER_TITLES = new Set();
+export function registerVoucherTitles(outcomes) {
+  VOUCHER_TITLES.clear();
+  const cats = Array.isArray(outcomes && outcomes.categories) ? outcomes.categories : [];
+  for (const c of cats) {
+    for (const o of (Array.isArray(c.outcomes) ? c.outcomes : [])) {
+      if (o && o.voucher === true && o.title) VOUCHER_TITLES.add(o.title);
+    }
+  }
+}
 export function isVoucherEntry(entry) {
   if (!entry) return false;
   if (entry.voucher === true) return true;
-  if (VOUCHER_SKIP_CATEGORIES.has(entry.categoryId)) return false;
-  const text = `${entry.title || ""} ${entry.message || ""}`;
-  if (VOUCHER_NEGATIVE.test(text)) return false;
-  return VOUCHER_KEYWORDS.test(text);
+  if (entry.voucher === false) return false;
+  return !!entry.title && VOUCHER_TITLES.has(entry.title);
 }
 
 // Escape text for interpolation into innerHTML template strings. Sheet-synced

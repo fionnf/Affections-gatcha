@@ -9,7 +9,7 @@ import { getToken, dateKeyInTimezone, hmInTimezone, dailyMsgIdx, currentQuestPer
 import { resolveBase } from "./sync.js";
 import { displayNameFromToken } from "./render.js";
 import { readHistory, readQuestState } from "./storage.js";
-import { isQuestAvailable } from "./mission.js";
+import { isQuestAvailable } from "./extras.js";
 
 // Notification message pools
 export const DAILY_REMINDER_POOL = [

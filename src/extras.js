@@ -1,8 +1,10 @@
-// ── Mission / Gespräch / Quest / Letter ───────────────────────────────────────
-import { state, mount, $ } from "./state.js";
-import { getMissionPlayer, dateKeyInTimezone, currentChallenge } from "./utils.js";
-import { seededIndex, escapeHtml as escHtml } from "./utils.js";
-import { readMissionLog, writeMissionLog, readQuestState, writeQuestState, readQuestPoints, addQuestPoints } from "./storage.js";
+// ── Gespräch / Quest / Letter ────────────────────────────────────────────────
+// The daily missions that used to live here went with the two-player half of
+// the app; what is left are the conversation prompt, the (currently disabled)
+// photo quest and the hidden letter.
+import { state, $ } from "./state.js";
+import { currentChallenge } from "./utils.js";
+import { readQuestState, writeQuestState, readQuestPoints, addQuestPoints } from "./storage.js";
 import { QUEST_POINTS_SCHEDULE, GESPRACH_IDX_KEY } from "./constants.js";
 import { backupToSheets } from "./sync.js";
 import { imagePhotos } from "./pull.js";
@@ -38,7 +40,68 @@ export const GESPRACH_QUESTIONS = [
   "Welchen meiner Züge findest du am lustigsten?",
   "Was ist etwas, das du an Zürich vermissen würdest, wenn wir woanders leben würden?",
   "Wenn ich ein Tier wäre — welches, und warum genau das?",
-  "Was wäre dein perfektes Date mit mir, völlig egal ob realistisch oder nicht?"
+  "Was wäre dein perfektes Date mit mir, völlig egal ob realistisch oder nicht?",
+  // Sixty more: a month of questions was a month before the first repeat.
+  "Welche kleine Gewohnheit von mir würdest du sofort vermissen, wenn sie plötzlich weg wäre?",
+  "Was war das Beste, das dir diese Woche passiert ist, und wusste ich davon?",
+  "Wenn du einen Tag lang in meinem Kopf wohnen könntest: Was würdest du dir als Erstes anschauen?",
+  "Welche Frage hast du mir noch nie gestellt, weil du Angst vor der Antwort hattest?",
+  "Was glaubst du, worüber ich nachts nachdenke, wenn ich nicht schlafen kann?",
+  "Welches Lied erinnert dich an uns, ohne dass ich das je wusste?",
+  "Was war der Moment, in dem du zum ersten Mal richtig über mich gelacht hast?",
+  "Wenn unsere Beziehung ein Gericht wäre: Was wäre es, und wer hat es gekocht?",
+  "Was ist eine Sache, die du gern besser könntest, und bei der ich dir helfen könnte?",
+  "Woran merkst du, dass ich gerade einen guten Tag habe?",
+  "Woran merkst du, dass ich gerade einen schlechten habe, bevor ich es sage?",
+  "Welchen Ort möchtest du mir unbedingt noch zeigen, und warum gerade den?",
+  "Was ist etwas, das du als Kind geliebt hast und heute vergisst?",
+  "Wenn wir in zehn Jahren zusammen auf heute zurückschauen: Was werden wir als das Wichtigste sehen?",
+  "Welche drei Dinge sollten in jeder Wohnung sein, in der wir je wohnen?",
+  "Was hast du von mir gelernt, ohne dass ich es dir beibringen wollte?",
+  "Welcher Streit war im Nachhinein der nützlichste?",
+  "Was macht dich an mir manchmal nervös, und ist das schlimm?",
+  "Wenn du mir eine Fähigkeit schenken könntest: welche, und was würde ich damit machen?",
+  "Was ist dein Lieblingsbild von uns, und warum genau das?",
+  "Was möchtest du unbedingt einmal zusammen kochen, obwohl es wahrscheinlich schiefgeht?",
+  "Wie würdest du mich jemandem beschreiben, der mich noch nie gesehen hat, in drei Sätzen?",
+  "Was ist ein Kompliment, das du bekommen hast und nie vergessen wirst?",
+  "Welche Regel sollte es in unserer Beziehung geben, die es noch nicht gibt?",
+  "Was wünschst du dir für mich, das nichts mit dir zu tun hat?",
+  "Welcher Tag würdest du gern einmal komplett ohne Handy mit mir verbringen, und was machen wir?",
+  "Was war das Erste, das dir an meiner Wohnung aufgefallen ist?",
+  "Welche Angewohnheit von mir hast du inzwischen übernommen?",
+  "Was ist eine Sache, die ich für selbstverständlich halte, die du an mir bemerkst?",
+  "Wenn du einen Abend lang die Playlist für unser Leben machst: Welche drei Lieder sind sicher drin?",
+  "Was wolltest du mir schon länger vorschlagen, hast es aber verschoben?",
+  "Welcher Geruch gehört für dich zu mir?",
+  "Was ist die beste Entscheidung, die wir bisher gemeinsam getroffen haben?",
+  "Worauf freust du dich im Winter, worauf im Sommer?",
+  "Welche Sache würdest du gern einmal mit mir lernen, bei der wir beide bei null anfangen?",
+  "Was ist etwas, das du dich bei mir nicht traust zu fragen, obwohl du es gern wüsstest?",
+  "Wann hast du zuletzt gedacht: genau das hier, so soll es sein?",
+  "Welche meiner Geschichten hast du schon dreimal gehört und hörst sie trotzdem gern?",
+  "Was ist der kleinste Luxus, den du dir mit mir gern öfter gönnen würdest?",
+  "Wenn du einen Satz für ein Schild über unserer Tür schreiben müsstest: Was stünde drauf?",
+  "Welchen Teil deines Alltags würdest du mir gern öfter zeigen?",
+  "Was glaubst du, worin ich dich unterschätze?",
+  "Was glaubst du, worin du dich selbst unterschätzt, und was sehe ich stattdessen?",
+  "Welche Jahreszeit passt zu uns, und warum?",
+  "Was war ein Moment, in dem du stolz auf mich warst, ohne es gesagt zu haben?",
+  "Wenn wir ein Wochenende mit nur einer Tasche wegfahren: Was ist drin, und wohin?",
+  "Welches Wort aus deiner Kindheit sollte ich unbedingt lernen?",
+  "Was ist eine Tradition, die wir uns ausdenken sollten?",
+  "Was macht dich zuverlässig fröhlich, und mache ich davon genug?",
+  "Welche Seite von dir glaubst du, kenne ich noch gar nicht?",
+  "Wenn du mir heute einen Brief schreiben müsstest: Wie würde der erste Satz lauten?",
+  "Was wäre dein perfekter Sonntagmorgen, bis ins Detail?",
+  "Was ist eine Sache, über die wir nie reden, und sollten wir?",
+  "Welche Entscheidung in deinem Leben hat uns überhaupt erst möglich gemacht?",
+  "Wie sieht ein Streit aus, den wir gut führen? Woran würde man das merken?",
+  "Was würdest du gern öfter von mir hören?",
+  "Welche Ecke von Zürich fühlt sich am meisten nach uns an?",
+  "Was ist ein Wunsch, der dir zu klein vorkommt, um ihn auszusprechen?",
+  "Wenn du einen Tag aus unserem ersten Monat noch einmal haben könntest: welchen?",
+  "Was glaubst du, worüber wir in einem Jahr lachen werden, das uns heute noch ernst vorkommt?"
 ];
 
 export const LETTER_FALLBACKS = [
@@ -50,171 +113,6 @@ export const LETTER_FALLBACKS = [
   ["Es gibt Momente wo ich denke: Das hier ist sehr gut. Mit dir.", "Kein Drama, kein Aufwand — einfach sehr gut."],
   ["Ich bin froh, dass du in meinem Leben bist.", "So einfach ist das."]
 ];
-
-const MISSION_DONE_KEY = "affektions-gacha:mission-done:v1";
-const MISSION_FEEDBACK_KEY = "affektions-gacha:mission-feedback:v1";
-
-export function getTodaysMission() {
-  const pairs = state.missions?.pairs;
-  if (!Array.isArray(pairs) || !pairs.length) return null;
-  const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-  const idx = seededIndex(`${state.theme.secret}|mission|${day}`, pairs.length);
-  const pair = pairs[idx];
-  const player = getMissionPlayer();
-  return player === "fionn" ? pair.fionn : pair.lennart;
-}
-
-export function isMissionDoneToday() {
-  try {
-    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    return localStorage.getItem(`${MISSION_DONE_KEY}:${getMissionPlayer()}`) === day;
-  } catch (_) { return false; }
-}
-
-export function markMissionDone() {
-  try {
-    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    localStorage.setItem(`${MISSION_DONE_KEY}:${getMissionPlayer()}`, day);
-    const player = getMissionPlayer();
-    const mission = getTodaysMission();
-    const doneAt = new Date().toISOString();
-    appendMissionLogEntry({ day, player, mission, doneAt });
-    const url = state.backup?.endpointUrl;
-    if (url && mission) {
-      fetch(url, {
-        method: "POST",
-        body: JSON.stringify({ type: "mission-log", player, day, mission, doneAt }),
-        headers: { "Content-Type": "application/json" }
-      }).catch(() => {});
-    }
-  } catch (_) {}
-}
-
-export function isFeedbackSentToday() {
-  try {
-    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    return localStorage.getItem(`${MISSION_FEEDBACK_KEY}:${getMissionPlayer()}`) === day;
-  } catch (_) { return false; }
-}
-
-export function markFeedbackSent() {
-  try {
-    const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-    localStorage.setItem(`${MISSION_FEEDBACK_KEY}:${getMissionPlayer()}`, day);
-  } catch (_) {}
-}
-
-export function sendMissionFeedback(rating, comment) {
-  const day = dateKeyInTimezone(state.theme?.timezone || "UTC");
-  const player = getMissionPlayer();
-  const mission = getTodaysMission();
-  updateMissionLogEntry(day, player, { rating, comment: comment || "" });
-  markFeedbackSent();
-  const url = state.backup?.endpointUrl;
-  if (url) {
-    fetch(url, {
-      method: "POST",
-      body: JSON.stringify({ type: "mission-feedback", player, day, mission, rating, comment: comment || "" }),
-      headers: { "Content-Type": "application/json" }
-    }).catch(() => {});
-  }
-}
-
-export function appendMissionLogEntry(entry) {
-  const log = readMissionLog();
-  const existing = log.findIndex(e => e.day === entry.day && e.player === entry.player);
-  if (existing >= 0) {
-    log[existing] = { ...log[existing], ...entry };
-  } else {
-    log.unshift(entry);
-    if (log.length > 60) log.splice(60);
-  }
-  writeMissionLog(log);
-}
-
-export function updateMissionLogEntry(day, player, updates) {
-  const log = readMissionLog();
-  const idx = log.findIndex(e => e.day === day && e.player === player);
-  if (idx >= 0) { log[idx] = { ...log[idx], ...updates }; writeMissionLog(log); }
-}
-
-export function renderMissionLog(containerEl, playerFilter) {
-  if (!containerEl) return;
-  const log = readMissionLog();
-  const tz = state.theme?.timezone || "UTC";
-  const today = dateKeyInTimezone(tz);
-  // group by day, collect both players
-  const byDay = new Map();
-  for (const entry of log) {
-    if (!byDay.has(entry.day)) byDay.set(entry.day, {});
-    byDay.get(entry.day)[entry.player] = entry;
-  }
-  // show last 30 days that have at least one entry
-  const days = Array.from(byDay.keys()).sort((a, b) => b.localeCompare(a)).slice(0, 30);
-
-  if (!days.length) { containerEl.hidden = true; return; }
-  containerEl.hidden = false;
-  const ratingEmoji = { fire: "🔥", ok: "👍", meh: "😴" };
-  const fmt = (day) => {
-    try {
-      return new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "short", timeZone: tz })
-        .format(new Date(day + "T12:00:00Z"));
-    } catch (_) { return day; }
-  };
-  containerEl.innerHTML = `<h3 class="ag-mission-log-title">Verlauf</h3>` +
-    days.map(day => {
-      const entries = byDay.get(day);
-      const lennart = entries.lennart;
-      const fionn = entries.fionn;
-      const isToday = day === today;
-      const rows = [];
-      if (lennart && (playerFilter !== "fionn")) {
-        const done = lennart.doneAt ? `<span class="ag-log-done">✓</span>` : "";
-        const rating = lennart.rating ? `<span class="ag-log-rating">${ratingEmoji[lennart.rating] || ""}</span>` : "";
-        rows.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-lennart">Lennart</span><span class="ag-log-text">${escHtml(lennart.mission || "")}</span>${done}${rating}</div>`);
-      }
-      if (fionn && (playerFilter !== "lennart")) {
-        const done = fionn.doneAt ? `<span class="ag-log-done">✓</span>` : "";
-        const rating = fionn.rating ? `<span class="ag-log-rating">${ratingEmoji[fionn.rating] || ""}</span>` : "";
-        rows.push(`<div class="ag-log-row"><span class="ag-log-who ag-log-fionn">Fionn</span><span class="ag-log-text">${escHtml(fionn.mission || "")}</span>${done}${rating}</div>`);
-      }
-      if (!rows.length) return "";
-      return `<div class="ag-log-day${isToday ? " ag-log-today" : ""}"><span class="ag-log-date">${fmt(day)}</span>${rows.join("")}</div>`;
-    }).filter(Boolean).join("");
-}
-
-export function openMissionPanel() {
-  const panel = $("#ag-mission-panel");
-  if (!panel) return;
-  const textEl = $("#ag-mission-text");
-  const actionsEl = $("#ag-mission-actions");
-  const feedbackEl = $("#ag-mission-feedback");
-  const feedbackSentEl = $("#ag-mission-feedback-sent");
-  const doneNote = $("#ag-mission-done-note");
-  const subtitleEl = panel.querySelector(".ag-mini-copy");
-  if (subtitleEl) subtitleEl.hidden = true;
-  const mission = getTodaysMission();
-  if (textEl) textEl.textContent = mission || "Heute keine Mission verfügbar.";
-  const done = isMissionDoneToday();
-  const feedbackSent = isFeedbackSentToday();
-  if (actionsEl) actionsEl.hidden = done;
-  if (feedbackEl) {
-    feedbackEl.hidden = !done;
-    panel.querySelectorAll(".ag-mission-rating, .ag-mission-comment, .ag-mission-feedback-send, .ag-mission-feedback-label")
-      .forEach(el => { el.hidden = feedbackSent; });
-  }
-  if (feedbackSentEl) feedbackSentEl.hidden = !feedbackSent;
-  if (doneNote) doneNote.hidden = !done;
-  panel.querySelectorAll(".ag-mission-rate-btn").forEach(b => b.classList.remove("is-selected"));
-  renderMissionLog($("#ag-mission-log"), getMissionPlayer());
-  panel.hidden = false;
-  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-export function closeMissionPanel() {
-  const panel = $("#ag-mission-panel");
-  if (panel) panel.hidden = true;
-}
 
 let gesprachCurrentIndex = -1;
 
@@ -473,9 +371,25 @@ export function revealLetterContent(body, paras) {
   body.style.animation = "";
 }
 
+// The letter is an easter egg: hold the draw button for three seconds, or tap
+// the title five times. An egg nobody knows about is just hidden, so the
+// machine drops one hint — on the tenth pull, then every tenth after that,
+// in place of the usual draw hint — until the letter has been opened once.
+const LETTER_OPENED_KEY = "affektions-gacha:letter-opened:v1";
+export const LETTER_HINT_EVERY = 10;
+export function letterOpened() {
+  try { return localStorage.getItem(LETTER_OPENED_KEY) === "yes"; } catch (_e) { return false; }
+}
+export function letterHintDue(pullCount) {
+  if (letterOpened()) return false;
+  return pullCount > 0 && pullCount % LETTER_HINT_EVERY === 0;
+}
+export const LETTER_HINT = "Psst: Der Knopf hat ein Geheimnis. Drei Sekunden lang halten. 🍀";
+
 export function openLetter() {
   const overlay = $("#ag-letter-overlay");
   if (!overlay) return;
+  try { localStorage.setItem(LETTER_OPENED_KEY, "yes"); } catch (_e) {}
   overlay.hidden = false;
   overlay.focus();
   haptic([20, 60, 20]);

@@ -1,14 +1,49 @@
 // Inbox / activity feed: reads recent hugs, wishes, prompt answers and quest
-// solves from the Apps Script backend (doGet must return an `activity` array).
+// solves from the Apps Script backend (doGet must return an `activity` array),
+// lets Fionn answer a wish, and sends a Stups back to Lennart's phone.
 import { state } from "./state.js";
 import { h } from "./ui.js";
 
 const ICONS = { hug: "🫂", wish: "✨", voucher: "🎟️", answer: "💬", quest: "📸", ping: "📍" };
 
+// The three answers a wish can get. The app shows the label on Lennart's
+// next capsule, so these are his words, not admin vocabulary.
+export const WISH_REPLIES = [
+  { id: "erfuellt", label: "✓ erfüllt" },
+  { id: "irgendwann", label: "🕰 irgendwann" },
+  { id: "lieber-nicht", label: "✗ lieber nicht" }
+];
+
 function endpoint() {
   const cfg = state.backup;
   if (!cfg || !cfg.enabled) return "";
   return typeof cfg.endpointUrl === "string" ? cfg.endpointUrl.trim() : "";
+}
+
+// POST to the Apps Script. Resolves with the parsed answer, or null when the
+// request went out but could not be read (the no-cors fallback is opaque).
+// Rejects only when nothing got through at all.
+export async function postToBackend(payload) {
+  const url = endpoint();
+  if (!url) throw new Error("Kein Backend konfiguriert");
+  const body = JSON.stringify(payload);
+  const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+  try {
+    const res = await fetch(url, opts);
+    try { return await res.json(); } catch { return null; }
+  } catch {
+    await fetch(url, { ...opts, mode: "no-cors" });
+    return null;
+  }
+}
+
+export function sendPing() {
+  return postToBackend({ type: "ping", token: "fionn" });
+}
+
+export function setWishStatus(timestamp, status) {
+  return postToBackend({ type: "wish-status", timestamp, status });
 }
 
 // Fetch the activity feed. Returns an array sorted newest-first (best-effort).
@@ -84,6 +119,26 @@ export async function renderInbox(mount) {
     mount.appendChild(permBtn);
   }
 
+  // A Stups: one line on Lennart's card the next time he opens the app.
+  if (endpoint()) {
+    const pingNote = h("p", { class: "fa-muted fa-ping-note", text: "" });
+    const pingBtn = h("button", { class: "fa-btn ghost", text: "👋 Lennart anstupsen" });
+    pingBtn.addEventListener("click", async () => {
+      pingBtn.disabled = true;
+      pingNote.textContent = "Stups unterwegs…";
+      try {
+        const out = await sendPing();
+        pingNote.textContent = out && out.ok === false
+          ? "Das Script kennt den Stups noch nicht — neu deployen."
+          : "Stups gesendet 👋 — er sieht ihn beim nächsten Öffnen.";
+      } catch {
+        pingNote.textContent = "Gerade keine Verbindung.";
+      }
+      setTimeout(() => { pingBtn.disabled = false; }, 4000);
+    });
+    mount.appendChild(h("div", { class: "fa-ping-row" }, [pingBtn, pingNote]));
+  }
+
   const list = h("div", {});
   const loading = h("p", { class: "fa-muted", text: "Lade…" });
   mount.appendChild(loading);
@@ -104,12 +159,14 @@ export async function renderInbox(mount) {
       return;
     }
     for (const item of items) {
+      const body = h("div", { class: "fa-feed-body" }, [
+        h("div", { class: "fa-when", text: `${labelFor(item)} · ${fmtWhen(item)}` }),
+        h("p", { class: "fa-what", text: textFor(item) })
+      ]);
+      if (item.type === "wish" && item.timestamp) body.appendChild(replyRow(item));
       list.appendChild(h("div", { class: "fa-feed-item" }, [
         h("div", { class: "fa-feed-ico", text: ICONS[item.type] || "•" }),
-        h("div", { class: "fa-feed-body" }, [
-          h("div", { class: "fa-when", text: `${labelFor(item)} · ${fmtWhen(item)}` }),
-          h("p", { class: "fa-what", text: textFor(item) })
-        ])
+        body
       ]));
     }
   } catch (e) {
@@ -118,4 +175,45 @@ export async function renderInbox(mount) {
     mount.appendChild(h("p", { class: "fa-muted", style: "font-size:.78rem;margin-top:8px",
       text: "Hinweis: Das Apps Script muss um den Feed erweitert und neu deployed sein (doGet → activity[])." }));
   }
+}
+
+// The reply on a wish: three buttons, the chosen one lit. Tapping the lit one
+// clears the reply again. Optimistic — the button flips at once, the sheet
+// write is confirmed by the next feed load.
+function replyRow(item) {
+  const row = h("div", { class: "fa-reply-row" });
+  const note = h("span", { class: "fa-reply-note", text: "" });
+  let current = item.status || "";
+  const buttons = WISH_REPLIES.map((r) => {
+    const btn = h("button", { class: "fa-reply-btn" + (current === r.id ? " active" : ""), text: r.label });
+    btn.addEventListener("click", async () => {
+      const next = current === r.id ? "" : r.id;
+      const prev = current;
+      current = next;
+      item.status = next;
+      for (const b of buttons) b.classList.toggle("active", b.dataset.id === next);
+      note.textContent = "…";
+      try {
+        const out = await setWishStatus(item.timestamp, next);
+        if (out && out.ok === false) {
+          note.textContent = out.error === "unknown type" || /type/i.test(out.error || "")
+            ? "Script neu deployen" : (out.error || "nicht gespeichert");
+          current = prev; item.status = prev;
+          for (const b of buttons) b.classList.toggle("active", b.dataset.id === prev);
+        } else {
+          note.textContent = next ? "gespeichert — er sieht es auf der nächsten Kapsel" : "zurückgenommen";
+        }
+      } catch {
+        note.textContent = "keine Verbindung";
+        current = prev; item.status = prev;
+        for (const b of buttons) b.classList.toggle("active", b.dataset.id === prev);
+      }
+      setTimeout(() => { note.textContent = ""; }, 4000);
+    });
+    btn.dataset.id = r.id;
+    return btn;
+  });
+  for (const b of buttons) row.appendChild(b);
+  row.appendChild(note);
+  return row;
 }

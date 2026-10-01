@@ -9,6 +9,16 @@ const outcomes = readJson("outcomes.json");
 const photosConfig = readJson("photos.json");
 const specialDaysConfig = readJsonOptional("special-days.json");
 
+// The live token types, read from constants.js so this cannot drift from
+// the app: a retired emoji in config would credit a bar nobody can see.
+const LIVE_TOKENS = (() => {
+  try {
+    const src = fs.readFileSync(path.join(__dirname, "..", "src", "constants.js"), "utf8");
+    const block = src.split("export const TOKEN_REWARDS = {")[1].split("\n};")[0];
+    return new Set([...block.matchAll(/"([^"]+)": \{ goal:/g)].map((m) => m[1]));
+  } catch (_e) { return null; }
+})();
+
 const errors = [];
 const warnings = [];
 
@@ -73,6 +83,9 @@ if (Array.isArray(outcomes.categories)) {
         assert(typeof outcome.message === "string" && outcome.message.trim(), `Outcome ${category.id}[${index}] needs a message.`);
         if (outcome.link !== undefined) {
           assert(typeof outcome.link === "string" && isValidHttpUrl(outcome.link), `Outcome ${category.id}[${index}].link must be a valid http(s) URL when present.`);
+        }
+        if (outcome.token !== undefined && LIVE_TOKENS && !LIVE_TOKENS.has(outcome.token)) {
+          addError(`Outcome ${category.id}[${index}].token "${outcome.token}" is not a live token type (see TOKEN_REWARDS in src/constants.js).`);
         }
         if (typeof outcome.message === "string" && outcome.message.length > 260) {
           addWarning(`Outcome ${category.id}[${index}] is long (${outcome.message.length} chars). Consider shortening for phone screens.`);
@@ -208,6 +221,9 @@ if (specialDaysConfig !== null) {
         entry.outcomes.forEach((outcome, oi) => {
           assert(typeof outcome.title === "string" && outcome.title.trim(), `${prefix}.outcomes[${oi}].title is required.`);
           assert(typeof outcome.message === "string" && outcome.message.trim(), `${prefix}.outcomes[${oi}].message is required.`);
+          if (outcome.token !== undefined && LIVE_TOKENS && !LIVE_TOKENS.has(outcome.token)) {
+            addError(`${prefix}.outcomes[${oi}].token "${outcome.token}" is not a live token type.`);
+          }
           // renderLinkInto drops a link it cannot parse and hides the button
           // rather than showing a broken one, so a typo'd URL costs the whole
           // point of the capsule and looks like nothing went wrong.

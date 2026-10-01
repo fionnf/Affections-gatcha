@@ -38,9 +38,9 @@ Each category has:
 | Field | Effect |
 |---|---|
 | `link` | Spotify embeds as a player, anything else as a link button |
-| `voucher` | renders as a redeemable Gutschein in Verlauf |
+| `voucher` | `true` makes it a redeemable Gutschein in Verlauf — the flag is the only thing that does; the wording never counts. With four vouchers still unredeemed, new ones step aside for plain texts in the same category |
 | `prompt` | gates the message — a question has to be answered first |
-| `token` | awards one of the 12 Sammeltoken emoji |
+| `token` | awards one of the six Sammeltoken emoji (see `TOKEN_REWARDS` in `src/constants.js`) |
 | `freikarte` | grants a Freikarte (a reroll for a bad day) |
 
 **Adding or removing outcomes shifts the token maths.** Roughly one pull in

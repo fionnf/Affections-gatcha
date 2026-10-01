@@ -173,7 +173,7 @@ export const html = `
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="history" aria-label="Verlauf" title="Verlauf"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="lieblinge" aria-label="Lieblinge" title="Lieblinge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.8l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6L12 16.4l-5.1 2.8 1.1-5.6L3.8 9.7l5.7-.7z"/></svg></button>
                   <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="berge" aria-label="Berge" title="Berge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19L9.5 8l3.3 5.3L15 10l6 9z"/><path d="M8 10.5l1.5-1.2 1.5 1.2"/></svg></button>
-                  <a class="ag-tab" href="./lichter.html" aria-label="Lichtsteuerung" title="Lichtsteuerung"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.6.6-1 1.5-1 2.5h-5c0-1-.4-1.9-1-2.5z"/></svg></a>
+                  <button class="ag-tab" type="button" role="tab" aria-selected="false" data-ag-tab="licht" aria-label="Licht" title="Licht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.6.6-1 1.5-1 2.5h-5c0-1-.4-1.9-1-2.5z"/></svg></button>
                 </div>
               </div>
             </header>
@@ -264,34 +264,6 @@ export const html = `
             <div class="ag-quest-points" id="ag-quest-points" hidden></div>
           </section>
 
-          <section class="ag-card ag-mini-panel" id="ag-mission-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Mission</span>
-              <button class="ag-secondary" type="button" id="ag-mission-close">✕</button>
-            </div>
-            <p class="ag-mini-copy">Deine Aufgabe für heute — Fionn hat eine andere.</p>
-            <div class="ag-mission-card" id="ag-mission-text"></div>
-            <div class="ag-mission-actions" id="ag-mission-actions">
-              <button class="ag-button" type="button" id="ag-mission-done">
-                <span class="ag-button-orb" aria-hidden="true"></span>
-                <span>Erledigt ✓</span>
-              </button>
-            </div>
-            <div class="ag-mission-feedback" id="ag-mission-feedback" hidden>
-              <p class="ag-mission-feedback-label">Wie war's?</p>
-              <div class="ag-mission-rating" id="ag-mission-rating">
-                <button class="ag-mission-rate-btn" type="button" data-rating="fire">🔥</button>
-                <button class="ag-mission-rate-btn" type="button" data-rating="ok">👍</button>
-                <button class="ag-mission-rate-btn" type="button" data-rating="meh">😴</button>
-              </div>
-              <textarea class="ag-mission-comment" id="ag-mission-comment" rows="2" maxlength="200" placeholder="Optional: was hat funktioniert oder nicht?"></textarea>
-              <button class="ag-secondary ag-mission-feedback-send" type="button" id="ag-mission-feedback-send">Feedback senden</button>
-              <p class="ag-mission-feedback-sent" id="ag-mission-feedback-sent" hidden>Danke — die Maschine lernt.</p>
-            </div>
-            <p class="ag-mission-done-note" id="ag-mission-done-note" hidden>Gut gemacht. Morgen gibt es eine neue Aufgabe für euch beide.</p>
-            <div class="ag-mission-log" id="ag-mission-log" hidden></div>
-          </section>
-
           <section class="ag-card ag-mini-panel" id="ag-glossary-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge">Glossar 📖</span>
@@ -370,49 +342,16 @@ export const html = `
             </div>
           </section>
 
-          <section class="ag-card ag-mini-panel" id="ag-werkstatt-panel" hidden>
-            <div class="ag-mini-head">
-              <span class="ag-badge">Werkstatt 🔧</span>
-              <button class="ag-secondary" type="button" id="ag-werkstatt-close">✕</button>
-            </div>
-            <h2 class="ag-mini-title">Kapseln für Fionn</h2>
-            <p class="ag-mini-copy">Was du hier schreibst, zieht Fionn.</p>
-            <div class="ag-werkstatt-tabs" id="ag-werkstatt-tabs"></div>
-            <p class="ag-werkstatt-note" id="ag-werkstatt-note"></p>
-            <div class="ag-werkstatt-list" id="ag-werkstatt-list"></div>
-            <button class="ag-button ag-werkstatt-add-btn" type="button" id="ag-werkstatt-add" style="width:100%;justify-content:center;margin-top:12px">
-              <span class="ag-button-orb" aria-hidden="true"></span>
-              <span>Kapsel schreiben</span>
-            </button>
-            <div class="ag-werkstatt-form" id="ag-werkstatt-form" hidden>
-              <p class="ag-wish-label" id="ag-werkstatt-form-title">Neue Kapsel</p>
-              <div class="ag-werkstatt-form-fields">
-                <input class="ag-berge-input" type="text" id="ag-werkstatt-title" placeholder="Titel" maxlength="80">
-                <textarea class="ag-berge-input ag-werkstatt-textarea" id="ag-werkstatt-message" rows="3" maxlength="400" placeholder="Was steht in der Kapsel?"></textarea>
-                <input class="ag-berge-input" type="text" id="ag-werkstatt-prompt" placeholder="Frage an ihn (optional)" maxlength="180" autocomplete="off">
-                <input class="ag-berge-input" type="url" id="ag-werkstatt-link" placeholder="Link (optional, z. B. Spotify)" inputmode="url" autocomplete="off" spellcheck="false">
-                <label class="ag-werkstatt-check">
-                  <input type="checkbox" id="ag-werkstatt-voucher">
-                  <span>Gutschein — Fionn kann ihn einlösen</span>
-                </label>
-              </div>
-              <p class="ag-werkstatt-error" id="ag-werkstatt-error" hidden></p>
-              <div class="ag-werkstatt-form-actions">
-                <button class="ag-secondary" type="button" id="ag-werkstatt-cancel">Abbrechen</button>
-                <button class="ag-button" type="button" id="ag-werkstatt-save">
-                  <span class="ag-button-orb" aria-hidden="true"></span>
-                  <span>Speichern</span>
-                </button>
-              </div>
-              <button class="ag-werkstatt-delete-btn" type="button" id="ag-werkstatt-delete" hidden>Kapsel löschen</button>
-            </div>
-          </section>
-
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
+            <div class="ag-ping-banner" data-ag-ping-banner hidden>
+              <span data-ag-ping-text>👋 Fionn denkt gerade an dich.</span>
+              <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
+            </div>
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
                 <span class="ag-pill" data-ag-today-pill>Heute</span>
                 <span class="ag-streak" data-ag-streak hidden></span>
+                <span class="ag-streak-gems" data-ag-streak-gems hidden></span>
                 <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
@@ -426,10 +365,7 @@ export const html = `
               <div class="ag-milestone" data-ag-milestone hidden>
                 <span data-ag-milestone-text></span>
               </div>
-              <div class="ag-ping-banner" data-ag-ping-banner hidden>
-                <span data-ag-ping-text>👋 Fionn denkt an dich.</span>
-                <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
-              </div>
+              <p class="ag-wish-reply" data-ag-wish-reply hidden></p>
               <div class="ag-result-head">
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
@@ -512,29 +448,6 @@ export const html = `
                 <p class="ag-wish-meta" data-ag-wish-done-meta></p>
               </div>
             </div>
-
-            <div class="ag-card ag-ping-card" data-ag-ping-card hidden>
-              <div class="ag-hug-row">
-                <div class="ag-hug-text">
-                  <p class="ag-wish-label">Lennart anstupsen</p>
-                  <p class="ag-wish-note" style="margin-bottom:0">Schick Lennart einen kleinen Stups — er erscheint als kurze Meldung beim nächsten App-Öffnen.</p>
-                </div>
-                <button class="ag-hug-button" type="button" data-ag-ping-send aria-label="Ping an Lennart senden">
-                  <span class="ag-hug-emoji" aria-hidden="true">👋</span>
-                  <span class="ag-hug-label">Stups senden</span>
-                </button>
-              </div>
-              <p class="ag-hug-status" data-ag-ping-status hidden></p>
-            </div>
-
-            <button class="ag-card ag-werkstatt-entry" type="button" data-ag-werkstatt-open hidden>
-              <span class="ag-werkstatt-entry-ico" aria-hidden="true">🔧</span>
-              <span class="ag-werkstatt-entry-text">
-                <span class="ag-werkstatt-entry-title">Kapseln für Fionn schreiben</span>
-                <span class="ag-werkstatt-entry-sub" data-ag-werkstatt-entry-sub>Werkstatt öffnen</span>
-              </span>
-              <span class="ag-werkstatt-entry-chev" aria-hidden="true">›</span>
-            </button>
 
             <div class="ag-card ag-notif-card" data-ag-notif-card hidden>
               <p class="ag-notif-text">🔔 Tägliche Erinnerung um 8 Uhr einrichten – damit die Kapsel nicht auf dich wartet.</p>
@@ -678,6 +591,33 @@ export const html = `
               <div id="ag-gipfel-map" class="ag-gipfel-map"></div>
             </div>
           </section>
+          <section class="ag-panel" data-ag-panel-licht role="tabpanel" hidden>
+            <div class="ag-card ag-licht-card">
+              <div class="ag-licht-head">
+                <div class="ag-licht-lamps" data-ag-licht-lamps aria-live="polite"></div>
+                <button class="ag-licht-conn" type="button" data-ag-licht-conn data-state="idle"></button>
+              </div>
+              <div class="ag-licht-strip" data-ag-licht-strip aria-hidden="true"></div>
+              <div class="ag-licht-row">
+                <button class="ag-licht-power" type="button" data-ag-licht-power aria-pressed="false" disabled>Aus</button>
+                <label class="ag-licht-slider">
+                  <span>Helligkeit</span>
+                  <input type="range" min="2" max="100" value="60" data-ag-licht-brightness aria-label="Helligkeit" disabled>
+                </label>
+              </div>
+              <div class="ag-licht-palette" data-ag-licht-palette role="slider" tabindex="0" aria-label="Farbe" aria-valuemin="0" aria-valuemax="29" aria-valuenow="0"></div>
+              <div class="ag-licht-moods" data-ag-licht-moods></div>
+              <div class="ag-licht-scenes" data-ag-licht-scenes hidden>
+                <p class="ag-licht-label">Gespeicherte Szenen</p>
+                <div class="ag-licht-scene-list" data-ag-licht-scene-list></div>
+              </div>
+              <div class="ag-licht-foot">
+                <button class="ag-secondary" type="button" data-ag-licht-wink disabled>👋 Fionns Lampe winken</button>
+                <a class="ag-secondary ag-link" href="./lichter.html">Alle Einstellungen ›</a>
+              </div>
+              <p class="ag-licht-note">Beide Lampen hängen am selben Draht: was du hier stellst, sieht Fionn bei sich. Alarme, Gruppen, WLAN und Neustart wohnen auf der grossen Seite.</p>
+            </div>
+          </section>
           <p class="ag-sync-status" data-ag-sync-status hidden></p>
         </div>
       </div>
@@ -723,10 +663,10 @@ export const html = `
           <span class="ag-bottomnav-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19L9.5 8l3.3 5.3L15 10l6 9z"/><path d="M8 10.5l1.5-1.2 1.5 1.2"/></svg></span>
           <span class="ag-bottomnav-btn-label">Berge</span>
         </button>
-        <a class="ag-bottomnav-btn ag-bottomnav-link" href="./lichter.html" aria-label="Lichtsteuerung">
+        <button class="ag-bottomnav-btn" type="button" role="tab" aria-selected="false" data-ag-tab="licht" aria-label="Licht">
           <span class="ag-bottomnav-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.6.6-1 1.5-1 2.5h-5c0-1-.4-1.9-1-2.5z"/></svg></span>
           <span class="ag-bottomnav-btn-label">Licht</span>
-        </a>
+        </button>
       </nav>
     `;
 

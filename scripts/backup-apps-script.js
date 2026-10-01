@@ -13,16 +13,17 @@
  *   "Backup"         — one row per token, stores metadata (streak, favourites, tokens, questPoints)
  *   "History"        — one row per history entry, never fully overwritten
  *   "Quests"         — one row per solved quest
- *   "MissionFeedback"— one row per feedback submission (append-only)
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
- *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
+ *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn.
+ *                      Columns G/H (Status, StatusAt) hold Fionn's reply to a
+ *                      wish, set from the Eingänge; the app shows it to Lennart.
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
  *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
  *   "PromptAnswers"  — one row per prompt answer (append-only); triggers email to Fionn
- *   "Werkstatt"      — one row per hand-written capsule, upsert by id. Lennart
- *                      writes these for Fionn; ForToken says whose pool they
- *                      belong to. Answer/AnsweredAt hold the reply to a
- *                      capsule's Prompt, so it reaches whoever asked.
+ *
+ * Retired sheets (left in place, no longer read or written): "MissionLog",
+ * "MissionFeedback" and "Werkstatt" belonged to the two-player half of the
+ * app, which was removed.
  *
  * Google Drive folder: "Glossar-Audio" — audio recordings for glossary words
  */
@@ -34,6 +35,37 @@ const DAY_START_HOUR = 4;   // keep in step with config/theme.json dayStartHour
 const WISH_SHEET_NAME = "Wünsche";
 
 const FIONN_EMAIL = "fionn@fionnferreira.com";
+
+// ── Wünsche rows ─────────────────────────────────────────────────────────────
+// Two layouts live in the same sheet: this script writes six columns
+// (Timestamp, Token, Type, Wish, Page URL, User Agent), the older standalone
+// wish-inbox script wrote five with the text in column C. Normalise both so
+// the feeds never show a page URL as somebody's wish. Columns G/H carry the
+// reply (Status, StatusAt) in either layout.
+const WISH_STATUSES = ["erfuellt", "irgendwann", "lieber-nicht"];
+function tsStr_(v) {
+  if (!v) return "";
+  if (v instanceof Date) return v.toISOString();
+  return String(v);
+}
+function wishRow_(row) {
+  const c = (row[2] || "").toString();
+  const key = c.toLowerCase();
+  let type, text;
+  if (key === "notfall-umarmung" || key === "hug") { type = "hug"; text = row[3] || ""; }
+  else if (key === "wunschkapsel" || key === "wish") { type = "wish"; text = row[3] || ""; }
+  else if (key === "voucher") { type = "voucher"; text = row[3] || ""; }
+  else if (c.indexOf("[hug]") === 0) { type = "hug"; text = c.replace(/^\[hug\]\s*/, ""); }
+  else { type = "wish"; text = c; }
+  return {
+    timestamp: tsStr_(row[0]),
+    token: (row[1] || "").toString().toLowerCase(),
+    type: type,
+    text: text.toString(),
+    status: (row[6] || "").toString(),
+    statusAt: tsStr_(row[7])
+  };
+}
 
 // ── GET: return full backup for a token ─────────────────────────────────────
 
@@ -104,19 +136,6 @@ function doGet(e) {
       if (scoreValues[i][0]) baerlauchScores[scoreValues[i][0]] = scoreValues[i][1] || 0;
     }
 
-    // Read mission log (all players, last 60 entries)
-    const missionLogSheet = getOrCreateMissionLogSheet_(ss);
-    const missionLogValues = missionLogSheet.getDataRange().getValues();
-    const missionLog = [];
-    for (let i = Math.max(1, missionLogValues.length - 60); i < missionLogValues.length; i++) {
-      const row = missionLogValues[i];
-      if (!row[0]) continue;
-      const entry = { day: normDay(row[0]), player: row[1] || "", mission: row[2] || "", doneAt: row[3] || null };
-      if (row[4]) entry.rating = row[4];
-      if (row[5]) entry.comment = row[5];
-      missionLog.push(entry);
-    }
-
     const latestPing = PropertiesService.getScriptProperties().getProperty("latestPing") || null;
 
     // Read Gipfelbuch entries (all players share one log)
@@ -162,31 +181,6 @@ function doGet(e) {
       });
     }
 
-    // Kapsel-Werkstatt: capsules one player hand-wrote for the other. Shared
-    // with both sides — the author lists and edits them, the recipient draws
-    // from them (see poolForCategory in src/pull.js).
-    const werkSheet = getOrCreateWerkstattSheet_(ss);
-    const werkValues = werkSheet.getDataRange().getValues();
-    const werkstatt = [];
-    for (let i = 1; i < werkValues.length; i++) {
-      const row = werkValues[i];
-      if (!row[0]) continue;
-      werkstatt.push({
-        id:         row[0],
-        categoryId: row[1] || "",
-        forToken:   row[2] || "fionn",
-        title:      row[3] || "",
-        message:    row[4] || "",
-        link:       row[5] || null,
-        voucher:    row[6] === true || String(row[6]).toLowerCase() === "true",
-        createdBy:  row[7] || "",
-        createdAt:  row[8] || "",
-        prompt:     row[9] || null,
-        answer:     row[10] || null,
-        answeredAt: row[11] || null
-      });
-    }
-
     // Today's shared Stimmung colour (one row per day, set by either player).
     // Returned as {day, hex} or null; the client applies it if it's for today.
     let stimmung = null;
@@ -203,6 +197,20 @@ function doGet(e) {
         break;
       }
     } catch (errS) { stimmung = null; }
+
+    // This token's own wishes, newest first, with Fionn's reply where there is
+    // one. The app keeps the last few and shows a new reply on the next card.
+    let wishes = [];
+    try {
+      const wSheet = getOrCreateWuenscheSheet_(ss);
+      const wRows = wSheet.getDataRange().getValues();
+      for (let i = wRows.length - 1; i >= 1 && wishes.length < 8; i--) {
+        if (!wRows[i][0]) continue;
+        const w = wishRow_(wRows[i]);
+        if (w.type !== "wish" || w.token !== token) continue;
+        wishes.push({ timestamp: w.timestamp, text: w.text, status: w.status, statusAt: w.statusAt });
+      }
+    } catch (errW) { wishes = []; }
 
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
@@ -239,15 +247,10 @@ function doGet(e) {
       for (let i = 1; i < wVals.length; i++) {
         const row = wVals[i];
         if (!row[0]) continue;
-        const ts = (row[0] instanceof Date) ? row[0].toISOString() : String(row[0]);
+        const w = wishRow_(row);
+        const ts = w.timestamp;
         if (since && ts <= since) continue;
-        const type = (row[2] || "wish").toString().toLowerCase();
-        pending.push({
-          timestamp: ts,
-          from: (row[1] || "").toString().toLowerCase(),
-          type: type,
-          text: row[3] || row[4] || ""
-        });
+        pending.push({ timestamp: ts, from: w.token, type: w.type, text: w.text });
         if (ts > maxTs) maxTs = ts;
       }
       if (maxTs && maxTs !== since && !(e.parameter.peek === "1")) {
@@ -292,7 +295,7 @@ function doGet(e) {
       }
 
       const due = [];
-      ["lennart", "fionn"].forEach(function (who) {
+      ["lennart"].forEach(function (who) {
         if (pulledToday[who]) return;
         // One nudge per player, per kind, per day — a retry or a double cron
         // must not send twice.
@@ -318,13 +321,15 @@ function doGet(e) {
       for (let i = 1; i < wVals.length; i++) {
         const row = wVals[i];
         if (!row[0]) continue;
-        const type = (row[2] || "wish").toString().toLowerCase();
+        const w = wishRow_(row);
         activity.push({
-          timestamp: tsStr(row[0]),
-          token: row[1] || "",
-          type: type === "hug" || type === "voucher" ? type : "wish",
-          message: row[3] || "",
-          wish: row[3] || ""
+          timestamp: w.timestamp,
+          token: w.token,
+          type: w.type,
+          message: w.text,
+          wish: w.text,
+          status: w.status,
+          statusAt: w.statusAt
         });
       }
 
@@ -372,12 +377,11 @@ function doGet(e) {
       questPoints:   meta ? meta.questPoints : 0,
       lastUpdated:   meta ? meta.lastUpdated : null,
       baerlauchScores,
-      missionLog,
       latestPing,
       gipfelbuch,
       glossary,
       stimmung,
-      werkstatt,
+      wishes,
       activity,
     });
   } catch (err) {
@@ -448,39 +452,6 @@ function doPost(e) {
           body: "Frage: " + (data.prompt || "") + "\n\nAntwort:\n" + (data.answer || "") + "\n\n" + tsLocal
         });
       } catch (_mailErr) { /* answer safe in sheet */ }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Mission log entry ─────────────────────────────────────────────────────
-    if (data.type === "mission-log") {
-      const sheet = getOrCreateMissionLogSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      const dayStr = (data.day || "").slice(0, 10);
-      const player = data.player || "";
-      let rowIdx = -1;
-      for (let i = 1; i < values.length; i++) {
-        const d = values[i][0] instanceof Date
-          ? Utilities.formatDate(values[i][0], "UTC", "yyyy-MM-dd")
-          : String(values[i][0]).slice(0, 10);
-        if (d === dayStr && values[i][1] === player) { rowIdx = i + 1; break; }
-      }
-      const row = [dayStr, player, data.mission || "", data.doneAt || "", data.rating || "", data.comment || ""];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
-      return jsonOut_({ ok: true });
-    }
-
-    // ── Mission feedback ──────────────────────────────────────────────────────
-    if (data.type === "mission-feedback") {
-      const sheet = getOrCreateMissionFeedbackSheet_(ss);
-      sheet.appendRow([
-        new Date().toISOString(),
-        data.player || "",
-        data.day    || "",
-        data.rating || "",
-        data.comment || "",
-        (data.mission || "").slice(0, 500)
-      ]);
       return jsonOut_({ ok: true });
     }
 
@@ -580,58 +551,6 @@ function doPost(e) {
       return jsonOut_({ ok: true });
     }
 
-    // ── Kapsel-Werkstatt upsert ───────────────────────────────────────────────
-    // One row per hand-written capsule. ForToken says whose pool it belongs
-    // to, so the same sheet serves either direction.
-    if (data.type === "werkstatt-upsert") {
-      const sheet = getOrCreateWerkstattSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      const id = data.id || "";
-      if (!id) return jsonOut_({ ok: false, error: "missing id" });
-      let rowIdx = -1;
-      for (let i = 1; i < values.length; i++) {
-        if (values[i][0] === id) { rowIdx = i + 1; break; }
-      }
-      // The answer belongs to the capsule, not to this edit — carry the
-      // existing one over so rewording a question doesn't erase the reply.
-      const prev = rowIdx === -1 ? [] : values[rowIdx - 1];
-      // Take the answer from the payload when it carries one — a client
-      // re-sending an unconfirmed capsule is how a lost answer gets back in —
-      // and otherwise keep whatever the row already holds, so an ordinary
-      // edit can't blank a reply.
-      const ans   = (data.answer === undefined || data.answer === null) ? (prev[10] || "") : data.answer;
-      const ansAt = (data.answeredAt === undefined || data.answeredAt === null) ? (prev[11] || "") : data.answeredAt;
-      const row = [id, data.categoryId || "", data.forToken || "fionn", data.title || "", data.message || "", data.link || "", data.voucher === true, data.createdBy || data.token || "", data.createdAt || new Date().toISOString(), data.prompt || "", ans, ansAt];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
-      return jsonOut_({ ok: true });
-    }
-
-    // The recipient answered a question capsule. Filed on the capsule itself
-    // so the author sees it in the Werkstatt — the generic prompt-answer
-    // path only ever emails Fionn, which is the wrong direction when Lennart
-    // asked the question.
-    if (data.type === "werkstatt-answer" && data.id) {
-      const sheet = getOrCreateWerkstattSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      for (let i = 1; i < values.length; i++) {
-        if (values[i][0] === data.id) {
-          sheet.getRange(i + 1, 11, 1, 2).setValues([[data.answer || "", data.answeredAt || new Date().toISOString()]]);
-          break;
-        }
-      }
-      return jsonOut_({ ok: true });
-    }
-
-    if (data.type === "werkstatt-delete") {
-      const sheet = getOrCreateWerkstattSheet_(ss);
-      const values = sheet.getDataRange().getValues();
-      for (let i = values.length - 1; i >= 1; i--) {
-        if (values[i][0] === data.id) { sheet.deleteRow(i + 1); break; }
-      }
-      return jsonOut_({ ok: true });
-    }
-
     // ── Stimmung (shared day colour) ──────────────────────────────────────────
     // One row per day, shared by both players: whoever sets the mood colour
     // sets it for that day, and the other's app picks it up on the next sync.
@@ -664,6 +583,35 @@ function doPost(e) {
       }
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Fionn's reply on a wish ──────────────────────────────────────────────
+    // Finds the wish by its timestamp (column A, as the feed reported it) and
+    // writes Status/StatusAt into G/H. An empty status clears the reply.
+    if (data.type === "wish-status") {
+      const status = (data.status || "").toString();
+      if (status && WISH_STATUSES.indexOf(status) === -1) return jsonOut_({ ok: false, error: "unknown status" });
+      const want = (data.timestamp || "").toString();
+      const wantMs = Date.parse(want);
+      if (!want) return jsonOut_({ ok: false, error: "missing timestamp" });
+      const sheet = getOrCreateWuenscheSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        const ts = tsStr_(values[i][0]);
+        if (ts === want || (wantMs && Date.parse(ts) === wantMs)) {
+          sheet.getRange(i + 1, 7, 1, 2).setValues([[status, status ? new Date().toISOString() : ""]]);
+          return jsonOut_({ ok: true, status: status });
+        }
+      }
+      return jsonOut_({ ok: false, error: "wish not found" });
+    }
+
+    // ── Stups from Fionn ─────────────────────────────────────────────────────
+    // Nothing but a timestamp: the app compares it with the last one it saw
+    // and shows a banner. Deliberately no row, no email.
+    if (data.type === "ping") {
+      PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
       return jsonOut_({ ok: true });
     }
 
@@ -860,28 +808,6 @@ function getOrCreateQuestSheet_(ss) {
   return sheet;
 }
 
-function getOrCreateMissionLogSheet_(ss) {
-  let sheet = ss.getSheetByName("MissionLog");
-  if (!sheet) {
-    sheet = ss.insertSheet("MissionLog");
-    sheet.appendRow(["Day", "Player", "Mission", "DoneAt", "Rating", "Comment"]);
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(3, 500);
-  }
-  return sheet;
-}
-
-function getOrCreateMissionFeedbackSheet_(ss) {
-  let sheet = ss.getSheetByName("MissionFeedback");
-  if (!sheet) {
-    sheet = ss.insertSheet("MissionFeedback");
-    sheet.appendRow(["Timestamp", "Player", "Day", "Rating", "Comment", "Mission"]);
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(6, 400);
-  }
-  return sheet;
-}
-
 function getOrCreateBaerlauchScoresSheet_(ss) {
   let sheet = ss.getSheetByName("BaerlauchScores");
   if (!sheet) {
@@ -896,7 +822,7 @@ function getOrCreateWuenscheSheet_(ss) {
   let sheet = ss.getSheetByName(WISH_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(WISH_SHEET_NAME);
-    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent"]);
+    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent", "Status", "StatusAt"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 400);
   }
@@ -937,19 +863,6 @@ function getOrCreateGipfelbuchSheet_(ss) {
     sheet.setColumnWidth(2, 180);
     sheet.setColumnWidth(5, 300);
     sheet.setColumnWidth(6, 300);
-  }
-  return sheet;
-}
-
-function getOrCreateWerkstattSheet_(ss) {
-  let sheet = ss.getSheetByName("Werkstatt");
-  if (!sheet) {
-    sheet = ss.insertSheet("Werkstatt");
-    sheet.appendRow(["ID", "CategoryId", "ForToken", "Title", "Message", "Link", "Voucher", "CreatedBy", "CreatedAt", "Prompt", "Answer", "AnsweredAt"]);
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(4, 200);
-    sheet.setColumnWidth(5, 360);
-    sheet.setColumnWidth(6, 260);
   }
   return sheet;
 }

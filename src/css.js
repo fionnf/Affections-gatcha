@@ -274,16 +274,14 @@ export const css = `
       }
 
       /* The chips are 28px tall and are the way into Bärlauch, Gespräch,
-         Mission, Glossar and Stimmung — the smallest real navigation in the
+         Glossar, Stimmung and Skincare — the smallest real navigation in the
          app, on the smallest current iPhone. Rather than fatten them to 44pt
          and wreck the chip row, the hit area is extended past the pill:
          28 + 2*8 = 44pt tall, while the visible design is untouched. The row
          gap is 8px, so ±4px sideways cannot make two chips overlap.
 
-         On ::before deliberately: .ag-chip-mission-active::after is the gold
-         "you have a mission" dot, and one element only gets one ::after. When
-         a chip went active the dot replaced this box, so the Mission chip lost
-         its 44pt target at exactly the moment it most wanted tapping. */
+         On ::before deliberately: the active-state dots (quest, Stimmung)
+         live on ::after, and one element only gets one ::after. */
       .ag-chip-clickable::before {
         content: "";
         position: absolute;
@@ -453,20 +451,6 @@ export const css = `
         border-radius: 50%;
         background: var(--ag-gold);
       }
-      .ag-chip-mission-active {
-        position: relative;
-        box-shadow: 0 0 0 2px var(--ag-gold);
-        font-weight:500;
-      }
-      .ag-chip-mission-active::after {
-        content: '';
-        position: absolute;
-        top: -3px; right: -3px;
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: var(--ag-gold);
-        animation: ag-pulse 1.8s ease-in-out infinite;
-      }
       .ag-chip-stimmung-set {
         position: relative;
         box-shadow: 0 0 0 2px var(--chip-dot-color, var(--ag-primary));
@@ -539,77 +523,6 @@ export const css = `
         margin-top: 14px;
       }
       .ag-paused * { animation-play-state: paused !important; }
-      .ag-mission-card {
-        margin: 14px 0;
-        padding: 18px 20px;
-        border-radius: var(--ag-radius-md);
-        background: var(--ag-surface);
-        border: 1px solid var(--ag-border);
-        font-size: 1.05rem;
-        line-height: 1.65;
-        color: var(--ag-text);
-      }
-      .ag-mission-actions { margin-top: 14px; }
-      .ag-mission-done-note {
-        margin: 14px 0 0;
-        font-size: .88rem;
-        color: var(--ag-muted);
-        text-align: center;
-      }
-      .ag-mission-feedback {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--ag-border);
-      }
-      .ag-mission-feedback-label {
-        margin: 0 0 10px;
-        font-size: .88rem;
-        color: var(--ag-muted);
-        font-weight:500;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-      }
-      .ag-mission-rating {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-      .ag-mission-rate-btn {
-        font-size: 1.6rem;
-        background: none;
-        border: 2px solid var(--ag-border);
-        border-radius: 12px;
-        padding: 6px 12px;
-        cursor: pointer;
-        transition: border-color .15s, transform .15s;
-        line-height: 1;
-      }
-      .ag-mission-rate-btn:hover { transform: scale(1.12); }
-      .ag-mission-rate-btn.is-selected {
-        border-color: var(--ag-gold);
-        background: rgba(185,120,46,.1);
-        transform: scale(1.1);
-      }
-      .ag-mission-comment {
-        width: 100%;
-        box-sizing: border-box;
-        border: 1px solid var(--ag-border);
-        border-radius: 10px;
-        padding: 10px 12px;
-        font-size: .92rem;
-        background: var(--ag-surface);
-        color: var(--ag-text);
-        resize: none;
-        margin-bottom: 10px;
-        font-family: inherit;
-      }
-      .ag-mission-comment:focus { outline: 2px solid var(--ag-primary); outline-offset: 2px; }
-      .ag-mission-feedback-sent {
-        margin: 8px 0 0;
-        font-size: .88rem;
-        color: var(--ag-primary);
-        text-align: center;
-      }
       .ag-baerlauch-scores {
         display: flex;
         flex-wrap: wrap;
@@ -656,69 +569,6 @@ export const css = `
         color: var(--ag-blue);
         border: 1px solid rgba(55,106,131,.3);
       }
-      .ag-fionn-header { padding: 32px 0 8px; text-align: center; }
-      .ag-fionn-title { margin: 0 0 8px; font-family:"Boska",Georgia,serif; font-size: clamp(1.6rem,4vw,2.4rem); }
-      .ag-fionn-sub { margin: 0 0 24px; color: var(--ag-muted); font-size: .92rem; line-height: 1.5; }
-      .ag-fionn-card { font-size: 1.15rem; line-height: 1.7; margin-bottom: 20px; }
-      .ag-fionn-done { width: 100%; justify-content: center; }
-      .ag-mission-log {
-        margin-top: 20px;
-        padding-top: 16px;
-        border-top: 1px solid var(--ag-border);
-      }
-      .ag-mission-log-title {
-        margin: 0 0 12px;
-        font-size: .78rem;
-        font-weight:500;
-        text-transform: uppercase;
-        letter-spacing: .07em;
-        color: var(--ag-muted);
-      }
-      .ag-log-day {
-        margin-bottom: 14px;
-      }
-      .ag-log-today .ag-log-date { color: var(--ag-primary); font-weight:500; }
-      .ag-log-date {
-        display: block;
-        font-size: .78rem;
-        font-weight:500;
-        color: var(--ag-muted);
-        margin-bottom: 5px;
-        letter-spacing: .03em;
-      }
-      .ag-log-row {
-        display: flex;
-        align-items: baseline;
-        gap: 7px;
-        margin-bottom: 5px;
-        font-size: .88rem;
-        line-height: 1.45;
-      }
-      .ag-log-who {
-        flex-shrink: 0;
-        font-size: .72rem;
-        font-weight:500;
-        padding: 1px 7px;
-        border-radius: 999px;
-        letter-spacing: .04em;
-      }
-      .ag-log-lennart {
-        background: rgba(47,122,79,.12);
-        color: var(--ag-primary);
-        border: 1px solid rgba(47,122,79,.25);
-      }
-      .ag-log-fionn {
-        background: rgba(55,106,131,.12);
-        color: var(--ag-blue);
-        border: 1px solid rgba(55,106,131,.25);
-      }
-      .ag-log-text {
-        flex: 1;
-        color: var(--ag-text);
-        opacity: .85;
-      }
-      .ag-log-done { color: var(--ag-primary); font-size: .8rem; flex-shrink: 0; }
-      .ag-log-rating { flex-shrink: 0; font-size: .9rem; }
       .ag-quest-challenge {
         margin: 1rem 0 .5rem;
         padding: 1.1rem 1.3rem;
@@ -866,12 +716,6 @@ export const css = `
         display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
       }
       .ag-draw-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
-      .ag-sound-toggle{
-        background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;
-        padding:4px;border-radius:6px;color:var(--ag-muted);transition:color 120ms,opacity 120ms;
-        margin-left:auto;
-      }
-      .ag-sound-toggle:hover{color:var(--ag-text)}
       .ag-pill{
         display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
         border-radius:999px;background:var(--ag-surface-2);
@@ -1002,7 +846,6 @@ export const css = `
         margin:2px 0 0;letter-spacing:.02em;
       }
       .ag-sync-status[data-ag-sync-state="error"]{color:#c9825f;opacity:.85}
-      .ag-lighting-link{font-size:.92rem}
 
       .ag-rules{color:var(--ag-text)}
       .ag-rules summary{
@@ -1131,8 +974,6 @@ export const css = `
         background:linear-gradient(135deg, var(--ag-primary), var(--ag-blue));color:#fffdf8;
         flex-direction:column;gap:2px;
       }
-      .ag-history-video-icon{font-size:1.1rem;line-height:1}
-      .ag-history-video-label{font-size:.6rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
       .ag-history-text{min-width:0;flex:1}
 
       /* ── Kapsel-Kalender ── */
@@ -1321,7 +1162,6 @@ export const css = `
         box-sizing:border-box;
       }
       .ag-berge-input:focus{outline:2px solid var(--ag-primary);outline-offset:1px}
-      .ag-berge-elev-input{font-size:1rem;font-weight:500}
       .ag-berge-notes{resize:vertical;min-height:60px}
 
       /* Gipfel list: same grid gap as history */
@@ -1366,9 +1206,6 @@ export const css = `
         transition:opacity 150ms;
       }
       .ag-gipfel-trail-arrow:hover{opacity:1}
-      .ag-gipfel-embed-wrap{margin-top:10px}
-      .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
-      .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
       /* ag-gipfel-delete styled in mobile tap-target section below */
       @media (prefers-color-scheme:dark){
         .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
@@ -1937,9 +1774,6 @@ export const css = `
         border-color:var(--ag-primary);
         box-shadow:0 0 0 3px rgba(47,122,79,.15);
       }
-      .ag-mission-comment:focus{
-        box-shadow:0 0 0 3px rgba(47,122,79,.15);
-      }
 
       .ag-gipfel-cover{height:160px;border-radius:var(--ag-radius-md);margin-bottom:10px}
       @media (prefers-color-scheme:dark){
@@ -2040,9 +1874,6 @@ export const css = `
         .ag-secondary:hover{background:rgba(47,122,79,.18);border-color:var(--ag-primary)}
       }
 
-      /* Mission card: more spacious, larger radius */
-      .ag-mission-card{padding:20px 22px;border-radius:var(--ag-radius-lg)}
-      @media (prefers-color-scheme:dark){.ag-mission-card{background:rgba(22,34,24,.96)}}
 
       /* Banners: consistent large radius */
       .ag-milestone{border-radius:var(--ag-radius-lg);padding:14px 18px}
@@ -2242,161 +2073,6 @@ export const css = `
       [data-ag-berge-form]:not([hidden]),
       #ag-glossary-form:not([hidden]){position:relative;z-index:1010}
 
-      /* The Werkstatt form stays in flow rather than joining the fixed
-         bottom-sheet rules above. Those resolve position:fixed against a
-         transformed ancestor here, not the viewport, so the sheet lands
-         mid-page with its top cut off. In-flow inside the panel is both
-         correct and simpler, and needs no backdrop to be dismissed. */
-      #ag-werkstatt-form:not([hidden]){
-        position:relative;z-index:1010;margin-top:14px;padding-top:14px;
-        border-top:1px solid rgba(255,255,255,.1);
-        animation:ag-werkstatt-form-in 280ms var(--ag-ease) both;
-      }
-      @keyframes ag-werkstatt-form-in{
-        from{opacity:0;transform:translateY(8px)}
-        to{opacity:1;transform:none}
-      }
-      /* Clear the floating bottom nav so Speichern is never half under it. */
-      @media (max-width:900px){
-        #ag-werkstatt-form:not([hidden]){padding-bottom:calc(76px + var(--ag-safe-bottom))}
-      }
-
-      /* ── Kapsel-Werkstatt ── */
-      #ag-werkstatt-panel:not([hidden]){animation:ag-werkstatt-panel-in 340ms var(--ag-ease) both}
-      @keyframes ag-werkstatt-panel-in{
-        from{opacity:0;transform:translateY(10px)}
-        to{opacity:1;transform:none}
-      }
-
-      .ag-werkstatt-entry{
-        display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-        cursor:pointer;font:inherit;color:inherit;
-        border:1px dashed rgba(126,207,163,.34);
-        transition:border-color .18s ease,transform .18s var(--ag-ease);
-      }
-      .ag-werkstatt-entry:hover{border-color:rgba(126,207,163,.6)}
-      .ag-werkstatt-entry:active{transform:scale(.99)}
-      .ag-werkstatt-entry-ico{font-size:1.5rem;line-height:1;flex-shrink:0}
-      .ag-werkstatt-entry-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-      .ag-werkstatt-entry-title{font-weight:500;font-size:.95rem}
-      .ag-werkstatt-entry-sub{font-size:.8rem;opacity:.72}
-      .ag-werkstatt-entry-chev{font-size:1.3rem;opacity:.5;flex-shrink:0}
-
-      /* Nine categories don't fit a phone, so the row scrolls sideways. The
-         width pin matters: without it the row's min-content width propagates
-         up through the card and stretches the whole widget past the viewport,
-         which is exactly the "wider than the phone" problem this app has had
-         before. overflow-x alone does not stop that. */
-      .ag-werkstatt-tabs{
-        display:flex;gap:6px;overflow-x:auto;margin-top:12px;
-        /* Positioned so a tab's offsetLeft is measured against this strip and
-           not some ancestor — the scroll maths in renderWerkstatt depends on
-           it. The inline padding keeps the first and last tab clear of the
-           edge fades below, and the negative margin cancels it visually so
-           the strip still spans the card edge to edge. */
-        position:relative;
-        padding:0 14px 4px;margin-inline:-14px;
-        width:calc(100% + 28px);max-width:calc(100% + 28px);min-width:0;
-        scroll-behavior:smooth;
-        scrollbar-width:none;-webkit-overflow-scrolling:touch;
-        /* Fade the edges so a half-scrolled tab reads as "there's more this
-           way" rather than as a word chopped off by the panel. */
-        -webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);
-        mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);
-      }
-      .ag-werkstatt-tabs::-webkit-scrollbar{display:none}
-      .ag-werkstatt-tab{
-        flex-shrink:0;cursor:pointer;font:inherit;font-size:.8rem;
-        padding:7px 12px;border-radius:999px;white-space:nowrap;
-        border:1px solid rgba(255,255,255,.12);
-        background:rgba(255,255,255,.04);color:inherit;opacity:.75;
-        transition:background 200ms var(--ag-ease),color 200ms var(--ag-ease),
-                   border-color 200ms var(--ag-ease),opacity 200ms var(--ag-ease),
-                   transform 140ms var(--ag-ease);
-      }
-      .ag-werkstatt-tab:active{transform:scale(.94)}
-      .ag-werkstatt-tab.is-active{
-        background:var(--ag-primary);border-color:transparent;color:#08150d;opacity:1;font-weight:500;
-      }
-      .ag-werkstatt-count{
-        display:inline-block;margin-left:4px;padding:0 5px;border-radius:999px;
-        background:rgba(0,0,0,.22);font-size:.72rem;font-weight:500;
-      }
-      .ag-werkstatt-tab:not(.is-active) .ag-werkstatt-count{background:rgba(255,255,255,.14)}
-      .ag-werkstatt-note{margin:11px 0 0;font-size:.8rem;opacity:.62;line-height:1.5}
-      .ag-werkstatt-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-
-      /* The whole card is the edit control, so it gets the full width for
-         text instead of surrendering a third of it to an icon column. */
-      .ag-werkstatt-card{
-        display:block;width:100%;text-align:left;font:inherit;color:inherit;
-        cursor:pointer;padding:13px 15px;border-radius:15px;
-        background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);
-        transition:background 180ms var(--ag-ease),border-color 180ms var(--ag-ease),transform 140ms var(--ag-ease);
-        animation:ag-werkstatt-card-in 300ms var(--ag-ease) both;
-        animation-delay:min(calc(var(--ag-i,0) * 45ms),270ms);
-      }
-      .ag-werkstatt-card:hover{background:rgba(255,255,255,.07);border-color:rgba(126,207,163,.28)}
-      .ag-werkstatt-card:active{transform:scale(.985);background:rgba(255,255,255,.09)}
-      @keyframes ag-werkstatt-card-in{
-        from{opacity:0;transform:translateY(6px)}
-        to{opacity:1;transform:none}
-      }
-      .ag-werkstatt-card-title{font-weight:500;font-size:.94rem;line-height:1.35}
-      .ag-werkstatt-card-msg{font-size:.84rem;opacity:.75;margin-top:4px;line-height:1.5}
-
-      /* Question and answer share one label treatment so the pair reads as a
-         little exchange rather than two unrelated notes. */
-      .ag-werkstatt-block-label{
-        display:block;font-size:.66rem;font-weight:500;text-transform:uppercase;
-        letter-spacing:.07em;opacity:.55;margin-bottom:3px;
-      }
-      .ag-werkstatt-card-prompt{
-        margin-top:9px;padding-left:10px;font-size:.83rem;line-height:1.5;
-        border-left:2px solid rgba(255,255,255,.16);
-      }
-      .ag-werkstatt-card-pending{font-size:.75rem;opacity:.45;margin-top:5px;padding-left:10px}
-      .ag-werkstatt-answer{
-        margin-top:7px;padding:9px 11px;border-radius:11px;
-        background:rgba(126,207,163,.1);border-left:2px solid var(--ag-primary);
-        font-size:.84rem;line-height:1.5;
-      }
-
-      .ag-werkstatt-card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-      .ag-werkstatt-card-tags:empty{display:none}
-      .ag-werkstatt-tag{
-        font-size:.68rem;font-weight:500;letter-spacing:.03em;
-        padding:2px 8px;border-radius:999px;
-        background:rgba(255,255,255,.09);opacity:.8;
-      }
-      .ag-werkstatt-tag.is-voucher{background:var(--ag-gold);color:#1c1405;opacity:1}
-      .ag-werkstatt-tag.is-unsent{
-        background:rgba(232,180,120,.18);color:#e8c08a;opacity:1;
-        border:1px solid rgba(232,180,120,.35);
-      }
-
-      /* Destructive, so it sits apart from Speichern and arms before it
-         fires — no native confirm() dialog anywhere in this flow. */
-      .ag-werkstatt-delete-btn{
-        display:block;width:100%;margin-top:14px;padding:10px;
-        cursor:pointer;font:inherit;font-size:.82rem;border-radius:11px;
-        background:none;border:1px solid transparent;color:#e89b9b;opacity:.75;
-        transition:background 180ms var(--ag-ease),border-color 180ms var(--ag-ease),opacity 180ms var(--ag-ease);
-      }
-      .ag-werkstatt-delete-btn:hover{opacity:1}
-      .ag-werkstatt-delete-btn.is-armed{
-        background:rgba(220,120,120,.14);border-color:rgba(232,155,155,.45);
-        color:#f4b4b4;opacity:1;font-weight:500;
-      }
-
-      .ag-werkstatt-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
-      .ag-werkstatt-textarea{resize:vertical;min-height:76px;font-family:inherit}
-      .ag-werkstatt-check{display:flex;align-items:center;gap:8px;font-size:.84rem;opacity:.85}
-      .ag-werkstatt-check input{width:18px;height:18px;accent-color:var(--ag-primary)}
-      .ag-werkstatt-error{margin:10px 0 0;font-size:.82rem;color:#f2a0a0}
-      .ag-werkstatt-form-actions{display:flex;gap:8px;margin-top:12px}
-      .ag-werkstatt-form-actions .ag-button{flex:1}
-      .ag-werkstatt-form-actions .ag-secondary{flex-shrink:0}
 
       /* Glossary form field spacing */
       .ag-glossary-form-fields{display:flex;flex-direction:column;gap:10px;margin-top:10px}
@@ -2603,7 +2279,6 @@ body{
 .ag-widget .ag-trophy-tile,
 .ag-widget .ag-album-tile,
 .ag-widget .ag-kalender,
-.ag-widget .ag-mission-card,
 .ag-widget .ag-gesprach-card,
 .ag-widget .ag-stimmung-preview{
   background:rgba(255,255,255,.045);
@@ -2687,7 +2362,6 @@ body{
 
 /* ── Reactions ── */
 .ag-widget .ag-reactions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
-.ag-widget .ag-reactions-label{font-size:.78rem;color:var(--ag-muted);margin-right:2px}
 .ag-widget .ag-reaction{
   width:40px;height:40px;border-radius:999px;font-size:1.25rem;line-height:1;cursor:pointer;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
@@ -2700,8 +2374,6 @@ body{
 
 /* ── Ferien-Schutz ── */
 .ag-widget .ag-ferien{margin:14px 0 0;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
-.ag-widget .ag-ferien-summary{cursor:pointer;list-style:none;font-size:.9rem;color:var(--ag-text)}
-.ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
 .ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}
 .ag-widget .ag-ferien-note{margin:8px 0 10px;font-size:.82rem;color:var(--ag-muted);line-height:1.45}
 .ag-widget .ag-ferien-form{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
@@ -2892,6 +2564,121 @@ body{
 .ag-widget .ag-sync-status[data-ag-sync-state="ok"]::before{background:#8fcf9e;opacity:.9;box-shadow:0 0 8px rgba(143,207,158,.5)}
 .ag-widget .ag-sync-status[data-ag-sync-state="error"]::before{background:#e0a75d;opacity:.9}
 .ag-widget .ag-sync-status.is-open{font-size:.72rem}
+
+/* Streak-Retter in the bank: a gem count beside the streak, same pill
+   language, quieter. Hidden while the rescue button itself is showing. */
+.ag-widget .ag-streak-gems{
+  display:inline-flex;align-items:center;gap:2px;
+  padding:4px 9px;border-radius:999px;font-size:.78rem;
+  font-variant-numeric:tabular-nums;color:var(--ag-muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+}
+/* Bärlauch-Saison: the chip breathes green from March to May. */
+.ag-widget .ag-chip-saison{
+  position:relative;box-shadow:0 0 0 1px rgba(143,207,158,.45),0 0 14px rgba(143,207,158,.28);
+  animation:ag-saison-breathe 3.2s ease-in-out infinite;
+}
+@keyframes ag-saison-breathe{
+  0%,100%{box-shadow:0 0 0 1px rgba(143,207,158,.35),0 0 10px rgba(143,207,158,.18)}
+  50%{box-shadow:0 0 0 1px rgba(143,207,158,.6),0 0 18px rgba(143,207,158,.4)}
+}
+@media (prefers-reduced-motion:reduce){.ag-widget .ag-chip-saison{animation:none}}
+/* The one hint the machine gives about the hidden letter. */
+.ag-widget .ag-draw-hint.is-secret{color:var(--ag-gold);font-style:italic;opacity:.9}
+
+/* Fionn's reply on a wish: one line at the top of the card, gold like the
+   milestone, quieter. */
+.ag-widget .ag-wish-reply{
+  margin:0 0 12px;padding:9px 12px;border-radius:var(--ag-radius-md);
+  font-size:.86rem;line-height:1.4;color:var(--ag-gold);
+  background:rgba(224,167,93,.1);border:1px solid rgba(224,167,93,.28);
+}
+/* The Stups banner now lives above the draw card, where it is seen before a
+   pull, not only after one. */
+.ag-widget .ag-ping-banner{margin:0 0 12px}
+
+/* ── Licht tab: the lamps on the same glass ─────────────────────────────── */
+/* The panel is a grid; a 1fr track takes the item's min-content width as its
+   floor, and the scrolling mood row would hand it 700px. min-width:0 keeps the
+   card at the panel's width and lets the row scroll inside it. */
+.ag-widget .ag-licht-card{display:flex;flex-direction:column;gap:14px;min-width:0;width:100%}
+.ag-widget .ag-licht-moods{min-width:0}
+.ag-widget .ag-licht-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ag-widget .ag-licht-lamps{display:flex;gap:8px;flex-wrap:wrap}
+.ag-widget .ag-licht-lamp{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  font-size:.78rem;letter-spacing:.02em;color:var(--ag-muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+}
+.ag-widget .ag-licht-lamp-dot{width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.25)}
+.ag-widget .ag-licht-lamp[data-state="on"]{color:var(--ag-text)}
+.ag-widget .ag-licht-lamp[data-state="on"] .ag-licht-lamp-dot{background:#8fcf9e;box-shadow:0 0 8px rgba(143,207,158,.6)}
+.ag-widget .ag-licht-lamp[data-state="standby"] .ag-licht-lamp-dot{background:var(--ag-gold);opacity:.8}
+.ag-widget .ag-licht-lamp-sub{opacity:.7;font-size:.7rem}
+.ag-widget .ag-licht-conn{
+  appearance:none;background:none;border:none;font-family:inherit;cursor:pointer;
+  font-size:.72rem;color:var(--ag-muted);padding:4px 0 4px 12px;display:inline-flex;align-items:center;gap:6px;
+}
+.ag-widget .ag-licht-conn::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--ag-muted);opacity:.45}
+.ag-widget .ag-licht-conn[data-state="connected"]::before{background:#8fcf9e;opacity:.9;box-shadow:0 0 8px rgba(143,207,158,.5)}
+.ag-widget .ag-licht-conn[data-state="error"]::before{background:#e0a75d;opacity:.9}
+.ag-widget .ag-licht-conn[data-state="connecting"]::before{animation:ag-pulse 1.2s ease-in-out infinite}
+/* Ten LEDs, as the lamps show them right now. */
+.ag-widget .ag-licht-strip{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;padding:10px;border-radius:var(--ag-radius-md);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06)}
+.ag-widget .ag-licht-strip i{display:block;height:14px;border-radius:999px;background:var(--ag-led);box-shadow:0 0 10px var(--ag-led);transition:background 400ms var(--ag-ease),opacity 400ms var(--ag-ease),box-shadow 400ms var(--ag-ease)}
+.ag-widget .ag-licht-strip.is-off i{box-shadow:none}
+.ag-widget .ag-licht-row{display:flex;align-items:center;gap:12px}
+.ag-widget .ag-licht-power{
+  appearance:none;font-family:inherit;cursor:pointer;flex:none;
+  width:64px;height:40px;border-radius:999px;font-size:.82rem;font-weight:500;letter-spacing:.02em;
+  color:var(--ag-muted);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  transition:background 200ms var(--ag-ease),color 200ms var(--ag-ease),box-shadow 200ms var(--ag-ease);
+}
+.ag-widget .ag-licht-power.is-on{color:#0d1f12;background:#8fcf9e;border-color:#8fcf9e;box-shadow:0 0 18px rgba(143,207,158,.35)}
+.ag-widget .ag-licht-power:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-slider{flex:1;display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:var(--ag-muted)}
+.ag-widget .ag-licht-slider input{width:100%;accent-color:var(--ag-gold);margin:0}
+/* The palette bar: the firmware's 30 tints, tap to set. */
+.ag-widget .ag-licht-palette{
+  position:relative;height:30px;border-radius:999px;cursor:pointer;outline:none;
+  background:linear-gradient(to right,rgb(255,200,80) 0%,rgb(255,60,0) 10%,rgb(255,0,140) 20%,rgb(80,0,255) 31%,rgb(0,140,255) 41%,rgb(0,255,160) 52%,rgb(80,255,0) 62%,rgb(255,240,0) 72%,rgb(255,80,160) 83%,rgb(0,180,180) 93%,rgb(255,220,120) 100%);
+  border:1px solid rgba(255,255,255,.12);
+}
+.ag-widget .ag-licht-palette::after{
+  content:"";position:absolute;top:50%;left:var(--ag-pick,0%);width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:999px;
+  background:rgba(255,255,255,.18);border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45);
+  transition:left 300ms var(--ag-ease);
+}
+.ag-widget .ag-licht-palette:focus-visible{box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+.ag-widget .ag-licht-moods{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0;margin:0 -4px;padding-inline:4px}
+.ag-widget .ag-licht-moods::-webkit-scrollbar{display:none}
+.ag-widget .ag-licht-mood{
+  appearance:none;flex:none;display:inline-flex;align-items:center;gap:7px;font-family:inherit;cursor:pointer;
+  padding:7px 12px 7px 9px;border-radius:999px;font-size:.8rem;color:var(--ag-text);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+}
+.ag-widget .ag-licht-mood:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-mood-dot{width:14px;height:14px;border-radius:999px;background:var(--ag-mood);box-shadow:0 0 8px var(--ag-mood)}
+.ag-widget .ag-licht-label{margin:0 0 6px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ag-muted)}
+.ag-widget .ag-licht-scene-list{display:flex;flex-wrap:wrap;gap:8px}
+.ag-widget .ag-licht-scene{
+  appearance:none;display:inline-flex;align-items:center;gap:8px;font-family:inherit;cursor:pointer;
+  padding:7px 12px;border-radius:999px;font-size:.8rem;color:var(--ag-text);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+}
+.ag-widget .ag-licht-scene:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-scene-dots{display:inline-flex;gap:3px}
+.ag-widget .ag-licht-scene-dots i{width:9px;height:9px;border-radius:999px}
+.ag-widget .ag-licht-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.ag-widget .ag-licht-foot .ag-secondary{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding-inline:10px;font-size:.84rem}
+.ag-widget .ag-licht-note{margin:0;font-size:.74rem;line-height:1.45;color:var(--ag-muted)}
+
+/* A button waiting for its second tap (see confirm.js). */
+.ag-widget .is-armed{
+  color:var(--ag-gold)!important;border-color:rgba(224,167,93,.6)!important;
+  background:rgba(224,167,93,.14)!important;box-shadow:0 0 0 2px rgba(224,167,93,.25);
+  animation:ag-pulse 1.1s ease-in-out infinite;
+}
     `;
 
 export function injectStyles() {

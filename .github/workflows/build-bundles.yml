@@ -52,7 +52,7 @@ jobs:
       - name: Stamp cache-bust version with commit SHA
         run: |
           SHORT_SHA="${GITHUB_SHA::9}"
-          sed -i -E "s#(dist/affection-gacha\.js\?v=)[^\"]*#\1${SHORT_SHA}#" index.html fionn-gacha.html
+          sed -i -E "s#(dist/affection-gacha\.js\?v=)[^\"]*#\1${SHORT_SHA}#" index.html
           sed -i -E "s#(dist/fionn-admin\.js\?v=)[^\"]*#\1${SHORT_SHA}#" fionn-gacha.html
 
       - name: Commit and push if changed

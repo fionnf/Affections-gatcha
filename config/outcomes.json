@@ -9,7 +9,7 @@
         {
           "title": "Leere Souvenirbox",
           "message": "Heute kein Gewinn. Nur ein imaginärer Kassenzettel — und, wortlos nachgeschoben, ein Sammelstück.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Baustelle",
@@ -31,7 +31,7 @@
         {
           "title": "Nebel am Mythen",
           "message": "Die Aussicht ist heute leider verdeckt. Aber hey, du hast immerhin dieses digitale Schulterzucken gewonnen.",
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Statik-Fehler",
@@ -83,7 +83,7 @@
         {
           "title": "Schattenplatz",
           "message": "Es ist kühl und ruhig hier. Genau richtig für eine Niete, die eigentlich nur eine kleine Verschnaufpause sein will.",
-          "token": "🔥"
+          "token": "🏔"
         },
         {
           "title": "Treppenhaus-Echo",
@@ -96,7 +96,7 @@
         {
           "title": "Föhnsturm",
           "message": "Bei diesem Wind kann die Maschine keine Preise ausgeben — sie würden bis nach Konstanz fliegen. Morgen, bei Windstille, gerne wieder.",
-          "token": "⭐"
+          "token": "💚"
         },
         {
           "title": "Pipettierfehler",
@@ -109,7 +109,7 @@
         {
           "title": "Korb leer",
           "message": "Wo gestern noch Bärlauch stand, wächst heute nur Brennnessel. Wir kommen wieder, wenn's grünt.",
-          "token": "☁️"
+          "token": "🛁"
         },
         {
           "title": "Maßstab 1:∞",
@@ -144,7 +144,7 @@
         {
           "title": "Steinbock im Weg",
           "message": "Ein imaginärer Steinbock blockiert stur den Pfad. Man diskutiert nicht mit Steinböcken. Also kehrt die Maschine um — und lässt dir unterwegs ein Berg-Zeichen in die Hand fallen.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Falscher Knopf",
@@ -157,7 +157,7 @@
         {
           "title": "Batterie leer",
           "message": "Die Stirnlampe der Maschine ist ausgegangen. Grosse Preise gibt es im Dunkeln nicht, kleine ertastet sie trotzdem.",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Zu früh",
@@ -183,7 +183,7 @@
         {
           "title": "Nebelhorn ohne Nebel",
           "message": "Die Maschine hat einmal laut getutet und dann nichts gefunden. Immerhin ein Geräusch.",
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Falsche Etage",
@@ -254,7 +254,7 @@
         {
           "title": "Português: Amor",
           "message": "Amor — Liebe. Das Wort ist kurz, weil man es oft sagen soll. Hiermit gesagt.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Português: Saudade",
@@ -287,7 +287,7 @@
         {
           "title": "Português: Casa",
           "message": "Casa — Zuhause. Ist bei mir inzwischen weniger ein Ort und mehr eine Person.",
-          "token": "🔥"
+          "token": "🏔"
         },
         {
           "title": "Português: Estrela",
@@ -323,7 +323,7 @@
         {
           "title": "Motivations-Boost: Fokus",
           "message": "Du hast die Treppenpläne bezwungen, du bezwingst auch den Rest. Ein Schritt nach dem anderen – genau wie beim Wandern.",
-          "token": "⭐"
+          "token": "💚"
         },
         {
           "title": "Durchhalte-Energie",
@@ -358,7 +358,7 @@
         {
           "title": "Züri-Life Fact",
           "message": "Es gibt in Zürich über 1200 Brunnen mit Trinkwasser. Genau so erfrischend soll dein heutiger Tag werden!",
-          "token": "☁️"
+          "token": "🛁"
         },
         {
           "title": "Struktur-Segen",
@@ -395,7 +395,7 @@
           "title": "Mini-Beichte",
           "message": "Nenne eine sehr harmlose Sache, die du heute aufgeschoben hast. Ehrlichkeit gilt als vollständige Erledigung.",
           "prompt": "Was hast du heute aufgeschoben, das du eigentlich machen wolltest?",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Akku-Stand",
@@ -503,7 +503,7 @@
           "title": "Nackenkuss",
           "message": "Ein Kuss in den Nacken, genau da, wo es einen Schauer gibt. Jetzt einlösbar.",
           "voucher": true,
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Hand-Haltung",
@@ -661,11 +661,12 @@
         {
           "title": "Zwei Grad wärmer",
           "message": "Die Maschine hat den Tag für dich um zwei Grad wärmer gestellt. Gern geschehen.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Handschuhwetter",
-          "message": "Ein Gutschein für kalte Hände in warmen Taschen. Meine, um genau zu sein."
+          "message": "Ein Gutschein für kalte Hände in warmen Taschen. Meine, um genau zu sein.",
+          "voucher": true
         },
         {
           "title": "Bahnsteig 3",
@@ -727,7 +728,7 @@
         {
           "title": "Stille Post",
           "message": "Jemand hat der Maschine etwas sehr Nettes über dich zugeflüstert. Sie darf nicht sagen wer.",
-          "token": "🔥"
+          "token": "🏔"
         },
         {
           "title": "Abholservice",
@@ -760,7 +761,7 @@
         {
           "title": "Lieblingsgeräusch",
           "message": "Auf der Liste ganz oben: du, wenn du über etwas lachst, das gar nicht so lustig war.",
-          "token": "⭐"
+          "token": "💚"
         },
         {
           "title": "Sockenwärmer",
@@ -795,7 +796,7 @@
         {
           "title": "Der Platz neben dir",
           "message": "Bleibt heute reserviert. Auch wenn ich gerade nicht daneben sitze.",
-          "token": "☁️"
+          "token": "🛁"
         },
         {
           "title": "Warme Tasse, kalte Hände",
@@ -832,7 +833,7 @@
         {
           "title": "Nachschub an Geduld",
           "message": "Die Maschine legt eine kleine Reserve bereit. Für den Fall, dass heute jemand nervt.",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Auf deiner Seite",
@@ -881,7 +882,7 @@
         {
           "title": "Postkarten-Quest",
           "message": "Schick Fionn ein Foto von etwas, das heute wie eine Postkarte aussieht: Himmel, Essen, Fassade, Berg, egal.",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Design-Safari",
@@ -910,7 +911,7 @@
         {
           "title": "Route wählen",
           "message": "Wähle eine Kategorie für unser nächstes Mini-Date: Kaffee, Spaziergang, Dessert, Aussicht oder Designladen.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Ugly-Building-Mission",
@@ -1009,7 +1010,7 @@
         {
           "title": "Aussichts-Jagd",
           "message": "Finde heute einen erhöhten Punkt mit Aussicht. Dach, Hügel, Brücke. Foto als Beweis.",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Geräusch-Postkarte",
@@ -1042,7 +1043,7 @@
         {
           "title": "Schatten-Jagd",
           "message": "Schick mir den besten Schatten, den du heute siehst. Bewertet wird Form, nicht Dunkelheit.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Türklinken-Studie",
@@ -1120,7 +1121,7 @@
           "title": "Reise-Rezept",
           "message": "Bestell ein Gericht aus Fionns Reisezeit in Tehran. Wird für dich nachgekocht.",
           "voucher": true,
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Playlist nach Maß",
@@ -1269,7 +1270,7 @@
         {
           "title": "Meal-Prep-Steuer",
           "message": "Du musst für Fionn mitplanen.",
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Formular 7B",
@@ -1321,7 +1322,7 @@
         {
           "title": "Die Maschine fordert: Vorhersage",
           "message": "Sag der Maschine via Wunschkapsel voraus, was diese Woche noch passiert. Sie erinnert sich. Immer.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Komplimente-Inflation",
@@ -1343,7 +1344,7 @@
         {
           "title": "Fionn einladen",
           "message": "Du hast diese Woche noch ein Event geplant, bei dem Fionn nicht im Plan war. Jetzt ist deine Aufgabe: Lade ihn einfach ein.",
-          "token": "🔥"
+          "token": "🏔"
         },
         {
           "title": "Geheimnis lüften",
@@ -1356,7 +1357,7 @@
         {
           "title": "Video-Liebesbotschaft",
           "message": "Schreib und sprich eine kurze Voicenote an Fionn auf — ein paar Sätze über etwas das du an ihm magst. Aber ohne herumzudrucksen!",
-          "token": "⭐"
+          "token": "💚"
         },
         {
           "title": "Empfehlungs-Pflicht",
@@ -1369,7 +1370,7 @@
         {
           "title": "Lieblingsmoment teilen",
           "message": "Beschreib Fionn deinen liebsten Moment mit ihm bisher. Achte auf Details, Gefühle, das ganze Drama.",
-          "token": "☁️"
+          "token": "🛁"
         },
         {
           "title": "Kitzel-Zoll",
@@ -1382,7 +1383,7 @@
         {
           "title": "Komplimentpflicht",
           "message": "Du musst mir drei ehrliche Komplimente machen, bevor der Tag endet. Die Maschine zählt mit.",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Kalte-Füße-Klausel",
@@ -1417,7 +1418,7 @@
         {
           "title": "Karaoke-Pflicht",
           "message": "Schick mir eine Sprachnachricht, in der du eine Strophe deines peinlichsten Lieblingslieds singst. Kein Räuspern erlaubt.",
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Ehrliche-Meinung-Steuer",
@@ -1469,7 +1470,7 @@
         {
           "title": "Kaltwasser-Klausel",
           "message": "Verflucht: Die letzten zehn Sekunden der Dusche kalt. Beschwerden bitte an die Maschine.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Rückwärts-Nachricht",
@@ -1491,7 +1492,7 @@
           "title": "Date-Credit: Kaffee-Spaziergang",
           "message": "Ein Kaffee-Spaziergang wurde freigeschaltet. Bonus, wenn die Route an schöner Architektur vorbeiführt.",
           "voucher": true,
-          "token": "🔥"
+          "token": "🏔"
         },
         {
           "title": "Date-Credit: Komfortabend",
@@ -1534,7 +1535,7 @@
           "title": "Date-Credit: Jules Verne Bar",
           "message": "Ein Drink über den Dächern von Zürich. Die Aussicht ist fast so gut wie du.",
           "voucher": true,
-          "token": "⭐"
+          "token": "💚"
         },
         {
           "title": "Date-Credit: Rote Fabrik",
@@ -1582,7 +1583,7 @@
           "message": "Wir kochen gemeinsam etwas, das wir noch nie gemacht haben. Chaos erlaubt.",
           "voucher": true,
           "prompt": "Was wolltest du schon immer mal kochen? 🍲",
-          "token": "☁️"
+          "token": "🛁"
         },
         {
           "title": "Date-Credit: Museums-Streifzug",
@@ -1743,7 +1744,7 @@
         {
           "title": "Wolken-Kapsel ☁️",
           "message": "Du sammelst ein ☁️. Bring 4 davon zusammen und wir verbringen einen ganzen faulen Tag ohne Pläne.",
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Berg-Kapsel 🏔",
@@ -1768,12 +1769,12 @@
         {
           "title": "Funken-Kapsel 🔥",
           "message": "Du sammelst ein 🔥. Bring 5 davon zusammen und ihr unternehmt ein Wochenend-Abenteuer — Ziel nach deiner Wahl.",
-          "token": "🍕"
+          "token": "🛁"
         },
         {
           "title": "Sternenstaub-Kapsel ⭐",
           "message": "Du sammelst ein ⭐. Bring 5 davon zusammen und Fionn entscheidet, was ihr macht. Überraschung garantiert.",
-          "token": "🎧"
+          "token": "🎬"
         },
         {
           "title": "Nebel-Kapsel ☁️",
@@ -1783,7 +1784,7 @@
         {
           "title": "Espresso-Kapsel ☕",
           "message": "Du sammelst ein ☕. Bring 4 davon zusammen und ihr fahrt in dein Traumcafé, egal wo es steht.",
-          "token": "☕"
+          "token": "🌿"
         },
         {
           "title": "Kino-Kapsel 🎬",
@@ -1808,7 +1809,7 @@
         {
           "title": "Flug-Kapsel ✈️",
           "message": "Du sammelst ein ✈️. Bring 7 davon zusammen: Ein Städtetrip — ein ganzes Wochenende weg.",
-          "token": "🍕"
+          "token": "🛁"
         }
       ]
     },
@@ -1850,7 +1851,7 @@
         {
           "title": "Fundstück",
           "message": "Beim Aufräumen im Datenarchiv gefunden: dieses eine Bild. Zufall? Die Maschine schweigt.",
-          "token": "🔥"
+          "token": "🏔"
         },
         {
           "title": "Fenster in einen Tag",
@@ -1883,7 +1884,7 @@
         {
           "title": "Herzkammer",
           "message": "Die Maschine hat ein Fach, in dem nur du vorkommst. Heute macht sie es kurz auf.",
-          "token": "⭐"
+          "token": "💚"
         },
         {
           "title": "Warmgehalten",
@@ -1912,7 +1913,7 @@
         {
           "title": "Nicht gelöscht",
           "message": "Jemand hat dieses Bild behalten. Bei jedem Aufräumen wieder nicht gelöscht. Das ist eigentlich schon die ganze Nachricht.",
-          "token": "☁️"
+          "token": "🛁"
         },
         {
           "title": "Erste Reihe",

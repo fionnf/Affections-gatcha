@@ -2,16 +2,15 @@
 import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
-  readTokens, applySharedTokens, writeTokensSent, readGipfelbuch, writeGipfelbuch,
-  readBaerlauchScores, readMissionLog, writeMissionLog,
+  readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
+  readBaerlauchScores, writeWishReplies,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
-import { BAERLAUCH_SCORE_KEY } from "./constants.js";
+import { BAERLAUCH_SCORE_KEY, LAST_PING_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
 import { applySharedStimmung } from "./stimmung.js";
-import { applySharedWerkstatt } from "./werkstatt.js";
 
 let _baseUrl = "";
 let _resolveBase = null;
@@ -177,20 +176,13 @@ export async function syncFromSheets() {
       }
     }
 
-    if (Array.isArray(data.missionLog) && data.missionLog.length) {
-      const local = readMissionLog();
-      const byKey = new Map(local.map(e => [`${e.day}|${e.player}`, e]));
-      for (const entry of data.missionLog) {
-        if (!entry.day || !entry.player) continue;
-        byKey.set(`${entry.day}|${entry.player}`, entry);
-      }
-      const merged = Array.from(byKey.values()).sort((a, b) => b.day.localeCompare(a.day));
-      writeMissionLog(merged);
+    // Fionn's replies on this token's wishes, as the sheet has them.
+    if (Array.isArray(data.wishes)) {
+      try { writeWishReplies(data.wishes); } catch (_e) {}
     }
 
-    if (typeof data.latestPing === "string" && data.latestPing && getToken() !== "fionn") {
+    if (typeof data.latestPing === "string" && data.latestPing) {
       try {
-        const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
         const lastSeen = window.localStorage.getItem(LAST_PING_KEY) || "";
         if (data.latestPing > lastSeen) {
           window.localStorage.setItem(LAST_PING_KEY, data.latestPing);
@@ -204,12 +196,6 @@ export async function syncFromSheets() {
     // day) wins, and it lands here on this sync.
     if (data.stimmung) {
       try { applySharedStimmung(data.stimmung); } catch (_e) {}
-    }
-
-    // Capsules one player wrote for the other. Both sides need them: the
-    // author to list and edit them, the recipient to draw from them.
-    if (Array.isArray(data.werkstatt)) {
-      try { applySharedWerkstatt(data.werkstatt); } catch (_e) {}
     }
 
     if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch")) {

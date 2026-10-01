@@ -75,7 +75,7 @@ const BOARD_IDS = ["board_a", "board_b"];
 
 let _busy = false;
 
-function _loadMqtt() {
+export function loadMqtt() {
   if (window.mqtt) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
@@ -100,7 +100,7 @@ export async function flashLightsForPull(tone) {
   if (_busy) return;
   _busy = true;
   try {
-    await _loadMqtt();
+    await loadMqtt();
     await new Promise((resolve, reject) => {
       const client = window.mqtt.connect(BROKER, {
         clientId: "gachafx_" + Math.random().toString(16).slice(2),

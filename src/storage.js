@@ -2,9 +2,9 @@
 import {
   STORAGE_KEY, FAVORITES_KEY, TOKENS_KEY, TOKENS_SENT_KEY, STREAK_CACHE_KEY, STREAK_SYNCED_KEY,
   STREAK_RESTORE_KEY, WISH_KEY, MILESTONE_KEY,
-  BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY, MISSION_LOG_KEY,
+  BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY,
   GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY,
-  FREIKARTE_KEY, FREIKARTE_REROLL_KEY
+  FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken
 } from "./constants.js";
 import { state } from "./state.js";
 import { dateKeyInTimezone, getToken } from "./utils.js";
@@ -47,11 +47,20 @@ function writePlayerSlot(baseKey, value) {
   } catch (_e) {}
 }
 
+// The history is read a dozen times per render (card, chips, streak, odds,
+// cap, badge…) and parsing a year of entries each time adds up on an older
+// phone. The parsed list is kept alongside the raw string it came from; a
+// read with the same raw string returns the same list, a write produces a
+// new string and so a fresh parse. Entries are shared objects: every caller
+// that mutates one writes the list back, which is what keeps this honest.
+let _histRaw = null;
+let _histEntries = null;
 export function readHistory() {
   try {
     if (typeof window === "undefined" || !window.localStorage) return state.syncedHistory || [];
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return state.syncedHistory || [];
+    if (raw === _histRaw && _histEntries) return _histEntries;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return state.syncedHistory || [];
     const entries = parsed
@@ -61,7 +70,10 @@ export function readHistory() {
       .map((entry) => (entry.token === entry.token.toLowerCase()
         ? entry
         : { ...entry, token: entry.token.toLowerCase() }));
-    return entries.length ? entries : (state.syncedHistory || []);
+    if (!entries.length) return state.syncedHistory || [];
+    _histRaw = raw;
+    _histEntries = entries;
+    return entries;
   } catch (error) {
     return state.syncedHistory || [];
   }
@@ -143,9 +155,24 @@ export function writeFavorites(entries) {
   }
 }
 
+// Folds retired emoji into their successors and sums the counts. Every
+// token map in the app passes through here (local, sent-base, sheet), so a
+// phone or a sheet still holding the old twelve just reads as the new six.
+export function mergeTokens(map) {
+  const out = {};
+  if (!map || typeof map !== "object") return out;
+  for (const [k, v] of Object.entries(map)) {
+    const n = typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
+    if (n <= 0) continue;
+    const key = canonicalToken(k);
+    out[key] = (out[key] || 0) + n;
+  }
+  return out;
+}
+
 export function readTokens() {
   const val = readPlayerSlot(TOKENS_KEY, {});
-  return val && typeof val === "object" && !Array.isArray(val) ? val : {};
+  return mergeTokens(val && typeof val === "object" && !Array.isArray(val) ? val : {});
 }
 
 export function writeTokens(tokens) {
@@ -153,6 +180,7 @@ export function writeTokens(tokens) {
 }
 
 export function addToken(token) {
+  token = canonicalToken(token);
   const tokens = readTokens();
   tokens[token] = (tokens[token] || 0) + 1;
   writeTokens(tokens);
@@ -174,13 +202,7 @@ export function resetToken(token) {
 // deleted by the next sync, which is the one thing a collectible must never do.
 
 function numTokens(map) {
-  const out = {};
-  if (!map || typeof map !== "object") return out;
-  for (const [k, v] of Object.entries(map)) {
-    const n = typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
-    if (n > 0) out[k] = n;
-  }
-  return out;
+  return mergeTokens(map);
 }
 
 // null (rather than {}) means "never recorded", which is not the same as
@@ -342,18 +364,6 @@ export function writeGipfelbuch(entries) {
   try { window.localStorage.setItem(GIPFELBUCH_KEY, JSON.stringify(entries)); } catch (_) {}
 }
 
-export function readMissionLog() {
-  try {
-    const raw = localStorage.getItem(MISSION_LOG_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) { return []; }
-}
-
-export function writeMissionLog(entries) {
-  try { localStorage.setItem(MISSION_LOG_KEY, JSON.stringify(entries)); } catch (_) {}
-}
-
 export function readBaerlauchScores() {
   try {
     const raw = localStorage.getItem(BAERLAUCH_SCORE_KEY);
@@ -437,4 +447,57 @@ export function isPinUnlocked(_pin) {
 
 export function persistPinUnlock(_pin) {
   // intentionally not persisted — require unlock every time
+}
+
+// ── Bärlauch weekly token ────────────────────────────────────────────────────
+// One 🌿 per ISO week for clearing level 5. Stored in the player slot like the
+// wish, keyed by week, so a second clear in the same week earns nothing and a
+// new week earns again.
+const BAERLAUCH_WEEKLY_KEY = "affektions-gacha:baerlauch-weekly:v1";
+export function baerlauchWeekClaimed(week) {
+  const val = readPlayerSlot(BAERLAUCH_WEEKLY_KEY, null);
+  return !!(val && typeof val === "object" && val.week === week);
+}
+export function markBaerlauchWeekClaimed(week) {
+  writePlayerSlot(BAERLAUCH_WEEKLY_KEY, { week, at: Date.now() });
+}
+
+// ── Fionn's replies on wishes ─────────────────────────────────────────────────
+// The sheet sends this token's last few wishes with Fionn's reply (status +
+// when). Kept locally so the card can show a new reply once — on the day it
+// is first seen — without a network round trip. "shown" records which reply
+// was shown on which day, so a re-render keeps it and the next day drops it.
+const WISH_REPLIES_KEY = "affektions-gacha:wish-replies:v1";
+export function readWishReplies() {
+  const val = readPlayerSlot(WISH_REPLIES_KEY, null);
+  return val && typeof val === "object" && !Array.isArray(val) ? val : { wishes: [], shown: null };
+}
+export function writeWishReplies(wishes) {
+  const prev = readWishReplies();
+  const list = (Array.isArray(wishes) ? wishes : [])
+    .filter((w) => w && w.timestamp)
+    .map((w) => ({ timestamp: String(w.timestamp), text: String(w.text || ""), status: String(w.status || ""), statusAt: String(w.statusAt || "") }));
+  writePlayerSlot(WISH_REPLIES_KEY, { wishes: list, shown: prev.shown || null });
+}
+// The newest wish that has a reply, or null.
+export function latestWishReply() {
+  const { wishes } = readWishReplies();
+  const replied = wishes.filter((w) => w.status && w.statusAt);
+  if (!replied.length) return null;
+  replied.sort((a, b) => (a.statusAt < b.statusAt ? 1 : a.statusAt > b.statusAt ? -1 : 0));
+  return replied[0];
+}
+// A reply is "fresh" until it has been shown on a day other than today: the
+// first day it appears it stays through every re-render, after that it rests.
+export function freshWishReply(today) {
+  const r = latestWishReply();
+  if (!r) return null;
+  const { shown } = readWishReplies();
+  if (shown && shown.statusAt === r.statusAt && shown.day !== today) return null;
+  return r;
+}
+export function markWishReplyShown(statusAt, day) {
+  const cur = readWishReplies();
+  if (cur.shown && cur.shown.statusAt === statusAt && cur.shown.day === day) return;
+  writePlayerSlot(WISH_REPLIES_KEY, { ...cur, shown: { statusAt, day } });
 }

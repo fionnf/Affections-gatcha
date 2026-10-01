@@ -1,11 +1,14 @@
 // ── Bärlauch mini-game ────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
-import { getMissionPlayer } from "./utils.js";
+import { getToken } from "./utils.js";
 import { triggerConfetti } from "./confetti.js";
 import { imagePhotos } from "./pull.js";
 import { renderMediaInto } from "./render.js";
-import { readBaerlauchScores, readBaerlauchHistory } from "./storage.js";
-import { dateKeyInTimezone } from "./utils.js";
+import { readBaerlauchScores, readBaerlauchHistory, addToken, baerlauchWeekClaimed, markBaerlauchWeekClaimed } from "./storage.js";
+import { dateKeyInTimezone, currentWeekKey } from "./utils.js";
+import { renderTokenBank } from "./render.js";
+import { showToast } from "./toast.js";
+import { backupToSheets } from "./sync.js";
 
 export const BAERLAUCH_LEVELS = [
   { timeMs: 20000, good: 10, bad: 8, speedMin: 3.2, speedMax: 3.7 },
@@ -19,6 +22,24 @@ export const BAERLAUCH_LEVELS = [
   { timeMs: 4700, good: 22, bad: 30, speedMin: 0.9, speedMax: 1.25 },
   { timeMs: 3800, good: 30, bad: 30, speedMin: 0.4, speedMax: 0.8 }
 ];
+
+// Clearing this level (so: reaching the one after it) earns a 🌿 token,
+// once per week. Level 5 is the first one that takes a few tries — the
+// speeds drop sharply there — which is what makes it worth a token.
+export const BAERLAUCH_TOKEN_LEVEL = 5;
+export const BAERLAUCH_TOKEN = "🌿";
+
+// March to May: the forest is full of it. The chip glows and the panel says so.
+export function isBaerlauchSaison(date = new Date()) {
+  const m = date.getMonth() + 1;
+  return m >= 3 && m <= 5;
+}
+
+// Pure decision, so a test can check it without the DOM: does winning a round
+// at this level, this week, earn the token?
+export function baerlauchTokenDue(levelCleared, week) {
+  return levelCleared >= BAERLAUCH_TOKEN_LEVEL && !baerlauchWeekClaimed(week);
+}
 
 export function baerlauchConfigForLevel(level) {
   return BAERLAUCH_LEVELS[Math.min(level - 1, BAERLAUCH_LEVELS.length - 1)];
@@ -69,7 +90,7 @@ export function failBaerlauchGame(reason) {
         ? "Es wurde zu dunkel, und wir hatten natürlich keine Stirnlampen dabei. Jetzt ist es vorbei."
         : "Oops. Ich fürchte, wir haben toten Lauch oder etwas Giftiges gesammelt und sind tragisch eingegangen. Jetzt ist es vorbei.";
   }
-  saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, false);
+  saveBaerlauchRound(getToken(), state.baerlauch.level, false);
   updateBaerlauchScoreDisplay();
 }
 
@@ -83,16 +104,33 @@ export function winBaerlauchGame() {
 
   stopBaerlauchTimer();
 
+  const cleared = state.baerlauch.level;
   state.baerlauch.level += 1;
-  const isNewHighscore = saveBaerlauchScore(getMissionPlayer(), state.baerlauch.level);
-  saveBaerlauchRound(getMissionPlayer(), state.baerlauch.level, true);
+  const isNewHighscore = saveBaerlauchScore(getToken(), state.baerlauch.level);
+  saveBaerlauchRound(getToken(), state.baerlauch.level, true);
   updateBaerlauchScoreDisplay();
   updateBaerlauchLevelText();
   if (isNewHighscore) triggerConfetti();
 
+  // The game was a dead end: a high score and a compliment, nothing that
+  // reached the rest of the app. Now the first level-5 clear each week pays a
+  // 🌿 into the Token-Bank, the same coin a capsule drops.
+  let earned = false;
+  const week = currentWeekKey();
+  if (baerlauchTokenDue(cleared, week)) {
+    markBaerlauchWeekClaimed(week);
+    try { addToken(BAERLAUCH_TOKEN); } catch (_e) {}
+    try { renderTokenBank(); } catch (_e) {}
+    try { backupToSheets(); } catch (_e) {}
+    try { showToast(`${BAERLAUCH_TOKEN} Sammeltoken für Level ${cleared} — in der Token-Bank`); } catch (_e) {}
+    earned = true;
+  }
+
   if (success) {
     success.hidden = false;
-    success.textContent = "Sehr stark. Du hast nur den guten Bärlauch gesammelt. 💚";
+    success.textContent = earned
+      ? `Level ${cleared} geschafft, nur guten Bärlauch gesammelt. Dafür gibt es diese Woche ein ${BAERLAUCH_TOKEN}. 💚`
+      : "Sehr stark. Du hast nur den guten Bärlauch gesammelt. 💚";
   }
 
   if (reward && rewardPhoto && rewardText && state.photos && state.photos.length) {
@@ -306,7 +344,7 @@ export function saveBaerlauchRound(player, level, won) {
 export function updateBaerlauchScoreDisplay() {
   const el = $("#ag-baerlauch-scores");
   if (!el) return;
-  const player = getMissionPlayer();
+  const player = getToken();
   const myKey = player === "fionn" ? "fionn" : "lennart";
   const theirName = myKey === "lennart" ? "Fionn" : "Lennart";
   const scores = readBaerlauchScores();
