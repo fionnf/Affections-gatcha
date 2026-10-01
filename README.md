@@ -795,6 +795,19 @@ The **An Fionn schicken** button opens a pre-filled message. Configure in `confi
 
 Or `"mailto:fionn@example.com"`.
 
+**With the picture.** A wa.me link can only carry text. When the capsule has a
+photo and the browser can share files (iOS Safari, Android Chrome), the tap
+goes to the system share sheet with the image attached and the same text
+(`sharePullWithPhoto` in `src/events.js`). If the photo cannot be fetched
+(no CORS headers), the tap's activation expired while fetching, or the
+browser cannot share files, it falls back to the text link with a toast, so
+the button never does nothing.
+
+**A day already drawn stays closed on load.** The machine shows at full size
+and the button reads *Heute nochmal anzeigen*; the card appears when he taps
+and the fall replays. (For a while the card was rendered on load; it was
+asked back.)
+
 ---
 
 ## Saving results as an image

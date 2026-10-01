@@ -8,7 +8,7 @@ import { injectStyles } from "./css.js";
 import { renderShell } from "./template.js";
 import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
-import { bindEvents, retryPendingWishSend, renderError, showDrawnToday } from "./events.js";
+import { bindEvents, retryPendingWishSend, renderError, markDrawnToday } from "./events.js";
 import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
 import { updateAppBadge } from "./badge.js";
@@ -123,8 +123,10 @@ export async function init() {
     mount.style.transition = "opacity .18s ease";
     mount.style.opacity = "1";
     const todayKey = dateKeyInTimezone(theme.timezone);
+    // A day already drawn stays closed until he taps: the machine at full
+    // size, the button saying so. The card is not rendered on load.
     if (readHistory().some(e => e.token === getToken() && e.day === todayKey) && !getPreviewDay()) {
-      showDrawnToday();
+      markDrawnToday();
     }
     updateAppBadge();
     applyEveningMode(theme.timezone);
