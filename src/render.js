@@ -186,11 +186,12 @@ export function renderStreakRestore() {
   if (btn) btn.hidden = !streakRestoreAvailable();
   // The restores earned (one per twenty days of best streak) used to be
   // invisible until the day they were needed — a safety net nobody knew they
-  // had. A quiet gem count beside the streak says how many are in the bank.
+  // had. A quiet gem count beside the streak says how many are in the bank,
+  // next to the rescue button on the day one of them is needed.
   const gems = $("[data-ag-streak-gems]");
   if (gems) {
     const left = streakRestoresLeft();
-    gems.hidden = !(left > 0) || (btn && !btn.hidden);
+    gems.hidden = !(left > 0);
     gems.textContent = `💎\u2009×${left}`;
     gems.title = `${left} Streak-Retter in der Bank — springt ein, wenn mal ein Tag fehlt`;
     gems.setAttribute("aria-label", gems.title);

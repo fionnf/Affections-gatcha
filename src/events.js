@@ -22,6 +22,7 @@ import { openGesprachPanel, closeGesprachPanel, showNextGesprach, sendGesprachTo
 import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossaryWord, updateGlossaryWord, uploadGlossaryAudio, fetchGlossaryFromSheet, glossaryUI } from "./glossary.js";
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
 import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
+import { openLicht } from "./licht.js";
 import { currentWeekKey } from "./utils.js";
 
 // Moved to toast.js; re-exported so the existing importers stay unchanged.
@@ -51,7 +52,7 @@ export function setActiveTab(tab) {
       pill.style.left = `${centre - PILL_W / 2}px`;
     }
   }
-  for (const name of ["today", "history", "lieblinge", "berge"]) {
+  for (const name of ["today", "history", "lieblinge", "berge", "licht"]) {
     const panel = $(`[data-ag-panel-${name}]`);
     if (!panel) continue;
     const show = tab === name;
@@ -66,6 +67,7 @@ export function setActiveTab(tab) {
     panel.hidden = !show;
   }
   if (tab === "history") renderHistory();
+  if (tab === "licht") openLicht();
   if (tab === "lieblinge") renderLieblinge();
   if (tab === "berge") {
     invalidateGipfelMap();

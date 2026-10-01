@@ -2612,6 +2612,78 @@ body{
 /* The Stups banner now lives above the draw card, where it is seen before a
    pull, not only after one. */
 .ag-widget .ag-ping-banner{margin:0 0 12px}
+
+/* ── Licht tab: the lamps on the same glass ─────────────────────────────── */
+.ag-widget .ag-licht-card{display:flex;flex-direction:column;gap:14px}
+.ag-widget .ag-licht-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ag-widget .ag-licht-lamps{display:flex;gap:8px;flex-wrap:wrap}
+.ag-widget .ag-licht-lamp{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  font-size:.78rem;letter-spacing:.02em;color:var(--ag-muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+}
+.ag-widget .ag-licht-lamp-dot{width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.25)}
+.ag-widget .ag-licht-lamp[data-state="on"]{color:var(--ag-text)}
+.ag-widget .ag-licht-lamp[data-state="on"] .ag-licht-lamp-dot{background:#8fcf9e;box-shadow:0 0 8px rgba(143,207,158,.6)}
+.ag-widget .ag-licht-lamp[data-state="standby"] .ag-licht-lamp-dot{background:var(--ag-gold);opacity:.8}
+.ag-widget .ag-licht-lamp-sub{opacity:.7;font-size:.7rem}
+.ag-widget .ag-licht-conn{
+  appearance:none;background:none;border:none;font-family:inherit;cursor:pointer;
+  font-size:.72rem;color:var(--ag-muted);padding:4px 0 4px 12px;display:inline-flex;align-items:center;gap:6px;
+}
+.ag-widget .ag-licht-conn::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--ag-muted);opacity:.45}
+.ag-widget .ag-licht-conn[data-state="connected"]::before{background:#8fcf9e;opacity:.9;box-shadow:0 0 8px rgba(143,207,158,.5)}
+.ag-widget .ag-licht-conn[data-state="error"]::before{background:#e0a75d;opacity:.9}
+.ag-widget .ag-licht-conn[data-state="connecting"]::before{animation:ag-pulse 1.2s ease-in-out infinite}
+/* Ten LEDs, as the lamps show them right now. */
+.ag-widget .ag-licht-strip{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;padding:10px;border-radius:var(--ag-radius-md);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06)}
+.ag-widget .ag-licht-strip i{display:block;height:14px;border-radius:999px;background:var(--ag-led);box-shadow:0 0 10px var(--ag-led);transition:background 400ms var(--ag-ease),opacity 400ms var(--ag-ease),box-shadow 400ms var(--ag-ease)}
+.ag-widget .ag-licht-strip.is-off i{box-shadow:none}
+.ag-widget .ag-licht-row{display:flex;align-items:center;gap:12px}
+.ag-widget .ag-licht-power{
+  appearance:none;font-family:inherit;cursor:pointer;flex:none;
+  width:64px;height:40px;border-radius:999px;font-size:.82rem;font-weight:500;letter-spacing:.02em;
+  color:var(--ag-muted);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  transition:background 200ms var(--ag-ease),color 200ms var(--ag-ease),box-shadow 200ms var(--ag-ease);
+}
+.ag-widget .ag-licht-power.is-on{color:#0d1f12;background:#8fcf9e;border-color:#8fcf9e;box-shadow:0 0 18px rgba(143,207,158,.35)}
+.ag-widget .ag-licht-power:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-slider{flex:1;display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:var(--ag-muted)}
+.ag-widget .ag-licht-slider input{width:100%;accent-color:var(--ag-gold);margin:0}
+/* The palette bar: the firmware's 30 tints, tap to set. */
+.ag-widget .ag-licht-palette{
+  position:relative;height:30px;border-radius:999px;cursor:pointer;outline:none;
+  background:linear-gradient(to right,rgb(255,200,80) 0%,rgb(255,60,0) 10%,rgb(255,0,140) 20%,rgb(80,0,255) 31%,rgb(0,140,255) 41%,rgb(0,255,160) 52%,rgb(80,255,0) 62%,rgb(255,240,0) 72%,rgb(255,80,160) 83%,rgb(0,180,180) 93%,rgb(255,220,120) 100%);
+  border:1px solid rgba(255,255,255,.12);
+}
+.ag-widget .ag-licht-palette::after{
+  content:"";position:absolute;top:50%;left:var(--ag-pick,0%);width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:999px;
+  background:rgba(255,255,255,.18);border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45);
+  transition:left 300ms var(--ag-ease);
+}
+.ag-widget .ag-licht-palette:focus-visible{box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+.ag-widget .ag-licht-moods{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0;margin:0 -4px;padding-inline:4px}
+.ag-widget .ag-licht-moods::-webkit-scrollbar{display:none}
+.ag-widget .ag-licht-mood{
+  appearance:none;flex:none;display:inline-flex;align-items:center;gap:7px;font-family:inherit;cursor:pointer;
+  padding:7px 12px 7px 9px;border-radius:999px;font-size:.8rem;color:var(--ag-text);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+}
+.ag-widget .ag-licht-mood:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-mood-dot{width:14px;height:14px;border-radius:999px;background:var(--ag-mood);box-shadow:0 0 8px var(--ag-mood)}
+.ag-widget .ag-licht-label{margin:0 0 6px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ag-muted)}
+.ag-widget .ag-licht-scene-list{display:flex;flex-wrap:wrap;gap:8px}
+.ag-widget .ag-licht-scene{
+  appearance:none;display:inline-flex;align-items:center;gap:8px;font-family:inherit;cursor:pointer;
+  padding:7px 12px;border-radius:999px;font-size:.8rem;color:var(--ag-text);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+}
+.ag-widget .ag-licht-scene:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-scene-dots{display:inline-flex;gap:3px}
+.ag-widget .ag-licht-scene-dots i{width:9px;height:9px;border-radius:999px}
+.ag-widget .ag-licht-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ag-widget .ag-licht-foot .ag-secondary{display:inline-flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;min-width:0;padding-inline:10px}
+.ag-widget .ag-licht-note{margin:0;font-size:.74rem;line-height:1.45;color:var(--ag-muted)}
     `;
 
 export function injectStyles() {

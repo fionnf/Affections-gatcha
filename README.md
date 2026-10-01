@@ -157,8 +157,17 @@ One row per day in the `Stimmung` worksheet.
 
 ## Lichtsteuerung
 
-The 💡 **Licht** tab opens `lichter.html`, an MQTT-over-WebSocket controller
-for the linked lamps. The page is **vendored** from
+The 💡 **Licht** tab is the lamps inside the app (`src/licht.js`): both lamps
+with their state, the ten LEDs as they are right now, power, brightness, a
+palette bar with the firmware's thirty tints, seven quick moods (Warm, Weiß,
+Wald, Gold, Abendrot, Meer, Nacht), the scenes saved on the lights page, and
+**Fionns Lampe winken** — three green pulses on his lamp, then back to what it
+was. It speaks the same MQTT-over-WebSocket protocol as the pull flash,
+connects when the tab opens and drops the socket in the background. No
+broker, no lamps: the tab says so and nothing else notices.
+
+**Alle Einstellungen ›** opens `lichter.html` for the rest — alarms, groups,
+Wi-Fi, reboot. That page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)
 (branch `master`) by `scripts/vendor-lights-ui.py`, which re-applies the local
 changes it needs: this app's favicon and apple-touch-icon, a ‹ back control,
@@ -415,6 +424,30 @@ The **Token-Bank** at the top of Verlauf lists the six with progress bars and a
 redeem button when one is full. Counts come from `readTokens()`, which the
 sync three-way-merges with the sheet.
 
+**Bärlauch pays too.** Clearing level 5 of the Bärlauch game earns a 🌿, once
+per ISO week (`BAERLAUCH_TOKEN_LEVEL` in `src/baerlauch.js`, the week flag in
+the player slot). From March to May the chip breathes green: in season, in
+both senses.
+
+### Vouchers
+
+A capsule is a Gutschein when its outcome says `"voucher": true` — nothing
+else. The flag is recorded on the history entry at pull time, which is what
+gives the entry a **Benutzen** button in Verlauf. There used to be a keyword
+fallback (Gutschein, "lädt dich ein"…) for entries recorded before the flag
+existed; it also caught texts that merely *mention* a voucher. Now every
+voucher in `config/outcomes.json` carries the flag, and an old entry without
+one is recognised by its title, registered from the config at load
+(`registerVoucherTitles`). Rename an outcome and the old entry simply stops
+matching, rather than being guessed at.
+
+**Open-voucher cap.** With `OPEN_VOUCHER_CAP` (4) vouchers still unredeemed,
+voucher outcomes step aside for the plain texts in the same category — the
+odds *between* categories are untouched, only which text comes out. A
+category that is nothing but vouchers still hands one out. Redeem a few and
+they return by themselves. A day already opened is pinned to its recorded
+title, so the cap can never rewrite a card that was seen.
+
 ### JACKPOT pity
 
 JACKPOT is one draw in two hundred; the balancer can lean it to about one in a
@@ -469,6 +502,12 @@ does nothing, so a stray touch cannot draw; it is inert once today's capsule is
 out, and in preview mode. The draw button keeps its own 3 s hold for the hidden
 letter.
 
+The letter is an easter egg (3 s hold on the draw button, or five taps on the
+title), and an egg nobody knows about is just hidden: on the tenth pull, and
+every tenth after that, the draw hint turns gold and says so — *Psst: Der
+Knopf hat ein Geheimnis. Drei Sekunden lang halten.* — until the letter has
+been opened once (`letterHintDue` in `src/extras.js`).
+
 ## Streak bonus & milestones
 
 Consecutive-day streaks boost better outcomes:
@@ -481,7 +520,7 @@ Consecutive-day streaks boost better outcomes:
 
 One-time milestone banners at 7, 14, 21, and 30 days.
 
-**Streak restore:** earn one restore token per 20-day streak milestone. A restore fills in a missed day with a placeholder entry so the streak continues.
+**Streak restore:** earn one restore token per 20-day streak milestone. A restore fills in a missed day with a placeholder entry so the streak continues. The restores in the bank show as a quiet **💎 ×N** beside the streak — they used to be invisible until the day one was needed, a safety net nobody knew they had.
 
 ---
 
@@ -501,7 +540,7 @@ player's streak-restore slot — local to the phone, like the Retter itself.
 | 🗓 **Verlauf** | Token-Bank, pull history (month calendar, 15 per page, total counter), Trophäenregal, and the album |
 | ⭐ **Lieblinge** | Starred favourites |
 | ⛰ **Berge** | Gipfelbuch — mountain log |
-| 💡 **Licht** | Lichtsteuerung (opens `lichter.html`) |
+| 💡 **Licht** | The lamps: state, power, brightness, colour, moods, scenes, a wink; `lichter.html` for the rest |
 
 ---
 
@@ -662,7 +701,12 @@ Opened by the **Bärlauch** chip. A field of emoji — good plants (🌿 🌱 �
 - **Win:** all good plants tapped → photo + sweet message + next level button. New personal best triggers confetti.
 - **Fail (timeout or bad plant):** instant end.
 
-10 levels — more bad plants, less time, faster animation each level. Scores sync to the Google Sheet so both players see each other's leaderboard.
+10 levels — more bad plants, less time, faster animation each level. Scores sync to the Google Sheet; Fionn's old best stays on the board as the one to beat.
+
+**Level 5 pays a 🌿** into the Token-Bank, once per ISO week — see
+**Sammeltokens**. March to May is Bärlauch-Saison: the chip glows. (Level 10
+asks for 30 good and 30 bad plants in 3.8 s and is, as far as anyone knows,
+unbeaten.)
 
 ---
 
@@ -716,7 +760,19 @@ The **Mini-Quest** outcome category delivers a photo challenge from `config/ques
 
 ## Wunschkapsel
 
-A "wish capsule" form on the Heute tab. The submitted wish goes to the Google Sheet (`Wünsche` worksheet) and is displayed back to the other player during the next sync.
+A "wish capsule" form on the Heute tab, once a week. The wish goes to the
+Google Sheet (`Wünsche` worksheet) and to Fionn's Eingänge, where he answers
+it with one of three replies — **erfüllt**, **irgendwann**, **lieber nicht** —
+stored on the wish row (`Status` / `StatusAt`). The sync returns this token's
+last few wishes with their replies (`wishes` in the GET answer, kept in
+`affektions-gacha:wish-replies:v1`), and a new reply sits at the top of the
+next capsule for one day: *Dein Wunsch von letzter Woche: erfüllt 🌿*. The
+Wunschkapsel card shows the same reply under this week's wish.
+
+**Stups.** A 👋 from the Eingänge stores a timestamp in the script; the app
+compares it with the last one seen on sync and shows a banner above the draw
+card. (Both ends existed before and were wired to nothing: the script never
+recorded the ping, and the app never read the flag.)
 
 ---
 
