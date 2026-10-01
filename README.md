@@ -672,6 +672,15 @@ Cards blur what is behind them; the dozens of nested items in Verlauf are
 translucent without blur, so a phone does not composite them all. The
 `prefers-reduced-transparency` query falls back to opaque surfaces.
 
+**Elegance details.** Nav and tab icons are monoline SVG at one stroke
+weight (no emoji), the chips are text, the card date reads *Mi, 30. Sept.*
+rather than ISO, numbers are tabular wherever they line up (streak, calendar,
+heights), capsule text hyphenates (`hyphens: auto`, `lang="de"`), separators
+use thin spaces, a Foto-Drop bleeds to the card edge with its caption set in
+Boska over the foot, tab switches rise-and-fade for 200 ms, and the intro
+paragraph under the title is hidden (still in `theme.json`, one CSS line to
+bring back).
+
 **The app is dark-only.** `index.html` declares `color-scheme: dark` and both
 palettes in `theme.json` are the dark one in practice; the `colors` block is
 kept so a light theme could be reinstated, but nothing currently renders it.

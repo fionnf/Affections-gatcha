@@ -56,6 +56,17 @@ export function defaultChips() {
 
 // ── Today formatting ─────────────────────────────────────────────────────────
 
+// "Mi, 30. Sept." — weekday, day, short month, no ISO on the card.
+export function formatCardDate(dayKey) {
+  try {
+    const [y, m, d] = dayKey.split("-").map(Number);
+    const parts = new Intl.DateTimeFormat("de-CH", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
+      .formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
+    const get = (t) => (parts.find((p) => p.type === t) || {}).value || "";
+    return `${get("weekday").replace(/\.$/, "")}, ${get("day")}. ${get("month")}`;
+  } catch (_e) { return dayKey; }
+}
+
 // The pill shows the machine's day, not the wall clock's — at 03:00 that is
 // still yesterday. Formatting the day key at UTC noon keeps the weekday right
 // without a second timezone conversion.
@@ -841,7 +852,7 @@ export function renderPull(pull) {
   mount.dataset.tone = pull.category.tone;
   setCapsuleTone(pull.category.tone);
   $("[data-ag-rarity]").textContent = pull.category.label;
-  $("[data-ag-date]").textContent = pull.day;
+  $("[data-ag-date]").textContent = formatCardDate(pull.day);
   $("[data-ag-title]").textContent = pull.outcome.title;
   const msgEl = $("[data-ag-message]");
   if (!msgEl) return;
@@ -898,7 +909,6 @@ export function renderPull(pull) {
           if (!markQuestBestanden(pull.day, pull.token)) return;
           backupToSheets();
           try { triggerConfetti(60); } catch (_e) {}
-          try { showToast("Bestanden 🏆"); } catch (_e) {}
           renderPull(pull);
           if (state.activeTab === "history") renderHistory();
         };
@@ -1109,10 +1119,11 @@ export function renderPull(pull) {
   // before the draw is recorded.
   const reactions = $("[data-ag-reactions]");
   if (reactions) {
-    reactions.hidden = !!getPreviewDay();
+    reactions.hidden = false;
     const rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
     const chosen = rec && rec.reaction;
     for (const btn of reactions.querySelectorAll("[data-ag-react]")) {
+      btn.hidden = !!getPreviewDay();
       btn.classList.toggle("is-chosen", btn.dataset.agReact === chosen);
       btn.onclick = () => {
         const emoji = btn.dataset.agReact;
@@ -1120,7 +1131,6 @@ export function renderPull(pull) {
         _fireReactionNotification(pull, emoji);
         backupToSheets();
         try { haptic([12, 30, 18]); } catch (_e) {}
-        try { showToast(`${emoji} Fionn weiss Bescheid`); } catch (_e) {}
         renderPull(pull);
       };
     }
@@ -1933,14 +1943,14 @@ export function hydrateCopy() {
   const name = isFionn ? state.theme.brand.fromName : displayNameFromToken();
   const recipientName = isFionn ? displayNameFromToken() : state.theme.brand.fromName;
   const elTitle = $("[data-ag-main-title]"); if (elTitle) elTitle.textContent = state.theme.brand.titleTemplate.replace("{name}", name);
-  const elKicker = $("[data-ag-kicker]"); if (elKicker) elKicker.textContent = `${state.theme.brand.kicker} · ${state.photos.length} Erinnerungen`;
+  const elKicker = $("[data-ag-kicker]"); if (elKicker) elKicker.textContent = `${state.theme.brand.kicker}\u2009·\u2009${state.photos.length} Erinnerungen`;
   const elIntro = $("[data-ag-intro]"); if (elIntro) elIntro.textContent = state.theme.brand.intro;
   const elBtn = $("[data-ag-button-text]"); if (elBtn) elBtn.textContent = state.theme.brand.buttonIdle;
   const elRulesTitle = $("[data-ag-rules-title]"); if (elRulesTitle) elRulesTitle.textContent = state.theme.brand.rulesTitle;
   const elRulesText = $("[data-ag-rules-text]"); if (elRulesText) elRulesText.textContent = state.theme.brand.rulesText;
   const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
   const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
-  const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel · ein Tag · ein Souvenir.";
+  const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel\u2009·\u2009ein Tag\u2009·\u2009ein Souvenir.";
 
   // The Werkstatt is the authoring side: Lennart writes what Fionn pulls, so
   // it only exists in Lennart's view. Fionn never sees his own pool. It is

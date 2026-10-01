@@ -8,7 +8,7 @@ import { injectStyles } from "./css.js";
 import { renderShell } from "./template.js";
 import { applyTheme, applySpecialDayColors } from "./theme.js";
 import { hydrateCopy, renderOdds, renderWunschkapsel } from "./render.js";
-import { bindEvents, retryPendingWishSend, renderError } from "./events.js";
+import { bindEvents, retryPendingWishSend, renderError, showDrawnToday } from "./events.js";
 import { registerServiceWorker, scheduleStreakWarning, showNotifPrompt } from "./notify.js";
 import { restoreStimmung } from "./stimmung.js";
 import { updateAppBadge } from "./badge.js";
@@ -129,8 +129,8 @@ export async function init() {
     mount.style.transition = "opacity .18s ease";
     mount.style.opacity = "1";
     const todayKey = dateKeyInTimezone(theme.timezone);
-    if (readHistory().some(e => e.token === getToken() && e.day === todayKey)) {
-      mount.classList.add("has-drawn");
+    if (readHistory().some(e => e.token === getToken() && e.day === todayKey) && !getPreviewDay()) {
+      showDrawnToday();
     }
     updateAppBadge();
     applyEveningMode(theme.timezone);
@@ -157,8 +157,8 @@ export function applyEveningMode(timezone) {
     mount.classList.toggle("is-evening", evening);
     const kicker = mount.querySelector("[data-ag-kicker]");
     if (kicker) {
-      const base = kicker.textContent.replace(/ · Gute Nacht 🌙$/, "");
-      kicker.textContent = evening ? base + " · Gute Nacht 🌙" : base;
+      const base = kicker.textContent.replace(/\u2009·\u2009Gute Nacht 🌙$/, "");
+      kicker.textContent = evening ? base + "\u2009·\u2009Gute Nacht 🌙" : base;
     }
   } catch (_e) {}
 }

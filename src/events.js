@@ -52,10 +52,20 @@ export function setActiveTab(tab) {
       pill.style.left = `${centre - PILL_W / 2}px`;
     }
   }
-  $("[data-ag-panel-today]").hidden = tab !== "today";
-  $("[data-ag-panel-history]").hidden = tab !== "history";
-  $("[data-ag-panel-lieblinge]").hidden = tab !== "lieblinge";
-  $("[data-ag-panel-berge]").hidden = tab !== "berge";
+  for (const name of ["today", "history", "lieblinge", "berge"]) {
+    const panel = $(`[data-ag-panel-${name}]`);
+    if (!panel) continue;
+    const show = tab === name;
+    if (show && panel.hidden) {
+      // A short rise-and-fade so the switch reads as one surface changing,
+      // not a page being swapped. Re-triggered by removing and re-adding.
+      panel.classList.remove("is-entering");
+      void panel.offsetWidth;
+      panel.classList.add("is-entering");
+      panel.addEventListener("animationend", () => panel.classList.remove("is-entering"), { once: true });
+    }
+    panel.hidden = !show;
+  }
   if (tab === "history") renderHistory();
   if (tab === "lieblinge") renderLieblinge();
   if (tab === "berge") {
@@ -498,6 +508,20 @@ import { escapeHtml } from "./utils.js";
 export { escapeHtml };
 
 
+// Opening the app on a day that is already drawn used to show the machine
+// at full size with "Kapsel ziehen", and tapping it replayed the whole
+// five-second fall for a capsule he had read at breakfast. Now the drawn day
+// is simply there: card rendered, header folded, button reading "Heute
+// nochmal anzeigen" (which still replays the show, on purpose).
+export function showDrawnToday() {
+  if (!state.todaysPull) state.todaysPull = buildPull();
+  renderPull(state.todaysPull);
+  mount.classList.add("is-revealed", "has-drawn");
+  const buttonText = $("[data-ag-button-text]");
+  if (buttonText) buttonText.textContent = state.theme.brand.buttonShown;
+  state.revealed = true;
+}
+
 export function reveal() {
   if (!state.todaysPull) state.todaysPull = buildPull();
 
@@ -567,6 +591,13 @@ export function reveal() {
     const streak = computeStreak();
     renderStreak();
     renderMilestoneBanner(streak);
+    // The header folds (CSS, on has-drawn) and the card rises into view, so
+    // the thing that just happened is the thing on screen.
+    // After the fold has finished (600 ms max-width transition), or the
+    // scroll lands 80px past the card because its target moved mid-way.
+    window.setTimeout(() => {
+      try { $("[data-ag-result]").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (_e) {}
+    }, 680);
 
     const pullCategoryId = state.todaysPull?.category?.id;
     const pullTone = state.todaysPull?.category?.tone;
@@ -912,6 +943,17 @@ export function bindEvents() {
     downloadWallpaper(state.todaysPull);
   });
 
+  // Sync status is a dot; the sentence shows on tap, briefly.
+  const syncStatus = $("[data-ag-sync-status]");
+  if (syncStatus) {
+    let syncOpenTimer = null;
+    syncStatus.addEventListener("click", () => {
+      syncStatus.classList.add("is-open");
+      clearTimeout(syncOpenTimer);
+      syncOpenTimer = setTimeout(() => syncStatus.classList.remove("is-open"), 2500);
+    });
+  }
+
   // Ferien-Schutz opens from its icon only — the label is a label.
   const ferienToggle = $("[data-ag-ferien-toggle]");
   const ferienBody = $("[data-ag-ferien-body]");
@@ -931,7 +973,6 @@ export function bindEvents() {
     if (!from) { showToast("Erst ein Datum wählen"); return; }
     const added = addVacation(from, to);
     if (!added) { showToast("Höchstens 60 Tage am Stück"); return; }
-    showToast("🏖️ Eingetragen — der Streak wartet");
     haptic([12, 20, 12]);
     renderFerien();
     renderStreak();
