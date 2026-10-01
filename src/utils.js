@@ -198,18 +198,29 @@ export function normaliseDay(raw) {
 }
 
 // Decide whether a history entry is a redeemable voucher (Gutschein).
-// Explicit flag wins; otherwise fall back to keyword detection so older
-// entries (recorded before the flag existed) still get a Benutzen button.
-const VOUCHER_KEYWORDS = /gutschein|lädt\s+(dich\s+)?(zum|zur|ein)|einladung|voucher/i;
-const VOUCHER_NEGATIVE = /nicht\s+einlös|kein\s+gutschein/i;
-const VOUCHER_SKIP_CATEGORIES = new Set(["photo", "collect", "niete"]);
+// A capsule is a voucher when config says so: "voucher": true on the outcome,
+// recorded onto the history entry at pull time. There used to be a keyword
+// fallback (Gutschein, "lädt dich ein"…) for entries recorded before the flag
+// existed; it also caught texts that only mention a voucher, so the Benutzen
+// button appeared on capsules that weren't one. Now every voucher in
+// config/outcomes.json carries the flag, and an old entry without one is
+// recognised by its title instead — registered from the config at load, so
+// a renamed outcome simply stops matching rather than guessing.
+const VOUCHER_TITLES = new Set();
+export function registerVoucherTitles(outcomes) {
+  VOUCHER_TITLES.clear();
+  const cats = Array.isArray(outcomes && outcomes.categories) ? outcomes.categories : [];
+  for (const c of cats) {
+    for (const o of (Array.isArray(c.outcomes) ? c.outcomes : [])) {
+      if (o && o.voucher === true && o.title) VOUCHER_TITLES.add(o.title);
+    }
+  }
+}
 export function isVoucherEntry(entry) {
   if (!entry) return false;
   if (entry.voucher === true) return true;
-  if (VOUCHER_SKIP_CATEGORIES.has(entry.categoryId)) return false;
-  const text = `${entry.title || ""} ${entry.message || ""}`;
-  if (VOUCHER_NEGATIVE.test(text)) return false;
-  return VOUCHER_KEYWORDS.test(text);
+  if (entry.voucher === false) return false;
+  return !!entry.title && VOUCHER_TITLES.has(entry.title);
 }
 
 // Escape text for interpolation into innerHTML template strings. Sheet-synced

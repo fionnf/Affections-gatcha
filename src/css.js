@@ -2580,6 +2580,27 @@ body{
 .ag-widget .ag-sync-status[data-ag-sync-state="ok"]::before{background:#8fcf9e;opacity:.9;box-shadow:0 0 8px rgba(143,207,158,.5)}
 .ag-widget .ag-sync-status[data-ag-sync-state="error"]::before{background:#e0a75d;opacity:.9}
 .ag-widget .ag-sync-status.is-open{font-size:.72rem}
+
+/* Streak-Retter in the bank: a gem count beside the streak, same pill
+   language, quieter. Hidden while the rescue button itself is showing. */
+.ag-widget .ag-streak-gems{
+  display:inline-flex;align-items:center;gap:2px;
+  padding:4px 9px;border-radius:999px;font-size:.78rem;
+  font-variant-numeric:tabular-nums;color:var(--ag-muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+}
+/* Bärlauch-Saison: the chip breathes green from March to May. */
+.ag-widget .ag-chip-saison{
+  position:relative;box-shadow:0 0 0 1px rgba(143,207,158,.45),0 0 14px rgba(143,207,158,.28);
+  animation:ag-saison-breathe 3.2s ease-in-out infinite;
+}
+@keyframes ag-saison-breathe{
+  0%,100%{box-shadow:0 0 0 1px rgba(143,207,158,.35),0 0 10px rgba(143,207,158,.18)}
+  50%{box-shadow:0 0 0 1px rgba(143,207,158,.6),0 0 18px rgba(143,207,158,.4)}
+}
+@media (prefers-reduced-motion:reduce){.ag-widget .ag-chip-saison{animation:none}}
+/* The one hint the machine gives about the hidden letter. */
+.ag-widget .ag-draw-hint.is-secret{color:var(--ag-gold);font-style:italic;opacity:.9}
     `;
 
 export function injectStyles() {

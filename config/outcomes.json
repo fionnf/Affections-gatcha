@@ -665,7 +665,8 @@
         },
         {
           "title": "Handschuhwetter",
-          "message": "Ein Gutschein für kalte Hände in warmen Taschen. Meine, um genau zu sein."
+          "message": "Ein Gutschein für kalte Hände in warmen Taschen. Meine, um genau zu sein.",
+          "voucher": true
         },
         {
           "title": "Bahnsteig 3",

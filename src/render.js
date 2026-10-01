@@ -3,7 +3,7 @@ import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
 import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
-import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
+import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, streakRestoresLeft, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
 import { fetchJson } from "./sync.js";
 import { triggerConfetti } from "./confetti.js";
 import { setCapsuleTone, emojiForTone } from "./pull.js";
@@ -13,6 +13,8 @@ import { extractDriveFileId } from "./utils.js";
 import { isQuestAvailable } from "./extras.js";
 import { showToast, notifyPartnerVoucherRedeemed } from "./events.js";
 import { readStimmung } from "./stimmung.js";
+import { isBaerlauchSaison } from "./baerlauch.js";
+import { letterHintDue, LETTER_HINT } from "./extras.js";
 
 // Module-level closures
 let lightboxImgErrorHandler = null;
@@ -181,8 +183,18 @@ export function renderStreak() {
 
 export function renderStreakRestore() {
   const btn = $("[data-ag-streak-restore]");
-  if (!btn) return;
-  btn.hidden = !streakRestoreAvailable();
+  if (btn) btn.hidden = !streakRestoreAvailable();
+  // The restores earned (one per twenty days of best streak) used to be
+  // invisible until the day they were needed — a safety net nobody knew they
+  // had. A quiet gem count beside the streak says how many are in the bank.
+  const gems = $("[data-ag-streak-gems]");
+  if (gems) {
+    const left = streakRestoresLeft();
+    gems.hidden = !(left > 0) || (btn && !btn.hidden);
+    gems.textContent = `💎\u2009×${left}`;
+    gems.title = `${left} Streak-Retter in der Bank — springt ein, wenn mal ein Tag fehlt`;
+    gems.setAttribute("aria-label", gems.title);
+  }
 }
 
 // ── Milestone banner ─────────────────────────────────────────────────────────
@@ -1944,7 +1956,13 @@ export function hydrateCopy() {
   const elRulesText = $("[data-ag-rules-text]"); if (elRulesText) elRulesText.textContent = state.theme.brand.rulesText;
   const elSend = $("[data-ag-send]"); if (elSend) elSend.textContent = `An ${recipientName} schicken`;
   const elPill = $("[data-ag-today-pill]"); if (elPill) elPill.textContent = formatToday();
-  const elHint = $("[data-ag-draw-hint]"); if (elHint) elHint.textContent = "Eine Kapsel\u2009·\u2009ein Tag\u2009·\u2009ein Souvenir.";
+  const elHint = $("[data-ag-draw-hint]");
+  if (elHint) {
+    const pulls = readHistory().filter((e) => e.token === getToken()).length;
+    const hint = letterHintDue(pulls);
+    elHint.textContent = hint ? LETTER_HINT : "Eine Kapsel\u2009·\u2009ein Tag\u2009·\u2009ein Souvenir.";
+    elHint.classList.toggle("is-secret", hint);
+  }
 
   const chips = $("[data-ag-chips]");
   if (chips) chips.innerHTML = "";
@@ -1962,6 +1980,12 @@ export function hydrateCopy() {
       li.setAttribute("role", "button");
       li.setAttribute("aria-label", "Bärlauch öffnen");
       li.classList.add("ag-chip-clickable");
+      // March–May the chip glows: the real forest is in season, and so is
+      // the weekly token for clearing level 5.
+      if (isBaerlauchSaison()) {
+        li.classList.add("ag-chip-saison");
+        li.title = "Bärlauch-Saison — Level 5 schaffen, 🌿 kassieren";
+      }
     }
 
     if (chip.toLowerCase().includes("gespräch") || chip.toLowerCase().includes("gesprach")) {

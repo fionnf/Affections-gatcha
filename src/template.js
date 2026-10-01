@@ -347,6 +347,7 @@ export const html = `
               <div class="ag-draw-meta">
                 <span class="ag-pill" data-ag-today-pill>Heute</span>
                 <span class="ag-streak" data-ag-streak hidden></span>
+                <span class="ag-streak-gems" data-ag-streak-gems hidden></span>
                 <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>

@@ -371,9 +371,25 @@ export function revealLetterContent(body, paras) {
   body.style.animation = "";
 }
 
+// The letter is an easter egg: hold the draw button for three seconds, or tap
+// the title five times. An egg nobody knows about is just hidden, so the
+// machine drops one hint — on the tenth pull, then every tenth after that,
+// in place of the usual draw hint — until the letter has been opened once.
+const LETTER_OPENED_KEY = "affektions-gacha:letter-opened:v1";
+export const LETTER_HINT_EVERY = 10;
+export function letterOpened() {
+  try { return localStorage.getItem(LETTER_OPENED_KEY) === "yes"; } catch (_e) { return false; }
+}
+export function letterHintDue(pullCount) {
+  if (letterOpened()) return false;
+  return pullCount > 0 && pullCount % LETTER_HINT_EVERY === 0;
+}
+export const LETTER_HINT = "Psst: Der Knopf hat ein Geheimnis. Drei Sekunden lang halten. 🍀";
+
 export function openLetter() {
   const overlay = $("#ag-letter-overlay");
   if (!overlay) return;
+  try { localStorage.setItem(LETTER_OPENED_KEY, "yes"); } catch (_e) {}
   overlay.hidden = false;
   overlay.focus();
   haptic([20, 60, 20]);

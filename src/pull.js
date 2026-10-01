@@ -1,6 +1,6 @@
 // ── Pull building ─────────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
-import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone } from "./utils.js";
+import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone, isVoucherEntry } from "./utils.js";
 import { readHistory, readFreikarteReroll } from "./storage.js";
 import { computeStreak, pickWeightedWithStreak } from "./streak.js";
 
@@ -70,6 +70,12 @@ export function setCapsuleTone(tone) {
 
 export function imagePhotos() {
   return (state.photos || []).filter((p) => p.type !== "video");
+}
+
+// How many unredeemed vouchers may be open before new ones are held back.
+export const OPEN_VOUCHER_CAP = 4;
+export function openVoucherCount(token, day) {
+  return readHistory().filter((e) => e.token === token && e.day < day && isVoucherEntry(e) && !e.used).length;
 }
 
 export function buildPullForDay(day, streak, opts = {}) {
@@ -161,7 +167,19 @@ export function buildPullForDay(day, streak, opts = {}) {
   );
   const unseen = category.outcomes.filter((o) => !usedTitles.has(o.title));
   // Nothing comes back until the whole category is used up.
-  const outcomePool = unseen.length ? unseen : category.outcomes;
+  let outcomePool = unseen.length ? unseen : category.outcomes;
+
+  // Vouchers pile up: a Gutschein is only worth something once it is used,
+  // and a stack of open ones turns each new one into noise. With OPEN_VOUCHER_CAP
+  // of them unredeemed, voucher capsules step aside for the plain texts in the
+  // same category — the odds between categories are untouched, only which
+  // text comes out. Once some are used the vouchers come back on their own.
+  // A day already opened is pinned above (alreadyDrawn), so the cap can never
+  // rewrite a card that was seen.
+  if (!seedSuffix && openVoucherCount(token, day) >= OPEN_VOUCHER_CAP) {
+    const plain = outcomePool.filter((o) => o.voucher !== true);
+    if (plain.length) outcomePool = plain;
+  }
 
   // Seeding picks by index, so a pool that grows or shrinks re-rolls every
   // day that still uses it — including today, which the player may already

@@ -1,6 +1,6 @@
 // ── App initialisation ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, getPreviewDay } from "./utils.js";
+import { getToken, dateKeyInTimezone, getPreviewDay, registerVoucherTitles } from "./utils.js";
 import { readHistory } from "./storage.js";
 import { fetchJson, syncFromSheets, resolveBase } from "./sync.js";
 import { injectFonts } from "./theme.js";
@@ -48,6 +48,7 @@ export async function init() {
     ]);
     state.theme = theme;
     state.outcomes = outcomes;
+    registerVoucherTitles(outcomes);
     state.photos = normalizePhotos(photos);
     state.specialDays = specialDays;
     setDayStartHour(theme.dayStartHour);

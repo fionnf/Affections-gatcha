@@ -436,3 +436,16 @@ export function isPinUnlocked(_pin) {
 export function persistPinUnlock(_pin) {
   // intentionally not persisted — require unlock every time
 }
+
+// ── Bärlauch weekly token ────────────────────────────────────────────────────
+// One 🌿 per ISO week for clearing level 5. Stored in the player slot like the
+// wish, keyed by week, so a second clear in the same week earns nothing and a
+// new week earns again.
+const BAERLAUCH_WEEKLY_KEY = "affektions-gacha:baerlauch-weekly:v1";
+export function baerlauchWeekClaimed(week) {
+  const val = readPlayerSlot(BAERLAUCH_WEEKLY_KEY, null);
+  return !!(val && typeof val === "object" && val.week === week);
+}
+export function markBaerlauchWeekClaimed(week) {
+  writePlayerSlot(BAERLAUCH_WEEKLY_KEY, { week, at: Date.now() });
+}
