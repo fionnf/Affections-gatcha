@@ -4,7 +4,7 @@ import {
   STREAK_RESTORE_KEY, WISH_KEY, MILESTONE_KEY,
   BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY, MISSION_LOG_KEY,
   GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY,
-  FREIKARTE_KEY, FREIKARTE_REROLL_KEY
+  FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken
 } from "./constants.js";
 import { state } from "./state.js";
 import { dateKeyInTimezone, getToken } from "./utils.js";
@@ -143,9 +143,24 @@ export function writeFavorites(entries) {
   }
 }
 
+// Folds retired emoji into their successors and sums the counts. Every
+// token map in the app passes through here (local, sent-base, sheet), so a
+// phone or a sheet still holding the old twelve just reads as the new six.
+export function mergeTokens(map) {
+  const out = {};
+  if (!map || typeof map !== "object") return out;
+  for (const [k, v] of Object.entries(map)) {
+    const n = typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
+    if (n <= 0) continue;
+    const key = canonicalToken(k);
+    out[key] = (out[key] || 0) + n;
+  }
+  return out;
+}
+
 export function readTokens() {
   const val = readPlayerSlot(TOKENS_KEY, {});
-  return val && typeof val === "object" && !Array.isArray(val) ? val : {};
+  return mergeTokens(val && typeof val === "object" && !Array.isArray(val) ? val : {});
 }
 
 export function writeTokens(tokens) {
@@ -153,6 +168,7 @@ export function writeTokens(tokens) {
 }
 
 export function addToken(token) {
+  token = canonicalToken(token);
   const tokens = readTokens();
   tokens[token] = (tokens[token] || 0) + 1;
   writeTokens(tokens);
@@ -174,13 +190,7 @@ export function resetToken(token) {
 // deleted by the next sync, which is the one thing a collectible must never do.
 
 function numTokens(map) {
-  const out = {};
-  if (!map || typeof map !== "object") return out;
-  for (const [k, v] of Object.entries(map)) {
-    const n = typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 0;
-    if (n > 0) out[k] = n;
-  }
-  return out;
+  return mergeTokens(map);
 }
 
 // null (rather than {}) means "never recorded", which is not the same as

@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "proxyUrl": "https://script.google.com/macros/s/AKfycbzOaozc1GwgCT4-QEHKJ549rdp1GS7AmPPoJaCSJIsy0Hm8MDlsdAe-PoUn4dv6zwaa/exec",
   "periodDays": 2,
   "pushTitle": "Neue Foto-Aufgabe",

@@ -4,7 +4,7 @@ import { setupBrowserEnv, outcomesFixture, TEST_SECRET } from "./helpers.js";
 
 const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
-const { buildPullForDay, rerollPullForDay } = await import("../src/pull.js");
+const { buildPullForDay, rerollPullForDay, jackpotPityDue } = await import("../src/pull.js");
 const { writeHistory } = await import("../src/storage.js");
 
 state.theme = { secret: TEST_SECRET, timezone: "Europe/Zurich" };
@@ -203,6 +203,25 @@ test("an opened day keeps its recorded category even when the weights move", () 
   assert.equal(after.category.id, "jackpot", "recorded category pins the day");
   assert.equal(after.outcome.title, "J1");
   state.outcomes = outcomesFixture();
+});
+
+test("jackpot pity: 270 recorded draws without one forces one; fewer draws never do", () => {
+  const days = (n, from) => Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(2025, 0, 1 + i)); return d.toISOString().slice(0, 10);
+  });
+  const dry = days(270).map((day) => ({ day, token: "lennart", categoryId: "common", title: "x", message: "m" }));
+  writeHistory(dry.slice(0, 269));
+  assert.equal(jackpotPityDue("lennart", "2026-06-01"), false, "269 draws: still a new player");
+  writeHistory(dry);
+  assert.equal(jackpotPityDue("lennart", "2026-06-01"), true, "270 dry draws: pity is due");
+  assert.equal(buildPullForDay("2026-06-01", 0).category.id, "jackpot", "and the draw honours it");
+  // one jackpot inside the window resets the clock
+  const withJackpot = dry.map((e, i) => i === 100 ? { ...e, categoryId: "jackpot", title: "J" } : e);
+  writeHistory(withJackpot);
+  assert.equal(jackpotPityDue("lennart", "2026-06-01"), false);
+  // special days are not draws and do not pad the count
+  writeHistory([...dry.slice(0, 200), ...days(70, 0).map((day) => ({ day: "2027-" + day.slice(5), token: "lennart", categoryId: "special", title: "s", message: "m" }))]);
+  assert.equal(jackpotPityDue("2028-01-01" && "lennart", "2028-01-01"), false, "200 draws + 70 special days is not 270 draws");
 });
 
 test("Freikarte reroll never lands on Niete or Verflucht", () => {

@@ -27,6 +27,20 @@ export function checkSpecialDay(day) {
   return null;
 }
 
+// JACKPOT is one draw in two hundred; the balancer can lean it to about one
+// in a hundred but never promises it. This does: a player with 270 recorded
+// draws and no jackpot among them gets one. Special days are not draws and
+// do not count, and a player with fewer than 270 draws is simply new.
+const JACKPOT_PITY_DRAWS = 270;
+export function jackpotPityDue(token, day) {
+  const draws = readHistory()
+    .filter((e) => e.token === token && e.day < day && typeof e.categoryId === "string" && e.categoryId !== "special")
+    .sort((a, b) => b.day.localeCompare(a.day))
+    .slice(0, JACKPOT_PITY_DRAWS);
+  if (draws.length < JACKPOT_PITY_DRAWS) return false;
+  return !draws.some((e) => e.categoryId === "jackpot");
+}
+
 export function emojiForTone(tone) {
   const map = {
     quiet: "🌙",
@@ -137,6 +151,9 @@ export function buildPullForDay(day, streak, opts = {}) {
   }
   if (!category) {
     category = pickWeightedWithStreak(`${baseSeed}|category`, streak || 0, excludeCategoryIds, { token, day });
+    if (!seedSuffix && jackpotPityDue(token, day)) {
+      category = state.outcomes.categories.find((c) => c.id === "jackpot") || category;
+    }
   }
 
   const previewCategory = getPreviewCategory();

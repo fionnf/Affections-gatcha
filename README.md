@@ -466,32 +466,36 @@ capsule.
 
 ### Sammeltokens
 
-About **one pull in five** (19.8%) awards a collectible emoji. There are **12
-types**, each buying a different reward at a different price — 3 for a film
-night, 7 for a weekend away. `TOKEN_REWARDS` in `src/constants.js` holds both,
-and `tokenGoal()` is the single source for "how many". Goals have only ever
-been *lowered* from the old flat 5: raising one would turn a finished set back
-into an unfinished one.
+About **one pull in five** (19.8%) awards a collectible emoji. There are **six
+types**, each buying a different reward at a different price — 3 for a home
+evening, 6 for a weekend away. `TOKEN_REWARDS` in `src/constants.js` holds
+both, and `tokenGoal()` is the single source for "how many".
+
+There used to be twelve. With the one-in-five rate spread twelve ways every
+reward took six months to a year to complete, and the bank was twelve bars
+that crawled. Six bars at goals of 3–6 complete a set every **three to five
+weeks**. The old twelve fold into the six via `TOKEN_MERGES` — ☕→🌿, 🔥→🏔,
+🎧→🎬, 🍕→🛁, ☁️→🛁, ⭐→💚, ✈️ stays — applied on every read of a token map (local,
+sent-base, and the sheet alike), so counts already earned carry over and a
+sheet still holding the old emoji reads correctly. `npm run validate` rejects
+a retired emoji in config: it would credit a bar nobody can see.
 
 **Bad pulls carry the most.** Niete and Verflucht are at 35% each, roughly
 three times the rest — a blank day is exactly when getting *something* matters.
 Sammelkapsel is 100% because that is what the category is for; everything else
-shares what is left of the one-in-five budget at ~12%. Those three groups are
-the whole design: change one and the others have to absorb it, or the rate
-drifts off 20%.
+shares what is left of the one-in-five budget at ~12%.
 
-**Which emoji goes where is computed, not chosen.** A token on a Foto-Drop is
-seen four times as often as one on a Verflucht, so balancing by *count* leaves
-some rewards unreachable — an earlier count-balanced spread gave ⭐ two thirds
-of 🎬's exposure. Every token is now placed greedily against running draw
-probability, which holds all twelve between **16.6 and 17.7 draws per 1000
-days**. If you add or remove outcomes in a category, that arithmetic shifts for
-every token in it; re-derive it rather than eyeballing it.
+The **Token-Bank** at the top of Verlauf lists the six with progress bars and a
+redeem button when one is full. Counts come from `readTokens()`, which the
+sync three-way-merges with the sheet.
 
-The **Token-Bank** at the top of Verlauf lists all 12 with progress bars and a
-redeem button when one is full. Counts come from `readTokens()`, which sync
-overwrites from the Sheet — so it is the shared tally, and it refreshes on
-every `ag-synced`.
+### JACKPOT pity
+
+JACKPOT is one draw in two hundred; the balancer can lean it to about one in a
+hundred but never promises it. `jackpotPityDue()` does: a player with **270
+recorded draws and no JACKPOT among them** gets one on the next draw. Special
+days are not draws and do not count toward the 270, and a player with fewer is
+simply new. The result is pinned like any opened day.
 
 **Anti-repeat:** a category never repeats an outcome until its whole pool is
 used up, keyed on category + exact title. `npm run validate` rejects duplicate
@@ -800,7 +804,11 @@ The ⛰ **Berge** tab is a mountain log.
 
 ---
 
-## Photo quest
+## Photo quest (switched off)
+
+`quest.enabled` is `false`: the chip that opened it is not in `stickers`, so it
+had become a door that notifications pointed at but nobody could open.
+Mini-Quests with *Bestanden* cover the same ground.
 
 The **Mini-Quest** outcome category delivers a photo challenge from `config/quest.json`. Tap **Foto hochladen** to submit — the Apps Script backend validates the image. Solving earns quest points (shown in the header). 30 challenges, cycling on a 2-day period.
 
