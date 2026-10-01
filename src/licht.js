@@ -17,6 +17,7 @@ import { mount, $ } from "./state.js";
 import { showToast } from "./toast.js";
 import { haptic } from "./haptic.js";
 import { loadMqtt } from "./lightsFx.js";
+import { escapeHtml as esc } from "./utils.js";
 
 export const BROKER = "wss://broker.hivemq.com:8884/mqtt";
 export const PREFIX = "picolight_lf26";
@@ -126,7 +127,6 @@ function topicEvents() { return `${PREFIX}/events`; }
 function topicStatus() { return `${PREFIX}/status/+`; }
 function topicScenes() { return `${PREFIX}/scenes`; }
 
-export function lampState(id) { return lamps[id] || null; }
 export function lampOnline(id, now = Date.now()) {
   const l = lamps[id];
   if (!l) return false;
@@ -325,7 +325,6 @@ function bindLichtPanel() {
   });
 }
 
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
 
 export function renderLichtPanel() {
   if (!mount) return;

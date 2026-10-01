@@ -2,13 +2,13 @@
 import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
-  readTokens, applySharedTokens, writeTokensSent, readGipfelbuch, writeGipfelbuch,
+  readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
   readBaerlauchScores, writeWishReplies,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
-import { BAERLAUCH_SCORE_KEY } from "./constants.js";
+import { BAERLAUCH_SCORE_KEY, LAST_PING_KEY } from "./constants.js";
 import { withinGracePeriod } from "./sheetSync.js";
 import { applySharedStimmung } from "./stimmung.js";
 
@@ -183,7 +183,6 @@ export async function syncFromSheets() {
 
     if (typeof data.latestPing === "string" && data.latestPing) {
       try {
-        const LAST_PING_KEY = "affektions-gacha:last-ping:v1";
         const lastSeen = window.localStorage.getItem(LAST_PING_KEY) || "";
         if (data.latestPing > lastSeen) {
           window.localStorage.setItem(LAST_PING_KEY, data.latestPing);

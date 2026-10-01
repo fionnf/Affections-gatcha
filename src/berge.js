@@ -1,6 +1,8 @@
 // ── Berge / Gipfelbuch ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { formatElev, formatKm, formatBergeDate, extractKomootId, escapeHtml } from "./utils.js";
+import { armConfirm } from "./confirm.js";
+import { showToast } from "./toast.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
 import { markRecentWrite } from "./sheetSync.js";
@@ -221,12 +223,11 @@ export function renderGipfelCard(entry) {
   const delBtn = card.querySelector("[data-ag-gipfel-delete]");
   if (delBtn) {
     delBtn.addEventListener("click", () => {
-      if (!window.confirm(`„${entry.name}" löschen?`)) return;
+      if (!armConfirm(delBtn, "Löschen? Nochmal tippen")) return;
       deleteGipfelEntry(entry.id);
       renderBergePanel();
       haptic(8);
-      // showToast via dynamic import to avoid circular
-      import("./events.js").then(m => m.showToast("Eintrag gelöscht")).catch(() => {});
+      showToast("Eintrag gelöscht");
     });
   }
 

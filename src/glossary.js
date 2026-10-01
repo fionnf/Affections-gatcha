@@ -1,6 +1,7 @@
 // ── Glossary ──────────────────────────────────────────────────────────────────
 import { state } from "./state.js";
 import { getToken, escapeHtml } from "./utils.js";
+import { armConfirm } from "./confirm.js";
 import { haptic } from "./haptic.js";
 import { GLOSSARY_KEY } from "./constants.js";
 import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
@@ -165,7 +166,7 @@ export function renderGlossaryWord(word, showLang = false) {
   const delBtn = card.querySelector("[data-ag-glossary-del]");
   if (delBtn) {
     delBtn.addEventListener("click", () => {
-      if (!window.confirm(`„${word.word}" löschen?`)) return;
+      if (!armConfirm(delBtn, "Löschen? Nochmal tippen")) return;
       deleteGlossaryWord(word.id);
       renderGlossaryPanel(glossaryUI.lang);
       haptic(8);

@@ -1,6 +1,6 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone } from "./utils.js";
+import { getToken, dateKeyInTimezone, formatHistoryDate } from "./utils.js";
 import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll } from "./storage.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak, addVacation } from "./streak.js";
 import { buildPull, rerollPullForDay } from "./pull.js";
@@ -13,7 +13,7 @@ import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
 import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
@@ -23,6 +23,7 @@ import { openGlossaryPanel, closeGlossaryPanel, renderGlossaryPanel, addGlossary
 import { openStimmungPanel, closeStimmungPanel, bindStimmungPanel } from "./stimmung.js";
 import { showNotifPrompt, scheduleStreakWarning, enableNotifications } from "./notify.js";
 import { openLicht } from "./licht.js";
+import { armConfirm } from "./confirm.js";
 import { currentWeekKey } from "./utils.js";
 
 // Moved to toast.js; re-exported so the existing importers stay unchanged.
@@ -1019,11 +1020,13 @@ export function bindEvents() {
       const gapDay = streakRestoreGapDay();
       const left = streakRestoresLeft();
       const isBirthdayBonus = birthdayBonusLeft() > 0 && (left - birthdayBonusLeft()) <= 0;
-      const confirmMsg = isBirthdayBonus
-        ? `🎂 Geburtstagsgeschenk! Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen?`
-        : `Verpassten Tag (${gapDay}) auffüllen und deinen Streak wiederherstellen? Du hast danach noch ${left - 1} Streak-Retter übrig.`;
-      const ok = window.confirm(confirmMsg);
-      if (!ok) return;
+      // Two taps instead of confirm(): iOS swallows the dialog in an installed
+      // app, and the button sat there doing nothing.
+      const rest = left - 1;
+      const label = isBirthdayBonus
+        ? `🎂 Geschenk: ${formatHistoryDate(gapDay)} retten? Nochmal tippen`
+        : `${formatHistoryDate(gapDay)} retten${rest > 0 ? ` (${rest} übrig)` : ", der letzte"}? Nochmal tippen`;
+      if (!armConfirm(restoreBtn, label)) return;
       restoreBtn.disabled = true;
       const mended = restoreStreak();
       renderHistory();

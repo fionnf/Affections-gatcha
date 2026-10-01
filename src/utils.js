@@ -34,15 +34,15 @@ export function hmInTimezone(timezone) {
   return { h: get("hour"), m: get("minute") };
 }
 
+// One formatter, not one per history row: Intl.DateTimeFormat construction
+// is the expensive part, formatting is cheap.
+let _historyDateFmt = null;
 export function formatHistoryDate(dayKey) {
   const [y, m, d] = dayKey.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   try {
-    return new Intl.DateTimeFormat("de-CH", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }).format(date);
+    _historyDateFmt ||= new Intl.DateTimeFormat("de-CH", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+    return _historyDateFmt.format(date);
   } catch (error) {
     return dayKey;
   }

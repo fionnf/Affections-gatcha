@@ -47,11 +47,20 @@ function writePlayerSlot(baseKey, value) {
   } catch (_e) {}
 }
 
+// The history is read a dozen times per render (card, chips, streak, odds,
+// cap, badge…) and parsing a year of entries each time adds up on an older
+// phone. The parsed list is kept alongside the raw string it came from; a
+// read with the same raw string returns the same list, a write produces a
+// new string and so a fresh parse. Entries are shared objects: every caller
+// that mutates one writes the list back, which is what keeps this honest.
+let _histRaw = null;
+let _histEntries = null;
 export function readHistory() {
   try {
     if (typeof window === "undefined" || !window.localStorage) return state.syncedHistory || [];
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return state.syncedHistory || [];
+    if (raw === _histRaw && _histEntries) return _histEntries;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return state.syncedHistory || [];
     const entries = parsed
@@ -61,7 +70,10 @@ export function readHistory() {
       .map((entry) => (entry.token === entry.token.toLowerCase()
         ? entry
         : { ...entry, token: entry.token.toLowerCase() }));
-    return entries.length ? entries : (state.syncedHistory || []);
+    if (!entries.length) return state.syncedHistory || [];
+    _histRaw = raw;
+    _histEntries = entries;
+    return entries;
   } catch (error) {
     return state.syncedHistory || [];
   }

@@ -188,6 +188,12 @@ outcome is a toast, including *No board replied* after 8 s, which is the
 signature of firmware too old to know the reboot command (boot.py never
 installed).
 
+The gacha itself follows the same rule everywhere (`src/confirm.js`): the
+one-way taps — **Benutzen** on a voucher, **Bestanden** on a quest, **Streak
+retten**, deleting a Gipfel or a Glossar word — arm the button for four
+seconds (it turns gold and asks *Nochmal tippen*) and the second tap does it.
+No `confirm()` anywhere, so none of them can silently do nothing on a phone.
+
 ---
 
 ## Notifications

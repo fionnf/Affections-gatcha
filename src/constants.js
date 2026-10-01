@@ -17,7 +17,6 @@ export const MILESTONE_KEY         = "affektions-gacha:milestones:v1";
 // never be offered notifications again — including before the reminders
 // actually worked end to end.
 export const NOTIF_KEY             = "affektions-gacha:notif:v2";
-export const PIN_UNLOCK_PREFIX     = "affektions-gacha:pin-unlock:";
 export const BAERLAUCH_SCORE_KEY   = "affektions-gacha:baerlauch-scores:v1";
 export const BAERLAUCH_HISTORY_KEY = "affektions-gacha:baerlauch-history:v1";
 export const GESPRACH_IDX_KEY      = "affektions-gacha:gesprach-idx:v1";
@@ -26,10 +25,8 @@ export const SOUND_KEY             = "affektions-gacha:sound:v1";
 export const GIPFELBUCH_KEY        = "affektions-gacha:gipfelbuch:v1";
 export const QUEST_STORAGE_KEY     = "affektions-gacha:quest:v1";
 export const QUEST_POINTS_KEY      = "affektions-gacha:quest-points:v1";
-export const CACHE_VERSION_KEY     = "affektions-gacha:cache-version:v1";
 
 // ── Numeric constants ────────────────────────────────────────────────────────
-export const CACHE_VERSION           = "2026-05-22-v2";
 export const TOKEN_GOAL              = 5;   // default when a type has no goal
 export const STREAK_RESTORE_THRESHOLD = 20;
 export const QUEST_POINTS_SCHEDULE   = [100, 75, 50, 25];

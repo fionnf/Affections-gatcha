@@ -23,6 +23,3 @@ export function withinGracePeriod(collection, graceMs = 6000) {
 
 // Test seam: lets a test stand at "the grace period has elapsed" without
 // sleeping through it. Nothing in the app calls this.
-export function _resetRecentWrites() {
-  _recentWrites.clear();
-}

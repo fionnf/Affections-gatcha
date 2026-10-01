@@ -716,12 +716,6 @@ export const css = `
         display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
       }
       .ag-draw-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
-      .ag-sound-toggle{
-        background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;
-        padding:4px;border-radius:6px;color:var(--ag-muted);transition:color 120ms,opacity 120ms;
-        margin-left:auto;
-      }
-      .ag-sound-toggle:hover{color:var(--ag-text)}
       .ag-pill{
         display:inline-flex;align-items:center;align-self:flex-start;min-height:26px;padding:0 12px;
         border-radius:999px;background:var(--ag-surface-2);
@@ -852,7 +846,6 @@ export const css = `
         margin:2px 0 0;letter-spacing:.02em;
       }
       .ag-sync-status[data-ag-sync-state="error"]{color:#c9825f;opacity:.85}
-      .ag-lighting-link{font-size:.92rem}
 
       .ag-rules{color:var(--ag-text)}
       .ag-rules summary{
@@ -981,8 +974,6 @@ export const css = `
         background:linear-gradient(135deg, var(--ag-primary), var(--ag-blue));color:#fffdf8;
         flex-direction:column;gap:2px;
       }
-      .ag-history-video-icon{font-size:1.1rem;line-height:1}
-      .ag-history-video-label{font-size:.6rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
       .ag-history-text{min-width:0;flex:1}
 
       /* ── Kapsel-Kalender ── */
@@ -1171,7 +1162,6 @@ export const css = `
         box-sizing:border-box;
       }
       .ag-berge-input:focus{outline:2px solid var(--ag-primary);outline-offset:1px}
-      .ag-berge-elev-input{font-size:1rem;font-weight:500}
       .ag-berge-notes{resize:vertical;min-height:60px}
 
       /* Gipfel list: same grid gap as history */
@@ -1216,9 +1206,6 @@ export const css = `
         transition:opacity 150ms;
       }
       .ag-gipfel-trail-arrow:hover{opacity:1}
-      .ag-gipfel-embed-wrap{margin-top:10px}
-      .ag-gipfel-load-btn{width:100%;justify-content:center;text-align:center}
-      .ag-gipfel-iframe-wrap iframe{display:block;border-radius:8px;width:100%}
       /* ag-gipfel-delete styled in mobile tap-target section below */
       @media (prefers-color-scheme:dark){
         .ag-berge-total-elev,.ag-gipfel-elev{color:#a8d5b5}
@@ -2375,7 +2362,6 @@ body{
 
 /* ── Reactions ── */
 .ag-widget .ag-reactions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
-.ag-widget .ag-reactions-label{font-size:.78rem;color:var(--ag-muted);margin-right:2px}
 .ag-widget .ag-reaction{
   width:40px;height:40px;border-radius:999px;font-size:1.25rem;line-height:1;cursor:pointer;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
@@ -2388,8 +2374,6 @@ body{
 
 /* ── Ferien-Schutz ── */
 .ag-widget .ag-ferien{margin:14px 0 0;padding:10px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
-.ag-widget .ag-ferien-summary{cursor:pointer;list-style:none;font-size:.9rem;color:var(--ag-text)}
-.ag-widget .ag-ferien-summary::-webkit-details-marker{display:none}
 .ag-widget .ag-ferien-count{color:var(--ag-muted);font-size:.8rem}
 .ag-widget .ag-ferien-note{margin:8px 0 10px;font-size:.82rem;color:var(--ag-muted);line-height:1.45}
 .ag-widget .ag-ferien-form{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
@@ -2688,6 +2672,13 @@ body{
 .ag-widget .ag-licht-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .ag-widget .ag-licht-foot .ag-secondary{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-width:0;padding-inline:10px;font-size:.84rem}
 .ag-widget .ag-licht-note{margin:0;font-size:.74rem;line-height:1.45;color:var(--ag-muted)}
+
+/* A button waiting for its second tap (see confirm.js). */
+.ag-widget .is-armed{
+  color:var(--ag-gold)!important;border-color:rgba(224,167,93,.6)!important;
+  background:rgba(224,167,93,.14)!important;box-shadow:0 0 0 2px rgba(224,167,93,.25);
+  animation:ag-pulse 1.1s ease-in-out infinite;
+}
     `;
 
 export function injectStyles() {

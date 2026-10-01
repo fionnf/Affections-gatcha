@@ -28,7 +28,8 @@ export function setHistoryFilter(value) {
 }
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
-import { escapeHtml as escHtml } from "./utils.js";
+import { escapeHtml as escHtml, formatHistoryDate } from "./utils.js";
+import { armConfirm } from "./confirm.js";
 import { haptic } from "./haptic.js";
 export { escHtml };
 
@@ -58,11 +59,12 @@ export function defaultChips() {
 // ── Today formatting ─────────────────────────────────────────────────────────
 
 // "Mi, 30. Sept." — weekday, day, short month, no ISO on the card.
+let _cardDateFmt = null;
 export function formatCardDate(dayKey) {
   try {
     const [y, m, d] = dayKey.split("-").map(Number);
-    const parts = new Intl.DateTimeFormat("de-CH", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
-      .formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
+    _cardDateFmt ||= new Intl.DateTimeFormat("de-CH", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+    const parts = _cardDateFmt.formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
     const get = (t) => (parts.find((p) => p.type === t) || {}).value || "";
     return `${get("weekday").replace(/\.$/, "")}, ${get("day")}. ${get("month")}`;
   } catch (_e) { return dayKey; }
@@ -923,7 +925,6 @@ export function renderPull(pull) {
       const photoBtn = $("[data-ag-quest-photo]");
       const fileInput = $("[data-ag-beweis-file]");
       const thumb = $("[data-ag-beweis-thumb]");
-      const { formatHistoryDate } = _getFormatHistoryDate();
       const questRec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
       const done = !!(questRec && questRec.bestanden);
       const proofUrl = questRec && questRec.beweisUrl;
@@ -945,10 +946,7 @@ export function renderPull(pull) {
       if (doneBtn) {
         doneBtn.hidden = done;
         doneBtn.onclick = () => {
-          const ok = typeof window === "undefined" || !window.confirm
-            ? true
-            : window.confirm("Quest wirklich geschafft? Das wandert dauerhaft ins Trophäenregal.");
-          if (!ok) return;
+          if (!armConfirm(doneBtn, "Wirklich geschafft? Nochmal tippen")) return;
           if (!markQuestBestanden(pull.day, pull.token)) return;
           backupToSheets();
           try { triggerConfetti(60); } catch (_e) {}
@@ -1305,10 +1303,7 @@ export function recordHistoryEntry(pull) {
 // Mark a voucher history entry as redeemed (single-use, one-way).
 export function redeemVoucher(entry, btnEl) {
   if (!entry || entry.used) return;
-  const ok = typeof window === "undefined" || !window.confirm
-    ? true
-    : window.confirm("Diesen Gutschein jetzt einlösen? Das lässt sich nicht rückgängig machen.");
-  if (!ok) return;
+  if (!armConfirm(btnEl, "Einlösen? Nochmal tippen")) return;
 
   const usedAt = dateKeyInTimezone(state.theme?.timezone || "UTC");
   entry.used = true;
@@ -1364,7 +1359,6 @@ export function renderHistoryItemEl(entry) {
   head.className = "ag-history-head";
   const date = document.createElement("span");
   date.className = "ag-history-date";
-  const { formatHistoryDate } = _getFormatHistoryDate();
   date.textContent = formatHistoryDate(entry.day);
   const badge = document.createElement("span");
   badge.className = "ag-history-badge";
@@ -1490,7 +1484,6 @@ export function renderHistoryItemEl(entry) {
   if (entry.bestanden) {
     const done = document.createElement("p");
     done.className = "ag-history-bestanden";
-    const { formatHistoryDate } = _getFormatHistoryDate();
     done.textContent = `🏆 Bestanden${entry.bestandenAt ? ` am ${formatHistoryDate(entry.bestandenAt)}` : ""}`;
     li.appendChild(done);
     if (entry.beweisUrl) {
@@ -1515,7 +1508,6 @@ export function renderHistoryItemEl(entry) {
     if (entry.used) {
       const used = document.createElement("span");
       used.className = "ag-voucher-used";
-      const { formatHistoryDate } = _getFormatHistoryDate();
       used.textContent = `✓ Benutzt am ${entry.usedAt ? formatHistoryDate(entry.usedAt) : "–"}`;
       actions.appendChild(used);
     } else {
@@ -1533,24 +1525,6 @@ export function renderHistoryItemEl(entry) {
   }
 
   return li;
-}
-
-function _getFormatHistoryDate() {
-  return {
-    formatHistoryDate: (dayKey) => {
-      const [y, m, d] = dayKey.split("-").map(Number);
-      const date = new Date(Date.UTC(y, m - 1, d));
-      try {
-        return new Intl.DateTimeFormat("de-CH", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric"
-        }).format(date);
-      } catch (error) {
-        return dayKey;
-      }
-    }
-  };
 }
 
 function updateVoucherFilterUi(openVouchers) {
@@ -1751,7 +1725,6 @@ export function renderTrophyShelf(entries) {
       : `${passed.length} bestandene Quests.`;
   }
 
-  const { formatHistoryDate } = _getFormatHistoryDate();
   shelf.innerHTML = "";
   for (const entry of passed) {
     const tile = document.createElement("div");
@@ -1798,7 +1771,6 @@ export function renderFerien() {
   const list = $("[data-ag-ferien-list]");
   const count = $("[data-ag-ferien-count]");
   if (!list) return;
-  const { formatHistoryDate } = _getFormatHistoryDate();
   const vacations = readVacations();
   list.innerHTML = "";
   if (count) { count.hidden = !vacations.length; count.textContent = vacations.length ? `· ${vacations.length}` : ""; }
