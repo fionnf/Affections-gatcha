@@ -474,18 +474,47 @@ import { escapeHtml } from "./utils.js";
 export { escapeHtml };
 
 
-// Opening the app on a day that is already drawn used to show the machine
-// at full size with "Kapsel ziehen", and tapping it replayed the whole
-// five-second fall for a capsule he had read at breakfast. Now the drawn day
-// is simply there: card rendered, header folded, button reading "Heute
-// nochmal anzeigen" (which still replays the show, on purpose).
-export function showDrawnToday() {
-  if (!state.todaysPull) state.todaysPull = buildPull();
-  renderPull(state.todaysPull);
-  mount.classList.add("is-revealed", "has-drawn");
+// Opening the app on a day that is already drawn: the card stays closed
+// until he taps. Only the button gives it away — "Heute nochmal anzeigen"
+// instead of "Kapsel ziehen" — and the tap replays the fall, on purpose.
+// (For a while the card was rendered on load; it was asked back.)
+export function markDrawnToday() {
   const buttonText = $("[data-ag-button-text]");
   if (buttonText) buttonText.textContent = state.theme.brand.buttonShown;
-  state.revealed = true;
+}
+
+// "An Fionn schicken" with the photo attached. The wa.me link can only carry
+// text, so when the capsule has a picture and the browser can share files,
+// the tap goes to the system share sheet with the image and the same text.
+// Anything that goes wrong — no CORS on the photo, the tap's activation
+// expired while fetching, a browser without file sharing — falls back to the
+// text link, so the button never does nothing. Returns true when it took
+// the tap over.
+export function canShareFiles() {
+  return typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof navigator.canShare === "function";
+}
+export function photoFileName(pull, mime) {
+  const ext = (String(mime || "image/jpeg").split("/")[1] || "jpg").replace("jpeg", "jpg");
+  return `gacha-${pull.day}.${ext}`;
+}
+export function sharePullWithPhoto(pull, fallbackHref) {
+  const photo = pull && pull.photo;
+  if (!photo || photo.type === "video" || !photo.url || !canShareFiles()) return false;
+  (async () => {
+    try {
+      const res = await fetch(photo.url, { mode: "cors" });
+      if (!res.ok) throw new Error("photo fetch " + res.status);
+      const blob = await res.blob();
+      const file = new File([blob], photoFileName(pull, blob.type), { type: blob.type || "image/jpeg" });
+      if (!navigator.canShare({ files: [file] })) throw new Error("cannot share files");
+      await navigator.share({ files: [file], text: messageText(pull), title: "Mein Gacha-Zug" });
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      try { showToast("Foto hing nicht dran — nur der Text geht raus"); } catch (_e) {}
+      window.location.href = fallbackHref;
+    }
+  })();
+  return true;
 }
 
 export function reveal() {
@@ -864,6 +893,11 @@ export function bindEvents() {
     if (!state.todaysPull) return;
     haptic(8);
     downloadResultAsImage(state.todaysPull);
+  });
+  $("[data-ag-send]").addEventListener("click", (e) => {
+    if (!state.todaysPull) return;
+    haptic(8);
+    if (sharePullWithPhoto(state.todaysPull, e.currentTarget.href)) e.preventDefault();
   });
   $("[data-ag-star]").addEventListener("click", () => {
     haptic(8);

@@ -162,9 +162,15 @@ with their state, the ten LEDs as they are right now, power, brightness, a
 palette bar with the firmware's thirty tints, seven quick moods (Warm, Weiß,
 Wald, Gold, Abendrot, Meer, Nacht), the scenes saved on the lights page, and
 **Fionns Lampe winken** — three green pulses on his lamp, then back to what it
-was. It speaks the same MQTT-over-WebSocket protocol as the pull flash,
-connects when the tab opens and drops the socket in the background. No
-broker, no lamps: the tab says so and nothing else notices.
+was. It speaks the same MQTT-over-WebSocket protocol as the pull flash.
+It connects when the tab opens, drops the socket when the app goes to the
+background and reconnects when it comes back with the tab still open; a tap
+on the status line starts a fresh attempt. A generation counter keeps a dead
+socket's late events from touching the new one, and the first attempt's
+promise settles either way, so a retry can never find itself "already
+connecting" forever. The status says *verbunden · keine Lampe antwortet* when
+the broker is there but no board has echoed — a lamp that is unplugged looks
+like that. No broker, no lamps: the tab says so and nothing else notices.
 
 **Alle Einstellungen ›** opens `lichter.html` for the rest — alarms, groups,
 Wi-Fi, reboot. That page is **vendored** from
@@ -626,10 +632,13 @@ Three things to know before editing `src/css.js`:
 Touch targets are ≥44pt. The nav chips get theirs from a `::before` overlay
 rather than being made taller, so the row still looks 28px.
 
-**The hero is deliberately compact on phones** (machine 172px, title on one or
-two lines, tighter copy): about 500px on a 375px-wide phone, so the draw button
-is on the first screen. It used to be 610px, which was a full screen of header
-before the first card.
+**The hero is compact on phones in copy, not in machine** (title on one or
+two lines, tighter kicker and intro): the draw button sits just under the first
+screen on a 375px-wide phone. The machine itself stays at 250px — it is the
+app's face, and at 172px (and 112px once the day was drawn) it read as an icon
+rather than a machine. Once drawn, only the title and kicker fold. The orbit
+emoji keep their own colours at every hour; evening mode slows them, it does
+not dim them.
 
 **Surface language: liquid glass.** The last block in `src/css.js` restyles
 every surface — cards, pills, buttons, inputs, the bottom nav — as frosted
@@ -791,6 +800,19 @@ The **An Fionn schicken** button opens a pre-filled message. Configure in `confi
 ```
 
 Or `"mailto:fionn@example.com"`.
+
+**With the picture.** A wa.me link can only carry text. When the capsule has a
+photo and the browser can share files (iOS Safari, Android Chrome), the tap
+goes to the system share sheet with the image attached and the same text
+(`sharePullWithPhoto` in `src/events.js`). If the photo cannot be fetched
+(no CORS headers), the tap's activation expired while fetching, or the
+browser cannot share files, it falls back to the text link with a toast, so
+the button never does nothing.
+
+**A day already drawn stays closed on load.** The machine shows at full size
+and the button reads *Heute nochmal anzeigen*; the card appears when he taps
+and the fall replays. (For a while the card was rendered on load; it was
+asked back.)
 
 ---
 
