@@ -2863,6 +2863,35 @@ body{
 @keyframes ag-panel-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .ag-widget .ag-panel.is-entering{animation:ag-panel-in 200ms var(--ag-ease) both}
 @media (prefers-reduced-motion:reduce){.ag-widget .ag-panel.is-entering{animation:none}}
+
+/* ── Flow pass ── */
+/* The header folds once the day is drawn: small machine, one-line title. */
+@media (max-width:760px){
+  .ag-widget .ag-machine-wrap{transition:max-width 600ms var(--ag-ease)}
+  .ag-widget .ag-copy h1{transition:font-size 400ms var(--ag-ease),margin 400ms var(--ag-ease)}
+  .ag-widget.has-drawn .ag-machine-wrap{max-width:112px}
+  .ag-widget.has-drawn .ag-hero{gap:4px}
+  .ag-widget.has-drawn .ag-copy h1{font-size:clamp(1.25rem,1rem + 2.6vw,1.7rem);margin:2px 0 10px}
+  .ag-widget.has-drawn .ag-kicker{font-size:.62rem}
+  .ag-widget.has-drawn .ag-emoji{font-size:.7rem}
+}
+.ag-widget .ag-result{scroll-margin-top:12px}
+/* One quiet strip under the capsule: a hairline, the reactions, the star at
+   the right; Kopieren and An Fionn schicken as two equal buttons beneath. */
+.ag-widget .ag-reactions{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:16px;gap:8px}
+.ag-widget .ag-reactions .ag-star{margin-left:auto;font-size:1rem;color:var(--ag-muted)}
+.ag-widget .ag-reactions .ag-star.is-starred{color:var(--ag-gold);border-color:rgba(224,167,93,.5);background:rgba(224,167,93,.14)}
+.ag-widget .ag-actions-row{margin-top:10px}
+/* Sync status: a dot. Tap for the sentence, for a moment. */
+.ag-widget .ag-sync-status{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  min-height:24px;margin:0;font-size:0;opacity:1;cursor:pointer;color:var(--ag-muted);
+  transition:font-size 160ms var(--ag-ease);
+}
+.ag-widget .ag-sync-status::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--ag-muted);opacity:.45;flex:none}
+.ag-widget .ag-sync-status[data-ag-sync-state="ok"]::before{background:#8fcf9e;opacity:.9;box-shadow:0 0 8px rgba(143,207,158,.5)}
+.ag-widget .ag-sync-status[data-ag-sync-state="error"]::before{background:#e0a75d;opacity:.9}
+.ag-widget .ag-sync-status.is-open{font-size:.72rem}
     `;
 
 export function injectStyles() {

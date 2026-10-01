@@ -456,15 +456,14 @@ export const html = `
                 <figcaption data-ag-photo-caption hidden></figcaption>
               </figure>
               <div class="ag-reactions" data-ag-reactions hidden>
-                <span class="ag-reactions-label">Kurz reagieren</span>
                 <button class="ag-reaction" type="button" data-ag-react="🥹" aria-label="Reaktion: gerührt">🥹</button>
                 <button class="ag-reaction" type="button" data-ag-react="😂" aria-label="Reaktion: lachen">😂</button>
                 <button class="ag-reaction" type="button" data-ag-react="🙃" aria-label="Reaktion: na gut">🙃</button>
+                <button class="ag-reaction ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern" aria-label="Als Lieblingspreis speichern">☆</button>
               </div>
               <div class="ag-actions ag-actions-row">
                 <button class="ag-secondary ag-action" type="button" data-ag-copy>Kopieren</button>
                 <a class="ag-secondary ag-action ag-action-send ag-link" data-ag-send href="#" rel="noopener">An Fionn schicken</a>
-                <button class="ag-secondary ag-action ag-star" type="button" data-ag-star title="Als Lieblingspreis speichern">☆</button>
               </div>
               <div class="ag-actions ag-actions-extra" data-ag-actions-extra hidden>
                 <button class="ag-secondary ag-action ag-save-img" type="button" data-ag-save-img hidden>Als Bild speichern</button>

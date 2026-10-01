@@ -909,7 +909,6 @@ export function renderPull(pull) {
           if (!markQuestBestanden(pull.day, pull.token)) return;
           backupToSheets();
           try { triggerConfetti(60); } catch (_e) {}
-          try { showToast("Bestanden 🏆"); } catch (_e) {}
           renderPull(pull);
           if (state.activeTab === "history") renderHistory();
         };
@@ -1120,10 +1119,11 @@ export function renderPull(pull) {
   // before the draw is recorded.
   const reactions = $("[data-ag-reactions]");
   if (reactions) {
-    reactions.hidden = !!getPreviewDay();
+    reactions.hidden = false;
     const rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
     const chosen = rec && rec.reaction;
     for (const btn of reactions.querySelectorAll("[data-ag-react]")) {
+      btn.hidden = !!getPreviewDay();
       btn.classList.toggle("is-chosen", btn.dataset.agReact === chosen);
       btn.onclick = () => {
         const emoji = btn.dataset.agReact;
@@ -1131,7 +1131,6 @@ export function renderPull(pull) {
         _fireReactionNotification(pull, emoji);
         backupToSheets();
         try { haptic([12, 30, 18]); } catch (_e) {}
-        try { showToast(`${emoji} Fionn weiss Bescheid`); } catch (_e) {}
         renderPull(pull);
       };
     }
