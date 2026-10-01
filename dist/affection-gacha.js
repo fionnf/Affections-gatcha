@@ -222,7 +222,6 @@
         animation-delay:var(--ag-emoji-delay,0s);
         animation-direction:var(--ag-emoji-direction,normal);
         filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
-        opacity:.9;
       }
       @keyframes ag-emoji-spin{
         0%{
@@ -1111,12 +1110,13 @@
         }
         .ag-shell{padding:clamp(16px,4vw,24px)}
         /* The hero used to take a whole phone screen (about 610px on a
-           375px-wide phone) before the first card. Smaller machine, a
-           title that fits on one or two lines, tighter copy: the draw
-           button is now visible without scrolling. */
+           375px-wide phone) before the first card. A title that fits on one
+           or two lines and tighter copy keep the draw button near; the
+           machine itself stays big — it is the app's face, and at 172px it
+           read as an icon rather than a machine. */
         .ag-hero{gap:10px}
-        .ag-machine-wrap{max-width:172px}
-        .ag-emoji{font-size:clamp(.8rem,2.2vw,.95rem)}
+        .ag-machine-wrap{max-width:250px}
+        .ag-emoji{font-size:clamp(.95rem,2.8vw,1.15rem)}
         .ag-kicker{font-size:.66rem;letter-spacing:.12em}
         .ag-copy h1{font-size:clamp(1.6rem,1rem + 4.4vw,2.3rem);margin:6px 0 8px}
         .ag-intro{font-size:.92rem;line-height:1.5;margin:0 0 12px}
@@ -1348,9 +1348,9 @@
       .ag-widget.is-evening .ag-mach-orbit{animation-duration:70s}
       .ag-widget.is-evening .ag-mach-glow{animation-duration:9s;opacity:.7}
       .ag-widget.is-evening .ag-orbit span{opacity:.45}
-      .ag-widget.is-evening .ag-emoji{opacity:.55;animation-duration:calc(var(--ag-emoji-duration,32s) * 2.2)}
+      /* Slower, not dimmer: the emoji keep their own colours at every hour. */
+      .ag-widget.is-evening .ag-emoji{animation-duration:calc(var(--ag-emoji-duration,32s) * 2.2)}
       .ag-widget.is-evening .ag-machine-capsule{animation-duration:9s}
-      .ag-widget.is-evening .ag-hero{filter:saturate(.85) brightness(.92)}
 
       /* ── Foil: a holographic sheen on Selten and JACKPOT cards ──
          An overlay that sweeps on its own, and follows the phone's tilt once
@@ -2537,15 +2537,12 @@ body{
 @media (prefers-reduced-motion:reduce){.ag-widget .ag-panel.is-entering{animation:none}}
 
 /* ── Flow pass ── */
-/* The header folds once the day is drawn: small machine, one-line title. */
+/* Once the day is drawn the title and kicker fold to one line; the machine
+   keeps its size — shrinking it to 112px made the app's face an icon. */
 @media (max-width:760px){
-  .ag-widget .ag-machine-wrap{transition:max-width 600ms var(--ag-ease)}
   .ag-widget .ag-copy h1{transition:font-size 400ms var(--ag-ease),margin 400ms var(--ag-ease)}
-  .ag-widget.has-drawn .ag-machine-wrap{max-width:112px}
-  .ag-widget.has-drawn .ag-hero{gap:4px}
   .ag-widget.has-drawn .ag-copy h1{font-size:clamp(1.25rem,1rem + 2.6vw,1.7rem);margin:2px 0 10px}
   .ag-widget.has-drawn .ag-kicker{font-size:.62rem}
-  .ag-widget.has-drawn .ag-emoji{font-size:.7rem}
 }
 .ag-widget .ag-result{scroll-margin-top:12px}
 /* One quiet strip under the capsule: a hairline, the reactions, the star at

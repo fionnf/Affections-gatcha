@@ -626,10 +626,13 @@ Three things to know before editing `src/css.js`:
 Touch targets are ≥44pt. The nav chips get theirs from a `::before` overlay
 rather than being made taller, so the row still looks 28px.
 
-**The hero is deliberately compact on phones** (machine 172px, title on one or
-two lines, tighter copy): about 500px on a 375px-wide phone, so the draw button
-is on the first screen. It used to be 610px, which was a full screen of header
-before the first card.
+**The hero is compact on phones in copy, not in machine** (title on one or
+two lines, tighter kicker and intro): the draw button sits just under the first
+screen on a 375px-wide phone. The machine itself stays at 250px — it is the
+app's face, and at 172px (and 112px once the day was drawn) it read as an icon
+rather than a machine. Once drawn, only the title and kicker fold. The orbit
+emoji keep their own colours at every hour; evening mode slows them, it does
+not dim them.
 
 **Surface language: liquid glass.** The last block in `src/css.js` restyles
 every surface — cards, pills, buttons, inputs, the bottom nav — as frosted
