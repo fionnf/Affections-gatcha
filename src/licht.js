@@ -118,6 +118,10 @@ export function winkSteps(restore) {
 // ── Connection + state ───────────────────────────────────────────────────────
 let client = null;
 let connecting = null;
+let generation = 0;        // bumped on every disconnect so a dead client's events are ignored
+let connectedAt = 0;
+let lastError = "";
+let nudgeTimer = null;
 let holdUntil = 0;
 const lamps = {};          // id → { online, on, brightness, fade_steps, groups, seenAt }
 let scenes = [];
@@ -144,38 +148,73 @@ function setConn(next) {
   renderLichtPanel();
 }
 
-async function connect() {
-  if (client && client.connected) return client;
+// One client at a time. A generation counter guards every handler: after a
+// disconnect (tap on the status, app backgrounded) a late event from the old
+// socket must not flip the state of the new one. The promise only covers the
+// first attempt; after that MQTT.js keeps retrying by itself and the handlers
+// keep the label honest. The first version of this could get stuck: a
+// handshake that only ever emitted "close" never settled the promise, so a
+// retry tap found "already connecting" and did nothing, forever.
+function connect() {
+  if (client && client.connected) { setConn("connected"); return Promise.resolve(client); }
   if (connecting) return connecting;
+  const gen = ++generation;
   setConn("connecting");
-  connecting = (async () => {
-    await loadMqtt();
-    return new Promise((resolve) => {
-      const c = window.mqtt.connect(BROKER, {
-        clientId: "gacha_licht_" + Math.random().toString(16).slice(2),
-        clean: true, connectTimeout: 8000, reconnectPeriod: 4000
-      });
-      let settled = false;
-      c.on("connect", () => {
-        c.subscribe([topicEvents(), topicStatus(), topicScenes()], () => {});
-        // Boards change nothing on an unknown field, but echo their whole
-        // state back — the fastest way to know what the room looks like.
-        publishRaw({ nudge: true });
-        setConn("connected");
-        if (!settled) { settled = true; resolve(c); }
-      });
-      c.on("message", onMessage);
-      c.on("error", () => { setConn("error"); if (!settled) { settled = true; resolve(c); } });
-      c.on("close", () => { if (conn !== "idle") setConn("error"); });
-      client = c;
+  connecting = loadMqtt().then(() => new Promise((resolve, reject) => {
+    const c = window.mqtt.connect(BROKER, {
+      clientId: "gacha_licht_" + Math.random().toString(16).slice(2),
+      clean: true, connectTimeout: 10000, reconnectPeriod: 4000, keepalive: 30
     });
-  })();
-  try { return await connecting; } finally { connecting = null; }
+    client = c;
+    const mine = () => gen === generation && client === c;
+    let settled = false;
+    const settle = (ok) => {
+      if (settled) return;
+      settled = true;
+      if (ok) resolve(c); else reject(new Error(lastError || "licht: no connection"));
+    };
+    c.on("connect", () => {
+      if (!mine()) return;
+      connectedAt = Date.now();
+      lastError = "";
+      c.subscribe([topicEvents(), topicStatus(), topicScenes()], () => {});
+      // Boards change nothing on an unknown field, but echo their whole
+      // state back — the fastest way to know what the room looks like.
+      publishRaw({ nudge: true });
+      setConn("connected");
+      settle(true);
+    });
+    c.on("message", (t, m) => { if (mine()) onMessage(t, m); });
+    c.on("reconnect", () => { if (mine() && conn !== "connected") setConn("connecting"); });
+    c.on("offline", () => { if (mine()) setConn("error"); });
+    c.on("error", (err) => { if (!mine()) return; lastError = (err && err.message) || "error"; setConn("error"); });
+    c.on("close", () => { if (mine()) setConn("error"); });
+    // Don't hang the first attempt forever; MQTT.js carries on retrying.
+    setTimeout(() => settle(!!(c.connected)), 15000);
+  })).catch((err) => {
+    if (gen === generation) { lastError = (err && err.message) || "load"; setConn("error"); }
+    throw err;
+  }).finally(() => { if (gen === generation) connecting = null; });
+  return connecting;
 }
 
 export function disconnectLicht() {
+  generation++;
+  connecting = null;
   if (client) { try { client.end(true); } catch (_e) {} }
-  client = null; conn = "idle";
+  client = null; conn = "idle"; connectedAt = 0;
+  if (nudgeTimer) { clearInterval(nudgeTimer); nudgeTimer = null; }
+  renderLichtPanel();
+}
+
+// Every minute while the tab is open: a ping the boards answer with a
+// heartbeat (keeps "online" honest) and a repaint for the stale timers.
+function startNudging() {
+  if (nudgeTimer) return;
+  nudgeTimer = setInterval(() => {
+    if (client && client.connected) publishRaw({ ping: true });
+    renderLichtPanel();
+  }, 60000);
 }
 
 function onMessage(topic, msg) {
@@ -260,7 +299,8 @@ let brightnessTimer = null;
 export function openLicht() {
   renderLichtPanel();
   bindLichtPanel();
-  connect().catch(() => setConn("error"));
+  connect().catch(() => {});
+  startNudging();
 }
 
 function bindLichtPanel() {
@@ -320,8 +360,12 @@ function bindLichtPanel() {
   const retry = $("[data-ag-licht-conn]");
   if (retry) retry.addEventListener("click", () => { if (conn !== "connected") { disconnectLicht(); openLicht(); } });
   document.addEventListener("visibilitychange", () => {
-    // Drop the socket in the background; the tab reconnects when opened.
-    if (document.visibilityState === "hidden" && client) disconnectLicht();
+    // Drop the socket in the background, and pick it up again the moment the
+    // app is back with the tab still open — otherwise the panel came back
+    // with an empty status and every control disabled.
+    const panel = $("[data-ag-panel-licht]");
+    if (document.visibilityState === "hidden") { if (client || connecting) disconnectLicht(); return; }
+    if (panel && !panel.hidden) openLicht();
   });
 }
 
@@ -334,9 +378,12 @@ export function renderLichtPanel() {
   const connEl = $("[data-ag-licht-conn]");
   if (connEl) {
     connEl.dataset.state = conn;
-    connEl.textContent = conn === "connected" ? "verbunden"
+    const anyLampSeen = BOARDS.some((b) => lampOnline(b.id));
+    const quiet = conn === "connected" && !anyLampSeen && connectedAt && Date.now() - connectedAt > 4000;
+    connEl.textContent = conn === "connected" ? (quiet ? "verbunden · keine Lampe antwortet" : "verbunden")
       : conn === "connecting" ? "verbinde…"
-      : conn === "error" ? "keine Verbindung · tippen" : "";
+      : conn === "error" ? (lastError ? `keine Verbindung (${lastError.slice(0, 40)}) · tippen` : "keine Verbindung · tippen")
+      : "tippen zum Verbinden";
   }
 
   const lampsEl = $("[data-ag-licht-lamps]");

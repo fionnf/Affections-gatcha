@@ -162,9 +162,15 @@ with their state, the ten LEDs as they are right now, power, brightness, a
 palette bar with the firmware's thirty tints, seven quick moods (Warm, Weiß,
 Wald, Gold, Abendrot, Meer, Nacht), the scenes saved on the lights page, and
 **Fionns Lampe winken** — three green pulses on his lamp, then back to what it
-was. It speaks the same MQTT-over-WebSocket protocol as the pull flash,
-connects when the tab opens and drops the socket in the background. No
-broker, no lamps: the tab says so and nothing else notices.
+was. It speaks the same MQTT-over-WebSocket protocol as the pull flash.
+It connects when the tab opens, drops the socket when the app goes to the
+background and reconnects when it comes back with the tab still open; a tap
+on the status line starts a fresh attempt. A generation counter keeps a dead
+socket's late events from touching the new one, and the first attempt's
+promise settles either way, so a retry can never find itself "already
+connecting" forever. The status says *verbunden · keine Lampe antwortet* when
+the broker is there but no board has echoed — a lamp that is unplugged looks
+like that. No broker, no lamps: the tab says so and nothing else notices.
 
 **Alle Einstellungen ›** opens `lichter.html` for the rest — alarms, groups,
 Wi-Fi, reboot. That page is **vendored** from
