@@ -1,7 +1,7 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction } from "./storage.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, streakRestoresLeft, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
 import { fetchJson } from "./sync.js";
@@ -195,6 +195,37 @@ export function renderStreakRestore() {
     gems.title = `${left} Streak-Retter in der Bank — springt ein, wenn mal ein Tag fehlt`;
     gems.setAttribute("aria-label", gems.title);
   }
+}
+
+// ── Fionn's reply on a wish ──────────────────────────────────────────────────
+// Closes the Wunschkapsel loop: a wish went out, nothing ever came back. Now
+// the reply Fionn picks in the Eingänge sits at the top of the next capsule
+// for one day, then rests. Shown even on a day already opened — the reply is
+// news, the capsule is not.
+export const WISH_REPLY_LABELS = {
+  "erfuellt": "erfüllt 🌿",
+  "irgendwann": "irgendwann 🕰",
+  "lieber-nicht": "lieber nicht ✗"
+};
+export function wishReplyLine(reply, today) {
+  const label = WISH_REPLY_LABELS[reply.status];
+  if (!label) return "";
+  const ageDays = Math.round((Date.parse(today + "T12:00:00Z") - Date.parse(reply.timestamp)) / 86400000);
+  const when = ageDays >= 14 ? "von neulich" : ageDays >= 6 ? "von letzter Woche" : "von dieser Woche";
+  return `Dein Wunsch ${when}: ${label}`;
+}
+export function renderWishReply(pull) {
+  const el = $("[data-ag-wish-reply]");
+  if (!el) return;
+  if (getPreviewDay()) { el.hidden = true; return; }
+  const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
+  const reply = freshWishReply(today);
+  const line = reply ? wishReplyLine(reply, today) : "";
+  if (!line) { el.hidden = true; return; }
+  el.textContent = line;
+  el.title = reply.text ? `„${reply.text}"` : "";
+  el.hidden = false;
+  markWishReplyShown(reply.statusAt, today);
 }
 
 // ── Milestone banner ─────────────────────────────────────────────────────────
@@ -1143,6 +1174,8 @@ export function renderPull(pull) {
     }
   }
 
+  renderWishReply(pull);
+
   $("[data-ag-result]").hidden = false;
   updateStarButton();
 }
@@ -1935,7 +1968,11 @@ export function renderWunschkapsel() {
     done.hidden = false;
     $("[data-ag-wish-done-title]").textContent = "✨ Wunsch eingereicht";
     $("[data-ag-wish-done-note]").textContent = `„${wish.text}"`;
-    $("[data-ag-wish-done-meta]").textContent = wishMetaText(wish.remoteStatus);
+    const reply = latestWishReply();
+    const replied = reply && Math.abs(Date.parse(reply.timestamp) - Number(wish.submittedAt || 0)) < 120000 && WISH_REPLY_LABELS[reply.status];
+    $("[data-ag-wish-done-meta]").textContent = replied
+      ? `Fionn sagt: ${WISH_REPLY_LABELS[reply.status]}`
+      : wishMetaText(wish.remoteStatus);
   } else {
     idle.hidden = false;
     form.hidden = true;

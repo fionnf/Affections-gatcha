@@ -449,3 +449,43 @@ export function baerlauchWeekClaimed(week) {
 export function markBaerlauchWeekClaimed(week) {
   writePlayerSlot(BAERLAUCH_WEEKLY_KEY, { week, at: Date.now() });
 }
+
+// ── Fionn's replies on wishes ─────────────────────────────────────────────────
+// The sheet sends this token's last few wishes with Fionn's reply (status +
+// when). Kept locally so the card can show a new reply once — on the day it
+// is first seen — without a network round trip. "shown" records which reply
+// was shown on which day, so a re-render keeps it and the next day drops it.
+const WISH_REPLIES_KEY = "affektions-gacha:wish-replies:v1";
+export function readWishReplies() {
+  const val = readPlayerSlot(WISH_REPLIES_KEY, null);
+  return val && typeof val === "object" && !Array.isArray(val) ? val : { wishes: [], shown: null };
+}
+export function writeWishReplies(wishes) {
+  const prev = readWishReplies();
+  const list = (Array.isArray(wishes) ? wishes : [])
+    .filter((w) => w && w.timestamp)
+    .map((w) => ({ timestamp: String(w.timestamp), text: String(w.text || ""), status: String(w.status || ""), statusAt: String(w.statusAt || "") }));
+  writePlayerSlot(WISH_REPLIES_KEY, { wishes: list, shown: prev.shown || null });
+}
+// The newest wish that has a reply, or null.
+export function latestWishReply() {
+  const { wishes } = readWishReplies();
+  const replied = wishes.filter((w) => w.status && w.statusAt);
+  if (!replied.length) return null;
+  replied.sort((a, b) => (a.statusAt < b.statusAt ? 1 : a.statusAt > b.statusAt ? -1 : 0));
+  return replied[0];
+}
+// A reply is "fresh" until it has been shown on a day other than today: the
+// first day it appears it stays through every re-render, after that it rests.
+export function freshWishReply(today) {
+  const r = latestWishReply();
+  if (!r) return null;
+  const { shown } = readWishReplies();
+  if (shown && shown.statusAt === r.statusAt && shown.day !== today) return null;
+  return r;
+}
+export function markWishReplyShown(statusAt, day) {
+  const cur = readWishReplies();
+  if (cur.shown && cur.shown.statusAt === statusAt && cur.shown.day === day) return;
+  writePlayerSlot(WISH_REPLIES_KEY, { ...cur, shown: { statusAt, day } });
+}

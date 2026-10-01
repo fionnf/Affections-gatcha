@@ -343,6 +343,10 @@ export const html = `
           </section>
 
           <section class="ag-panel" data-ag-panel-today role="tabpanel">
+            <div class="ag-ping-banner" data-ag-ping-banner hidden>
+              <span data-ag-ping-text>👋 Fionn denkt gerade an dich.</span>
+              <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
+            </div>
             <div class="ag-card ag-draw-card">
               <div class="ag-draw-meta">
                 <span class="ag-pill" data-ag-today-pill>Heute</span>
@@ -361,10 +365,7 @@ export const html = `
               <div class="ag-milestone" data-ag-milestone hidden>
                 <span data-ag-milestone-text></span>
               </div>
-              <div class="ag-ping-banner" data-ag-ping-banner hidden>
-                <span data-ag-ping-text>👋 Fionn denkt an dich.</span>
-                <button class="ag-ping-dismiss" type="button" data-ag-ping-dismiss aria-label="Schließen">✕</button>
-              </div>
+              <p class="ag-wish-reply" data-ag-wish-reply hidden></p>
               <div class="ag-result-head">
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>

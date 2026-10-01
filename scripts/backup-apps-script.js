@@ -14,7 +14,9 @@
  *   "History"        — one row per history entry, never fully overwritten
  *   "Quests"         — one row per solved quest
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
- *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn
+ *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn.
+ *                      Columns G/H (Status, StatusAt) hold Fionn's reply to a
+ *                      wish, set from the Eingänge; the app shows it to Lennart.
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
  *   "Glossar"        — one row per word entry, upsert by id (shared by both players)
  *   "PromptAnswers"  — one row per prompt answer (append-only); triggers email to Fionn
@@ -33,6 +35,37 @@ const DAY_START_HOUR = 4;   // keep in step with config/theme.json dayStartHour
 const WISH_SHEET_NAME = "Wünsche";
 
 const FIONN_EMAIL = "fionn@fionnferreira.com";
+
+// ── Wünsche rows ─────────────────────────────────────────────────────────────
+// Two layouts live in the same sheet: this script writes six columns
+// (Timestamp, Token, Type, Wish, Page URL, User Agent), the older standalone
+// wish-inbox script wrote five with the text in column C. Normalise both so
+// the feeds never show a page URL as somebody's wish. Columns G/H carry the
+// reply (Status, StatusAt) in either layout.
+const WISH_STATUSES = ["erfuellt", "irgendwann", "lieber-nicht"];
+function tsStr_(v) {
+  if (!v) return "";
+  if (v instanceof Date) return v.toISOString();
+  return String(v);
+}
+function wishRow_(row) {
+  const c = (row[2] || "").toString();
+  const key = c.toLowerCase();
+  let type, text;
+  if (key === "notfall-umarmung" || key === "hug") { type = "hug"; text = row[3] || ""; }
+  else if (key === "wunschkapsel" || key === "wish") { type = "wish"; text = row[3] || ""; }
+  else if (key === "voucher") { type = "voucher"; text = row[3] || ""; }
+  else if (c.indexOf("[hug]") === 0) { type = "hug"; text = c.replace(/^\[hug\]\s*/, ""); }
+  else { type = "wish"; text = c; }
+  return {
+    timestamp: tsStr_(row[0]),
+    token: (row[1] || "").toString().toLowerCase(),
+    type: type,
+    text: text.toString(),
+    status: (row[6] || "").toString(),
+    statusAt: tsStr_(row[7])
+  };
+}
 
 // ── GET: return full backup for a token ─────────────────────────────────────
 
@@ -165,6 +198,20 @@ function doGet(e) {
       }
     } catch (errS) { stimmung = null; }
 
+    // This token's own wishes, newest first, with Fionn's reply where there is
+    // one. The app keeps the last few and shows a new reply on the next card.
+    let wishes = [];
+    try {
+      const wSheet = getOrCreateWuenscheSheet_(ss);
+      const wRows = wSheet.getDataRange().getValues();
+      for (let i = wRows.length - 1; i >= 1 && wishes.length < 8; i--) {
+        if (!wRows[i][0]) continue;
+        const w = wishRow_(wRows[i]);
+        if (w.type !== "wish" || w.token !== token) continue;
+        wishes.push({ timestamp: w.timestamp, text: w.text, status: w.status, statusAt: w.statusAt });
+      }
+    } catch (errW) { wishes = []; }
+
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
     // prompt answers and quest solves into one time-sorted list.
@@ -200,15 +247,10 @@ function doGet(e) {
       for (let i = 1; i < wVals.length; i++) {
         const row = wVals[i];
         if (!row[0]) continue;
-        const ts = (row[0] instanceof Date) ? row[0].toISOString() : String(row[0]);
+        const w = wishRow_(row);
+        const ts = w.timestamp;
         if (since && ts <= since) continue;
-        const type = (row[2] || "wish").toString().toLowerCase();
-        pending.push({
-          timestamp: ts,
-          from: (row[1] || "").toString().toLowerCase(),
-          type: type,
-          text: row[3] || row[4] || ""
-        });
+        pending.push({ timestamp: ts, from: w.token, type: w.type, text: w.text });
         if (ts > maxTs) maxTs = ts;
       }
       if (maxTs && maxTs !== since && !(e.parameter.peek === "1")) {
@@ -279,13 +321,15 @@ function doGet(e) {
       for (let i = 1; i < wVals.length; i++) {
         const row = wVals[i];
         if (!row[0]) continue;
-        const type = (row[2] || "wish").toString().toLowerCase();
+        const w = wishRow_(row);
         activity.push({
-          timestamp: tsStr(row[0]),
-          token: row[1] || "",
-          type: type === "hug" || type === "voucher" ? type : "wish",
-          message: row[3] || "",
-          wish: row[3] || ""
+          timestamp: w.timestamp,
+          token: w.token,
+          type: w.type,
+          message: w.text,
+          wish: w.text,
+          status: w.status,
+          statusAt: w.statusAt
         });
       }
 
@@ -337,6 +381,7 @@ function doGet(e) {
       gipfelbuch,
       glossary,
       stimmung,
+      wishes,
       activity,
     });
   } catch (err) {
@@ -538,6 +583,35 @@ function doPost(e) {
       }
       if (rowIdx === -1) { sheet.appendRow(row); }
       else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Fionn's reply on a wish ──────────────────────────────────────────────
+    // Finds the wish by its timestamp (column A, as the feed reported it) and
+    // writes Status/StatusAt into G/H. An empty status clears the reply.
+    if (data.type === "wish-status") {
+      const status = (data.status || "").toString();
+      if (status && WISH_STATUSES.indexOf(status) === -1) return jsonOut_({ ok: false, error: "unknown status" });
+      const want = (data.timestamp || "").toString();
+      const wantMs = Date.parse(want);
+      if (!want) return jsonOut_({ ok: false, error: "missing timestamp" });
+      const sheet = getOrCreateWuenscheSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        const ts = tsStr_(values[i][0]);
+        if (ts === want || (wantMs && Date.parse(ts) === wantMs)) {
+          sheet.getRange(i + 1, 7, 1, 2).setValues([[status, status ? new Date().toISOString() : ""]]);
+          return jsonOut_({ ok: true, status: status });
+        }
+      }
+      return jsonOut_({ ok: false, error: "wish not found" });
+    }
+
+    // ── Stups from Fionn ─────────────────────────────────────────────────────
+    // Nothing but a timestamp: the app compares it with the last one it saw
+    // and shows a banner. Deliberately no row, no email.
+    if (data.type === "ping") {
+      PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
       return jsonOut_({ ok: true });
     }
 
@@ -748,7 +822,7 @@ function getOrCreateWuenscheSheet_(ss) {
   let sheet = ss.getSheetByName(WISH_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(WISH_SHEET_NAME);
-    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent"]);
+    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent", "Status", "StatusAt"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 400);
   }

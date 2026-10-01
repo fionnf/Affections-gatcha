@@ -3,7 +3,7 @@ import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
   readTokens, applySharedTokens, writeTokensSent, readGipfelbuch, writeGipfelbuch,
-  readBaerlauchScores,
+  readBaerlauchScores, writeWishReplies,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
@@ -174,6 +174,11 @@ export async function syncFromSheets() {
       if (changed) {
         try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(localScores)); } catch (_) {}
       }
+    }
+
+    // Fionn's replies on this token's wishes, as the sheet has them.
+    if (Array.isArray(data.wishes)) {
+      try { writeWishReplies(data.wishes); } catch (_e) {}
     }
 
     if (typeof data.latestPing === "string" && data.latestPing) {

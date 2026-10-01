@@ -13,7 +13,7 @@ import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
 import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, displayNameFromToken, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
@@ -1152,6 +1152,17 @@ export function bindEvents() {
       // Token counts are sheet-authoritative — a token earned on another
       // device shows up here as soon as the sync lands.
       renderTokenBank();
+      // A reply on a wish that landed since the last sync.
+      if (state.todaysPull && state.revealed) renderWishReply(state.todaysPull);
+      renderWunschkapsel();
+      // A Stups from Fionn's Eingänge. The sync noted a newer ping than the
+      // last one seen; the banner used to be wired to nothing.
+      if (state._newPing) {
+        state._newPing = false;
+        const banner = $("[data-ag-ping-banner]");
+        if (banner) banner.hidden = false;
+        try { haptic([10, 40, 10]); } catch (_err) {}
+      }
     } catch (_e) {}
   });
 

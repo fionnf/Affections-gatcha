@@ -2601,6 +2601,17 @@ body{
 @media (prefers-reduced-motion:reduce){.ag-widget .ag-chip-saison{animation:none}}
 /* The one hint the machine gives about the hidden letter. */
 .ag-widget .ag-draw-hint.is-secret{color:var(--ag-gold);font-style:italic;opacity:.9}
+
+/* Fionn's reply on a wish: one line at the top of the card, gold like the
+   milestone, quieter. */
+.ag-widget .ag-wish-reply{
+  margin:0 0 12px;padding:9px 12px;border-radius:var(--ag-radius-md);
+  font-size:.86rem;line-height:1.4;color:var(--ag-gold);
+  background:rgba(224,167,93,.1);border:1px solid rgba(224,167,93,.28);
+}
+/* The Stups banner now lives above the draw card, where it is seen before a
+   pull, not only after one. */
+.ag-widget .ag-ping-banner{margin:0 0 12px}
     `;
 
 export function injectStyles() {
