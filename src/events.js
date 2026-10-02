@@ -15,7 +15,12 @@ import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
 import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, isFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
+import { bindKnob } from "./knopf.js";
+import { playClink } from "./sound.js";
+import { bindCoinSlot, openFach, closeFach } from "./geheimfach.js";
+import { lightCandle, blowOut, candleLit } from "./kerze.js";
+import { bindPinch, flyCardToWall } from "./korkwand.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
@@ -651,6 +656,7 @@ export function reveal() {
 }
 
 export function bindEvents() {
+  let knobGlowTimer = null;
   // Hold draw button 3 s to reveal hidden letter
   let letterHoldTimer = null;
   const drawBtn = $("[data-ag-draw]");
@@ -993,6 +999,41 @@ export function bindEvents() {
     capsule.addEventListener("pointercancel", () => { stop(); armed = false; });
     capsule.addEventListener("pointerleave", () => { stop(); armed = false; });
   }
+
+  // The knob: one full clockwise turn drops the capsule, like the real
+  // machine. Locked once today's is out; it gives a few degrees and clacks.
+  bindKnob($("[data-ag-knob]"), {
+    drawable: () => !mount.classList.contains("has-drawn") && !mount.classList.contains("is-revealing") && !getPreviewDay(),
+    onFire: () => reveal(),
+    onTick: (n, locked) => {
+      if (locked) return;
+      mount.classList.add("is-charging");
+      clearTimeout(knobGlowTimer);
+      knobGlowTimer = setTimeout(() => mount.classList.remove("is-charging"), 600);
+      if (n % 4 === 0) playClink();
+    }
+  });
+
+  // A long press on the coin slot opens the Geheimfach.
+  const fach = $("[data-ag-fach]");
+  bindCoinSlot($("[data-ag-coinslot]"), () => openFach(fach, state.theme));
+  $("[data-ag-fach-close]")?.addEventListener("click", () => closeFach(fach));
+
+  // The candle, after dark.
+  const candleBtn = $("[data-ag-candle]");
+  candleBtn?.addEventListener("click", () => {
+    if (candleLit()) blowOut();
+    else lightCandle({ onChange: (on) => candleBtn.classList.toggle("is-lit", on) });
+  });
+
+  // Two fingers drawing together on the card pin it to the Korkwand.
+  bindPinch($("[data-ag-result]"), () => {
+    const pull = state.todaysPull;
+    if (!pull || getPreviewDay()) return;
+    if (!isFavorite(pull)) toggleFavorite(pull);
+    flyCardToWall($("[data-ag-result]"));
+    showToast("An die Korkwand gepinnt 📌");
+  });
 
   $("[data-ag-freikarte-redeem]")?.addEventListener("click", () => {
     const pull = state.todaysPull;

@@ -32,6 +32,9 @@ import { escapeHtml as escHtml, formatHistoryDate } from "./utils.js";
 import { armConfirm } from "./confirm.js";
 import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
+import { renderAufkleber } from "./aufkleber.js";
+import { fullMoonLine } from "./mond.js";
+import { dressAsPolaroid } from "./korkwand.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
 import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
@@ -1270,8 +1273,20 @@ export function renderPull(pull) {
         backupToSheets();
         try { haptic([12, 30, 18]); } catch (_e) {}
         renderPull(pull);
+        // …and the emoji peels off the row onto the card as a sticker.
+        renderAufkleber($("[data-ag-aufkleber]"), pull.day, emoji, { peelFrom: btn });
       };
     }
+    // The sticker he stuck earlier, where he left it.
+    renderAufkleber($("[data-ag-aufkleber]"), pull.day, chosen || "");
+  }
+
+  // A full-moon night gets its line.
+  const moonLine = $("[data-ag-moon-line]");
+  if (moonLine) {
+    const line = fullMoonLine(pull.day);
+    moonLine.hidden = !line;
+    moonLine.textContent = line;
   }
 
   renderWishReply(pull);
@@ -1980,7 +1995,7 @@ export function renderLieblinge() {
   list.innerHTML = "";
 
   const favs = readFavorites();
-  note.textContent = "Deine gespeicherten Lieblingspreise — per Stern markiert.";
+  note.textContent = "Deine Korkwand — alles, was du mit ☆ oder einem Kneifen gepinnt hast.";
 
   if (!favs.length) {
     empty.hidden = false;
@@ -1989,8 +2004,9 @@ export function renderLieblinge() {
   }
   empty.hidden = true;
 
+  list.classList.add("ag-korkwand");
   for (const entry of favs) {
-    list.appendChild(renderHistoryItemEl(entry));
+    list.appendChild(dressAsPolaroid(renderHistoryItemEl(entry), entry));
   }
 }
 
