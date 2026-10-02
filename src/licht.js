@@ -62,6 +62,81 @@ export function groupRgb(g) {
 export function stripGroups(pos, w = 0) {
   return [{ pos, w, size: NUM_LEDS }];
 }
+// ── Groups ───────────────────────────────────────────────────────────────────
+// The strip is NUM_LEDS LEDs in one or more groups, each with its own tint
+// and white level; sizes always sum to the strip. A "cut" is a boundary
+// between LED k-1 and k (1..NUM_LEDS-1). All of this is pure so it can be
+// tested; send() carries the result to the lamps.
+export const MAX_GROUPS = NUM_LEDS;
+export function normaliseGroups(groups) {
+  let out = (Array.isArray(groups) ? groups : []).map((g) => ({
+    pos: Math.min(1, Math.max(0, Number(g && g.pos) || 0)),
+    w: Math.min(1, Math.max(0, Number(g && g.w) || 0)),
+    size: Math.max(1, Math.round(Number(g && g.size) || 1))
+  })).slice(0, MAX_GROUPS);
+  if (!out.length) return stripGroups(0, 1);
+  let total = out.reduce((n, g) => n + g.size, 0);
+  // Too long: shave from the end; too short: the last group grows.
+  while (total > NUM_LEDS) {
+    const last = out[out.length - 1];
+    if (last.size > 1) { last.size--; total--; } else { out.pop(); total = out.reduce((n, g) => n + g.size, 0); }
+  }
+  if (total < NUM_LEDS) out[out.length - 1].size += NUM_LEDS - total;
+  return out;
+}
+export function cutsOf(groups) {
+  const cuts = [];
+  let cursor = 0;
+  for (const g of normaliseGroups(groups).slice(0, -1)) { cursor += g.size; cuts.push(cursor); }
+  return cuts;
+}
+export function groupAtLed(groups, led) {
+  let cursor = 0;
+  const gs = normaliseGroups(groups);
+  for (let i = 0; i < gs.length; i++) { cursor += gs[i].size; if (led < cursor) return i; }
+  return gs.length - 1;
+}
+// New layout from a set of cuts; each new group keeps the colour of the old
+// group its first LED belonged to.
+export function groupsFromCuts(cuts, oldGroups) {
+  const old = normaliseGroups(oldGroups);
+  const sorted = [...new Set(cuts.filter((c) => Number.isInteger(c) && c > 0 && c < NUM_LEDS))].sort((a, b) => a - b).slice(0, MAX_GROUPS - 1);
+  const splits = [0, ...sorted, NUM_LEDS];
+  return splits.slice(0, -1).map((start, i) => {
+    const src = old[groupAtLed(old, start)];
+    return { pos: src.pos, w: src.w, size: splits[i + 1] - start };
+  });
+}
+export function toggleCut(groups, cut) {
+  const cuts = cutsOf(groups);
+  const i = cuts.indexOf(cut);
+  if (i >= 0) cuts.splice(i, 1); else cuts.push(cut);
+  return groupsFromCuts(cuts, groups);
+}
+// Split a group in half (the larger half first); a group of one LED cannot.
+export function splitGroup(groups, index) {
+  const gs = normaliseGroups(groups);
+  const i = Math.min(Math.max(index, 0), gs.length - 1);
+  if (gs[i].size < 2 || gs.length >= MAX_GROUPS) return gs;
+  let start = 0;
+  for (let k = 0; k < i; k++) start += gs[k].size;
+  return groupsFromCuts([...cutsOf(gs), start + Math.ceil(gs[i].size / 2)], gs);
+}
+// Merge a group into its neighbour (the next one; the last merges backward).
+export function mergeGroup(groups, index) {
+  const gs = normaliseGroups(groups);
+  if (gs.length < 2) return gs;
+  const i = Math.min(Math.max(index, 0), gs.length - 1);
+  const cuts = cutsOf(gs);
+  const removeCut = i < gs.length - 1 ? cuts[i] : cuts[i - 1];
+  return groupsFromCuts(cuts.filter((c) => c !== removeCut), gs);
+}
+export function setGroupColour(groups, index, pos, w) {
+  const gs = normaliseGroups(groups);
+  if (index === null || index === undefined) return gs.map((g) => ({ ...g, pos: pos === undefined ? g.pos : pos, w: w === undefined ? g.w : w }));
+  return gs.map((g, i) => (i === index ? { ...g, pos: pos === undefined ? g.pos : pos, w: w === undefined ? g.w : w } : g));
+}
+
 // Quick moods. Group sizes always sum to NUM_LEDS — the firmware expects it.
 export const MOODS = [
   { id: "warm",  label: "Warm",     emoji: "🕯", brightness: 0.55, groups: [{ pos: 0, w: 0.75, size: NUM_LEDS }] },
@@ -128,6 +203,7 @@ let scenes = [];
 let alarms = [];           // the lamps' alarm list, as the lights page keeps it (retained)
 let deletedScenes = [];    // tombstones the lights page sent; republished with ours
 let sendTarget = "";       // "" = both, else a board id
+let selectedGroup = null;  // index into the strip's groups; null = the whole strip
 let conn = "idle";         // idle | connecting | connected | error
 
 function topicEvents() { return `${PREFIX}/events`; }
@@ -298,7 +374,49 @@ function anyOn() { return BOARDS.some((b) => lamps[b.id] && lamps[b.id].on); }
 
 export function setPower(on) { send({ on: !!on }); haptic(8); }
 export function setBrightness(v) { send({ brightness: Math.min(1, Math.max(0.02, v)) }); }
-export function setColour(pos, w = 0) { send({ on: true, fade_steps: 30, groups: stripGroups(pos, w) }); haptic(6); }
+// The groups the controls work on: the targeted lamp's, else whichever lamp
+// spoke last, else one warm-white strip.
+export function currentGroups() {
+  const l = (sendTarget && lamps[sendTarget]) || anyLamp();
+  return normaliseGroups(l && l.groups ? l.groups : stripGroups(0, 1));
+}
+export function selectGroup(i) {
+  const gs = currentGroups();
+  selectedGroup = (i === null || i === undefined || i < 0 || i >= gs.length || i === selectedGroup) ? null : i;
+  renderLichtPanel();
+}
+export function sendGroups(groups) {
+  const gs = normaliseGroups(groups);
+  if (selectedGroup !== null && selectedGroup >= gs.length) selectedGroup = null;
+  send({ on: true, fade_steps: 30, groups: gs });
+}
+// Colour and white apply to the selected group, or to the whole strip.
+export function setColour(pos, w) {
+  const gs = currentGroups();
+  const single = gs.length === 1 && selectedGroup === null;
+  sendGroups(single ? stripGroups(pos, w === undefined ? 0 : w) : setGroupColour(gs, selectedGroup, pos, w));
+  haptic(6);
+}
+export function setWhite(w) {
+  sendGroups(setGroupColour(currentGroups(), selectedGroup, undefined, Math.min(1, Math.max(0, w))));
+}
+export function cutAt(cut) { sendGroups(toggleCut(currentGroups(), cut)); haptic(6); }
+export function splitSelected() {
+  const gs = currentGroups();
+  const i = selectedGroup !== null ? selectedGroup : gs.reduce((best, g, k) => (g.size > gs[best].size ? k : best), 0);
+  const next = splitGroup(gs, i);
+  if (next.length === gs.length) { showToast(gs.length >= MAX_GROUPS ? "Mehr Gruppen gibt die Leiste nicht her" : "Diese Gruppe ist schon ein einzelnes Licht"); return; }
+  selectedGroup = i;
+  sendGroups(next); haptic(6);
+}
+export function mergeSelected() {
+  const gs = currentGroups();
+  if (gs.length < 2) return;
+  const i = selectedGroup !== null ? selectedGroup : gs.length - 1;
+  sendGroups(mergeGroup(gs, i));
+  if (selectedGroup !== null) selectedGroup = Math.min(i, currentGroups().length - 1);
+  haptic(6);
+}
 export function playMood(mood) { send(moodPayload(mood)); haptic([8, 20, 8]); showToast(`${mood.emoji} ${mood.label}`); }
 export function playScene(scene) { send(scenePayload(scene)); haptic([8, 20, 8]); showToast(`✓ ${scene.name}`); }
 export function setFade(steps) { send({ fade_steps: Math.round(Math.min(600, Math.max(10, steps))) }); }
@@ -362,18 +480,30 @@ export function saveScene(name) {
 }
 
 let winkTimers = [];
-export function wink(boardId = "board_a") {
-  const board = BOARDS.find((b) => b.id === boardId);
-  if (!lampOnline(boardId)) { showToast(`${board ? board.name : "Die Lampe"} ist gerade nicht erreichbar`); return false; }
-  const snap = lamps[boardId] && lamps[boardId].groups ? { ...lamps[boardId] } : null;
+// The lamps a show goes to: the one the switch names, else both — and only
+// those that are actually reachable. Each lamp gets its own timeline so each
+// is put back to its own state afterwards.
+export function targetLamps() {
+  const ids = sendTarget ? [sendTarget] : BOARDS.map((b) => b.id);
+  return ids.filter((id) => lampOnline(id));
+}
+function namesOf(ids) {
+  return ids.map((id) => (BOARDS.find((b) => b.id === id) || {}).owner || id).join(" + ");
+}
+export function wink(boardIds = targetLamps()) {
+  const ids = Array.isArray(boardIds) ? boardIds : [boardIds];
+  if (!ids.length) { showToast("Gerade ist keine Lampe erreichbar"); return false; }
   for (const t of winkTimers) clearTimeout(t);
   winkTimers = [];
   holdUntil = Date.now() + 5000;
-  for (const step of winkSteps(snap)) {
-    winkTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: boardId }), step.at));
+  for (const id of ids) {
+    const snap = lamps[id] && lamps[id].groups ? { ...lamps[id] } : null;
+    for (const step of winkSteps(snap)) {
+      winkTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: id }), step.at));
+    }
   }
   haptic([12, 40, 12, 40, 12]);
-  showToast(`👋 ${board ? board.name : "Lampe"} winkt`);
+  showToast(ids.length > 1 ? "👋 Beide Lampen winken" : `👋 ${namesOf(ids)}s Lampe winkt`);
   return true;
 }
 
@@ -404,18 +534,22 @@ export function morseSteps(taps, restore) {
   return steps;
 }
 let morseTimers = [];
-export function sendMorse(taps, boardId = "board_a") {
-  const board = BOARDS.find((b) => b.id === boardId);
+export function sendMorse(taps, boardIds = targetLamps()) {
+  const ids = Array.isArray(boardIds) ? boardIds : [boardIds];
   if (!taps || !taps.length) return false;
-  if (!lampOnline(boardId)) { showToast(`${board ? board.name : "Die Lampe"} ist gerade nicht erreichbar`); return false; }
-  const snap = lamps[boardId] && lamps[boardId].groups ? { ...lamps[boardId] } : null;
+  if (!ids.length) { showToast("Gerade ist keine Lampe erreichbar"); return false; }
   for (const t of morseTimers) clearTimeout(t);
   morseTimers = [];
-  const steps = morseSteps(taps, snap);
-  holdUntil = Date.now() + steps[steps.length - 1].at + 500;
-  for (const step of steps) morseTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: boardId }), step.at));
+  let endAt = 0;
+  for (const id of ids) {
+    const snap = lamps[id] && lamps[id].groups ? { ...lamps[id] } : null;
+    const steps = morseSteps(taps, snap);
+    endAt = Math.max(endAt, steps[steps.length - 1].at);
+    for (const step of steps) morseTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: id }), step.at));
+  }
+  holdUntil = Date.now() + endAt + 500;
   haptic(taps.map(() => 18));
-  showToast(`🥁 ${taps.length} ${taps.length === 1 ? "Schlag" : "Schläge"} unterwegs zu ${board ? board.name : "der Lampe"}`);
+  showToast(`🥁 ${taps.length} ${taps.length === 1 ? "Schlag" : "Schläge"} unterwegs — ${ids.length > 1 ? "beide Lampen" : namesOf(ids) + "s Lampe"}`);
   return true;
 }
 
@@ -553,7 +687,7 @@ function bindLichtPanel() {
       const r = palette.getBoundingClientRect();
       if (!r.width) return;
       const x = (e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - r.left;
-      setColour(Math.min(1, Math.max(0, x / r.width)), 0);
+      setColour(Math.min(1, Math.max(0, x / r.width)));
     };
     let dragging = false, lastPick = 0;
     palette.addEventListener("pointerdown", (e) => {
@@ -599,7 +733,7 @@ function bindLichtPanel() {
     });
   }
   const winkBtn = $("[data-ag-licht-wink]");
-  if (winkBtn) winkBtn.addEventListener("click", () => wink("board_a"));
+  if (winkBtn) winkBtn.addEventListener("click", () => wink());
   const target = $("[data-ag-licht-target]");
   if (target) target.addEventListener("click", (e) => {
     const b = e.target.closest("[data-target]");
@@ -635,6 +769,31 @@ function bindLichtPanel() {
     clearTimeout(fadeTimer);
     fadeTimer = setTimeout(() => setFade(Number(fade.value)), 160);
   });
+  // Groups: a tap between two lights cuts or joins, a tap on a light picks
+  // its group, the chips do the same, + and − split and merge.
+  const strip = $("[data-ag-licht-strip]");
+  if (strip) strip.addEventListener("click", (e) => {
+    if (conn !== "connected") return;
+    const cut = e.target.closest("[data-cut]");
+    if (cut) { cutAt(Number(cut.dataset.cut)); return; }
+    const led = e.target.closest("[data-led]");
+    if (led) selectGroup(groupAtLed(currentGroups(), Number(led.dataset.led)));
+  });
+  const groupsEl = $("[data-ag-licht-groups]");
+  if (groupsEl) groupsEl.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || conn !== "connected") return;
+    if (b.dataset.group !== undefined) { selectGroup(b.dataset.group === "all" ? null : Number(b.dataset.group)); haptic(4); }
+    else if (b.dataset.split !== undefined) splitSelected();
+    else if (b.dataset.merge !== undefined) mergeSelected();
+  });
+  const white = $("[data-ag-licht-white]");
+  let whiteTimer = null;
+  if (white) white.addEventListener("input", () => {
+    holdUntil = Date.now() + HOLD_MS;
+    clearTimeout(whiteTimer);
+    whiteTimer = setTimeout(() => setWhite(Number(white.value) / 100), 120);
+  });
   const random = $("[data-ag-licht-random]");
   if (random) random.addEventListener("click", playRandom);
   // Morsen: taps on the pad, sent after a pause.
@@ -655,7 +814,7 @@ function bindLichtPanel() {
     if (dots) { const i = document.createElement("i"); dots.appendChild(i); }
     clearTimeout(morseTimer);
     morseTimer = setTimeout(() => {
-      const sent = sendMorse(taps, "board_a");
+      const sent = sendMorse(taps);
       clearTaps();
       if (sent && morse) morse.hidden = true;
     }, 1600);
@@ -725,17 +884,37 @@ export function renderLichtPanel() {
   const ref = anyLamp();
   const on = anyOn();
   const strip = $("[data-ag-licht-strip]");
+  const groups = currentGroups();
+  if (selectedGroup !== null && selectedGroup >= groups.length) selectedGroup = null;
   if (strip) {
-    const groups = ref && ref.groups ? ref.groups : stripGroups(0, 1);
-    const cells = [];
-    for (const g of groups) {
-      const [r, gg, b] = groupRgb(g);
-      for (let i = 0; i < Math.max(1, Math.round(g.size || 1)) && cells.length < NUM_LEDS; i++) cells.push(`rgb(${r},${gg},${b})`);
-    }
-    while (cells.length < NUM_LEDS) cells.push("rgb(60,60,60)");
+    const cuts = new Set(cutsOf(groups));
     const bright = on ? (ref && typeof ref.brightness === "number" ? 0.35 + ref.brightness * 0.65 : 0.8) : 0.18;
-    strip.innerHTML = cells.map((c) => `<i style="--ag-led:${c};opacity:${bright}"></i>`).join("");
+    const parts = [];
+    let led = 0;
+    groups.forEach((g, gi) => {
+      const [r, gg, b] = groupRgb(g);
+      for (let k = 0; k < g.size; k++, led++) {
+        if (led > 0) parts.push(`<b data-cut="${led}" class="${cuts.has(led) ? "is-cut" : ""}" role="button" aria-label="${cuts.has(led) ? "Gruppen verbinden" : "Hier teilen"}"></b>`);
+        parts.push(`<i data-led="${led}" class="${gi === selectedGroup ? "is-selected" : ""}" style="--ag-led:rgb(${r},${gg},${b});opacity:${bright}"></i>`);
+      }
+    });
+    const html = parts.join("");
+    if (strip.dataset.html !== html) { strip.innerHTML = html; strip.dataset.html = html; }
     strip.classList.toggle("is-off", !on);
+    strip.classList.toggle("is-live", conn === "connected");
+  }
+  const groupsEl = $("[data-ag-licht-groups]");
+  if (groupsEl) {
+    const chips = [`<button type="button" data-group="all" class="ag-licht-group ${selectedGroup === null ? "is-active" : ""}">Alle</button>`];
+    groups.forEach((g, i) => {
+      const [r, gg, b] = groupRgb(g);
+      chips.push(`<button type="button" data-group="${i}" class="ag-licht-group ${i === selectedGroup ? "is-active" : ""}" title="${g.size} ${g.size === 1 ? "Licht" : "Lichter"}"><span class="ag-licht-group-dot" style="background:rgb(${r},${gg},${b})"></span>${i + 1}</button>`);
+    });
+    chips.push(`<button type="button" data-split class="ag-licht-group ag-licht-group-op" title="Gruppe teilen" ${groups.length >= MAX_GROUPS ? "disabled" : ""}>+</button>`);
+    chips.push(`<button type="button" data-merge class="ag-licht-group ag-licht-group-op" title="Gruppen verbinden" ${groups.length < 2 ? "disabled" : ""}>−</button>`);
+    const html = chips.join("");
+    if (groupsEl.dataset.html !== html) { groupsEl.innerHTML = html; groupsEl.dataset.html = html; }
+    for (const b of groupsEl.querySelectorAll("button")) if (!b.hasAttribute("disabled") || b.dataset.group !== undefined) b.disabled = conn !== "connected" || (b.dataset.split !== undefined && groups.length >= MAX_GROUPS) || (b.dataset.merge !== undefined && groups.length < 2);
   }
 
   const power = $("[data-ag-licht-power]");
@@ -751,12 +930,19 @@ export function renderLichtPanel() {
   }
   if (slider) slider.disabled = conn !== "connected";
   const palette = $("[data-ag-licht-palette]");
-  if (palette && ref && ref.groups && ref.groups.length) {
-    const pos = Number(ref.groups[0].pos) || 0;
+  const shown = groups[selectedGroup !== null ? selectedGroup : 0];
+  if (palette && shown) {
+    const pos = Number(shown.pos) || 0;
     palette.dataset.pos = String(pos);
     palette.style.setProperty("--ag-pick", `${(pos * 100).toFixed(1)}%`);
     palette.setAttribute("aria-valuenow", String(Math.round(pos * 29)));
+    palette.setAttribute("aria-label", selectedGroup !== null ? `Farbe von Gruppe ${selectedGroup + 1}` : "Farbe");
   }
+  const white = $("[data-ag-licht-white]");
+  if (white && shown && Date.now() >= holdUntil) white.value = String(Math.round((Number(shown.w) || 0) * 100));
+  if (white) white.disabled = conn !== "connected";
+  const whiteLabel = $("[data-ag-licht-white-label]");
+  if (whiteLabel) whiteLabel.textContent = selectedGroup !== null ? `Weissanteil · Gruppe ${selectedGroup + 1}` : "Weissanteil";
   for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = conn !== "connected";
   const sr = findSunrise(alarms);
   const srTime = $("[data-ag-sunrise-time]");

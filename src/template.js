@@ -627,7 +627,8 @@ export const html = `
                 <div class="ag-licht-lamps" data-ag-licht-lamps aria-live="polite"></div>
                 <button class="ag-licht-conn" type="button" data-ag-licht-conn data-state="idle"></button>
               </div>
-              <div class="ag-licht-strip" data-ag-licht-strip aria-hidden="true"></div>
+              <div class="ag-licht-strip" data-ag-licht-strip role="group" aria-label="Lichtleiste: tippen zwischen zwei Lichtern teilt, auf ein Licht wählt die Gruppe"></div>
+              <div class="ag-licht-groups" data-ag-licht-groups role="group" aria-label="Gruppen"></div>
               <div class="ag-licht-target" data-ag-licht-target role="radiogroup" aria-label="Welche Lampe">
                 <button type="button" class="is-active" data-target="" role="radio" aria-checked="true">Beide</button>
                 <button type="button" data-target="board_a" role="radio" aria-checked="false">Fionn</button>
@@ -641,6 +642,10 @@ export const html = `
                 </label>
               </div>
               <div class="ag-licht-palette" data-ag-licht-palette role="slider" tabindex="0" aria-label="Farbe" aria-valuemin="0" aria-valuemax="29" aria-valuenow="0"></div>
+              <label class="ag-licht-slider ag-licht-white">
+                <span data-ag-licht-white-label>Weissanteil</span>
+                <input type="range" min="0" max="100" value="0" data-ag-licht-white aria-label="Weissanteil" disabled>
+              </label>
               <div class="ag-licht-row">
                 <button class="ag-licht-random" type="button" data-ag-licht-random disabled title="Zufällige Farben">🎲</button>
                 <label class="ag-licht-slider">
@@ -658,11 +663,11 @@ export const html = `
                 <div class="ag-licht-scene-list" data-ag-licht-scene-list></div>
               </div>
               <div class="ag-licht-foot">
-                <button class="ag-secondary" type="button" data-ag-licht-wink disabled>👋 Fionns Lampe winken</button>
-                <button class="ag-secondary" type="button" data-ag-licht-morse-open disabled>🥁 Rhythmus an Fionn</button>
+                <button class="ag-secondary" type="button" data-ag-licht-wink disabled>👋 Lampen winken</button>
+                <button class="ag-secondary" type="button" data-ag-licht-morse-open disabled>🥁 Rhythmus auf die Lampen</button>
               </div>
               <div class="ag-morse" data-ag-morse hidden>
-                <button class="ag-morse-pad" type="button" data-ag-morse-pad><span>Tipp einen Rhythmus</span><small>Fionns Lampe blinkt ihn nach · nach einer Pause geht er los</small></button>
+                <button class="ag-morse-pad" type="button" data-ag-morse-pad><span>Tipp einen Rhythmus</span><small>Die Lampen blinken ihn nach · nach einer Pause geht er los</small></button>
                 <div class="ag-morse-dots" data-ag-morse-dots aria-hidden="true"></div>
               </div>
               <div class="ag-sunrise" data-ag-sunrise>
