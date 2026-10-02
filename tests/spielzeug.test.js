@@ -12,7 +12,7 @@ const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
 const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
-const { NUM_LEDS } = await import("../src/licht.js");
+const { NUM_LEDS, flickerStep, flickerGap, FLICKER_MIN, FLICKER_MAX, FLICKER_GAP_MS } = await import("../src/licht.js");
 
 test.beforeEach(() => env.localStorage.clear());
 
@@ -129,6 +129,24 @@ test("the Wanderweg: a stop's line is the first sentence; the hiker climbs with 
   assert.equal(stopMark({ photo: { url: "x" } }), "📷");
   assert.equal(stopMark({ tone: "jackpot" }), "💎");
   assert.equal(stopMark({ tone: "whatever" }), "🌿");
+});
+
+test("the lamp flicker: a bounded random walk with gusts, at irregular gaps", () => {
+  let level = 0.36;
+  const seen = new Set();
+  let seed = 7;
+  const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let i = 0; i < 400; i++) {
+    const s = flickerStep(level, rand);
+    assert.ok(s.brightness >= FLICKER_MIN && s.brightness <= FLICKER_MAX, `step ${i}: ${s.brightness}`);
+    assert.ok(s.fade_steps >= 8 && s.fade_steps <= 44);
+    seen.add(s.brightness);
+    level = s.brightness;
+  }
+  assert.ok(seen.size > 100, "it wanders");
+  assert.ok(flickerStep(0.4, () => 0.0).brightness < 0.3, "a gust dips hard");
+  assert.equal(flickerStep(0.4, () => 0.0).fade_steps, 8, "and fast");
+  for (let i = 0; i < 50; i++) { const g = flickerGap(rand); assert.ok(g >= FLICKER_GAP_MS[0] && g <= FLICKER_GAP_MS[1]); }
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {

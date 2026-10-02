@@ -669,6 +669,7 @@ export const html = `
               </div>
               <div class="ag-licht-foot">
                 <button class="ag-secondary" type="button" data-ag-licht-wink disabled>👋 Lampen winken</button>
+                <button class="ag-secondary" type="button" data-ag-licht-flicker disabled>🕯️ Kerzenflackern</button>
                 <button class="ag-secondary" type="button" data-ag-licht-morse-open disabled>🥁 Rhythmus auf die Lampen</button>
               </div>
               <div class="ag-morse" data-ag-morse hidden>

@@ -190,6 +190,16 @@ apply to it alone; with *Alle*, to the whole strip. Up to ten groups, sizes
 always summing to the strip (`toggleCut`, `splitGroup`, `mergeGroup`,
 `setGroupColour`, all pure). Saved scenes keep the layout.
 
+**Kerzenflackern.** A mode for the lamps themselves, under the strip: warm
+amber, low, the brightness wandering the way a flame does — small steps at
+irregular intervals (220–720 ms), a deep dip about one time in twelve as if a
+draught caught it, each lamp on its own path so two never flicker in step. It
+runs on the lamps the Beide / Fionn / Lennart switch names, for as long as the
+tab is connected; tapping it again puts the lamps back to what they showed.
+Losing the connection ends it (the lamps keep the last flame level). The
+candle in the Heute tab is separate: it dims the app and runs on both lamps
+regardless of the switch (`flickerStep`, `startFlicker` in `src/licht.js`).
+
 **Pulsschlag.** A lamp pill tapped toggles that lamp; pressed and held, both
 lamps beat at a resting pulse — a lub-dub every second — for as long as the
 finger stays, then go back to what they were. Nothing is stored
