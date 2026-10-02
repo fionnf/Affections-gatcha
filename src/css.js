@@ -1931,7 +1931,11 @@ export const css = `
         .ag-bottomnav{
           display:flex;
           position:fixed;
-          bottom:calc(12px + var(--ag-safe-bottom));
+          bottom:calc(12px + var(--ag-safe-bottom) + var(--ag-nav-shift,0px));
+          /* Its own compositing layer: WebKit has left fixed elements with a
+             backdrop-filter stranded mid-scroll without one. */
+          transform:translateZ(0);
+          transition:opacity 150ms var(--ag-ease);
           /* Side insets matter in landscape, where the notch eats one edge. */
           left:calc(16px + var(--ag-safe-left));
           right:calc(16px + var(--ag-safe-right));
@@ -2832,6 +2836,9 @@ body{
 .ag-widget .ag-licht-group-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 6px currentColor}
 .ag-widget .ag-licht-group-op{width:32px;justify-content:center;padding:5px 0;font-size:.95rem;line-height:1}
 .ag-widget .ag-licht-white{margin-top:-4px}
+
+/* The keyboard is up: the nav steps aside instead of floating mid-screen. */
+.ag-widget .ag-bottomnav.is-keyboard{opacity:0;pointer-events:none}
     `;
 
 export function injectStyles() {

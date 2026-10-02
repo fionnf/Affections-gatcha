@@ -1114,6 +1114,31 @@ export function bindEvents() {
     });
   });
 
+  // ── The nav stays where the eye expects it ─────────────────────────────────
+  // position:fixed is measured against the layout viewport; on iOS the
+  // visual viewport is what the eye sees, and the two drift apart with the
+  // keyboard, the toolbar and the rubber-band at the end of the page. The
+  // nav was then "lost": pinned to a bottom edge that was not the bottom
+  // of the screen. Pinned to the visual viewport instead, and out of the
+  // way while the keyboard is up.
+  (function keepNavInViewport() {
+    const nav = mount.querySelector(".ag-bottomnav");
+    const vv = window.visualViewport;
+    if (!nav || !vv) return;
+    const apply = () => {
+      const keyboard = vv.height < window.innerHeight * 0.72;
+      nav.classList.toggle("is-keyboard", keyboard);
+      const gap = Math.max(0, Math.round(window.innerHeight - (vv.offsetTop + vv.height)));
+      nav.style.setProperty("--ag-nav-shift", `${keyboard ? 0 : gap}px`);
+    };
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    window.addEventListener("orientationchange", () => setTimeout(apply, 350));
+    document.addEventListener("focusout", () => setTimeout(apply, 250));
+    window.addEventListener("pageshow", apply);
+    apply();
+  })();
+
   // ── Drag-to-switch on the floating nav pill ─────────────────────────────────
   const bottomNav = mount.querySelector(".ag-bottomnav");
   if (bottomNav) {

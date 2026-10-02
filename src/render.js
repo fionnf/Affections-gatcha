@@ -136,6 +136,7 @@ export function pickEmojiSet() {
   return [...REQUIRED_EMOJIS, ...chosen];
 }
 
+let _orbitResizeBound = false;
 export function renderEmojiOrbit() {
   const orbit = $("[data-ag-emoji-orbit]");
   if (!orbit) return;
@@ -143,6 +144,16 @@ export function renderEmojiOrbit() {
   const emojis = pickEmojiSet();
   const total = emojis.length;
   const seedBase = emojiSeedKey();
+  // The radius used to be a percentage of the emoji's own width — about
+  // 49px on every phone, which bunched the constellation around the capsule
+  // once the machine grew. It is a fraction of the orbit box now, so the
+  // ring scales with the machine, and it is re-laid out when the box resizes.
+  const box = orbit.clientWidth || 250;
+  if (!_orbitResizeBound) {
+    _orbitResizeBound = true;
+    let t = null;
+    window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderEmojiOrbit, 200); });
+  }
   emojis.forEach((emoji, i) => {
     const span = document.createElement("span");
     span.className = "ag-emoji";
@@ -150,12 +161,12 @@ export function renderEmojiOrbit() {
     const baseAngle = (360 / total) * i;
     const jitter = (seededRandom(`${seedBase}|angle|${i}`) - 0.5) * 28;
     const angle = baseAngle + jitter;
-    const radiusJitter = seededRandom(`${seedBase}|radius|${i}`) * 21 - 10.5;
+    const radiusJitter = seededRandom(`${seedBase}|radius|${i}`) * 0.1 - 0.05;   // ±5% of the box
     const duration = 16 + seededRandom(`${seedBase}|dur|${i}`) * 10; // 16..26s
     const delay = -seededRandom(`${seedBase}|delay|${i}`) * duration;
     const direction = seededRandom(`${seedBase}|dir|${i}`) > 0.5 ? 1 : -1;
     span.style.setProperty("--ag-emoji-angle", `${angle}deg`);
-    span.style.setProperty("--ag-emoji-radius", `${250 + radiusJitter}%`);
+    span.style.setProperty("--ag-emoji-radius", `${(box * (0.42 + radiusJitter)).toFixed(1)}px`);
     span.style.setProperty("--ag-emoji-duration", `${duration.toFixed(2)}s`);
     span.style.setProperty("--ag-emoji-delay", `${delay.toFixed(2)}s`);
     span.style.setProperty("--ag-emoji-direction", direction === 1 ? "normal" : "reverse");
