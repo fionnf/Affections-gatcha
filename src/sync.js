@@ -3,7 +3,7 @@ import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
   readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
-  readBaerlauchScores, writeWishReplies, mergeHugLog, readFlaschenpost, mergeFlaschenpost,
+  readBaerlauchScores, writeWishReplies, mergeHugLog, readFlaschenpost, mergeFlaschenpost, readPfand, mergePfandCount,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
@@ -184,6 +184,10 @@ export async function syncFromSheets() {
       }
     }
 
+    if (typeof data.pfand === "number") {
+      try { mergePfandCount(data.pfand); } catch (_e) {}
+    }
+
     // Flaschenposten from the backup row, so a new phone has them too.
     if (Array.isArray(data.flaschenpost)) {
       try { mergeFlaschenpost(data.flaschenpost); } catch (_e) {}
@@ -267,6 +271,7 @@ export function backupToSheets() {
       tokens: tokensSent,
       questPoints: readQuestPoints(),
       flaschenpost: readFlaschenpost(),
+      pfand: readPfand().count || 0,
       ...(questLog ? { questLog } : {})
     });
     const opts = {

@@ -121,10 +121,22 @@ export function buildPullForDay(day, streak, opts = {}) {
     };
   }
 
+  // A Freikarte reroll already happened for this day — reproduce the same
+  // result on every subsequent call (e.g. after a page reload) instead of
+  // recomputing the original deterministic (and now-discarded) pull.
+  const rerollRecord = !seedSuffix ? readFreikarteReroll(token, day) : null;
+
+  // The day's record, if it was already opened. It pins the category below,
+  // and the outcome further down.
+  const drawn = !seedSuffix ? readHistory().find((e) => e.token === token && e.day === day) : null;
+
   // A Flaschenpost that is due comes out instead of the day's draw — a line
   // he wrote to himself, back on a day he does not know. A special day wins
   // and the post waits one more day; a Freikarte reroll never produces one.
-  const post = !seedSuffix ? dueFlaschenpost(day) : null;
+  // A post that became due after today's capsule was opened (a sync landed
+  // late, a second phone) must not replace what was recorded: the drawn
+  // day wins, and the post comes out tomorrow.
+  const post = !seedSuffix && (!drawn || drawn.categoryId === "flaschenpost") ? dueFlaschenpost(day) : null;
   if (post) {
     const when = post.mode === "30" ? "in 30 Tagen" : "irgendwann";
     return {
@@ -139,14 +151,6 @@ export function buildPullForDay(day, streak, opts = {}) {
     };
   }
 
-  // A Freikarte reroll already happened for this day — reproduce the same
-  // result on every subsequent call (e.g. after a page reload) instead of
-  // recomputing the original deterministic (and now-discarded) pull.
-  const rerollRecord = !seedSuffix ? readFreikarteReroll(token, day) : null;
-
-  // The day's record, if it was already opened. It pins the category below,
-  // and the outcome further down.
-  const drawn = !seedSuffix ? readHistory().find((e) => e.token === token && e.day === day) : null;
 
   let category;
   if (rerollRecord) {

@@ -48,7 +48,7 @@ test("the Morse timeline pulses once per tap and puts the lamp back", () => {
   const off = morseSteps([0, 200], { ...snap, on: false });
   assert.equal(off[off.length - 1].payload.on, false, "a lamp that was off goes back off");
   assert.equal(morseSteps(new Array(40).fill(0).map((_, i) => i * 100)).filter((s) => s.payload.brightness === 1.0).length, MORSE_MAX_TAPS, "capped");
-  assert.equal(morseSteps([], null)[0].payload.on, false, "no taps: just the end");
+  assert.equal(morseSteps([], null)[0].payload.brightness, 0.6, "no snapshot: settle, never switch off a lamp that was on");
 });
 
 test("sunriseAlarm manages one tagged entry and leaves the others alone", () => {

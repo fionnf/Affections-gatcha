@@ -77,10 +77,15 @@ test("sceneFromLamp stores what the lights page expects", () => {
   assert.deepEqual(bare.boundaries, []);
 });
 
-test("the hug log unions, sorts and never shrinks", () => {
+test("the hug log unions, sorts, never shrinks, and treats near stamps as one hug", () => {
   addHugToLog("2026-08-02T10:00:00.000Z");
   mergeHugLog(["2026-07-01T09:00:00.000Z", "2026-08-02T10:00:00.000Z", "", 42]);
   assert.deepEqual(readHugLog(), ["2026-07-01T09:00:00.000Z", "2026-08-02T10:00:00.000Z"]);
   mergeHugLog([]);
   assert.equal(readHugLog().length, 2);
+  // The sheet's copy of a hug carries a stamp a second later than the phone's.
+  mergeHugLog(["2026-08-02T10:00:01.400Z"]);
+  assert.equal(readHugLog().length, 2, "one hug, not two");
+  mergeHugLog(["2026-08-02T10:05:00.000Z"]);
+  assert.equal(readHugLog().length, 3, "five minutes later is a new hug");
 });

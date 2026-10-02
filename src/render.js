@@ -995,7 +995,8 @@ export function renderPull(pull) {
   const freikarteWrap = $("[data-ag-freikarte-wrap]");
   if (freikarteWrap) {
     const isBadPull = pull.category.tone === "quiet" || pull.category.tone === "cursed";
-    freikarteWrap.hidden = !(isBadPull && freikarteCount(pull.token) > 0 && !getPreviewDay());
+    const inMachine = !!(rec && rec.pfand);   // returned as Pfand: no reroll of a capsule that is gone
+    freikarteWrap.hidden = !(isBadPull && !inMachine && freikarteCount(pull.token) > 0 && !getPreviewDay());
   }
 
   // Beweisstück: a quest capsule gets an end state. Visibility keys off the

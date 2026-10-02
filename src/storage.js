@@ -510,10 +510,19 @@ export function readHugLog() {
   const val = readPlayerSlot(HUG_LOG_KEY, []);
   return Array.isArray(val) ? val.filter((x) => typeof x === "string") : [];
 }
+export const HUG_DEDUPE_MS = 90000;
 export function mergeHugLog(list) {
   const all = new Set(readHugLog());
   for (const x of (Array.isArray(list) ? list : [])) if (typeof x === "string" && x) all.add(x);
-  const merged = [...all].sort();
+  // Two stamps within a minute and a half are one hug: the sheet's copy
+  // used to carry the server clock, a second behind the phone's.
+  const sorted = [...all].sort();
+  const merged = [];
+  for (const ts of sorted) {
+    const prev = merged[merged.length - 1];
+    if (prev && Math.abs(Date.parse(ts) - Date.parse(prev)) < HUG_DEDUPE_MS) continue;
+    merged.push(ts);
+  }
   writePlayerSlot(HUG_LOG_KEY, merged.slice(-500));
   return merged;
 }
@@ -538,6 +547,12 @@ export function addPfand() {
   const count = (cur.count || 0) + 1;
   writePlayerSlot(PFAND_KEY, { count, at: Date.now() });
   return { count, ...pfandProgress(count) };
+}
+export function mergePfandCount(n) {
+  const cur = readPfand();
+  const count = Math.max(cur.count || 0, Math.floor(Number(n) || 0));
+  if (count !== (cur.count || 0)) writePlayerSlot(PFAND_KEY, { ...cur, count });
+  return count;
 }
 export function markPfand(day, token) {
   const history = readHistory();

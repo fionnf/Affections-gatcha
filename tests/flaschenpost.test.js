@@ -76,3 +76,11 @@ test("the heartbeat is a lub-dub inside one period", () => {
   assert.ok(cycle.every((s) => s.at < PULSE_PERIOD_MS));
   assert.ok(cycle[cycle.length - 1].payload.brightness < 0.3, "ends low so the next beat reads");
 });
+
+test("a post that becomes due after today's capsule was opened waits for tomorrow", async () => {
+  const { writeHistory } = await import("../src/storage.js");
+  writeHistory([{ day: "2026-07-05", token: "lennart", categoryId: "common", categoryLabel: "x", tone: "soft", title: "A", message: "a" }]);
+  const post = sealFlaschenpost("Später", "30", "2026-06-01");
+  assert.notEqual(buildPullForDay("2026-07-05", 0).category.id, "flaschenpost", "the recorded capsule wins");
+  assert.equal(buildPullForDay("2026-07-06", 0).flaschenpost, post.id);
+});

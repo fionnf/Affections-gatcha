@@ -112,7 +112,6 @@ export function sendHugToInbox() {
   const button = $("[data-ag-hug-send]");
   const message = "🫂 Notfall-Umarmung gebraucht";
   const sentAt = new Date().toISOString();
-  try { addHugToLog(sentAt); } catch (_e) {}
   const payload = {
     timestamp: sentAt,
     token: getToken(),
@@ -138,7 +137,10 @@ export function sendHugToInbox() {
   setHugStatus("Stups wird gesendet…", "pending");
 
   const body = JSON.stringify(payload);
+  let logged = false;
   const onSuccess = () => {
+    // Counted once it went through — a retry after a failure is the same hug.
+    if (!logged) { logged = true; try { addHugToLog(sentAt); } catch (_e) {} }
     setHugStatus("Fionn wurde angestupst 🫂", "ok");
     if (button) {
       window.setTimeout(() => { button.disabled = false; }, 4000);

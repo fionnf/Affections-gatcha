@@ -233,7 +233,22 @@ function onMessage(topic, msg) {
     return;
   }
   if (t === topicAlarms()) {
-    if (Array.isArray(d)) alarms = d.filter((a) => a && typeof a === "object");
+    if (Array.isArray(d)) {
+      alarms = d.filter((a) => a && typeof a === "object");
+      // Our alarm keeps its local time across the DST switch: the UTC
+      // fields are re-derived from lh/lm, as the lights page does for all
+      // of them, and republished only when they actually changed.
+      const mine = findSunrise(alarms);
+      if (mine && Number.isInteger(mine.lh)) {
+        const [uh, um] = localToUtc(mine.lh, mine.lm || 0);
+        if (mine.hour !== uh || mine.minute !== um) {
+          mine.hour = uh; mine.minute = um;
+          if (client && client.connected) {
+            try { client.publish(topicAlarms(), JSON.stringify(alarms), { retain: true, qos: 1 }); publishRaw({ set_alarms: alarms }); } catch (_e) {}
+          }
+        }
+      }
+    }
     renderLichtPanel();
     return;
   }
@@ -332,6 +347,10 @@ export function saveScene(name) {
   if (!clean) { showToast("Der Szene fehlt ein Name"); return false; }
   if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
   const scene = sceneFromLamp(clean, anyLamp());
+  // Same name replaces: the old ids go to the tombstones, or the lights
+  // page (which merges by id) would keep them and the name would double.
+  const replaced = scenes.filter((s) => s.name === clean && s.id).map((s) => s.id);
+  deletedScenes = [...deletedScenes, ...replaced].slice(-50);
   scenes = [...scenes.filter((s) => s.name !== clean), scene];
   try {
     client.publish(topicScenes(), JSON.stringify({ v: 1, from: "gacha_app", scenes, deleted: deletedScenes }), { retain: true, qos: 1 });
@@ -378,7 +397,9 @@ export function morseSteps(taps, restore) {
     steps.push({ at: end, payload: { on: true, groups: restore.groups, brightness: restore.brightness, fade_steps: restore.fade_steps } });
     if (restore.on === false) steps.push({ at: end + 1200, payload: { on: false } });
   } else {
-    steps.push({ at: end, payload: { on: false } });
+    // No echo yet, so nothing to restore to: the colour was never touched,
+    // settle the brightness rather than switch a lamp off that was on.
+    steps.push({ at: end, payload: { brightness: 0.6, fade_steps: 30 } });
   }
   return steps;
 }
@@ -483,12 +504,15 @@ function publishAlarms(list) {
   alarms = list;
   return true;
 }
-export function setSunrise({ enabled, time, days } = {}) {
+// `retarget` (switching the alarm on) takes the lamps from the Beide /
+// Fionn / Lennart switch; a change of time or days keeps the alarm's own.
+export function setSunrise({ enabled, time, days, retarget = false } = {}) {
   const cur = findSunrise(alarms) || {};
+  const fromSwitch = sendTarget ? [sendTarget] : BOARDS.map((b) => b.id);
   const next = sunriseAlarm(alarms, {
     time: time || (Number.isInteger(cur.lh) ? `${String(cur.lh).padStart(2, "0")}:${String(cur.lm || 0).padStart(2, "0")}` : "07:00"),
     days: days || daysPreset(cur.days),
-    boards: sendTarget ? [sendTarget] : BOARDS.map((b) => b.id),
+    boards: retarget || !Array.isArray(cur.boards) || !cur.boards.length ? fromSwitch : cur.boards,
     enabled: enabled === undefined ? cur.enabled !== false : enabled
   });
   if (!publishAlarms(next)) return false;
@@ -642,7 +666,8 @@ function bindLichtPanel() {
   const srToggle = $("[data-ag-sunrise-toggle]");
   if (srToggle) srToggle.addEventListener("click", () => {
     const cur = findSunrise(alarms);
-    setSunrise({ enabled: !(cur && cur.enabled !== false), time: srTime && srTime.value, days: srDays && srDays.value });
+    const turningOn = !(cur && cur.enabled !== false);
+    setSunrise({ enabled: turningOn, retarget: turningOn, time: srTime && srTime.value, days: srDays && srDays.value });
   });
   if (srTime) srTime.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime.value, days: srDays && srDays.value }); });
   if (srDays) srDays.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime && srTime.value, days: srDays.value }); });
