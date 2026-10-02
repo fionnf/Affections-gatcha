@@ -557,7 +557,7 @@ export const html = `
           <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
             <div class="ag-card">
               <p class="ag-history-note" data-ag-lieblinge-note></p>
-              <ol class="ag-history" data-ag-lieblinge></ol>
+              <div class="ag-wanderweg" data-ag-lieblinge></div>
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
           </section>

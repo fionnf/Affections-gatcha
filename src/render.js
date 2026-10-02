@@ -33,8 +33,8 @@ import { armConfirm } from "./confirm.js";
 import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { renderAufkleber } from "./aufkleber.js";
+import { renderWanderweg, bindWanderwegScroll, placeHiker, climbProgress } from "./wanderweg.js";
 import { fullMoonLine } from "./mond.js";
-import { dressAsPolaroid } from "./korkwand.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
 import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
@@ -139,6 +139,7 @@ export function pickEmojiSet() {
   return [...REQUIRED_EMOJIS, ...chosen];
 }
 
+let _orbitResizeBound = false;
 export function renderEmojiOrbit() {
   const orbit = $("[data-ag-emoji-orbit]");
   if (!orbit) return;
@@ -146,6 +147,16 @@ export function renderEmojiOrbit() {
   const emojis = pickEmojiSet();
   const total = emojis.length;
   const seedBase = emojiSeedKey();
+  // The radius used to be a percentage of the emoji's own width — about
+  // 49px on every phone, which bunched the constellation around the capsule
+  // once the machine grew. It is a fraction of the orbit box now, so the
+  // ring scales with the machine, and it is re-laid out when the box resizes.
+  const box = orbit.clientWidth || 250;
+  if (!_orbitResizeBound) {
+    _orbitResizeBound = true;
+    let t = null;
+    window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderEmojiOrbit, 200); });
+  }
   emojis.forEach((emoji, i) => {
     const span = document.createElement("span");
     span.className = "ag-emoji";
@@ -153,12 +164,12 @@ export function renderEmojiOrbit() {
     const baseAngle = (360 / total) * i;
     const jitter = (seededRandom(`${seedBase}|angle|${i}`) - 0.5) * 28;
     const angle = baseAngle + jitter;
-    const radiusJitter = seededRandom(`${seedBase}|radius|${i}`) * 21 - 10.5;
+    const radiusJitter = seededRandom(`${seedBase}|radius|${i}`) * 0.1 - 0.05;   // ±5% of the box
     const duration = 16 + seededRandom(`${seedBase}|dur|${i}`) * 10; // 16..26s
     const delay = -seededRandom(`${seedBase}|delay|${i}`) * duration;
     const direction = seededRandom(`${seedBase}|dir|${i}`) > 0.5 ? 1 : -1;
     span.style.setProperty("--ag-emoji-angle", `${angle}deg`);
-    span.style.setProperty("--ag-emoji-radius", `${250 + radiusJitter}%`);
+    span.style.setProperty("--ag-emoji-radius", `${(box * (0.42 + radiusJitter)).toFixed(1)}px`);
     span.style.setProperty("--ag-emoji-duration", `${duration.toFixed(2)}s`);
     span.style.setProperty("--ag-emoji-delay", `${delay.toFixed(2)}s`);
     span.style.setProperty("--ag-emoji-direction", direction === 1 ? "normal" : "reverse");
@@ -1977,26 +1988,52 @@ export function renderHistory() {
   }
 }
 
+// The Lieblinge are a hike: every favourite a stop on a trail up through
+// the ridges, the newest nearest the summit. A tap on a stop opens the full
+// card right there on the trail (the path below makes room); another tap
+// folds it. The star on the open card works as everywhere.
+let _wwOpen = "";
 export function renderLieblinge() {
   const list = $("[data-ag-lieblinge]");
   const empty = $("[data-ag-lieblinge-empty]");
   const note = $("[data-ag-lieblinge-note]");
   list.innerHTML = "";
+  list.style.height = "";
 
   const favs = readFavorites();
-  note.textContent = "Deine Korkwand — alles, was du mit ☆ oder einem Kneifen gepinnt hast.";
+  note.textContent = "Dein Wanderweg — jeder Liebling eine Etappe, der neueste ganz oben am Gipfel.";
 
   if (!favs.length) {
     empty.hidden = false;
-    empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel.";
+    empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel — oder kneif die Karte zusammen.";
     return;
   }
   empty.hidden = true;
 
-  list.classList.add("ag-korkwand");
-  for (const entry of favs) {
-    list.appendChild(dressAsPolaroid(renderHistoryItemEl(entry), entry));
-  }
+  const key = (e) => `${e.day}|${e.token}`;
+  const expanded = favs.findIndex((e) => key(e) === _wwOpen);
+  renderWanderweg(list, favs, {
+    expanded,
+    renderCard: (entry) => {
+      const ul = document.createElement("ul");
+      ul.className = "ag-history";
+      ul.appendChild(renderHistoryItemEl(entry));
+      return ul;
+    },
+    onOpen: (entry, el) => {
+      _wwOpen = key(entry) === _wwOpen ? "" : key(entry);
+      try { haptic(6); } catch (_e) {}
+      renderLieblinge();
+      if (_wwOpen) {
+        const opened = list.querySelector(`[data-ag-ww-stop="${favs.indexOf(entry)}"]`);
+        if (opened && opened.scrollIntoView) opened.scrollIntoView({ block: "start", behavior: "smooth" });
+      }
+      void el;
+    }
+  });
+  const update = bindWanderwegScroll(() => $("[data-ag-lieblinge]"));
+  if (update) update();
+  requestAnimationFrame(() => { const r = list.getBoundingClientRect(); placeHiker(list, climbProgress(r.top, r.height, window.innerHeight)); });
 }
 
 // ── Odds ──────────────────────────────────────────────────────────────────────

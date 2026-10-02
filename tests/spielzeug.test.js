@@ -1,5 +1,5 @@
 // The knob's winding, the moon's phase and shape, the sticker store, the
-// corkboard's pins and pinch, the candle's rules.
+// pinch, the candle's rules.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { setupBrowserEnv } from "./helpers.js";
@@ -8,9 +8,10 @@ const env = setupBrowserEnv("?player=lennart");
 const { KnobTurn, TURN_DEG, DETENT_DEG, LOCKED_GIVE_DEG } = await import("../src/knopf.js");
 const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant, fullMoonInstant } = await import("../src/mond.js");
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
-const { pinAngle, pinched, PINCH_RATIO } = await import("../src/korkwand.js");
+const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
-const { candleCycle, CANDLE_PERIOD_MS } = await import("../src/lightsFx.js");
+const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
+const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS } = await import("../src/licht.js");
 
 test.beforeEach(() => env.localStorage.clear());
@@ -90,14 +91,58 @@ test("stickers land top right with a tilt, move where dragged, and stay inside",
   assert.equal(swapped.x, 0.96, "a new emoji keeps the old spot");
 });
 
-test("the corkboard: each pin has its own small angle; a pinch is a decisive squeeze", () => {
-  const a = pinAngle("2026-10-02", "lennart");
-  assert.equal(a, pinAngle("2026-10-02", "lennart"));
-  assert.ok(Math.abs(a) <= 4.5);
-  assert.notEqual(a, pinAngle("2026-10-03", "lennart"));
+test("a pinch is a decisive squeeze", () => {
   assert.equal(pinched(200, 200 * PINCH_RATIO), true);
   assert.equal(pinched(200, 190), false);
   assert.equal(pinched(0, 10), false);
+});
+
+test("the Wanderweg: stops zigzag down from the summit, the trail joins them, the scene fits", () => {
+  const pts = stopPoints(4, 300);
+  assert.deepEqual(pts.map((p) => p.left), [true, false, true, false]);
+  assert.equal(pts[0].y, TOP_PAD);
+  assert.equal(pts[3].y, TOP_PAD + 3 * STOP_GAP);
+  assert.equal(sceneHeight(4), TOP_PAD + 3 * STOP_GAP + BOTTOM_PAD);
+  assert.equal(sceneHeight(1), TOP_PAD + BOTTOM_PAD);
+  const open = stopPoints(4, 300, { after: 1, extra: 200 });
+  assert.deepEqual(open.map((p) => p.y), [TOP_PAD, TOP_PAD + STOP_GAP, TOP_PAD + 2 * STOP_GAP + 200, TOP_PAD + 3 * STOP_GAP + 200], "an open stop pushes the ones below it down");
+  assert.equal(sceneHeight(4, 200), sceneHeight(4) + 200);
+  assert.equal(sceneHeight(0, 200), sceneHeight(0), "no stops, no room needed");
+  const d = trailPath(pts, 300, sceneHeight(4));
+  assert.match(d, /^M150,\d+ C/, "starts at the bottom centre");
+  assert.ok(d.endsWith("150,58"), "ends at the summit");
+  assert.equal((d.match(/ C/g) || []).length, 5, "a curve per leg");
+  const ridges = ridgePolygons(300, 800);
+  assert.ok(ridges.length >= 3);
+  assert.deepEqual(ridges, ridgePolygons(300, 800), "the same mountains every visit");
+  assert.ok(ridges[0].opacity < ridges[ridges.length - 1].opacity, "nearer ridges are darker");
+});
+
+test("the Wanderweg: a stop's line is the first sentence; the hiker climbs with the scroll", () => {
+  assert.equal(firstLine("Wendeltreppen drehen rechts. Du verteidigst heute alles."), "Wendeltreppen drehen rechts.");
+  assert.equal(firstLine("  Kein   Punkt hier  "), "Kein Punkt hier");
+  assert.equal(firstLine("a".repeat(100)).length, 72);
+  assert.equal(firstLine(""), "");
+  assert.equal(climbProgress(0, 1000, 800), 0.6, "viewport middle at 400px of 1000: 60% of the way up");
+  assert.equal(climbProgress(-800, 1000, 800), 0, "scrolled past the bottom: at the start");
+  assert.equal(climbProgress(500, 1000, 800), 1, "scene below the fold: at the summit");
+  assert.equal(stopMark({ photo: { url: "x" } }), "📷");
+  assert.equal(stopMark({ tone: "jackpot" }), "💎");
+  assert.equal(stopMark({ tone: "whatever" }), "🌿");
+});
+
+test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {
+  const g0 = hugGroups(0);
+  assert.equal(g0.reduce((n, g) => n + g.size, 0), NUM_LEDS);
+  assert.ok(g0.every((g) => g.pos >= 0 && g.pos <= 5 / 29), "only reds and oranges");
+  assert.ok(g0.length >= 4, "short segments, not one block");
+  assert.notDeepEqual(hugGroups(1), g0, "the pattern moves");
+  assert.deepEqual(hugGroups(NUM_LEDS), g0, "and comes round");
+  const steps = hugChoreography();
+  assert.ok(steps.length > 30);
+  assert.ok(steps.every((s) => s.at < HUG_MS && s.payload.groups.reduce((n, g) => n + g.size, 0) === NUM_LEDS));
+  assert.equal(steps[0].payload.brightness, 1.0);
+  assert.ok(steps[1].payload.brightness < 0.3, "strobe");
 });
 
 test("the candle: evening hours, a swipe, a cycle that breathes low and warm", () => {

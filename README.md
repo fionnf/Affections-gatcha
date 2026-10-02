@@ -589,7 +589,7 @@ player's streak-restore slot — local to the phone, like the Retter itself.
 |---|---|
 | 🎰 **Heute** | Today's capsule pull |
 | 🗓 **Verlauf** | Token-Bank, pull history (month calendar, 15 per page, total counter), Trophäenregal, and the album |
-| ⭐ **Lieblinge** | The Korkwand: favourites as pinned polaroids (star, or a pinch on the card) |
+| ⭐ **Lieblinge** | The Wanderweg: favourites as stops on a trail up through the ridges, a tap opens the card |
 | ⛰ **Berge** | Gipfelbuch — mountain log |
 | 💡 **Licht** | The lamps: state, power, brightness, colour, moods, scenes, a wink; `lichter.html` for the rest |
 
@@ -870,7 +870,10 @@ mechanics, none of it load-bearing.
   has them too (`sealFlaschenpost`, `dueFlaschenpost` in `src/storage.js`).
 - **Lampen-Echo.** The emoji he taps under the card has a colour — 🥹 violet,
   😂 gold, 🙃 green — and Fionn's lamp shows it for ten seconds, breathing
-  twice, then goes back (`flashReactionOnLamp` in `src/lightsFx.js`).
+  twice, then goes back (`flashReactionOnLamp` in `src/lightsFx.js`). A
+  Notfall-Umarmung that went out is seen on both lamps: red and orange in
+  short segments chasing along the strip, strobing, for eight seconds
+  (`flashHugOnLamps`).
 - **Pfand.** A Niete card can be dragged upward, into the machine (the handle
   under the text; a plain tap arms a two-tap confirm instead). The capsule
   flies in, the machine gulps, and every tenth returned capsule pays a 🛁
@@ -885,6 +888,9 @@ mechanics, none of it load-bearing.
   rattles. The label under it carries the old button's words (*Kapsel
   ziehen*, the loading steps, *Heute nochmal anzeigen*) and still works as
   a plain tap; the capsule hold works too.
+- **Die Emoji um die Maschine.** The orbit's radius is a fraction of the
+  machine box (88–121px on a phone, re-laid out on resize), so the
+  constellation circles the whole window rather than hugging the capsule.
 - **Vollmond** (`src/mond.js`). A full-moon day gets one extra line on the
   card above the title (`fullMoonLine`); the day comes from Meeus' full-moon
   instants, computed, not fetched.
@@ -892,10 +898,18 @@ mechanics, none of it load-bearing.
   under the card and it peels off the row onto the card, top right, at a
   tilt; drag it anywhere and it stays there (per day, local,
   `affektions-gacha:aufkleber:v1`). The reaction itself is unchanged.
-- **Korkwand** (`src/korkwand.js`). The Lieblinge are polaroids pinned to a
-  cork wall, each at its own angle. Pinch today's card with two fingers and
-  it shrinks onto the wall: it becomes a favourite and a copy flies into the
-  star in the nav.
+- **Wanderweg** (`src/wanderweg.js`). The Lieblinge tab is a hike: every
+  favourite a stop on a dashed trail that zigzags up through seeded ridges
+  under a starry sky, the start at the bottom, the summit flag at the top,
+  the newest nearest the summit. A stop shows the date, the title and the
+  first sentence (or the photo as a round thumbnail, with its caption); a
+  tap opens the full history card right there on the trail — the path
+  below makes room — and another tap folds it; the star on the open card
+  works as everywhere. A small hiker walks the trail as the page scrolls,
+  facing the way the path turns.
+- **Kneifen** (`src/kneifen.js`). Pinch today's card with two fingers and
+  it becomes a Liebling, the same as the star: a small copy of the card
+  shrinks and flies into the star in the nav.
 - **Kerze** (`src/kerze.js`). From 20:00 a candle sits beside the draw
   button. Lit, it dims the whole app to a flicker and puts a warm, low,
   unevenly breathing scene on both lamps (`startCandleLights` in
