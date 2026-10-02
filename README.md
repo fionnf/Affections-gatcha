@@ -62,7 +62,7 @@ scripts/
   push-lib.cjs               Shared fetch-with-retry + exit-code policy for both push jobs
   check-undefined-refs.cjs   Fails CI on an identifier a module never imports
   vendor-lights-ui.py        Re-pulls lichter.html from the lights repo
-media/                      Icons (logo.svg is the source: an L with a mirrored F nested in it; the PNGs are rendered from it), plus photos a special day carries itself (album sync never touches it)
+media/                      Icons, plus photos a special day carries itself (album sync never touches it)
 media-preview.html          Preview page for all synced photos and videos
 EDITING.md                  Quick-reference for no-code edits
 PUSH-SETUP.md               Remaining owner steps to switch Web Push on
@@ -244,7 +244,7 @@ sending lives in `push-notify.yml`:
 
 | Job | Schedule | Sends |
 |---|---|---|
-| `notify` | every 5 min | hugs and wishes, as they arrive — to Fionn's phone, which the Eingänge subscribe under the token `fionn` once notifications are allowed there |
+| `notify` | every 5 min | wishes, as they arrive — to Fionn's phone, which the Eingänge subscribe under the token `fionn` once notifications are allowed there; a Notfall-Umarmung goes to every subscribed device, Lennart's own included |
 | `daily` | hourly | the morning reminder and the evening streak warning |
 
 The `daily` job asks the backend (`?feed=push-due`) who still hasn't pulled
@@ -917,7 +917,7 @@ All worksheets are created on first use — none need to exist beforehand.
 |---|---|
 | `Backup` | Per-player snapshot: favourites, streak, tokens, quest points, Flaschenposten |
 | `History` | One row per gacha pull |
-| `Wünsche` | Wunschkapsel submissions and hugs (emails Fionn); `Status` / `StatusAt` hold Fionn's reply |
+| `Wünsche` | Wunschkapsel submissions (emails Fionn) and hugs (push to every device, no email); `Status` / `StatusAt` hold Fionn's reply |
 | `PromptAnswers` | Answers to outcome questions (emails Fionn) |
 | `BaerlauchScores` | Best level per player |
 | `Quests` | Quest solve log |

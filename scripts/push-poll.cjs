@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Notifier job: ask the backend for hugs/wishes that haven't been pushed yet
 // (the backend advances its own pointer, so no state is kept here), then push
-// each one to the OTHER player's devices via Web Push. Meant to run on a
+// each one via Web Push: a wish to the OTHER player's devices, a
+// Notfall-Umarmung to EVERY subscribed device, the sender's own included,
+// so it lands on whichever phone or tablet is nearest. Meant to run on a
 // schedule from GitHub Actions. Apps Script can't sign VAPID (ES256), so the
 // actual send happens here with the `web-push` library.
 //
@@ -19,18 +21,38 @@ webpush.setVapidDetails(VAPID_SUBJECT || "mailto:example@example.com", VAPID_PUB
 const NAME = { lennart: "Lennart", fionn: "Fionn" };
 const other = (t) => (t === "fionn" ? "lennart" : "fionn");
 
+// Without a token the feed returns every stored subscription (all players,
+// all devices); with one, that player's devices only.
 async function subsFor(token) {
+  const query = token ? `&for=${encodeURIComponent(token)}` : "";
   const data = await fetchFeed(
-    `${BACKUP_ENDPOINT}?feed=push-subs&for=${encodeURIComponent(token)}`,
-    { label: `push-subs(${token})` }
+    `${BACKUP_ENDPOINT}?feed=push-subs${query}`,
+    { label: `push-subs(${token || "all"})` }
   );
   return (data && data.subscriptions) || [];
 }
 
-function messageFor(item) {
+// The words depend on who is holding the phone: the sender's own devices get
+// a confirmation, everyone else the hug itself.
+function messageFor(item, recipient) {
   const who = NAME[item.from] || "Jemand";
-  if (item.type === "hug") return { title: "🫂 Ein Stups", body: `${who} denkt gerade an dich.` };
+  if (item.type === "hug") {
+    if (recipient === item.from) return { title: "🫂 Umarmung unterwegs", body: "Deine Notfall-Umarmung ist raus." };
+    return { title: "🫂 Notfall-Umarmung", body: `${who} braucht gerade eine Umarmung.` };
+  }
   return { title: "✨ Neuer Wunsch", body: `${who} hat einen Wunsch geschickt.` };
+}
+
+// Where an item goes: a hug to every device, a wish to the named recipient
+// or, failing that, to the other player.
+async function deliveriesFor(item) {
+  if (item.type === "hug") {
+    const subs = await subsFor(null);
+    return subs.map((entry) => ({ entry, recipient: entry.token || other(item.from) }));
+  }
+  const recipient = NAME[item.to] ? item.to : other(item.from);
+  const subs = await subsFor(recipient);
+  return subs.map((entry) => ({ entry, recipient }));
 }
 
 run(async () => {
@@ -40,13 +62,12 @@ run(async () => {
 
   let sent = 0, gone = 0, failed = 0, authFailed = 0;
   for (const item of pending) {
-    // The row may name a recipient; otherwise it implies "the other one".
-    const recipient = NAME[item.to] ? item.to : other(item.from);
-    const subs = await subsFor(recipient);
-    if (!subs.length) continue;
-    const { title, body } = messageFor(item);
-    const payload = JSON.stringify({ title, body, url: `./?player=${recipient}` });
-    for (const entry of subs) {
+    const deliveries = await deliveriesFor(item);
+    if (!deliveries.length) continue;
+    for (const { entry, recipient } of deliveries) {
+      const { title, body } = messageFor(item, recipient);
+      const url = recipient === "fionn" ? "./fionn-gacha.html" : `./?player=${recipient}`;
+      const payload = JSON.stringify({ title, body, url, tag: item.type === "hug" ? "ag-hug" : "ag-wish" });
       try { await webpush.sendNotification(entry.subscription, payload); sent++; }
       catch (err) {
         const status = err && err.statusCode;

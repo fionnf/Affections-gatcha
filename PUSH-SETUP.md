@@ -39,9 +39,10 @@ In the GitHub repo → Settings → Secrets and variables → Actions:
 **Variable** (not a secret): `PUSH_ENABLED` = `true` — this gates the workflow.
 
 The `Push notifications` workflow then runs two jobs: every ~5 min it sends a
-push to the *other* player for each new hug/wish, and hourly it sends the
-morning reminder and the evening streak warning to whoever hasn't drawn yet.
-Email keeps working as the guaranteed channel for hugs and wishes. (Regenerate keys anytime with `node scripts/gen-vapid-keys.cjs` — put
+push for each new wish to the *other* player and for each Notfall-Umarmung to
+*every* subscribed device, and hourly it sends the morning reminder and the
+evening streak warning to whoever hasn't drawn yet. Email stays the
+guaranteed channel for wishes; a hug is push only. (Regenerate keys anytime with `node scripts/gen-vapid-keys.cjs` — put
 the new public key in `config/push.json` and the private one in the secret.)
 
 ## Step 3 — Grant on each phone
