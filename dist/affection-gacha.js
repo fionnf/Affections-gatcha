@@ -1063,16 +1063,8 @@
         50%{box-shadow:0 0 0 1px var(--ag-tone-glow) inset, 0 18px 60px -8px var(--ag-tone-glow)}
       }
 
-      /* ── Draw button: a slow sheen sweeps across, inviting the tap. Scoped
-         to the main draw button only, and it stops once you've drawn today. ── */
-      .ag-widget:not(.has-drawn) [data-ag-draw]{position:relative;overflow:hidden}
-      .ag-widget:not(.has-drawn) [data-ag-draw]::after{
-        content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
-        background:linear-gradient(115deg,transparent 34%,rgba(255,255,255,.22) 50%,transparent 64%);
-        transform:translateX(-120%);
-        animation:ag-sheen 5s ease-in-out infinite;
-      }
-      @keyframes ag-sheen{0%,74%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+      /* The draw button's sheen lives in the aurora rules further down,
+         together with every other primary button. */
 
       .ag-error{padding:24px;border:1px solid var(--ag-border);border-radius:18px;background:var(--ag-surface);color:var(--ag-text)}
 
@@ -2406,7 +2398,12 @@ body{
 
 /* ── Draw button: aurora glass ──
    A blurred conic halo behind the pill cycles its hue, a sheen sweeps over
-   the face, the orb breathes. Pressed, it sinks. */
+   the face, the orb breathes. Pressed, it sinks. The halo reuses the old
+   sheen pseudo-element, which rests one button-width to the left and slides
+   across on hover; pin it in place or the halo floats beside the button.
+   Both pseudo-elements sit at z-index -1, which still paints above the
+   button's own background, so the face gradient lives on the sheen layer
+   and the halo only shows around the rim. */
 @keyframes ag-hue{to{filter:blur(10px) hue-rotate(360deg)}}
 @keyframes ag-sheen{0%{background-position:200% 0}100%{background-position:-60% 0}}
 .ag-widget .ag-button{
@@ -2421,14 +2418,17 @@ body{
   content:"";position:absolute;inset:-3px;border-radius:inherit;z-index:-1;
   background:conic-gradient(from 0deg,#8fcf9e,#e0a75d,#8ab8cf,#c9a7ff,#8fcf9e);
   filter:blur(10px) hue-rotate(0deg);opacity:.8;
+  transform:none;transition:none;
   animation:ag-hue 5s linear infinite;
 }
+.ag-widget .ag-button:hover::before{transform:none}
 .ag-widget .ag-button::after{
-  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.55) 50%,transparent 58%);
-  background-size:260% 100%;
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:
+    linear-gradient(115deg,transparent 42%,rgba(255,255,255,.45) 50%,transparent 58%),
+    linear-gradient(135deg,#a9e3b5 0%,#5fb27a 45%,#2f7a4f 100%);
+  background-size:260% 100%,100% 100%;
   animation:ag-sheen 3.4s ease-in-out infinite;
-  mix-blend-mode:screen;
 }
 .ag-widget .ag-button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.18),0 16px 36px rgba(47,122,79,.5)}
 .ag-widget .ag-button:active{transform:translateY(1px) scale(.97);box-shadow:inset 0 2px 6px rgba(0,0,0,.28),0 6px 18px rgba(47,122,79,.35)}
