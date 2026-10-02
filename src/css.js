@@ -2901,48 +2901,13 @@ body{
 }
 .ag-widget .ag-aufkleber.is-dragging{cursor:grabbing;transform:translate(-50%,-50%) rotate(var(--ag-aufkleber-rot,0deg)) scale(1.18);filter:drop-shadow(0 10px 10px rgba(0,0,0,.4));transition:none}
 
-/* ── Korkwand: the Lieblinge as pinned polaroids ── */
-.ag-widget .ag-korkwand{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;padding:18px 12px 22px;
-  border-radius:var(--ag-radius-md);
-  background:
-    radial-gradient(circle at 20% 30%,rgba(0,0,0,.08) 0 1px,transparent 2px) 0 0/9px 9px,
-    radial-gradient(circle at 70% 60%,rgba(255,255,255,.06) 0 1px,transparent 2px) 3px 4px/11px 11px,
-    linear-gradient(180deg,#9c7a52,#8a6a45);
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),inset 0 2px 12px rgba(0,0,0,.25);
-}
-.ag-widget .ag-korkwand .ag-polaroid{
-  position:relative;padding:10px 10px 14px;border:none;border-radius:2px;
-  background:#fbf8f1;color:#2a2a24;
-  box-shadow:0 6px 14px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.6) inset;
-  transform:rotate(var(--ag-pin-rot,0deg));
-  content-visibility:visible;contain-intrinsic-size:auto;
-  transition:transform 220ms var(--ag-ease),box-shadow 220ms var(--ag-ease);
-}
-.ag-widget .ag-korkwand .ag-polaroid:hover,.ag-widget .ag-korkwand .ag-polaroid:focus-within{transform:rotate(0deg) scale(1.03);z-index:2;box-shadow:0 14px 28px rgba(0,0,0,.45)}
-.ag-widget .ag-korkwand .ag-pin{
-  position:absolute;left:50%;top:-7px;width:14px;height:14px;transform:translateX(-50%);border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#ffd9d9,#c0392b 60%,#7a1d14);
-  box-shadow:0 2px 3px rgba(0,0,0,.45);z-index:3;
-}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-head{flex-wrap:wrap;gap:4px 6px;margin-bottom:6px}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-date{font-size:.62rem;color:#6b6659;letter-spacing:.04em;order:3;width:100%}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-badge{display:none}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-reaction{font-size:1rem}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-star{color:#b08a3a;padding:0}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-body{flex-direction:column;gap:6px}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-thumb{width:100%;height:auto;aspect-ratio:1;border-radius:2px;max-width:none;flex:none}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-thumb img{width:100%;height:100%;object-fit:cover}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-title{font-family:"Boska",Georgia,serif;font-size:.98rem;color:#2a2a24;line-height:1.25}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-message{font-size:.78rem;color:#514d43;line-height:1.4;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-message p{margin:0}
-.ag-widget .ag-korkwand .ag-polaroid .ag-history-link,.ag-widget .ag-korkwand .ag-polaroid .ag-history-answer-wrap{display:none}
-.ag-polaroid-ghost{
+/* ── Kneifen: the card's copy that flies into the star ── */
+.ag-fav-ghost{
   position:fixed;z-index:9999;pointer-events:none;border-radius:4px;
   background:#fbf8f1;box-shadow:0 10px 30px rgba(0,0,0,.45);transform-origin:center;
   border:8px solid #fbf8f1;border-bottom-width:22px;box-sizing:border-box;
 }
-.ag-polaroid-ghost::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(143,207,158,.5),rgba(47,122,79,.6))}
+.ag-fav-ghost::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(143,207,158,.5),rgba(47,122,79,.6))}
 
 /* ── Kerze ── */
 .ag-widget .ag-candle{

@@ -1,5 +1,5 @@
 // The knob's winding, the moon's phase and shape, the sticker store, the
-// corkboard's pins and pinch, the candle's rules.
+// pinch, the candle's rules.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { setupBrowserEnv } from "./helpers.js";
@@ -8,7 +8,7 @@ const env = setupBrowserEnv("?player=lennart");
 const { KnobTurn, TURN_DEG, DETENT_DEG, LOCKED_GIVE_DEG } = await import("../src/knopf.js");
 const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant, fullMoonInstant } = await import("../src/mond.js");
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
-const { pinAngle, pinched, PINCH_RATIO } = await import("../src/korkwand.js");
+const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { candleCycle, CANDLE_PERIOD_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS } = await import("../src/licht.js");
@@ -90,11 +90,7 @@ test("stickers land top right with a tilt, move where dragged, and stay inside",
   assert.equal(swapped.x, 0.96, "a new emoji keeps the old spot");
 });
 
-test("the corkboard: each pin has its own small angle; a pinch is a decisive squeeze", () => {
-  const a = pinAngle("2026-10-02", "lennart");
-  assert.equal(a, pinAngle("2026-10-02", "lennart"));
-  assert.ok(Math.abs(a) <= 4.5);
-  assert.notEqual(a, pinAngle("2026-10-03", "lennart"));
+test("a pinch is a decisive squeeze", () => {
   assert.equal(pinched(200, 200 * PINCH_RATIO), true);
   assert.equal(pinched(200, 190), false);
   assert.equal(pinched(0, 10), false);

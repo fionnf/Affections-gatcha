@@ -19,7 +19,7 @@ import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, rend
 import { bindKnob } from "./knopf.js";
 import { playClink } from "./sound.js";
 import { lightCandle, blowOut, candleLit } from "./kerze.js";
-import { bindPinch, flyCardToWall } from "./korkwand.js";
+import { bindPinch, flyCardToStar } from "./kneifen.js";
 import { emojiForTone } from "./pull.js";
 import { openSkincarePanel, closeSkincarePanel } from "./skincare.js";
 import { renderBergePanel, addGipfelEntry, updateGipfelEntry, bindBergeEvents, invalidateGipfelMap } from "./berge.js";
@@ -1021,13 +1021,13 @@ export function bindEvents() {
     else lightCandle({ onChange: (on) => candleBtn.classList.toggle("is-lit", on) });
   });
 
-  // Two fingers drawing together on the card pin it to the Korkwand.
+  // Two fingers drawing together on the card save it as a Liebling.
   bindPinch($("[data-ag-result]"), () => {
     const pull = state.todaysPull;
     if (!pull || getPreviewDay()) return;
     if (!isFavorite(pull)) toggleFavorite(pull);
-    flyCardToWall($("[data-ag-result]"));
-    showToast("An die Korkwand gepinnt 📌");
+    flyCardToStar($("[data-ag-result]"));
+    showToast("Als Liebling gespeichert ⭐");
   });
 
   $("[data-ag-freikarte-redeem]")?.addEventListener("click", () => {

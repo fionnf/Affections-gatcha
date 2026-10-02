@@ -1,27 +1,10 @@
-// ── Korkwand ─────────────────────────────────────────────────────────────────
-// The Lieblinge are polaroids on a cork wall, each pinned at its own angle.
-// A pinch on today's card (two fingers drawing together) shrinks it onto the
-// wall: it becomes a favourite and a small copy flies into the star in the
-// nav.
+// ── Kneifen ──────────────────────────────────────────────────────────────────
+// A pinch on today's card (two fingers drawing together) saves it as a
+// Liebling: a small copy of the card shrinks and flies into the star in the
+// nav, the same as tapping ☆.
 import { haptic } from "./haptic.js";
-import { seededRandom } from "./utils.js";
 
 export const PINCH_RATIO = 0.72;
-
-// Each polaroid hangs at a fixed, slightly different angle.
-export function pinAngle(day, token = "") {
-  return Math.round((seededRandom(`pin:${day}:${token}`) - 0.5) * 9 * 10) / 10;
-}
-
-export function dressAsPolaroid(li, entry) {
-  li.classList.add("ag-polaroid");
-  li.style.setProperty("--ag-pin-rot", `${pinAngle(entry.day, entry.token)}deg`);
-  const pin = document.createElement("i");
-  pin.className = "ag-pin";
-  pin.setAttribute("aria-hidden", "true");
-  li.prepend(pin);
-  return li;
-}
 
 // The pure part: given the starting and current distance between two
 // fingers, has the card been pinched shut?
@@ -59,14 +42,14 @@ export function bindPinch(card, onPinch) {
 }
 
 // A small copy of the card shrinks and flies into the Lieblinge star.
-export function flyCardToWall(card) {
+export function flyCardToStar(card) {
   const mount = card && card.closest(".ag-widget");
   const icon = mount && mount.querySelector('.ag-bottomnav-btn[data-ag-tab="lieblinge"] .ag-bottomnav-btn-icon');
   if (!card || !icon) return;
   const a = card.getBoundingClientRect();
   const b = icon.getBoundingClientRect();
   const ghost = document.createElement("div");
-  ghost.className = "ag-polaroid-ghost";
+  ghost.className = "ag-fav-ghost";
   ghost.style.left = `${a.left}px`;
   ghost.style.top = `${a.top}px`;
   ghost.style.width = `${a.width}px`;

@@ -34,7 +34,6 @@ import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { renderAufkleber } from "./aufkleber.js";
 import { fullMoonLine } from "./mond.js";
-import { dressAsPolaroid } from "./korkwand.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
 import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
@@ -1984,7 +1983,7 @@ export function renderLieblinge() {
   list.innerHTML = "";
 
   const favs = readFavorites();
-  note.textContent = "Deine Korkwand — alles, was du mit ☆ oder einem Kneifen gepinnt hast.";
+  note.textContent = "Deine gespeicherten Lieblingspreise — per Stern markiert, oder mit zwei Fingern zusammengekniffen.";
 
   if (!favs.length) {
     empty.hidden = false;
@@ -1993,9 +1992,8 @@ export function renderLieblinge() {
   }
   empty.hidden = true;
 
-  list.classList.add("ag-korkwand");
   for (const entry of favs) {
-    list.appendChild(dressAsPolaroid(renderHistoryItemEl(entry), entry));
+    list.appendChild(renderHistoryItemEl(entry));
   }
 }
 
