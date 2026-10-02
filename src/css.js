@@ -2622,8 +2622,16 @@ body{
 .ag-widget .ag-licht-conn[data-state="error"]::before{background:#e0a75d;opacity:.9}
 .ag-widget .ag-licht-conn[data-state="connecting"]::before{animation:ag-pulse 1.2s ease-in-out infinite}
 /* Ten LEDs, as the lamps show them right now. */
-.ag-widget .ag-licht-strip{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;padding:10px;border-radius:var(--ag-radius-md);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06)}
-.ag-widget .ag-licht-strip i{display:block;height:14px;border-radius:999px;background:var(--ag-led);box-shadow:0 0 10px var(--ag-led);transition:background 400ms var(--ag-ease),opacity 400ms var(--ag-ease),box-shadow 400ms var(--ag-ease)}
+.ag-widget .ag-licht-strip{display:flex;align-items:center;padding:10px 8px;border-radius:var(--ag-radius-md);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06)}
+.ag-widget .ag-licht-strip i{display:block;flex:1;height:14px;border-radius:999px;background:var(--ag-led);box-shadow:0 0 10px var(--ag-led);transition:background 400ms var(--ag-ease),opacity 400ms var(--ag-ease),box-shadow 400ms var(--ag-ease)}
+.ag-widget .ag-licht-strip.is-live i{cursor:pointer}
+.ag-widget .ag-licht-strip i.is-selected{outline:2px solid #fff;outline-offset:2px}
+/* The gaps are the cuts: a thin mark where a group ends, a tap target between
+   every pair of lights either way. */
+.ag-widget .ag-licht-strip b{display:block;flex:none;width:9px;height:26px;position:relative;cursor:pointer}
+.ag-widget .ag-licht-strip b::after{content:"";position:absolute;left:3.5px;top:7px;width:2px;height:12px;border-radius:2px;background:rgba(255,255,255,.12);transition:background 160ms,height 160ms,top 160ms}
+.ag-widget .ag-licht-strip b.is-cut::after{background:rgba(255,255,255,.75);height:22px;top:2px}
+.ag-widget .ag-licht-strip:not(.is-live) b{pointer-events:none}
 .ag-widget .ag-licht-strip.is-off i{box-shadow:none}
 .ag-widget .ag-licht-row{display:flex;align-items:center;gap:12px}
 .ag-widget .ag-licht-power{
@@ -2811,6 +2819,19 @@ body{
 .ag-widget.is-pulsing .ag-licht-lamp-dot{animation:ag-heartbeat 1s ease-in-out infinite}
 .ag-widget.is-pulsing .ag-licht-strip i{animation:ag-heartbeat 1s ease-in-out infinite}
 @keyframes ag-heartbeat{0%{transform:scale(1);opacity:1}18%{transform:scale(1.5);opacity:1}32%{transform:scale(1);opacity:.5}52%{transform:scale(1.3);opacity:.95}70%,100%{transform:scale(1);opacity:.45}}
+
+/* ── Licht: groups ──────────────────────────────────────────────────────── */
+.ag-widget .ag-licht-groups{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ag-widget .ag-licht-group{
+  appearance:none;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:999px;font-size:.78rem;color:var(--ag-muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-variant-numeric:tabular-nums;
+}
+.ag-widget .ag-licht-group.is-active{color:var(--ag-text);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.3)}
+.ag-widget .ag-licht-group:disabled{opacity:.4;cursor:default}
+.ag-widget .ag-licht-group-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 6px currentColor}
+.ag-widget .ag-licht-group-op{width:32px;justify-content:center;padding:5px 0;font-size:.95rem;line-height:1}
+.ag-widget .ag-licht-white{margin-top:-4px}
     `;
 
 export function injectStyles() {

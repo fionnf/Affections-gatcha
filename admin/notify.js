@@ -48,8 +48,44 @@ export async function requestPermission() {
     try { result = await Notification.requestPermission(); } catch {}
   }
   try { window.localStorage.setItem(NOTIF_KEY, result); } catch {}
-  if (result === "granted") await registerServiceWorker();
+  if (result === "granted") { await registerServiceWorker(); await subscribeToPush(); }
   return result;
+}
+
+// ── Web Push ──────────────────────────────────────────────────────────────────
+// A hug or a wish from Lennart reaches this phone as a push, not only while
+// the page is open: the Eingänge subscribe under the token "fionn", which is
+// where the push-notify job already looks for the recipient of a hug. Same
+// VAPID key and the same service worker as the gacha.
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+export async function subscribeToPush() {
+  const cfg = state.push;
+  if (!cfg || !cfg.enabled || !cfg.vapidPublicKey) return false;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+  if (!("Notification" in window) || Notification.permission !== "granted") return false;
+  const endpoint = (state.backup && state.backup.enabled && state.backup.endpointUrl) || "";
+  if (!endpoint) return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(cfg.vapidPublicKey) });
+    }
+    const body = JSON.stringify({ type: "push-subscribe", token: "fionn", subscription: sub.toJSON() });
+    const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+    await fetch(endpoint, opts).catch(() => fetch(endpoint, { ...opts, mode: "no-cors" }));
+    return true;
+  } catch (e) {
+    console.warn("[fionn-inbox] push subscription failed:", e && e.message);
+    return false;
+  }
 }
 
 function notify(title, body) {
@@ -81,6 +117,8 @@ export async function pollOnce({ silent = false } = {}) {
 }
 
 export function startPolling() {
+  // Already granted on an earlier visit: keep the push subscription fresh.
+  if ("Notification" in window && Notification.permission === "granted") subscribeToPush().catch(() => {});
   const minutes = (state.admin && Number(state.admin.pollMinutes)) || 30;
   if (pollTimer) clearInterval(pollTimer);
   // First poll is silent so we don't re-announce history; mark baseline.

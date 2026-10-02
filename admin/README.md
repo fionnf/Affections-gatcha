@@ -45,11 +45,14 @@ reply on a wish, `ping` for a Stups. Redeploy the script after pulling a change
 to it (Deploy → Manage deployments → ✏️ → New version).
 
 ### 3. Notifications
-The 🔔 button at the top of the feed asks for permission. Best results when the
-page is installed as a PWA (Add to Home Screen). Background polling uses
-periodic sync (Chrome/installed-PWA only, throttled); the reliable path is a
-poll whenever you open the page. iOS does not background-poll — email remains
-the alert channel.
+The 🔔 button at the top of the feed asks for permission, and with it the page
+subscribes to **Web Push** under the token `fionn` (same VAPID key as the
+gacha, `config/push.json`; same service worker). From then on a Notfall-Umarmung
+or a wish from Lennart arrives on this phone as a push within five minutes,
+sent by the `notify` job in `push-notify.yml`, whether the page is open or not
+(on iOS the page has to be installed to the home screen for push). The
+foreground poll stays as the instant path while the page is open, and email
+stays the guaranteed one.
 
 ## Build
 

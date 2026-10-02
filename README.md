@@ -161,8 +161,8 @@ The 💡 **Licht** tab is the lamps inside the app (`src/licht.js`): both lamps
 with their state, the ten LEDs as they are right now, power, brightness, a
 palette bar with the firmware's thirty tints, seven quick moods (Warm, Weiß,
 Wald, Gold, Abendrot, Meer, Nacht), the scenes saved on the lights page, and
-**Fionns Lampe winken** — three green pulses on his lamp, then back to what it
-was. It speaks the same MQTT-over-WebSocket protocol as the pull flash.
+**Lampen winken** — three green pulses on every lamp the Beide / Fionn /
+Lennart switch names (both by default), each put back to its own state. It speaks the same MQTT-over-WebSocket protocol as the pull flash.
 It connects when the tab opens, drops the socket when the app goes to the
 background and reconnects when it comes back with the tab still open; a tap
 on the status line starts a fresh attempt. A generation counter keeps a dead
@@ -181,14 +181,24 @@ into the shared scene library (the retained scenes topic, same merge rules
 as the lights page, sent as `gacha_app` so that page does not drop it as its
 own copy).
 
+**Groups.** The strip is one or more groups, each with its own tint and white
+level. A tap between two lights cuts there (or joins again), a tap on a light
+picks its group, the chips under the strip do the same, **+** splits the
+selected (else the largest) group in half and **−** merges it into its
+neighbour. With a group selected, the palette bar and the Weissanteil slider
+apply to it alone; with *Alle*, to the whole strip. Up to ten groups, sizes
+always summing to the strip (`toggleCut`, `splitGroup`, `mergeGroup`,
+`setGroupColour`, all pure). Saved scenes keep the layout.
+
 **Pulsschlag.** A lamp pill tapped toggles that lamp; pressed and held, both
 lamps beat at a resting pulse — a lub-dub every second — for as long as the
 finger stays, then go back to what they were. Nothing is stored
 (`heartbeatCycle`, `startPulse`, `stopPulse`).
 
-**🥁 Rhythmus an Fionn.** A pad takes a tapped rhythm (up to fourteen taps);
-after a pause of 1.6 s it plays on Fionn's lamp as brightness pulses in the
-lamp's own colour, then the lamp goes back to what it was (`morseSteps`).
+**🥁 Rhythmus auf die Lampen.** A pad takes a tapped rhythm (up to fourteen
+taps); after a pause of 1.6 s it plays on every targeted lamp (both by default)
+as brightness pulses in each lamp's own colour, then each goes back to what it
+was (`morseSteps`, `targetLamps`).
 
 **🌅 Sonnenaufgang.** A friendlier front for the firmware's alarms: a time, a
 day preset (Mo–Fr, täglich, Sa+So) and an on/off, scoped to the lamps the
@@ -234,7 +244,7 @@ sending lives in `push-notify.yml`:
 
 | Job | Schedule | Sends |
 |---|---|---|
-| `notify` | every 5 min | hugs and wishes, as they arrive |
+| `notify` | every 5 min | hugs and wishes, as they arrive — to Fionn's phone, which the Eingänge subscribe under the token `fionn` once notifications are allowed there |
 | `daily` | hourly | the morning reminder and the evening streak warning |
 
 The `daily` job asks the backend (`?feed=push-due`) who still hasn't pulled

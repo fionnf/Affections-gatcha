@@ -53,6 +53,7 @@ async function loadAdminConfig() {
     throw new Error("config/admin.json fehlt oder ist ungültig.");
   }
   state.backup = await fetchJson("config/backup.json", { enabled: false });
+  state.push = await fetchJson("config/push.json", { enabled: false });
 }
 
 async function boot() {
