@@ -12,7 +12,7 @@ const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
 const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
-const { NUM_LEDS, flickerStep, flickerGap, FLICKER_MIN, FLICKER_MAX, FLICKER_GAP_MS } = await import("../src/licht.js");
+const { NUM_LEDS, flickerStep, flickerGap, FLICKER_MIN, FLICKER_MAX, FLICKER_GAP_MS, rainbowGroups, RAINBOW_STEP } = await import("../src/licht.js");
 
 test.beforeEach(() => env.localStorage.clear());
 
@@ -147,6 +147,17 @@ test("the lamp flicker: a bounded random walk with gusts, at irregular gaps", ()
   assert.ok(flickerStep(0.4, () => 0.0).brightness < 0.3, "a gust dips hard");
   assert.equal(flickerStep(0.4, () => 0.0).fade_steps, 8, "and fast");
   for (let i = 0; i < 50; i++) { const g = flickerGap(rand); assert.ok(g >= FLICKER_GAP_MS[0] && g <= FLICKER_GAP_MS[1]); }
+});
+
+test("the rainbow: one hue per light across the palette, sliding with the offset", () => {
+  const g = rainbowGroups(0);
+  assert.equal(g.length, NUM_LEDS);
+  assert.equal(g.reduce((n, x) => n + x.size, 0), NUM_LEDS);
+  assert.deepEqual(g.map((x) => x.pos), [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);
+  const moved = rainbowGroups(RAINBOW_STEP);
+  assert.ok(moved.every((x, i) => Math.abs(x.pos - ((g[i].pos + RAINBOW_STEP) % 1)) < 0.002), "every light moves the same step");
+  assert.deepEqual(rainbowGroups(1), g, "a full offset is a full cycle");
+  assert.ok(rainbowGroups(0.95)[1].pos < 0.1, "wraps around the palette");
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {
