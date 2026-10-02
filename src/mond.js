@@ -1,7 +1,8 @@
-// ── Vollmond ─────────────────────────────────────────────────────────────────
-// A full-moon day gets one extra line on the card. The phase is computed,
-// not fetched: the mean lunation for the phase, Meeus for the exact instant
-// of each full moon.
+// ── Mondfenster ──────────────────────────────────────────────────────────────
+// At night the real moon hangs in the machine's window. The phase is
+// computed, not fetched: the mean lunation for the phase (the shape), Meeus
+// for the exact instant of each full moon (the day). A full-moon day gets
+// one extra line on the card.
 
 const SYNODIC_DAYS = 29.530588853;
 // New moon, 2000-01-06 18:14 UTC.
@@ -99,4 +100,20 @@ export function fullMoonLine(dayKey) {
   if (!isFullMoonDay(dayKey)) return "";
   const n = dayKey.split("-").reduce((a, b) => a + Number(b), 0);
   return FULL_MOON_LINES[n % FULL_MOON_LINES.length];
+}
+
+// Draws tonight's moon into the window. Called with the evening flag so the
+// moon only appears after dark; by day the element stays empty.
+export function renderMoon(el, { evening = false, date = new Date() } = {}) {
+  if (!el) return;
+  if (!evening) { el.innerHTML = ""; el.hidden = true; return; }
+  const { phase, illumination } = moonPhase(date);
+  const r = 20;
+  el.hidden = false;
+  el.title = `${NAMES[moonOctant(phase)]} · ${Math.round(illumination * 100)}%`;
+  el.innerHTML = `<svg viewBox="0 0 ${2 * r} ${2 * r}" aria-hidden="true">
+    <circle cx="${r}" cy="${r}" r="${r}" class="ag-moon-dark"/>
+    <path d="${moonPath(phase, r)}" class="ag-moon-lit"/>
+  </svg>`;
+  el.classList.toggle("is-full", illumination > 0.97);
 }
