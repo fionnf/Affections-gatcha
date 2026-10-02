@@ -4,7 +4,7 @@ import {
   STREAK_RESTORE_KEY, WISH_KEY, MILESTONE_KEY,
   BAERLAUCH_SCORE_KEY, BAERLAUCH_HISTORY_KEY,
   GIPFELBUCH_KEY, QUEST_STORAGE_KEY, QUEST_POINTS_KEY,
-  FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken
+  FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken, PFAND_EVERY
 } from "./constants.js";
 import { state } from "./state.js";
 import { dateKeyInTimezone, getToken } from "./utils.js";
@@ -519,4 +519,31 @@ export function mergeHugLog(list) {
 }
 export function addHugToLog(ts) {
   return mergeHugLog([ts]);
+}
+
+// ── Pfand ────────────────────────────────────────────────────────────────────
+// Count of empty Niete capsules returned to the machine, and the flag on the
+// day's entry so each one is returned once. Every PFAND_EVERY pays a token.
+const PFAND_KEY = "affektions-gacha:pfand:v1";
+export function readPfand() {
+  const val = readPlayerSlot(PFAND_KEY, { count: 0 });
+  return val && typeof val === "object" && Number.isFinite(val.count) ? val : { count: 0 };
+}
+export function pfandProgress(count, every = PFAND_EVERY) {
+  const c = Math.max(0, Math.floor(Number(count) || 0));
+  return { inCycle: c % every, every, earned: c > 0 && c % every === 0 };
+}
+export function addPfand() {
+  const cur = readPfand();
+  const count = (cur.count || 0) + 1;
+  writePlayerSlot(PFAND_KEY, { count, at: Date.now() });
+  return { count, ...pfandProgress(count) };
+}
+export function markPfand(day, token) {
+  const history = readHistory();
+  const match = history.find((e) => e.day === day && e.token === token);
+  if (!match || match.pfand) return false;
+  match.pfand = true;
+  writeHistory(history);
+  return true;
 }

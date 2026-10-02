@@ -2746,6 +2746,56 @@ body{
 .ag-widget .ag-licht-save{display:flex;gap:8px}
 .ag-widget .ag-licht-save input{flex:1;min-width:0}
 .ag-widget .ag-licht-save .ag-secondary{flex:none}
+
+/* ── Pfand: a Niete goes back into the machine ─────────────────────────── */
+.ag-widget .ag-pfand{margin:12px 0 4px;padding:10px 12px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.14)}
+.ag-widget .ag-pfand-handle{
+  appearance:none;width:100%;font-family:inherit;cursor:grab;touch-action:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 12px;border-radius:999px;font-size:.88rem;color:var(--ag-text);
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+}
+.ag-widget .ag-pfand-handle:active{cursor:grabbing}
+.ag-widget .ag-pfand-handle.is-ready{color:#8fcf9e;border-color:rgba(143,207,158,.6);box-shadow:0 0 0 2px rgba(143,207,158,.25)}
+.ag-widget .ag-pfand-count{font-variant-numeric:tabular-nums;color:var(--ag-muted);font-size:.78rem}
+.ag-widget .ag-pfand-hint{margin:6px 0 0;text-align:center;font-size:.72rem;color:var(--ag-muted)}
+.ag-widget .ag-result.is-pfand-dragging{will-change:transform,opacity}
+.ag-pfand-capsule{position:fixed;z-index:3000;pointer-events:none;width:22px;height:30px;border-radius:11px;
+  background:linear-gradient(180deg,#8fcf9e 0 50%,#f6f1e4 50% 100%);box-shadow:0 4px 10px rgba(0,0,0,.45);transform:translate(-50%,-50%)}
+.ag-widget .ag-machine-wrap.is-gulp{animation:ag-gulp 600ms var(--ag-ease)}
+@keyframes ag-gulp{0%{transform:none}35%{transform:scale(1.05) translateY(3px)}60%{transform:scale(.98)}100%{transform:none}}
+
+/* ── Morsen ─────────────────────────────────────────────────────────────── */
+.ag-widget .ag-morse{display:flex;flex-direction:column;gap:8px}
+.ag-widget .ag-morse-pad{
+  appearance:none;font-family:inherit;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-height:96px;border-radius:var(--ag-radius-lg);color:var(--ag-text);
+  background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.12),rgba(255,255,255,.03) 70%);
+  border:1px solid rgba(255,255,255,.14);transition:transform 90ms var(--ag-ease),background 120ms;
+}
+.ag-widget .ag-morse-pad small{font-size:.7rem;color:var(--ag-muted);font-weight:400}
+.ag-widget .ag-morse-pad.is-hit{transform:scale(.97);background:radial-gradient(circle at 50% 40%,rgba(255,240,200,.35),rgba(255,255,255,.04) 70%)}
+.ag-widget .ag-morse-dots{display:flex;gap:6px;min-height:10px;justify-content:center}
+.ag-widget .ag-morse-dots i{width:8px;height:8px;border-radius:50%;background:#ffe9a0;box-shadow:0 0 8px rgba(255,220,120,.6);animation:ag-pop 220ms var(--ag-ease) both}
+
+/* ── Sonnenaufgang ─────────────────────────────────────────────────────── */
+.ag-widget .ag-sunrise{padding:12px;border-radius:var(--ag-radius-md);background:linear-gradient(135deg,rgba(255,120,60,.10),rgba(255,210,140,.06));border:1px solid rgba(255,170,100,.22)}
+.ag-widget .ag-sunrise-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ag-widget .ag-sunrise-title{font-size:.9rem;margin-right:auto}
+.ag-widget .ag-sunrise-time,.ag-widget .ag-sunrise-days{
+  font-family:inherit;font-size:.86rem;color:var(--ag-text);background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:6px 8px;
+}
+.ag-widget .ag-sunrise-time{color-scheme:dark}
+.ag-widget .ag-sunrise-toggle{
+  appearance:none;font-family:inherit;cursor:pointer;width:52px;height:34px;border-radius:999px;font-size:.78rem;
+  color:var(--ag-muted);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+}
+.ag-widget .ag-sunrise-toggle.is-on{color:#2a1500;background:#ffb26b;border-color:#ffb26b;box-shadow:0 0 16px rgba(255,178,107,.35)}
+.ag-widget .ag-sunrise-toggle:disabled,.ag-widget .ag-sunrise-time:disabled,.ag-widget .ag-sunrise-days:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-sunrise-note{margin:8px 0 0;font-size:.74rem;line-height:1.45;color:var(--ag-muted)}
+.ag-widget .ag-licht-foot-single{grid-template-columns:1fr}
     `;
 
 export function injectStyles() {

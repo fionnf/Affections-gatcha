@@ -71,3 +71,8 @@ export function tokenReward(emoji) {
   const entry = TOKEN_REWARDS[emoji];
   return (entry && entry.reward) || "";
 }
+
+// Pfand: every tenth empty Niete capsule returned to the machine pays a
+// token. The humble one — a home evening — for the humble capsules.
+export const PFAND_EVERY = 10;
+export const PFAND_TOKEN = "🛁";

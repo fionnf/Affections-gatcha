@@ -129,6 +129,10 @@ export async function syncFromSheets() {
         if (prev && prev.weather && !next.weather) {
           next.weather = prev.weather;
         }
+        // So is the Pfand flag: a returned capsule stays returned.
+        if (prev && prev.pfand && !next.pfand) {
+          next.pfand = true;
+        }
         localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));

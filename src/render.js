@@ -31,9 +31,10 @@ export function setHistoryFilter(value) {
 import { escapeHtml as escHtml, formatHistoryDate } from "./utils.js";
 import { armConfirm } from "./confirm.js";
 import { weatherText } from "./wetter.js";
-import { setupInk, bindWordSave, dropCoin, bindFirefly } from "./delights.js";
+import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { addGlossaryWord } from "./glossary.js";
-import { readHugLog } from "./storage.js";
+import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken } from "./storage.js";
+import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
 import { haptic } from "./haptic.js";
 export { escHtml };
 
@@ -650,11 +651,13 @@ export function renderTokenBank() {
   const head = $("[data-ag-tokenbank-head]");
   if (head) {
     const rest = hidden ? ` · ${hidden} ${hidden === 1 ? "Sorte" : "Sorten"} noch unentdeckt` : "";
-    head.textContent = total === 0
+    const pf = pfandProgress(readPfand().count);
+    const pfand = pf.inCycle || readPfand().count ? ` · Pfand ${pf.inCycle}/${pf.every}` : "";
+    head.textContent = (total === 0
       ? "Noch keine Sammeltokens — sie fallen bei etwa jeder fünften Kapsel."
       : ready
         ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar${rest}`
-        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt${rest}`;
+        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt${rest}`) + pfand;
   }
 
   wrap.innerHTML = "";
@@ -957,6 +960,37 @@ export function renderPull(pull) {
     showToast(`„${word}“ ins Glossar gelegt 📖`);
   });
   const resultEl = $("[data-ag-result]");
+
+  // Pfand: a Niete can be returned to the machine, once; every tenth pays.
+  const pfandWrap = $("[data-ag-pfand]");
+  if (pfandWrap) {
+    const returned = !!(rec && rec.pfand);
+    const show = pull.category.id === "niete" && !getPreviewDay() && !returned;
+    pfandWrap.hidden = !show;
+    const handle = $("[data-ag-pfand-handle]");
+    const countEl = $("[data-ag-pfand-count]");
+    if (countEl) {
+      const p = pfandProgress(readPfand().count);
+      countEl.textContent = `${p.inCycle}/${p.every}`;
+    }
+    if (show && handle) {
+      bindPfandDrag(handle, $("[data-ag-result]"), () => {
+        if (!markPfand(pull.day, pull.token)) return;
+        const result = addPfand();
+        flyCapsuleIntoMachine(handle);
+        pfandWrap.hidden = true;
+        if (result.earned) {
+          try { addToken(PFAND_TOKEN); } catch (_e) {}
+          try { triggerConfetti(70); } catch (_e) {}
+          showToast(`♻︎ Zehn leere Kapseln zurück — ein ${PFAND_TOKEN} dafür`);
+          renderTokenBank();
+        } else {
+          showToast(`♻︎ Pfand ${result.inCycle}/${PFAND_EVERY} — die Maschine nickt`);
+        }
+        backupToSheets();
+      });
+    }
+  }
 
   const freikarteWrap = $("[data-ag-freikarte-wrap]");
   if (freikarteWrap) {

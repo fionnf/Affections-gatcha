@@ -202,3 +202,78 @@ export function bindWordSave(msgEl, onWord) {
   msgEl.addEventListener("pointerleave", cancel);
   msgEl.addEventListener("contextmenu", (e) => { if (timer) e.preventDefault(); });
 }
+
+// ── Pfand ────────────────────────────────────────────────────────────────────
+// A Niete card can be dragged upward, into the machine. The card follows the
+// finger and shrinks; past the threshold a small capsule flies into the
+// machine and the day counts. A plain tap on the handle arms a two-tap
+// confirm instead, for anyone who would rather not drag.
+export const PFAND_DRAG_PX = 120;
+export function bindPfandDrag(handle, card, onReturn) {
+  if (!handle || !card || handle.dataset.pfandBound) return;
+  handle.dataset.pfandBound = "1";
+  let active = false, startY = 0, dy = 0, moved = false;
+  const reset = () => {
+    card.style.transition = "transform 320ms cubic-bezier(.3,.7,.3,1.2), opacity 320ms ease";
+    card.style.transform = ""; card.style.opacity = "";
+    setTimeout(() => { card.style.transition = ""; }, 340);
+    card.classList.remove("is-pfand-dragging");
+  };
+  handle.addEventListener("pointerdown", (e) => {
+    active = true; moved = false; startY = e.clientY; dy = 0;
+    try { handle.setPointerCapture(e.pointerId); } catch (_e) {}
+    card.style.transition = "none";
+    card.classList.add("is-pfand-dragging");
+  });
+  handle.addEventListener("pointermove", (e) => {
+    if (!active) return;
+    dy = Math.min(0, e.clientY - startY);
+    if (dy < -6) moved = true;
+    const k = Math.min(1, -dy / PFAND_DRAG_PX);
+    card.style.transform = `translateY(${(dy * 0.7).toFixed(0)}px) scale(${(1 - 0.22 * k).toFixed(3)})`;
+    card.style.opacity = String(1 - 0.35 * k);
+    handle.classList.toggle("is-ready", -dy >= PFAND_DRAG_PX);
+  });
+  const finish = () => {
+    if (!active) return;
+    active = false;
+    handle.classList.remove("is-ready");
+    if (-dy >= PFAND_DRAG_PX) { reset(); onReturn(); return; }
+    reset();
+  };
+  handle.addEventListener("pointerup", finish);
+  handle.addEventListener("pointercancel", finish);
+  handle.addEventListener("click", (e) => {
+    // A tap, not a drag: two taps do it.
+    if (moved) { e.preventDefault(); return; }
+    import("./confirm.js").then((m) => { if (m.armConfirm(handle, "Zurückgeben? Nochmal tippen")) onReturn(); });
+  });
+}
+// The small capsule that flies from the card into the machine.
+export function flyCapsuleIntoMachine(fromEl) {
+  if (!mount) return;
+  const machine = mount.querySelector(".ag-machine-wrap");
+  if (!fromEl || !machine) return;
+  const a = fromEl.getBoundingClientRect();
+  const b = machine.getBoundingClientRect();
+  const cap = document.createElement("div");
+  cap.className = "ag-pfand-capsule";
+  cap.style.left = `${a.left + a.width / 2}px`;
+  cap.style.top = `${a.top + a.height / 2}px`;
+  document.body.appendChild(cap);
+  const tx = b.left + b.width / 2 - (a.left + a.width / 2);
+  const ty = b.top + b.height * 0.55 - (a.top + a.height / 2);
+  if (reducedMotion()) { cap.remove(); return; }
+  const anim = cap.animate([
+    { transform: "translate(-50%,-50%) scale(1) rotate(0deg)", opacity: 1 },
+    { transform: `translate(calc(-50% + ${(tx * 0.5).toFixed(0)}px), calc(-50% + ${(ty * 0.5 - 60).toFixed(0)}px)) scale(1.1) rotate(180deg)`, opacity: 1, offset: 0.5 },
+    { transform: `translate(calc(-50% + ${tx.toFixed(0)}px), calc(-50% + ${ty.toFixed(0)}px)) scale(.3) rotate(420deg)`, opacity: 0.1 }
+  ], { duration: 820, easing: "cubic-bezier(.35,.7,.35,1)", fill: "forwards" });
+  anim.onfinish = () => {
+    cap.remove();
+    machine.classList.add("is-gulp");
+    setTimeout(() => machine.classList.remove("is-gulp"), 700);
+    playClink();
+    haptic([10, 40, 20]);
+  };
+}

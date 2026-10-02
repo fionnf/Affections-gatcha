@@ -181,8 +181,19 @@ into the shared scene library (the retained scenes topic, same merge rules
 as the lights page, sent as `gacha_app` so that page does not drop it as its
 own copy).
 
-**Alle Einstellungen ›** opens `lichter.html` for the rest — alarms, groups,
-Wi-Fi, reboot. That page is **vendored** from
+**🥁 Rhythmus an Fionn.** A pad takes a tapped rhythm (up to fourteen taps);
+after a pause of 1.6 s it plays on Fionn's lamp as brightness pulses in the
+lamp's own colour, then the lamp goes back to what it was (`morseSteps`).
+
+**🌅 Sonnenaufgang.** A friendlier front for the firmware's alarms: a time, a
+day preset (Mo–Fr, täglich, Sa+So) and an on/off, scoped to the lamps the
+Beide / Fionn / Lennart switch names. It manages exactly one entry in the
+retained alarm list, tagged `gacha: "sunrise"`, and leaves every alarm set on
+the lights page alone; twenty minutes from deep red to warm white, as the
+firmware's sunrise type does it (`sunriseAlarm`, `setSunrise`).
+
+**Alle Einstellungen ›** opens `lichter.html` for the rest — alarms in full,
+groups, Wi-Fi, reboot. That page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)
 (branch `master`) by `scripts/vendor-lights-ui.py`, which re-applies the local
 changes it needs: this app's favicon and apple-touch-icon, a ‹ back control,
@@ -830,6 +841,12 @@ mechanics, none of it load-bearing.
   its meaning.
 - **Zugeklappt.** Leaving the Heute tab after a pull folds the card into an
   envelope that flies into the Verlauf icon. Once per capsule.
+- **Pfand.** A Niete card can be dragged upward, into the machine (the handle
+  under the text; a plain tap arms a two-tap confirm instead). The capsule
+  flies in, the machine gulps, and every tenth returned capsule pays a 🛁
+  token (`PFAND_EVERY`, `PFAND_TOKEN` in `src/constants.js`). The count shows
+  on the handle and in the Token-Bank head; each day returns once (`pfand`
+  on the entry, local only, kept on sync).
 
 ---
 

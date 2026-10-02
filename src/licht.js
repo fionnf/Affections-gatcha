@@ -23,8 +23,8 @@ export const BROKER = "wss://broker.hivemq.com:8884/mqtt";
 export const PREFIX = "picolight_lf26";
 export const NUM_LEDS = 10;
 export const BOARDS = [
-  { id: "board_a", name: "Fionns Lampe", short: "FF" },
-  { id: "board_b", name: "Lennarts Lampe", short: "LS" }
+  { id: "board_a", name: "Fionns Lampe", owner: "Fionn", short: "FF" },
+  { id: "board_b", name: "Lennarts Lampe", owner: "Lennart", short: "LS" }
 ];
 const FROM_ID = "web_app";
 const HOLD_MS = 1500;      // ignore echoes this long after a local change
@@ -125,6 +125,7 @@ let nudgeTimer = null;
 let holdUntil = 0;
 const lamps = {};          // id → { online, on, brightness, fade_steps, groups, seenAt }
 let scenes = [];
+let alarms = [];           // the lamps' alarm list, as the lights page keeps it (retained)
 let deletedScenes = [];    // tombstones the lights page sent; republished with ours
 let sendTarget = "";       // "" = both, else a board id
 let conn = "idle";         // idle | connecting | connected | error
@@ -132,6 +133,7 @@ let conn = "idle";         // idle | connecting | connected | error
 function topicEvents() { return `${PREFIX}/events`; }
 function topicStatus() { return `${PREFIX}/status/+`; }
 function topicScenes() { return `${PREFIX}/scenes`; }
+function topicAlarms() { return `${PREFIX}/alarms`; }
 
 export function lampOnline(id, now = Date.now()) {
   const l = lamps[id];
@@ -179,7 +181,7 @@ function connect() {
       if (!mine()) return;
       connectedAt = Date.now();
       lastError = "";
-      c.subscribe([topicEvents(), topicStatus(), topicScenes()], () => {});
+      c.subscribe([topicEvents(), topicStatus(), topicScenes(), topicAlarms()], () => {});
       // Boards change nothing on an unknown field, but echo their whole
       // state back — the fastest way to know what the room looks like.
       publishRaw({ nudge: true });
@@ -227,6 +229,11 @@ function onMessage(topic, msg) {
     const id = t.split("/").pop();
     lamps[id] = { ...(lamps[id] || {}), online: !!d.online };
     if (d.online) lamps[id].seenAt = Date.now();
+    renderLichtPanel();
+    return;
+  }
+  if (t === topicAlarms()) {
+    if (Array.isArray(d)) alarms = d.filter((a) => a && typeof a === "object");
     renderLichtPanel();
     return;
   }
@@ -351,6 +358,102 @@ export function wink(boardId = "board_a") {
   return true;
 }
 
+// ── Lampen-Morsen ────────────────────────────────────────────────────────────
+// A rhythm tapped on the pad, played back as brightness pulses on one lamp,
+// then the lamp goes back to what it was. taps are ms offsets from the first.
+export const MORSE_MAX_TAPS = 14;
+export const MORSE_PULSE_MS = 110;
+export function morseSteps(taps, restore) {
+  const t = (Array.isArray(taps) ? taps : []).map((x) => Math.max(0, Number(x) || 0)).slice(0, MORSE_MAX_TAPS);
+  const steps = [];
+  const hi = { on: true, brightness: 1.0, fade_steps: 1 };
+  const lo = { brightness: 0.06, fade_steps: 1 };
+  if (restore && restore.groups) hi.groups = restore.groups;
+  for (const at of t) {
+    steps.push({ at, payload: hi });
+    steps.push({ at: at + MORSE_PULSE_MS, payload: lo });
+  }
+  const end = (t.length ? t[t.length - 1] : 0) + MORSE_PULSE_MS + 700;
+  if (restore && restore.groups) {
+    steps.push({ at: end, payload: { on: true, groups: restore.groups, brightness: restore.brightness, fade_steps: restore.fade_steps } });
+    if (restore.on === false) steps.push({ at: end + 1200, payload: { on: false } });
+  } else {
+    steps.push({ at: end, payload: { on: false } });
+  }
+  return steps;
+}
+let morseTimers = [];
+export function sendMorse(taps, boardId = "board_a") {
+  const board = BOARDS.find((b) => b.id === boardId);
+  if (!taps || !taps.length) return false;
+  if (!lampOnline(boardId)) { showToast(`${board ? board.name : "Die Lampe"} ist gerade nicht erreichbar`); return false; }
+  const snap = lamps[boardId] && lamps[boardId].groups ? { ...lamps[boardId] } : null;
+  for (const t of morseTimers) clearTimeout(t);
+  morseTimers = [];
+  const steps = morseSteps(taps, snap);
+  holdUntil = Date.now() + steps[steps.length - 1].at + 500;
+  for (const step of steps) morseTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: boardId }), step.at));
+  haptic(taps.map(() => 18));
+  showToast(`🥁 ${taps.length} ${taps.length === 1 ? "Schlag" : "Schläge"} unterwegs zu ${board ? board.name : "der Lampe"}`);
+  return true;
+}
+
+// ── Sonnenaufgang ────────────────────────────────────────────────────────────
+// The firmware has alarms: a "sunrise" fades from deep red to warm white over
+// duration_min, on the boards listed, on the days listed (Monday = 0). The
+// lights page keeps the list on a retained topic; this manages exactly one
+// entry in it, tagged gacha:"sunrise", and leaves every other alarm alone.
+export const SUNRISE_DAYS = { werktags: [0, 1, 2, 3, 4], taeglich: [0, 1, 2, 3, 4, 5, 6], wochenende: [5, 6] };
+export function localToUtc(lh, lm, now = new Date()) {
+  const d = new Date(now); d.setHours(lh, lm, 0, 0);
+  return [d.getUTCHours(), d.getUTCMinutes()];
+}
+export function sunriseAlarm(list, { time = "07:00", days = "werktags", boards, enabled = true, durationMin = 20 } = {}) {
+  const [lh, lm] = String(time).split(":").map((x) => parseInt(x, 10));
+  const [uh, um] = localToUtc(Number.isInteger(lh) ? lh : 7, Number.isInteger(lm) ? lm : 0);
+  const others = (Array.isArray(list) ? list : []).filter((a) => !(a && a.gacha === "sunrise"));
+  const mine = {
+    gacha: "sunrise", enabled: !!enabled, type: "sunrise",
+    hour: uh, minute: um, lh: Number.isInteger(lh) ? lh : 7, lm: Number.isInteger(lm) ? lm : 0,
+    duration_min: durationMin, brightness: 0.9,
+    days: SUNRISE_DAYS[days] || SUNRISE_DAYS.werktags,
+    boards: Array.isArray(boards) && boards.length ? boards : BOARDS.map((b) => b.id)
+  };
+  return [...others, mine];
+}
+export function findSunrise(list) {
+  return (Array.isArray(list) ? list : []).find((a) => a && a.gacha === "sunrise") || null;
+}
+export function daysPreset(days) {
+  const key = JSON.stringify((days || []).slice().sort());
+  for (const [name, list] of Object.entries(SUNRISE_DAYS)) if (JSON.stringify(list) === key) return name;
+  return "werktags";
+}
+function publishAlarms(list) {
+  if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
+  try {
+    client.publish(topicAlarms(), JSON.stringify(list), { retain: true, qos: 1 });
+    publishRaw({ set_alarms: list });
+  } catch (_e) { showToast("Wecker konnte nicht gestellt werden"); return false; }
+  alarms = list;
+  return true;
+}
+export function setSunrise({ enabled, time, days } = {}) {
+  const cur = findSunrise(alarms) || {};
+  const next = sunriseAlarm(alarms, {
+    time: time || (Number.isInteger(cur.lh) ? `${String(cur.lh).padStart(2, "0")}:${String(cur.lm || 0).padStart(2, "0")}` : "07:00"),
+    days: days || daysPreset(cur.days),
+    boards: sendTarget ? [sendTarget] : BOARDS.map((b) => b.id),
+    enabled: enabled === undefined ? cur.enabled !== false : enabled
+  });
+  if (!publishAlarms(next)) return false;
+  const mine = findSunrise(next);
+  haptic([8, 20, 8]);
+  showToast(mine.enabled ? `🌅 Sonnenaufgang um ${String(mine.lh).padStart(2, "0")}:${String(mine.lm).padStart(2, "0")} gestellt` : "🌅 Sonnenaufgang aus");
+  renderLichtPanel();
+  return true;
+}
+
 // ── Panel ────────────────────────────────────────────────────────────────────
 let bound = false;
 let brightnessTimer = null;
@@ -449,6 +552,39 @@ function bindLichtPanel() {
   });
   const random = $("[data-ag-licht-random]");
   if (random) random.addEventListener("click", playRandom);
+  // Morsen: taps on the pad, sent after a pause.
+  const morseOpen = $("[data-ag-licht-morse-open]");
+  const morse = $("[data-ag-morse]");
+  const pad = $("[data-ag-morse-pad]");
+  const dots = $("[data-ag-morse-dots]");
+  let taps = [], firstTap = 0, morseTimer = null;
+  const clearTaps = () => { taps = []; firstTap = 0; if (dots) dots.innerHTML = ""; };
+  if (morseOpen && morse) morseOpen.addEventListener("click", () => { morse.hidden = !morse.hidden; clearTaps(); if (!morse.hidden) morse.scrollIntoView({ behavior: "smooth", block: "nearest" }); });
+  if (pad) pad.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const now = performance.now();
+    if (!taps.length) firstTap = now;
+    if (taps.length < MORSE_MAX_TAPS) taps.push(Math.round(now - firstTap));
+    haptic(14);
+    pad.classList.add("is-hit"); setTimeout(() => pad.classList.remove("is-hit"), 120);
+    if (dots) { const i = document.createElement("i"); dots.appendChild(i); }
+    clearTimeout(morseTimer);
+    morseTimer = setTimeout(() => {
+      const sent = sendMorse(taps, "board_a");
+      clearTaps();
+      if (sent && morse) morse.hidden = true;
+    }, 1600);
+  });
+  // Sonnenaufgang.
+  const srTime = $("[data-ag-sunrise-time]");
+  const srDays = $("[data-ag-sunrise-days]");
+  const srToggle = $("[data-ag-sunrise-toggle]");
+  if (srToggle) srToggle.addEventListener("click", () => {
+    const cur = findSunrise(alarms);
+    setSunrise({ enabled: !(cur && cur.enabled !== false), time: srTime && srTime.value, days: srDays && srDays.value });
+  });
+  if (srTime) srTime.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime.value, days: srDays && srDays.value }); });
+  if (srDays) srDays.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime && srTime.value, days: srDays.value }); });
   const saveBtn = $("[data-ag-licht-scene-save]");
   const nameIn = $("[data-ag-licht-scene-name]");
   if (saveBtn && nameIn) {
@@ -531,7 +667,28 @@ export function renderLichtPanel() {
     palette.style.setProperty("--ag-pick", `${(pos * 100).toFixed(1)}%`);
     palette.setAttribute("aria-valuenow", String(Math.round(pos * 29)));
   }
-  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save]")) b.disabled = conn !== "connected";
+  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = conn !== "connected";
+  const sr = findSunrise(alarms);
+  const srTime = $("[data-ag-sunrise-time]");
+  const srDays = $("[data-ag-sunrise-days]");
+  const srToggle = $("[data-ag-sunrise-toggle]");
+  const srNote = $("[data-ag-sunrise-note]");
+  if (sr && srTime && document.activeElement !== srTime) srTime.value = `${String(sr.lh ?? 7).padStart(2, "0")}:${String(sr.lm ?? 0).padStart(2, "0")}`;
+  if (sr && srDays && document.activeElement !== srDays) srDays.value = daysPreset(sr.days);
+  if (srToggle) {
+    const on = !!(sr && sr.enabled !== false);
+    srToggle.textContent = on ? "an" : "aus";
+    srToggle.classList.toggle("is-on", on);
+    srToggle.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+  if (srNote) {
+    const who = (sr && Array.isArray(sr.boards) ? sr.boards : BOARDS.map((b) => b.id)).map((id) => (BOARDS.find((b) => b.id === id) || {}).owner || id).join(" + ");
+    const label = { werktags: "Mo–Fr", taeglich: "täglich", wochenende: "Sa+So" }[daysPreset(sr && sr.days)];
+    srNote.textContent = sr && sr.enabled !== false
+      ? `Aktiv ${label} um ${String(sr.lh ?? 7).padStart(2, "0")}:${String(sr.lm ?? 0).padStart(2, "0")}: ${sr.duration_min || 20} Minuten von tiefem Rot zu Warmweiss · ${who}`
+      : sr ? "Gestellt, aber aus. Tippen auf „aus“ schaltet ihn ein."
+      : "Zwanzig Minuten von tiefem Rot zu Warmweiss, auf den Lampen, die oben gewählt sind.";
+  }
   for (const b of panel.querySelectorAll("[data-ag-licht-target] [data-target]")) {
     const active = (b.dataset.target || "") === sendTarget;
     b.classList.toggle("is-active", active);
