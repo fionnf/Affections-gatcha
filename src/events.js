@@ -654,16 +654,9 @@ export function bindEvents() {
     haptic(12);
     reveal();
   });
-  // Shake to draw — only while today's capsule is still in the machine, so a
-  // bumpy tram ride after the pull cannot re-run the reveal. Tilt feeds the
-  // foil sheen on rare/jackpot cards via two custom properties.
+  // Tilt feeds the foil sheen on rare/jackpot cards via two custom
+  // properties. (Shake-to-draw lived here too; removed on request.)
   initMotion({
-    onShake: () => {
-      if (mount.classList.contains("has-drawn") || mount.classList.contains("is-revealing")) return;
-      if (getPreviewDay()) return;
-      haptic(12);
-      reveal();
-    },
     onTilt: (x, y) => {
       mount.style.setProperty("--ag-foil-x", x.toFixed(1) + "%");
       mount.style.setProperty("--ag-foil-y", y.toFixed(1) + "%");
