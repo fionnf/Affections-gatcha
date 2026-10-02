@@ -181,6 +181,11 @@ into the shared scene library (the retained scenes topic, same merge rules
 as the lights page, sent as `gacha_app` so that page does not drop it as its
 own copy).
 
+**Pulsschlag.** A lamp pill tapped toggles that lamp; pressed and held, both
+lamps beat at a resting pulse — a lub-dub every second — for as long as the
+finger stays, then go back to what they were. Nothing is stored
+(`heartbeatCycle`, `startPulse`, `stopPulse`).
+
 **🥁 Rhythmus an Fionn.** A pad takes a tapped rhythm (up to fourteen taps);
 after a pause of 1.6 s it plays on Fionn's lamp as brightness pulses in the
 lamp's own colour, then the lamp goes back to what it was (`morseSteps`).
@@ -841,6 +846,17 @@ mechanics, none of it load-bearing.
   its meaning.
 - **Zugeklappt.** Leaving the Heute tab after a pull folds the card into an
   envelope that flies into the Verlauf icon. Once per capsule.
+- **Flaschenpost.** Under the Wunschkapsel: a line Lennart writes to
+  himself, sealed with *in 30 Tagen* or *irgendwann* (twenty to ninety days,
+  fixed per post, never shown). On the due day it comes out of the machine
+  as the day's capsule — *Post von dir selbst*, tone warm — instead of the
+  draw; a special day wins and the post waits a day, a Freikarte reroll never
+  produces one, and a post is delivered once. Kept locally and in the Backup
+  row's seventh column (`flaschenpost`), unioned by id on sync, so a new phone
+  has them too (`sealFlaschenpost`, `dueFlaschenpost` in `src/storage.js`).
+- **Lampen-Echo.** The emoji he taps under the card has a colour — 🥹 violet,
+  😂 gold, 🙃 green — and Fionn's lamp shows it for ten seconds, breathing
+  twice, then goes back (`flashReactionOnLamp` in `src/lightsFx.js`).
 - **Pfand.** A Niete card can be dragged upward, into the machine (the handle
   under the text; a plain tap arms a two-tap confirm instead). The capsule
   flies in, the machine gulps, and every tenth returned capsule pays a 🛁
@@ -889,7 +905,7 @@ All worksheets are created on first use — none need to exist beforehand.
 
 | Worksheet | Contents |
 |---|---|
-| `Backup` | Per-player snapshot: favourites, streak, tokens, quest points |
+| `Backup` | Per-player snapshot: favourites, streak, tokens, quest points, Flaschenposten |
 | `History` | One row per gacha pull |
 | `Wünsche` | Wunschkapsel submissions and hugs (emails Fionn); `Status` / `StatusAt` hold Fionn's reply |
 | `PromptAnswers` | Answers to outcome questions (emails Fionn) |

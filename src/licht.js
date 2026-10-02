@@ -398,6 +398,51 @@ export function sendMorse(taps, boardId = "board_a") {
   return true;
 }
 
+// ── Pulsschlag ───────────────────────────────────────────────────────────────
+// Press and hold a lamp pill: both lamps beat at a resting pulse for as long
+// as the finger stays. Nothing is stored, nothing is sent after; the lamps
+// go back to what they were on release. One cycle, repeated every second.
+export const PULSE_PERIOD_MS = 1000;
+export function heartbeatCycle() {
+  return [
+    { at: 0,   payload: { on: true, brightness: 1.0,  fade_steps: 4 } },
+    { at: 180, payload: { brightness: 0.3,  fade_steps: 6 } },
+    { at: 320, payload: { brightness: 0.85, fade_steps: 4 } },
+    { at: 520, payload: { brightness: 0.22, fade_steps: 10 } }
+  ];
+}
+let pulseInterval = null, pulseTimers = [], pulseSnap = null;
+export function startPulse() {
+  if (pulseInterval) return false;
+  if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
+  pulseSnap = {};
+  for (const b of BOARDS) if (lamps[b.id] && lamps[b.id].groups) pulseSnap[b.id] = { ...lamps[b.id] };
+  const beat = () => {
+    holdUntil = Date.now() + PULSE_PERIOD_MS + HOLD_MS;
+    for (const step of heartbeatCycle()) pulseTimers.push(setTimeout(() => publishRaw(step.payload), step.at));
+  };
+  beat();
+  pulseInterval = setInterval(beat, PULSE_PERIOD_MS);
+  haptic([20, 120, 20]);
+  if (mount) mount.classList.add("is-pulsing");
+  return true;
+}
+export function stopPulse() {
+  if (!pulseInterval) return;
+  clearInterval(pulseInterval); pulseInterval = null;
+  for (const t of pulseTimers) clearTimeout(t);
+  pulseTimers = [];
+  for (const b of BOARDS) {
+    const s = pulseSnap && pulseSnap[b.id];
+    if (!s) continue;
+    publishRaw({ target: b.id, on: true, groups: s.groups, brightness: s.brightness, fade_steps: s.fade_steps });
+    if (s.on === false) setTimeout(() => publishRaw({ target: b.id, on: false }), 1500);
+  }
+  pulseSnap = null;
+  holdUntil = Date.now() + 2500;
+  if (mount) mount.classList.remove("is-pulsing");
+}
+
 // ── Sonnenaufgang ────────────────────────────────────────────────────────────
 // The firmware has alarms: a "sunrise" fades from deep red to warm white over
 // duration_min, on the boards listed, on the days listed (Monday = 0). The
@@ -536,11 +581,27 @@ function bindLichtPanel() {
     const b = e.target.closest("[data-target]");
     if (b) { setTarget(b.dataset.target); haptic(6); }
   });
+  // A lamp pill: tap toggles that lamp, press and hold beats both.
   const lampsEl = $("[data-ag-licht-lamps]");
-  if (lampsEl) lampsEl.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-lamp]");
-    if (b && conn === "connected") toggleLamp(b.dataset.lamp);
-  });
+  if (lampsEl) {
+    let pressTimer = null, pulsed = false, pressed = null;
+    const endPress = (e) => {
+      clearTimeout(pressTimer); pressTimer = null;
+      if (pulsed) { stopPulse(); pulsed = false; }
+      else if (pressed && conn === "connected") toggleLamp(pressed);
+      pressed = null;
+    };
+    lampsEl.addEventListener("pointerdown", (e) => {
+      const b = e.target.closest("[data-lamp]");
+      if (!b || conn !== "connected") return;
+      e.preventDefault();
+      pressed = b.dataset.lamp; pulsed = false;
+      try { b.setPointerCapture(e.pointerId); } catch (_e) {}
+      pressTimer = setTimeout(() => { pulsed = startPulse(); }, 450);
+    });
+    lampsEl.addEventListener("pointerup", endPress);
+    lampsEl.addEventListener("pointercancel", () => { clearTimeout(pressTimer); pressTimer = null; if (pulsed) { stopPulse(); pulsed = false; } pressed = null; });
+  }
   const fade = $("[data-ag-licht-fade]");
   let fadeTimer = null;
   if (fade) fade.addEventListener("input", () => {
@@ -623,13 +684,17 @@ export function renderLichtPanel() {
 
   const lampsEl = $("[data-ag-licht-lamps]");
   if (lampsEl) {
-    lampsEl.innerHTML = BOARDS.map((b) => {
+    // Rebuilt only when the markup changes: every echo re-renders this panel,
+    // and replacing the pill under a finger cancels the press (the heartbeat
+    // never started on the real lamps because of exactly that).
+    const html = BOARDS.map((b) => {
       const l = lamps[b.id];
       const online = lampOnline(b.id);
       const state = !online ? "offline" : (l && l.on === false) ? "standby" : "on";
       const sub = state === "offline" ? "offline" : state === "standby" ? "aus" : "an";
-      return `<button type="button" class="ag-licht-lamp" data-lamp="${b.id}" data-state="${state}" title="${esc(b.name)} — tippen schaltet"><span class="ag-licht-lamp-dot" aria-hidden="true"></span>${esc(b.short)}<span class="ag-licht-lamp-sub">${sub}</span></button>`;
+      return `<button type="button" class="ag-licht-lamp" data-lamp="${b.id}" data-state="${state}" title="${esc(b.name)} — tippen schaltet, halten pulsiert"><span class="ag-licht-lamp-dot" aria-hidden="true"></span>${esc(b.short)}<span class="ag-licht-lamp-sub">${sub}</span></button>`;
     }).join("");
+    if (lampsEl.dataset.html !== html) { lampsEl.innerHTML = html; lampsEl.dataset.html = html; }
   }
 
   const ref = anyLamp();

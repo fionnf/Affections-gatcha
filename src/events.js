@@ -1,7 +1,7 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, formatHistoryDate } from "./utils.js";
-import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll, addHugToLog } from "./storage.js";
+import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll, addHugToLog, sealFlaschenpost } from "./storage.js";
 import { fetchWeather, weatherForEntry } from "./wetter.js";
 import { foldCardIntoVerlauf } from "./delights.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak, addVacation } from "./streak.js";
@@ -597,6 +597,8 @@ export function reveal() {
     buttonText.textContent = state.theme.brand.buttonShown;
     state.revealed = true;
     if (!getPreviewDay()) recordHistoryEntry(state.todaysPull);
+    // A Flaschenpost that just came out is no longer "unterwegs".
+    if (state.todaysPull.flaschenpost) renderWunschkapsel();
     updateAppBadge();
     scheduleStreakWarning();
     const streak = computeStreak();
@@ -1321,6 +1323,47 @@ export function bindEvents() {
     hugSend.addEventListener("click", () => {
       haptic([20, 30, 20]);
       try { sendHugToInbox(); } catch (_error) { /* never block UI */ }
+    });
+  }
+
+  // Flaschenpost: a line to himself, sealed, returned by the machine.
+  const postOpen = $("[data-ag-post-open]");
+  const postForm = $("[data-ag-post-form]");
+  const postIdle = $("[data-ag-post-idle]");
+  let postMode = "30";
+  if (postOpen && postForm && postIdle) {
+    postOpen.addEventListener("click", () => {
+      haptic(8);
+      postIdle.hidden = true; postForm.hidden = false;
+      const input = $("[data-ag-post-input]");
+      if (input) input.focus();
+    });
+    $("[data-ag-post-cancel]")?.addEventListener("click", () => { postForm.hidden = true; postIdle.hidden = false; });
+    for (const b of postForm.querySelectorAll("[data-ag-post-mode]")) {
+      b.addEventListener("click", () => {
+        postMode = b.dataset.agPostMode;
+        for (const x of postForm.querySelectorAll("[data-ag-post-mode]")) {
+          const on = x === b;
+          x.classList.toggle("is-active", on);
+          x.setAttribute("aria-checked", on ? "true" : "false");
+        }
+        haptic(6);
+      });
+    }
+    $("[data-ag-post-seal]")?.addEventListener("click", () => {
+      const input = $("[data-ag-post-input]");
+      const text = (input && input.value || "").trim();
+      if (!text) { if (input) input.focus(); return; }
+      const today = dateKeyInTimezone(state.theme.timezone);
+      const post = sealFlaschenpost(text, postMode, today);
+      if (!post) return;
+      if (input) input.value = "";
+      postForm.hidden = true; postIdle.hidden = false;
+      haptic([20, 30, 40]);
+      try { triggerConfetti(40, ["#8fcf9e", "#e0a75d", "#fff"]); } catch (_e) {}
+      showToast(postMode === "30" ? "🍾 Versiegelt. In dreissig Tagen kommt sie zurück." : "🍾 Versiegelt. Die Maschine gibt sie dir zurück, wann sie will.");
+      renderWunschkapsel();
+      backupToSheets();
     });
   }
 

@@ -85,7 +85,8 @@ function doGet(e) {
           streak:     backupValues[i][2] || 0,
           tokens:     JSON.parse(backupValues[i][3] || "{}"),
           questPoints: backupValues[i][4] || 0,
-          lastUpdated: backupValues[i][5]
+          lastUpdated: backupValues[i][5],
+          flaschenpost: (function () { try { return JSON.parse(backupValues[i][6] || "[]"); } catch (e) { return []; } })()
         };
         break;
       }
@@ -382,6 +383,7 @@ function doGet(e) {
       tokens:        meta ? meta.tokens      : {},
       questPoints:   meta ? meta.questPoints : 0,
       lastUpdated:   meta ? meta.lastUpdated : null,
+      flaschenpost:  meta ? meta.flaschenpost : [],
       baerlauchScores,
       latestPing,
       gipfelbuch,
@@ -668,15 +670,19 @@ function doPost(e) {
 
     let metaRow = -1;
     let existingStreak = 0;
+    let existingPost = "[]";
     for (let i = 1; i < backupValues.length; i++) {
-      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
+      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; existingPost = backupValues[i][6] || "[]"; break; }
     }
+    // Flaschenposten: a client that does not send them (older build) must
+    // not blank the column.
+    const postJson = Array.isArray(data.flaschenpost) ? JSON.stringify(data.flaschenpost) : existingPost;
     // Latest wins. The old max() meant the sheet could only ever go up, and
     // since the app used the sheet's number as a floor, a missed day never
     // showed — the streak froze at its all-time high on every phone. The
     // client computes from the full synced history, so its number is right.
     const streak = incomingStreak;
-    const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp];
+    const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp, postJson];
     if (metaRow === -1) {
       backupSheet.appendRow(metaRowData);
     } else {
@@ -773,7 +779,7 @@ function getOrCreateBackupSheet_(ss) {
   let sheet = ss.getSheetByName(BACKUP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(BACKUP_SHEET_NAME);
-    sheet.appendRow(["Token", "Favourites", "Streak", "Tokens", "QuestPoints", "LastUpdated"]);
+    sheet.appendRow(["Token", "Favourites", "Streak", "Tokens", "QuestPoints", "LastUpdated", "Flaschenpost"]);
     sheet.setFrozenRows(1);
   }
   return sheet;

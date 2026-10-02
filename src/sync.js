@@ -3,7 +3,7 @@ import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
   readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
-  readBaerlauchScores, writeWishReplies, mergeHugLog,
+  readBaerlauchScores, writeWishReplies, mergeHugLog, readFlaschenpost, mergeFlaschenpost,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
@@ -184,6 +184,11 @@ export async function syncFromSheets() {
       }
     }
 
+    // Flaschenposten from the backup row, so a new phone has them too.
+    if (Array.isArray(data.flaschenpost)) {
+      try { mergeFlaschenpost(data.flaschenpost); } catch (_e) {}
+    }
+
     // Every hug the sheet remembers, unioned into the local log.
     if (Array.isArray(data.hugs)) {
       try { mergeHugLog(data.hugs); } catch (_e) {}
@@ -261,6 +266,7 @@ export function backupToSheets() {
       streak: computeStreak(),
       tokens: tokensSent,
       questPoints: readQuestPoints(),
+      flaschenpost: readFlaschenpost(),
       ...(questLog ? { questLog } : {})
     });
     const opts = {

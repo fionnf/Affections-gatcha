@@ -33,7 +33,7 @@ import { armConfirm } from "./confirm.js";
 import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { addGlossaryWord } from "./glossary.js";
-import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken } from "./storage.js";
+import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
 import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
 import { haptic } from "./haptic.js";
 export { escHtml };
@@ -1253,6 +1253,8 @@ export function renderPull(pull) {
         const emoji = btn.dataset.agReact;
         if (!setReaction(pull.day, pull.token, emoji)) return;
         _fireReactionNotification(pull, emoji);
+        // Fionn's lamp shows the reaction's colour for ten seconds.
+        if (!getPreviewDay()) import("./lightsFx.js").then((m) => m.flashReactionOnLamp(emoji)).catch(() => {});
         backupToSheets();
         try { haptic([12, 30, 18]); } catch (_e) {}
         renderPull(pull);
@@ -1350,6 +1352,8 @@ export function toggleFavorite(pull) {
 
 export function recordHistoryEntry(pull) {
   if (!pull) return;
+  // A Flaschenpost that came out today is delivered — it never comes again.
+  if (pull.flaschenpost) { try { markFlaschenpostDelivered(pull.flaschenpost, pull.day); } catch (_e) {} }
   const entry = {
     day: pull.day,
     token: pull.token,
@@ -1371,6 +1375,7 @@ export function recordHistoryEntry(pull) {
       : null,
     voucher: pull.voucher || false,
     weather: pull.weather || null,
+    flaschenpost: pull.flaschenpost || null,
     revealedAt: Date.now()
   };
   const existing = readHistory();
@@ -2018,7 +2023,17 @@ function wishMetaText(remoteStatus) {
   return baseline;
 }
 
+// How many Flaschenposten are still sealed, under the Wunschkapsel.
+export function renderFlaschenpost() {
+  const el = $("[data-ag-post-count]");
+  if (!el) return;
+  const open = readFlaschenpost().filter((p) => !p.deliveredDay).length;
+  el.hidden = !open;
+  el.textContent = open === 1 ? "🍾 Eine Flaschenpost ist unterwegs." : `🍾 ${open} Flaschenposten sind unterwegs.`;
+}
+
 export function renderWunschkapsel() {
+  renderFlaschenpost();
   const idle = $("[data-ag-wish-idle]");
   const form = $("[data-ag-wish-form]");
   const done = $("[data-ag-wish-done]");

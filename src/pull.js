@@ -1,7 +1,8 @@
 // ── Pull building ─────────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
 import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone, isVoucherEntry } from "./utils.js";
-import { readHistory, readFreikarteReroll } from "./storage.js";
+import { readHistory, readFreikarteReroll, dueFlaschenpost } from "./storage.js";
+import { formatHistoryDate } from "./utils.js";
 import { computeStreak, pickWeightedWithStreak } from "./streak.js";
 
 export function checkSpecialDay(day) {
@@ -117,6 +118,24 @@ export function buildPullForDay(day, streak, opts = {}) {
       // A capsule on a trip unlocks on the trip's clock, not Zurich's — the
       // written time is what their phones show where they are.
       unlockTimezone: special.unlockTimezone || null
+    };
+  }
+
+  // A Flaschenpost that is due comes out instead of the day's draw — a line
+  // he wrote to himself, back on a day he does not know. A special day wins
+  // and the post waits one more day; a Freikarte reroll never produces one.
+  const post = !seedSuffix ? dueFlaschenpost(day) : null;
+  if (post) {
+    const when = post.mode === "30" ? "in 30 Tagen" : "irgendwann";
+    return {
+      day, token,
+      category: { id: "flaschenpost", label: "Flaschenpost 🍾", weight: 0, tone: "warm", outcomes: [] },
+      outcome: {
+        title: "Post von dir selbst",
+        message: `Versiegelt am ${formatHistoryDate(post.createdDay)}, mit „${when}“ drauf. Heute ist ${post.mode === "30" ? "der dreissigste Tag" : "irgendwann"}.\n\n„${post.text}“`
+      },
+      photo: null, collectToken: null, voucher: false, freikarte: false,
+      flaschenpost: post.id
     };
   }
 

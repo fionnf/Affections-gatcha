@@ -452,6 +452,27 @@ export const html = `
                 <p class="ag-wish-note" data-ag-wish-done-note></p>
                 <p class="ag-wish-meta" data-ag-wish-done-meta></p>
               </div>
+              <div class="ag-post" data-ag-post>
+                <div class="ag-post-idle" data-ag-post-idle>
+                  <button class="ag-secondary" type="button" data-ag-post-open>🍾 Flaschenpost an dich selbst</button>
+                  <p class="ag-post-count" data-ag-post-count hidden></p>
+                </div>
+                <div class="ag-post-form" data-ag-post-form hidden>
+                  <p class="ag-wish-label">Eine Zeile an dich, später</p>
+                  <textarea class="ag-wish-input" data-ag-post-input rows="3" maxlength="280" placeholder="Was du dir in ein paar Wochen sagen willst…"></textarea>
+                  <div class="ag-post-modes" role="radiogroup" aria-label="Wann">
+                    <button type="button" class="ag-post-mode is-active" data-ag-post-mode="30" role="radio" aria-checked="true">in 30 Tagen</button>
+                    <button type="button" class="ag-post-mode" data-ag-post-mode="irgendwann" role="radio" aria-checked="false">irgendwann</button>
+                  </div>
+                  <div class="ag-wish-actions">
+                    <button class="ag-secondary" type="button" data-ag-post-cancel>Abbrechen</button>
+                    <button class="ag-button" type="button" data-ag-post-seal>
+                      <span class="ag-button-orb" aria-hidden="true"></span>
+                      <span>Versiegeln</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="ag-card ag-notif-card" data-ag-notif-card hidden>

@@ -7,7 +7,7 @@ import {
   FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken, PFAND_EVERY
 } from "./constants.js";
 import { state } from "./state.js";
-import { dateKeyInTimezone, getToken } from "./utils.js";
+import { dateKeyInTimezone, getToken, seededRandom } from "./utils.js";
 
 // Several pieces of state (Sammelkapsel tokens, streak caches, quest
 // state/points, the in-flight wish) used to live under one shared
@@ -546,4 +546,63 @@ export function markPfand(day, token) {
   match.pfand = true;
   writeHistory(history);
   return true;
+}
+
+// ── Flaschenpost ─────────────────────────────────────────────────────────────
+// A line Lennart writes to himself, sealed with "in 30 Tagen" or
+// "irgendwann", returned by the machine as a capsule on a day he does not
+// know. Local, and carried in the backup so a new phone still has them.
+const FLASCHENPOST_KEY = "affektions-gacha:flaschenpost:v1";
+export function readFlaschenpost() {
+  const val = readPlayerSlot(FLASCHENPOST_KEY, []);
+  return Array.isArray(val) ? val.filter((p) => p && typeof p === "object" && p.id && p.text && p.dueDay) : [];
+}
+export function writeFlaschenpost(list) {
+  writePlayerSlot(FLASCHENPOST_KEY, (Array.isArray(list) ? list : []).slice(-40));
+}
+function addDays(dayKey, n) {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+// "30": thirty days to the day. "irgendwann": twenty to ninety days, fixed
+// by the post's id, so the date exists but is never shown.
+export function dueDayFor(mode, createdDay, id) {
+  if (mode === "30") return addDays(createdDay, 30);
+  return addDays(createdDay, 20 + Math.floor(seededRandom(`flaschenpost|${id}`) * 71));
+}
+export function sealFlaschenpost(text, mode, today) {
+  const clean = String(text || "").trim().slice(0, 280);
+  if (!clean) return null;
+  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  const post = { id, text: clean, mode: mode === "30" ? "30" : "irgendwann", createdDay: today, dueDay: dueDayFor(mode, today, id), deliveredDay: null };
+  writeFlaschenpost([...readFlaschenpost(), post]);
+  return post;
+}
+// The post for a day: the one delivered on it (so a re-render shows the same
+// capsule), else the oldest due and still sealed.
+export function dueFlaschenpost(day) {
+  const posts = readFlaschenpost();
+  const delivered = posts.find((p) => p.deliveredDay === day);
+  if (delivered) return delivered;
+  return posts.filter((p) => !p.deliveredDay && p.dueDay <= day).sort((a, b) => (a.dueDay < b.dueDay ? -1 : 1))[0] || null;
+}
+export function markFlaschenpostDelivered(id, day) {
+  const posts = readFlaschenpost();
+  const p = posts.find((x) => x.id === id);
+  if (!p || p.deliveredDay) return false;
+  p.deliveredDay = day;
+  writeFlaschenpost(posts);
+  return true;
+}
+// Union with the sheet by id; a delivery on either side wins.
+export function mergeFlaschenpost(list) {
+  const byId = new Map(readFlaschenpost().map((p) => [p.id, p]));
+  for (const p of (Array.isArray(list) ? list : [])) {
+    if (!p || !p.id || !p.text || !p.dueDay) continue;
+    const mine = byId.get(p.id);
+    byId.set(p.id, mine ? { ...mine, deliveredDay: mine.deliveredDay || p.deliveredDay || null } : p);
+  }
+  const merged = [...byId.values()].sort((a, b) => (a.createdDay < b.createdDay ? -1 : 1));
+  writeFlaschenpost(merged);
+  return merged;
 }
