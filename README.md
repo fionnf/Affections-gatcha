@@ -545,9 +545,9 @@ instead of producing a blank file.
 
 ## Knob, capsule press-and-hold
 
-Three ways to draw: the knob under the window (one full clockwise turn, like
+Three ways to draw: the knob in the draw card (one full clockwise turn, like
 the real machine — see *Der Knopf* under Kleine Freuden), the capsule, and the
-button. The capsule on the hero is a draw target: hold it and it charges —
+label under the knob. The capsule on the hero is a draw target: hold it and it charges —
 haptic ticks quicken, it swells and glows — and letting go after ~650 ms pulls.
 A short tap does nothing, so a stray touch cannot draw; it is inert once
 today's capsule is out, and in preview mode. The draw button keeps its own 3 s
@@ -877,16 +877,17 @@ mechanics, none of it load-bearing.
   token (`PFAND_EVERY`, `PFAND_TOKEN` in `src/constants.js`). The count shows
   on the handle and in the Token-Bank head; each day returns once (`pfand`
   on the entry, local only, kept on sync).
-- **Der Knopf** (`src/knopf.js`). A gashapon knob under the window: wind it
-  one full turn clockwise and the capsule drops, with a detent every eighth
-  (haptic tick, a clink every half turn, the machine glows). Let go early
-  and it springs back. Once today's capsule is out the knob is locked: it
-  gives 22° and clacks back. It spins on its own while the machine rattles.
-  The button and the capsule hold still work.
-- **Mondfenster** (`src/mond.js`). After 22:00 the real moon hangs in the
-  window, upper left of the capsule, computed from the mean lunation (shape)
-  and Meeus' full-moon instants (exact day). A full-moon day gets one extra
-  line on the card above the title (`fullMoonLine`).
+- **Der Knopf** (`src/knopf.js`). The draw button is a gashapon knob: wind
+  it one full turn clockwise and the capsule drops, with a detent every
+  eighth (haptic tick, a clink every half turn, the machine glows). Let go
+  early and it springs back. Once today's capsule is out the knob is locked:
+  it gives 22° and clacks back. It spins on its own while the machine
+  rattles. The label under it carries the old button's words (*Kapsel
+  ziehen*, the loading steps, *Heute nochmal anzeigen*) and still works as
+  a plain tap; the capsule hold works too.
+- **Vollmond** (`src/mond.js`). A full-moon day gets one extra line on the
+  card above the title (`fullMoonLine`); the day comes from Meeus' full-moon
+  instants, computed, not fetched.
 - **Aufkleber** (`src/aufkleber.js`). The reaction is a sticker: tap 🥹 😂 🙃
   under the card and it peels off the row onto the card, top right, at a
   tilt; drag it anywhere and it stays there (per day, local,
@@ -895,10 +896,6 @@ mechanics, none of it load-bearing.
   cork wall, each at its own angle. Pinch today's card with two fingers and
   it shrinks onto the wall: it becomes a favourite and a copy flies into the
   star in the nav.
-- **Geheimfach** (`src/geheimfach.js`). A long press on the coin slot, right
-  of the knob, slides a drawer out of the machine with one note from Fionn
-  (`geheimfach` in `config/theme.json`: `{ "id", "text" }`). *Zettel
-  behalten* empties it; a note with a new id fills it again.
 - **Kerze** (`src/kerze.js`). From 20:00 a candle sits beside the draw
   button. Lit, it dims the whole app to a flicker and puts a warm, low,
   unevenly breathing scene on both lamps (`startCandleLights` in

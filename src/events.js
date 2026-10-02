@@ -18,7 +18,6 @@ import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, isFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
 import { bindKnob } from "./knopf.js";
 import { playClink } from "./sound.js";
-import { bindCoinSlot, openFach, closeFach } from "./geheimfach.js";
 import { lightCandle, blowOut, candleLit } from "./kerze.js";
 import { bindPinch, flyCardToWall } from "./korkwand.js";
 import { emojiForTone } from "./pull.js";
@@ -1005,6 +1004,7 @@ export function bindEvents() {
   bindKnob($("[data-ag-knob]"), {
     drawable: () => !mount.classList.contains("has-drawn") && !mount.classList.contains("is-revealing") && !getPreviewDay(),
     onFire: () => reveal(),
+    onHold: openLetter,
     onTick: (n, locked) => {
       if (locked) return;
       mount.classList.add("is-charging");
@@ -1013,11 +1013,6 @@ export function bindEvents() {
       if (n % 4 === 0) playClink();
     }
   });
-
-  // A long press on the coin slot opens the Geheimfach.
-  const fach = $("[data-ag-fach]");
-  bindCoinSlot($("[data-ag-coinslot]"), () => openFach(fach, state.theme));
-  $("[data-ag-fach-close]")?.addEventListener("click", () => closeFach(fach));
 
   // The candle, after dark.
   const candleBtn = $("[data-ag-candle]");

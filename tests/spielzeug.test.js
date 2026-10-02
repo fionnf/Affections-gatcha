@@ -1,5 +1,5 @@
 // The knob's winding, the moon's phase and shape, the sticker store, the
-// corkboard's pins and pinch, the drawer's contents, the candle's rules.
+// corkboard's pins and pinch, the candle's rules.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { setupBrowserEnv } from "./helpers.js";
@@ -9,7 +9,6 @@ const { KnobTurn, TURN_DEG, DETENT_DEG, LOCKED_GIVE_DEG } = await import("../src
 const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant, fullMoonInstant } = await import("../src/mond.js");
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
 const { pinAngle, pinched, PINCH_RATIO } = await import("../src/korkwand.js");
-const { fachContents } = await import("../src/geheimfach.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { candleCycle, CANDLE_PERIOD_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS } = await import("../src/licht.js");
@@ -99,15 +98,6 @@ test("the corkboard: each pin has its own small angle; a pinch is a decisive squ
   assert.equal(pinched(200, 200 * PINCH_RATIO), true);
   assert.equal(pinched(200, 190), false);
   assert.equal(pinched(0, 10), false);
-});
-
-test("the drawer holds one note until it is read, then a new id refills it", () => {
-  const theme = { geheimfach: { id: "n1", text: "  Hallo  " } };
-  assert.deepEqual(fachContents(theme, ""), { note: "Hallo", id: "n1", empty: false });
-  assert.equal(fachContents(theme, "n1").empty, true);
-  assert.equal(fachContents({ geheimfach: { id: "n2", text: "Neu" } }, "n1").empty, false);
-  assert.equal(fachContents({}, "").empty, true);
-  assert.equal(fachContents({ geheimfach: { id: "n3", text: "" } }, "").empty, true);
 });
 
 test("the candle: evening hours, a swipe, a cycle that breathes low and warm", () => {
