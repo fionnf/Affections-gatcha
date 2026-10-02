@@ -460,7 +460,8 @@ script then:
    confirmation) and any other device that has allowed notifications.
 
 No email is sent for a hug (a Wunschkapsel still mails Fionn, since it
-carries text). Local UI feedback: `Fionn wurde angestupst 🫂` on success,
+carries text). Once the hug went through, both lamps answer with a red-orange
+chasing strobe for eight seconds, then return to what they showed before. Local UI feedback: `Fionn wurde angestupst 🫂` on success,
 a soft retry hint on failure.
 
 > **After editing `scripts/google-apps-script-wish-inbox.js` you must

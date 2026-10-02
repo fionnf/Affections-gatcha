@@ -10,7 +10,7 @@ const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant,
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
-const { candleCycle, CANDLE_PERIOD_MS } = await import("../src/lightsFx.js");
+const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS } = await import("../src/licht.js");
 
 test.beforeEach(() => env.localStorage.clear());
@@ -94,6 +94,20 @@ test("a pinch is a decisive squeeze", () => {
   assert.equal(pinched(200, 200 * PINCH_RATIO), true);
   assert.equal(pinched(200, 190), false);
   assert.equal(pinched(0, 10), false);
+});
+
+test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {
+  const g0 = hugGroups(0);
+  assert.equal(g0.reduce((n, g) => n + g.size, 0), NUM_LEDS);
+  assert.ok(g0.every((g) => g.pos >= 0 && g.pos <= 5 / 29), "only reds and oranges");
+  assert.ok(g0.length >= 4, "short segments, not one block");
+  assert.notDeepEqual(hugGroups(1), g0, "the pattern moves");
+  assert.deepEqual(hugGroups(NUM_LEDS), g0, "and comes round");
+  const steps = hugChoreography();
+  assert.ok(steps.length > 30);
+  assert.ok(steps.every((s) => s.at < HUG_MS && s.payload.groups.reduce((n, g) => n + g.size, 0) === NUM_LEDS));
+  assert.equal(steps[0].payload.brightness, 1.0);
+  assert.ok(steps[1].payload.brightness < 0.3, "strobe");
 });
 
 test("the candle: evening hours, a swipe, a cycle that breathes low and warm", () => {

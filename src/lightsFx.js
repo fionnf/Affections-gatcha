@@ -124,6 +124,38 @@ export function flashReactionOnLamp(emoji, boardId = "board_a") {
   return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
 }
 
+// ── Notfall-Umarmung ─────────────────────────────────────────────────────────
+// A hug that went out is seen on both lamps: red and orange in short
+// segments chasing along the strip, strobing, for eight seconds. The
+// pattern moves one light per step; every other step is dim, which is
+// the strobe. Then the lamps go back to what they were.
+export const HUG_MS = 8000;
+export const HUG_STEP_MS = 220;
+const HUG_RED = 4 / 29, HUG_ORANGE = 1.5 / 29;
+// Two reds, two oranges, repeated and rotated by `shift` lights.
+export function hugGroups(shift = 0) {
+  const seg = 2;
+  const colours = [];
+  for (let i = 0; i < NUM_LEDS; i++) colours.push(Math.floor(((i + shift) % NUM_LEDS) / seg) % 2 === 0 ? HUG_RED : HUG_ORANGE);
+  const groups = [];
+  for (const pos of colours) {
+    const last = groups[groups.length - 1];
+    if (last && last.pos === pos) last.size++;
+    else groups.push({ pos, w: 0, size: 1 });
+  }
+  return groups;
+}
+export function hugChoreography() {
+  const steps = [];
+  for (let at = 0, i = 0; at < HUG_MS - 400; at += HUG_STEP_MS, i++) {
+    steps.push({ at, payload: { on: true, fade_steps: 4, brightness: i % 2 ? 0.18 : 1.0, groups: hugGroups(i) } });
+  }
+  return steps;
+}
+export function flashHugOnLamps() {
+  return runFlash(hugChoreography(), HUG_MS, null);
+}
+
 // ── Kerze ────────────────────────────────────────────────────────────────────
 // Both lamps as one candle: a warm amber, low, breathing unevenly the way a
 // flame does. Runs until stopped; the stop puts the lamps back.

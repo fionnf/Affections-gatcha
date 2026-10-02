@@ -870,7 +870,10 @@ mechanics, none of it load-bearing.
   has them too (`sealFlaschenpost`, `dueFlaschenpost` in `src/storage.js`).
 - **Lampen-Echo.** The emoji he taps under the card has a colour — 🥹 violet,
   😂 gold, 🙃 green — and Fionn's lamp shows it for ten seconds, breathing
-  twice, then goes back (`flashReactionOnLamp` in `src/lightsFx.js`).
+  twice, then goes back (`flashReactionOnLamp` in `src/lightsFx.js`). A
+  Notfall-Umarmung that went out is seen on both lamps: red and orange in
+  short segments chasing along the strip, strobing, for eight seconds
+  (`flashHugOnLamps`).
 - **Pfand.** A Niete card can be dragged upward, into the machine (the handle
   under the text; a plain tap arms a two-tap confirm instead). The capsule
   flies in, the machine gulps, and every tenth returned capsule pays a 🛁
@@ -885,6 +888,9 @@ mechanics, none of it load-bearing.
   rattles. The label under it carries the old button's words (*Kapsel
   ziehen*, the loading steps, *Heute nochmal anzeigen*) and still works as
   a plain tap; the capsule hold works too.
+- **Die Emoji um die Maschine.** The orbit's radius is a fraction of the
+  machine box (88–121px on a phone, re-laid out on resize), so the
+  constellation circles the whole window rather than hugging the capsule.
 - **Vollmond** (`src/mond.js`). A full-moon day gets one extra line on the
   card above the title (`fullMoonLine`); the day comes from Meeus' full-moon
   instants, computed, not fetched.

@@ -146,6 +146,8 @@ export function sendHugToInbox() {
     // Counted once it went through — a retry after a failure is the same hug.
     if (!logged) { logged = true; try { addHugToLog(sentAt); } catch (_e) {} }
     setHugStatus("Fionn wurde angestupst 🫂", "ok");
+    // Both lamps answer: a red-orange chasing strobe for eight seconds.
+    import("./lightsFx.js").then((m) => m.flashHugOnLamps()).catch(() => {});
     if (button) {
       window.setTimeout(() => { button.disabled = false; }, 4000);
     }
