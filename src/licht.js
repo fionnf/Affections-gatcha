@@ -125,6 +125,8 @@ let nudgeTimer = null;
 let holdUntil = 0;
 const lamps = {};          // id → { online, on, brightness, fade_steps, groups, seenAt }
 let scenes = [];
+let deletedScenes = [];    // tombstones the lights page sent; republished with ours
+let sendTarget = "";       // "" = both, else a board id
 let conn = "idle";         // idle | connecting | connected | error
 
 function topicEvents() { return `${PREFIX}/events`; }
@@ -230,7 +232,8 @@ function onMessage(topic, msg) {
   }
   if (t === topicScenes()) {
     const list = Array.isArray(d.scenes) ? d.scenes : [];
-    const dead = new Set(Array.isArray(d.deleted) ? d.deleted : []);
+    deletedScenes = (Array.isArray(d.deleted) ? d.deleted : []).filter((x) => typeof x === "string").slice(-50);
+    const dead = new Set(deletedScenes);
     scenes = list.filter((s) => s && typeof s === "object" && s.name && !dead.has(s.id));
     renderLichtPanel();
     return;
@@ -252,13 +255,14 @@ function publishRaw(payload) {
 
 // A user change: mirror locally at once (the echo confirms a beat later),
 // hold incoming echoes briefly so a slider doesn't fight its own lamp.
-function send(payload, target = null) {
+function send(payload, target = sendTarget || null) {
   holdUntil = Date.now() + HOLD_MS;
   const ids = target ? [target] : BOARDS.map((b) => b.id);
   for (const id of ids) {
     const l = lamps[id] = { ...(lamps[id] || {}) };
     if (payload.on !== undefined) l.on = !!payload.on;
     if (typeof payload.brightness === "number") l.brightness = payload.brightness;
+    if (typeof payload.fade_steps === "number") l.fade_steps = payload.fade_steps;
     if (Array.isArray(payload.groups)) l.groups = payload.groups;
   }
   const ok = publishRaw(target ? { ...payload, target } : payload);
@@ -275,6 +279,61 @@ export function setBrightness(v) { send({ brightness: Math.min(1, Math.max(0.02,
 export function setColour(pos, w = 0) { send({ on: true, fade_steps: 30, groups: stripGroups(pos, w) }); haptic(6); }
 export function playMood(mood) { send(moodPayload(mood)); haptic([8, 20, 8]); showToast(`${mood.emoji} ${mood.label}`); }
 export function playScene(scene) { send(scenePayload(scene)); haptic([8, 20, 8]); showToast(`✓ ${scene.name}`); }
+export function setFade(steps) { send({ fade_steps: Math.round(Math.min(600, Math.max(10, steps))) }); }
+export function setTarget(id) { sendTarget = BOARDS.some((b) => b.id === id) ? id : ""; renderLichtPanel(); }
+export function toggleLamp(id) {
+  const l = lamps[id];
+  const isOn = !!(l && l.on !== false);
+  send({ on: !isOn }, id);
+  haptic(8);
+}
+
+// Two to four groups of random tints, sizes summing to the strip. Pure, so a
+// test can check the sum; the RNG is injectable for the same reason.
+export function randomGroups(rand = Math.random) {
+  const n = 2 + Math.floor(rand() * 3);
+  const cuts = new Set();
+  while (cuts.size < n - 1) cuts.add(1 + Math.floor(rand() * (NUM_LEDS - 1)));
+  const splits = [0, ...[...cuts].sort((a, b) => a - b), NUM_LEDS];
+  return splits.slice(0, -1).map((start, i) => ({
+    pos: Math.round(rand() * 29) / 29, w: rand() < 0.2 ? Math.round(rand() * 60) / 100 : 0, size: splits[i + 1] - start
+  }));
+}
+export function playRandom() { send({ on: true, fade_steps: 40, groups: randomGroups() }); haptic([6, 20, 6]); }
+
+// A scene as the lights page stores it, from whatever a lamp last echoed.
+export function sceneFromLamp(name, lamp, now = Date.now()) {
+  const groups = (lamp && Array.isArray(lamp.groups) && lamp.groups.length ? lamp.groups : stripGroups(0, 1))
+    .map((g) => ({ pos: Number(g.pos) || 0, w: Number(g.w) || 0, size: Math.max(1, Math.round(Number(g.size) || 1)) }));
+  const boundaries = [];
+  let cursor = 0;
+  for (const g of groups.slice(0, -1)) { cursor += g.size; if (cursor > 0 && cursor < NUM_LEDS) boundaries.push(cursor); }
+  return {
+    id: now.toString(36) + "-" + Math.random().toString(36).slice(2, 8), updated: now, name,
+    groups, boundaries,
+    groupPositions: groups.map((g) => g.pos), groupWLevels: groups.map((g) => g.w),
+    brightness: lamp && typeof lamp.brightness === "number" ? lamp.brightness : 0.6,
+    fadeSteps: lamp && typeof lamp.fade_steps === "number" ? lamp.fade_steps : 60,
+    on: !(lamp && lamp.on === false)
+  };
+}
+// Shared library: the retained scenes topic, same merge rules as the lights
+// page (by id, newer updated wins, tombstones travel along). From a different
+// sender id than the lights page uses, or it would drop our copy as its own.
+export function saveScene(name) {
+  const clean = String(name || "").trim().slice(0, 32);
+  if (!clean) { showToast("Der Szene fehlt ein Name"); return false; }
+  if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
+  const scene = sceneFromLamp(clean, anyLamp());
+  scenes = [...scenes.filter((s) => s.name !== clean), scene];
+  try {
+    client.publish(topicScenes(), JSON.stringify({ v: 1, from: "gacha_app", scenes, deleted: deletedScenes }), { retain: true, qos: 1 });
+  } catch (_e) { showToast("Szene konnte nicht gesichert werden"); return false; }
+  haptic([8, 20, 8]);
+  showToast(`✓ „${clean}“ gesichert — auch auf der grossen Seite`);
+  renderLichtPanel();
+  return true;
+}
 
 let winkTimers = [];
 export function wink(boardId = "board_a") {
@@ -324,7 +383,19 @@ function bindLichtPanel() {
       const x = (e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - r.left;
       setColour(Math.min(1, Math.max(0, x / r.width)), 0);
     };
-    palette.addEventListener("click", pick);
+    let dragging = false, lastPick = 0;
+    palette.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      try { palette.setPointerCapture(e.pointerId); } catch (_e) {}
+      pick(e); lastPick = Date.now();
+    });
+    palette.addEventListener("pointermove", (e) => {
+      if (!dragging || Date.now() - lastPick < 110) return;
+      lastPick = Date.now(); pick(e);
+    });
+    const stop = () => { dragging = false; };
+    palette.addEventListener("pointerup", stop);
+    palette.addEventListener("pointercancel", stop);
     palette.addEventListener("keydown", (e) => {
       const cur = Number(palette.dataset.pos || 0);
       if (e.key === "ArrowRight") { e.preventDefault(); setColour(Math.min(1, cur + 1 / 29)); }
@@ -357,6 +428,34 @@ function bindLichtPanel() {
   }
   const winkBtn = $("[data-ag-licht-wink]");
   if (winkBtn) winkBtn.addEventListener("click", () => wink("board_a"));
+  const target = $("[data-ag-licht-target]");
+  if (target) target.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-target]");
+    if (b) { setTarget(b.dataset.target); haptic(6); }
+  });
+  const lampsEl = $("[data-ag-licht-lamps]");
+  if (lampsEl) lampsEl.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-lamp]");
+    if (b && conn === "connected") toggleLamp(b.dataset.lamp);
+  });
+  const fade = $("[data-ag-licht-fade]");
+  let fadeTimer = null;
+  if (fade) fade.addEventListener("input", () => {
+    holdUntil = Date.now() + HOLD_MS;
+    const v = $("[data-ag-licht-fade-val]");
+    if (v) v.textContent = `${(Number(fade.value) / 60).toFixed(1).replace(".", ",")} s`;
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => setFade(Number(fade.value)), 160);
+  });
+  const random = $("[data-ag-licht-random]");
+  if (random) random.addEventListener("click", playRandom);
+  const saveBtn = $("[data-ag-licht-scene-save]");
+  const nameIn = $("[data-ag-licht-scene-name]");
+  if (saveBtn && nameIn) {
+    const go = () => { if (saveScene(nameIn.value)) nameIn.value = ""; };
+    saveBtn.addEventListener("click", go);
+    nameIn.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
+  }
   const retry = $("[data-ag-licht-conn]");
   if (retry) retry.addEventListener("click", () => { if (conn !== "connected") { disconnectLicht(); openLicht(); } });
   document.addEventListener("visibilitychange", () => {
@@ -393,7 +492,7 @@ export function renderLichtPanel() {
       const online = lampOnline(b.id);
       const state = !online ? "offline" : (l && l.on === false) ? "standby" : "on";
       const sub = state === "offline" ? "offline" : state === "standby" ? "aus" : "an";
-      return `<span class="ag-licht-lamp" data-state="${state}" title="${esc(b.name)}"><span class="ag-licht-lamp-dot" aria-hidden="true"></span>${esc(b.short)}<span class="ag-licht-lamp-sub">${sub}</span></span>`;
+      return `<button type="button" class="ag-licht-lamp" data-lamp="${b.id}" data-state="${state}" title="${esc(b.name)} — tippen schaltet"><span class="ag-licht-lamp-dot" aria-hidden="true"></span>${esc(b.short)}<span class="ag-licht-lamp-sub">${sub}</span></button>`;
     }).join("");
   }
 
@@ -432,7 +531,18 @@ export function renderLichtPanel() {
     palette.style.setProperty("--ag-pick", `${(pos * 100).toFixed(1)}%`);
     palette.setAttribute("aria-valuenow", String(Math.round(pos * 29)));
   }
-  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink]")) b.disabled = conn !== "connected";
+  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save]")) b.disabled = conn !== "connected";
+  for (const b of panel.querySelectorAll("[data-ag-licht-target] [data-target]")) {
+    const active = (b.dataset.target || "") === sendTarget;
+    b.classList.toggle("is-active", active);
+    b.setAttribute("aria-checked", active ? "true" : "false");
+  }
+  const fade = $("[data-ag-licht-fade]");
+  if (fade && Date.now() >= holdUntil && ref && typeof ref.fade_steps === "number") {
+    fade.value = String(Math.round(ref.fade_steps));
+    const v = $("[data-ag-licht-fade-val]");
+    if (v) v.textContent = `${(ref.fade_steps / 60).toFixed(1).replace(".", ",")} s`;
+  }
 
   const scenesWrap = $("[data-ag-licht-scenes]");
   const sceneList = $("[data-ag-licht-scene-list]");

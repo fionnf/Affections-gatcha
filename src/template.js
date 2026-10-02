@@ -278,6 +278,7 @@ export const html = `
                 <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
                 <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
                 <button class="ag-glossary-tab" type="button" data-lang="deutsch-slang">Deutsch Slang</button>
+                <button class="ag-glossary-tab" type="button" data-lang="kapsel">Kapsel</button>
               </div>
             </div>
             <div class="ag-glossary-search-wrap">
@@ -518,6 +519,10 @@ export const html = `
               </summary>
               <div class="ag-album-grid" data-ag-album></div>
             </details>
+            <div class="ag-hugs" data-ag-hugs hidden>
+              <span class="ag-hugs-label" data-ag-hugs-label></span>
+              <div class="ag-hugs-row" data-ag-hugs-row></div>
+            </div>
           </section>
           <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
             <div class="ag-card">
@@ -598,6 +603,11 @@ export const html = `
                 <button class="ag-licht-conn" type="button" data-ag-licht-conn data-state="idle"></button>
               </div>
               <div class="ag-licht-strip" data-ag-licht-strip aria-hidden="true"></div>
+              <div class="ag-licht-target" data-ag-licht-target role="radiogroup" aria-label="Welche Lampe">
+                <button type="button" class="is-active" data-target="" role="radio" aria-checked="true">Beide</button>
+                <button type="button" data-target="board_a" role="radio" aria-checked="false">Fionn</button>
+                <button type="button" data-target="board_b" role="radio" aria-checked="false">Lennart</button>
+              </div>
               <div class="ag-licht-row">
                 <button class="ag-licht-power" type="button" data-ag-licht-power aria-pressed="false" disabled>Aus</button>
                 <label class="ag-licht-slider">
@@ -606,7 +616,18 @@ export const html = `
                 </label>
               </div>
               <div class="ag-licht-palette" data-ag-licht-palette role="slider" tabindex="0" aria-label="Farbe" aria-valuemin="0" aria-valuemax="29" aria-valuenow="0"></div>
+              <div class="ag-licht-row">
+                <button class="ag-licht-random" type="button" data-ag-licht-random disabled title="Zufällige Farben">🎲</button>
+                <label class="ag-licht-slider">
+                  <span>Übergang <em data-ag-licht-fade-val>1,0 s</em></span>
+                  <input type="range" min="10" max="600" value="60" data-ag-licht-fade aria-label="Übergang" disabled>
+                </label>
+              </div>
               <div class="ag-licht-moods" data-ag-licht-moods></div>
+              <div class="ag-licht-save" data-ag-licht-save>
+                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="So wie jetzt — als Szene sichern…" maxlength="32" autocomplete="off" disabled>
+                <button class="ag-secondary" type="button" data-ag-licht-scene-save disabled>Sichern</button>
+              </div>
               <div class="ag-licht-scenes" data-ag-licht-scenes hidden>
                 <p class="ag-licht-label">Gespeicherte Szenen</p>
                 <div class="ag-licht-scene-list" data-ag-licht-scene-list></div>

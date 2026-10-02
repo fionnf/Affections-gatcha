@@ -108,7 +108,7 @@ export async function uploadGlossaryAudio(blob, wordId) {
   }
 }
 
-const LANG_LABELS = { swabian: "Schwäbisch", portuguese: "Português", irish: "Gaeilge", "deutsch-slang": "Deutsch Slang" };
+const LANG_LABELS = { swabian: "Schwäbisch", portuguese: "Português", irish: "Gaeilge", "deutsch-slang": "Deutsch Slang", kapsel: "Kapsel" };
 
 export function renderGlossaryWord(word, showLang = false) {
   const card = document.createElement("div");

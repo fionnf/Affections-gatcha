@@ -3,7 +3,7 @@ import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
   readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
-  readBaerlauchScores, writeWishReplies,
+  readBaerlauchScores, writeWishReplies, mergeHugLog,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
@@ -125,6 +125,10 @@ export async function syncFromSheets() {
         if (prev && prev.reaction && !next.reaction) {
           next.reaction = prev.reaction;
         }
+        // The weather is local only — the sheet has no column for it.
+        if (prev && prev.weather && !next.weather) {
+          next.weather = prev.weather;
+        }
         localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));
@@ -174,6 +178,11 @@ export async function syncFromSheets() {
       if (changed) {
         try { localStorage.setItem(BAERLAUCH_SCORE_KEY, JSON.stringify(localScores)); } catch (_) {}
       }
+    }
+
+    // Every hug the sheet remembers, unioned into the local log.
+    if (Array.isArray(data.hugs)) {
+      try { mergeHugLog(data.hugs); } catch (_e) {}
     }
 
     // Fionn's replies on this token's wishes, as the sheet has them.

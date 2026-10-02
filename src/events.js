@@ -1,7 +1,9 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, formatHistoryDate } from "./utils.js";
-import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll } from "./storage.js";
+import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll, addHugToLog } from "./storage.js";
+import { fetchWeather, weatherForEntry } from "./wetter.js";
+import { foldCardIntoVerlauf } from "./delights.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak, addVacation } from "./streak.js";
 import { buildPull, rerollPullForDay } from "./pull.js";
 import { playPullSound } from "./sound.js";
@@ -31,6 +33,10 @@ export { showToast } from "./toast.js";
 import { showToast } from "./toast.js";
 
 export function setActiveTab(tab) {
+  // Leaving the card: it folds into an envelope that flies into Verlauf.
+  if (state.activeTab === "today" && tab !== "today" && state.revealed && state.todaysPull && !getPreviewDay()) {
+    try { foldCardIntoVerlauf(state.todaysPull); } catch (_e) {}
+  }
   state.activeTab = tab;
   const tabs = mount.querySelectorAll("[data-ag-tab]");
   tabs.forEach((node) => {
@@ -105,8 +111,10 @@ export function sendHugToInbox() {
   const config = state.wishInbox;
   const button = $("[data-ag-hug-send]");
   const message = "🫂 Notfall-Umarmung gebraucht";
+  const sentAt = new Date().toISOString();
+  try { addHugToLog(sentAt); } catch (_e) {}
   const payload = {
-    timestamp: new Date().toISOString(),
+    timestamp: sentAt,
     token: getToken(),
     type: "hug",
     event: "hug",
@@ -527,6 +535,8 @@ export function reveal() {
 
   mount.classList.add("is-revealing");
   button.disabled = true;
+  // The sky at pull time — the fetch has five seconds of fall to land in.
+  if (!getPreviewDay()) fetchWeather().catch(() => {});
   buttonText.textContent = steps[stepIndex];
   const stepTimer = window.setInterval(() => {
     stepIndex = Math.min(stepIndex + 1, steps.length - 1);
@@ -572,6 +582,12 @@ export function reveal() {
     }
     if (state.todaysPull.freikarte && !alreadyRecordedToday) {
       addFreikarte(state.todaysPull.token);
+    }
+    // The sky goes onto the pull before the card is drawn, so the date line
+    // carries it from the first paint, and onto the record a moment later.
+    if (!getPreviewDay()) {
+      const w = weatherForEntry(state.weather);
+      if (w && !state.todaysPull.weather) state.todaysPull.weather = w;
     }
     renderPull(state.todaysPull);
     mount.classList.remove("is-revealing");

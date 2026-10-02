@@ -2615,6 +2615,7 @@ body{
 .ag-widget .ag-licht-conn{
   appearance:none;background:none;border:none;font-family:inherit;cursor:pointer;
   font-size:.72rem;color:var(--ag-muted);padding:4px 0 4px 12px;display:inline-flex;align-items:center;gap:6px;
+  max-width:52%;text-align:right;line-height:1.3;flex:none;
 }
 .ag-widget .ag-licht-conn::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--ag-muted);opacity:.45}
 .ag-widget .ag-licht-conn[data-state="connected"]::before{background:#8fcf9e;opacity:.9;box-shadow:0 0 8px rgba(143,207,158,.5)}
@@ -2676,6 +2677,75 @@ body{
   background:rgba(224,167,93,.14)!important;box-shadow:0 0 0 2px rgba(224,167,93,.25);
   animation:ag-pulse 1.1s ease-in-out infinite;
 }
+
+/* ── Kapsel-Wetter: the hero under the sky ────────────────────────────── */
+/* The weather sits over the machine, not over the title: an overlay on the
+   machine wrap, a little wider than the machine itself. */
+.ag-widget.is-raining .ag-machine-wrap::after,
+.ag-widget.is-snowing .ag-machine-wrap::after,
+.ag-widget.is-foggy .ag-machine-wrap::after{
+  content:"";position:absolute;inset:-6% -14%;pointer-events:none;border-radius:32px;z-index:3;
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 55%,transparent 78%);mask-image:radial-gradient(ellipse at center,#000 55%,transparent 78%);
+}
+.ag-widget.is-raining .ag-machine-wrap::after{
+  background:repeating-linear-gradient(100deg,transparent 0 14px,rgba(170,200,255,.22) 14px 15px,transparent 15px 26px);
+  background-size:100% 220%;animation:ag-rain 900ms linear infinite;opacity:.55;
+}
+@keyframes ag-rain{from{background-position:0 -120%}to{background-position:0 100%}}
+.ag-widget.is-raining .ag-emoji{filter:drop-shadow(0 7px 2px rgba(140,180,255,.35))}
+.ag-widget.is-snowing .ag-machine-wrap::after{
+  background-image:radial-gradient(circle,rgba(255,255,255,.9) 0 1.5px,transparent 2.5px),radial-gradient(circle,rgba(255,255,255,.6) 0 1px,transparent 2px);
+  background-size:38px 38px,61px 61px;background-position:0 0,17px 29px;
+  animation:ag-snow 6s linear infinite;opacity:.8;
+}
+@keyframes ag-snow{from{background-position:0 -38px,17px -32px}to{background-position:9px 38px,2px 90px}}
+.ag-widget.is-foggy .ag-machine-wrap::after{background:linear-gradient(180deg,rgba(200,210,205,0) 30%,rgba(200,210,205,.22) 70%,rgba(200,210,205,.32));animation:ag-fog 7s ease-in-out infinite alternate}
+@keyframes ag-fog{from{opacity:.5}to{opacity:1}}
+.ag-widget.is-stormy .ag-stage{animation:ag-lightning 9s linear infinite}
+@keyframes ag-lightning{0%,89%,93%,100%{filter:none}90%,92%{filter:brightness(1.9) saturate(.6)}}
+@media (prefers-reduced-motion:reduce){.ag-widget .ag-machine-wrap::after,.ag-widget.is-stormy .ag-stage{animation:none!important}}
+
+/* ── Geheimtinte ───────────────────────────────────────────────────────── */
+.ag-widget .ag-ink{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;cursor:pointer;touch-action:none}
+.ag-widget .ag-ink .ag-ink-ch{opacity:.06;transition:opacity 260ms ease;transition-delay:calc(var(--i) * 9ms);text-shadow:0 0 6px rgba(255,255,255,.18)}
+.ag-widget .ag-ink.is-held .ag-ink-ch{opacity:1;text-shadow:none}
+.ag-widget .ag-ink-hint{margin:0 0 8px;font-size:.78rem;color:var(--ag-gold);font-style:italic;opacity:.9}
+
+/* ── Nachtlicht: after 22:00 the orbit is fireflies ────────────────────── */
+.ag-widget.is-evening .ag-emoji{font-size:0;pointer-events:auto;cursor:pointer;padding:12px;margin:-12px;filter:none;opacity:1}
+.ag-widget.is-evening .ag-emoji::after{
+  content:"";display:block;width:7px;height:7px;border-radius:50%;
+  background:#ffe9a0;box-shadow:0 0 10px 4px rgba(255,220,120,.55);
+  animation:ag-firefly 2.8s ease-in-out infinite;animation-delay:var(--ag-emoji-delay,0s);
+}
+.ag-widget.is-evening .ag-emoji.is-flare::after{animation:ag-flare 900ms ease-out}
+@keyframes ag-firefly{0%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1.15)}}
+@keyframes ag-flare{0%{box-shadow:0 0 14px 8px rgba(255,230,140,.9);transform:scale(1.8)}100%{box-shadow:0 0 10px 4px rgba(255,220,120,.55);transform:scale(1)}}
+
+/* ── Münzschlitz + Zugeklappt: things that fly into the nav ────────────── */
+.ag-coin,.ag-envelope{position:fixed;z-index:3000;pointer-events:none;font-size:1.8rem;line-height:1;transform:translate(-50%,-50%);will-change:transform,opacity;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}
+.ag-envelope{font-size:2rem}
+.ag-widget .ag-bottomnav-btn-icon.is-clink{animation:ag-clink 600ms var(--ag-ease)}
+@keyframes ag-clink{0%{transform:none}30%{transform:translateY(-6px) scale(1.25)}55%{transform:translateY(2px) scale(.95)}100%{transform:none}}
+
+/* ── Umarmungs-Zähler ──────────────────────────────────────────────────── */
+.ag-widget .ag-hugs{margin:18px 4px 6px}
+.ag-widget .ag-hugs-label{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted);margin-bottom:6px}
+.ag-widget .ag-hugs-row{display:flex;flex-wrap:wrap;gap:2px}
+.ag-widget .ag-hug-heart{appearance:none;background:none;border:none;padding:2px;font-family:inherit;font-size:.95rem;line-height:1;color:#e0a75d;opacity:.85;cursor:pointer;transition:transform 160ms var(--ag-ease)}
+.ag-widget .ag-hug-heart.is-flare{transform:scale(1.6);color:#ffd27a;opacity:1}
+
+/* ── Licht: the second set of controls ──────────────────────────────────── */
+.ag-widget .ag-licht-lamp{appearance:none;font-family:inherit;cursor:pointer}
+.ag-widget .ag-licht-target{display:inline-flex;align-self:flex-start;padding:3px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.ag-widget .ag-licht-target button{appearance:none;border:none;background:none;font-family:inherit;cursor:pointer;color:var(--ag-muted);font-size:.76rem;padding:5px 12px;border-radius:999px}
+.ag-widget .ag-licht-target button.is-active{color:var(--ag-text);background:rgba(255,255,255,.12)}
+.ag-widget .ag-licht-random{appearance:none;font-family:inherit;cursor:pointer;flex:none;width:44px;height:40px;border-radius:999px;font-size:1.1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+.ag-widget .ag-licht-random:disabled{opacity:.45;cursor:default}
+.ag-widget .ag-licht-slider em{font-style:normal;color:var(--ag-text);margin-left:4px}
+.ag-widget .ag-licht-save{display:flex;gap:8px}
+.ag-widget .ag-licht-save input{flex:1;min-width:0}
+.ag-widget .ag-licht-save .ag-secondary{flex:none}
     `;
 
 export function injectStyles() {

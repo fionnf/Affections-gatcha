@@ -200,17 +200,23 @@ function doGet(e) {
 
     // This token's own wishes, newest first, with Fionn's reply where there is
     // one. The app keeps the last few and shows a new reply on the next card.
+    // …and every hug this token ever sent, as timestamps, for the hearts
+    // at the bottom of Verlauf.
     let wishes = [];
+    let hugs = [];
     try {
       const wSheet = getOrCreateWuenscheSheet_(ss);
       const wRows = wSheet.getDataRange().getValues();
-      for (let i = wRows.length - 1; i >= 1 && wishes.length < 8; i--) {
+      for (let i = wRows.length - 1; i >= 1; i--) {
         if (!wRows[i][0]) continue;
         const w = wishRow_(wRows[i]);
-        if (w.type !== "wish" || w.token !== token) continue;
-        wishes.push({ timestamp: w.timestamp, text: w.text, status: w.status, statusAt: w.statusAt });
+        if (w.token !== token) continue;
+        if (w.type === "hug") { if (hugs.length < 500) hugs.push(w.timestamp); continue; }
+        if (w.type === "wish" && wishes.length < 8) {
+          wishes.push({ timestamp: w.timestamp, text: w.text, status: w.status, statusAt: w.statusAt });
+        }
       }
-    } catch (errW) { wishes = []; }
+    } catch (errW) { wishes = []; hugs = []; }
 
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
@@ -382,6 +388,7 @@ function doGet(e) {
       glossary,
       stimmung,
       wishes,
+      hugs,
       activity,
     });
   } catch (err) {

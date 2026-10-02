@@ -172,6 +172,15 @@ connecting" forever. The status says *verbunden · keine Lampe antwortet* when
 the broker is there but no board has echoed — a lamp that is unplugged looks
 like that. No broker, no lamps: the tab says so and nothing else notices.
 
+The second row of controls: a **Beide / Fionn / Lennart** switch that scopes
+every change to one lamp or both, the lamp pills themselves toggle that lamp,
+a **Übergang** slider for the fade (steps/60 = seconds), a 🎲 that throws two
+to four random tints across the strip, the palette bar takes a drag as well
+as a tap, and **So wie jetzt — als Szene sichern** writes the current state
+into the shared scene library (the retained scenes topic, same merge rules
+as the lights page, sent as `gacha_app` so that page does not drop it as its
+own copy).
+
 **Alle Einstellungen ›** opens `lichter.html` for the rest — alarms, groups,
 Wi-Fi, reboot. That page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)
@@ -788,6 +797,39 @@ Wunschkapsel card shows the same reply under this week's wish.
 compares it with the last one seen on sync and shows a banner above the draw
 card. (Both ends existed before and were wired to nothing: the script never
 recorded the ping, and the app never read the flag.)
+
+---
+
+## Kleine Freuden
+
+Small things that make the machine feel alive. All decoration and tiny
+mechanics, none of it load-bearing.
+
+- **Kapsel-Wetter** (`src/wetter.js`). The machine knows the sky at pull time:
+  Open-Meteo for the coordinates in `config/theme.json` → `weather`, no key,
+  cached half an hour, fetched on load and again as the capsule falls. The
+  temperature and an emoji go onto the history entry (`weather: {t, c, e}`,
+  local only — the sheet has no column, so the sync keeps the local value) and
+  show on the card's date line and in Verlauf: *Fr, 2. Okt. · 4° 🌧*. The
+  hero reacts: rain streaks, snow drifting, fog, a flash of lightning in a
+  storm, all over the machine, not the title.
+- **Geheimtinte.** An outcome with `"secret": true` arrives blank; the text
+  appears letter by letter while a finger rests on it and fades when it
+  lifts. Four capsules carry it. Kopieren and the share still carry the text.
+- **Nachtlicht.** After 22:00 the orbit emoji become fireflies. Tapping one
+  drops a single word (`NACHT_WORTE` in `src/delights.js`).
+- **Münzschlitz.** Redeeming a full Token-Bank bar drops the token as a coin
+  into the Heute icon in the nav — the machine's stand-in on the Verlauf
+  tab — with a clink, a haptic and a short lamp flash.
+- **Umarmungs-Zähler.** Every Notfall-Umarmung ever sent, as a row of small
+  hearts at the bottom of Verlauf, counted locally at send time and unioned
+  with the sheet on sync (`hugs` in the GET answer). A tap on a heart says
+  when. Grows forever, never resets.
+- **Lieblingswort.** Long-press a word in a capsule to lift it into the
+  Glossar, on its own **Kapsel** shelf, with the capsule's title and date as
+  its meaning.
+- **Zugeklappt.** Leaving the Heute tab after a pull folds the card into an
+  envelope that flies into the Verlauf icon. Once per capsule.
 
 ---
 

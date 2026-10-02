@@ -66,3 +66,14 @@ export function playPullSound(tone) {
       break;
   }
 }
+
+// A coin into the slot: two bright, short partials, the second a fifth up.
+export function playClink() {
+  if (!soundEnabled()) return;
+  const ctx = _getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  _playNote(ctx, 1760, 0,    0.09, 0.10, "triangle");
+  _playNote(ctx, 2637, 0.05, 0.14, 0.07, "sine");
+  _playNote(ctx, 1319, 0.11, 0.22, 0.05, "sine");
+}

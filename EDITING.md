@@ -20,6 +20,12 @@ Useful fields:
 - `colors.primary`, `colors.green`, etc.
 - `darkColors`: dark-mode equivalents
 
+### Weather on the card
+
+`config/theme.json` → `"weather": { "latitude": 47.3769, "longitude": 8.5417, "place": "Zürich" }`
+is where the machine looks up the sky at pull time (Open-Meteo, no key).
+Remove the block to switch the feature off; the card then shows the date alone.
+
 ## Change response text
 
 Edit:
@@ -42,6 +48,7 @@ Each category has:
 | `prompt` | gates the message — a question has to be answered first |
 | `token` | awards one of the six Sammeltoken emoji (see `TOKEN_REWARDS` in `src/constants.js`) |
 | `freikarte` | grants a Freikarte (a reroll for a bad day) |
+| `secret` | `true` renders the message in Geheimtinte: blank until a finger rests on it |
 
 **Adding or removing outcomes shifts the token maths.** Roughly one pull in
 five should award a token, and a token in a big category is seen far less

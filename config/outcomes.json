@@ -258,7 +258,8 @@
         },
         {
           "title": "Português: Saudade",
-          "message": "Saudade — die Sehnsucht nach etwas, das man liebt und gerade nicht dahat. Ich habe heute ein bisschen davon."
+          "message": "Saudade — die Sehnsucht nach etwas, das man liebt und gerade nicht dahat. Ich habe heute ein bisschen davon.",
+          "secret": true
         },
         {
           "title": "Português: Abraço",
@@ -318,7 +319,8 @@
         },
         {
           "title": "Mo ghrá (IE)",
-          "message": "Ein irischer Begriff für 'meine Liebe'. Nur für dich, heute."
+          "message": "Ein irischer Begriff für 'meine Liebe'. Nur für dich, heute.",
+          "secret": true
         },
         {
           "title": "Motivations-Boost: Fokus",
@@ -552,11 +554,13 @@
         },
         {
           "title": "Komplimentkapsel",
-          "message": "Aktenkundig und amtlich bestätigt: Dein Lachen hat statisch einwandfreie Eigenschaften."
+          "message": "Aktenkundig und amtlich bestätigt: Dein Lachen hat statisch einwandfreie Eigenschaften.",
+          "secret": true
         },
         {
           "title": "Wärmflasche",
-          "message": "Ein imaginäres, aber sehr warmes Etwas wird an deine kalten Füße geliefert. Frei Haus."
+          "message": "Ein imaginäres, aber sehr warmes Etwas wird an deine kalten Füße geliefert. Frei Haus.",
+          "secret": true
         },
         {
           "title": "Kleiner Mut",

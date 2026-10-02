@@ -501,3 +501,22 @@ export function markWishReplyShown(statusAt, day) {
   if (cur.shown && cur.shown.statusAt === statusAt && cur.shown.day === day) return;
   writePlayerSlot(WISH_REPLIES_KEY, { ...cur, shown: { statusAt, day } });
 }
+
+// ── Umarmungen ───────────────────────────────────────────────────────────────
+// Every Notfall-Umarmung ever sent, as ISO timestamps: local at send time,
+// unioned with what the sheet remembers on sync. Never reset.
+const HUG_LOG_KEY = "affektions-gacha:hug-log:v1";
+export function readHugLog() {
+  const val = readPlayerSlot(HUG_LOG_KEY, []);
+  return Array.isArray(val) ? val.filter((x) => typeof x === "string") : [];
+}
+export function mergeHugLog(list) {
+  const all = new Set(readHugLog());
+  for (const x of (Array.isArray(list) ? list : [])) if (typeof x === "string" && x) all.add(x);
+  const merged = [...all].sort();
+  writePlayerSlot(HUG_LOG_KEY, merged.slice(-500));
+  return merged;
+}
+export function addHugToLog(ts) {
+  return mergeHugLog([ts]);
+}
