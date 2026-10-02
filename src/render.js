@@ -1990,7 +1990,9 @@ export function renderHistory() {
 
 // The Lieblinge are a hike: every favourite a stop on a trail up through
 // the ridges, the newest nearest the summit. A tap on a stop opens the full
-// card in a sheet; the star there works as everywhere.
+// card right there on the trail (the path below makes room); another tap
+// folds it. The star on the open card works as everywhere.
+let _wwOpen = "";
 export function renderLieblinge() {
   const list = $("[data-ag-lieblinge]");
   const empty = $("[data-ag-lieblinge-empty]");
@@ -2008,28 +2010,30 @@ export function renderLieblinge() {
   }
   empty.hidden = true;
 
-  renderWanderweg(list, favs, { onOpen: openLieblingSheet });
+  const key = (e) => `${e.day}|${e.token}`;
+  const expanded = favs.findIndex((e) => key(e) === _wwOpen);
+  renderWanderweg(list, favs, {
+    expanded,
+    renderCard: (entry) => {
+      const ul = document.createElement("ul");
+      ul.className = "ag-history";
+      ul.appendChild(renderHistoryItemEl(entry));
+      return ul;
+    },
+    onOpen: (entry, el) => {
+      _wwOpen = key(entry) === _wwOpen ? "" : key(entry);
+      try { haptic(6); } catch (_e) {}
+      renderLieblinge();
+      if (_wwOpen) {
+        const opened = list.querySelector(`[data-ag-ww-stop="${favs.indexOf(entry)}"]`);
+        if (opened && opened.scrollIntoView) opened.scrollIntoView({ block: "start", behavior: "smooth" });
+      }
+      void el;
+    }
+  });
   const update = bindWanderwegScroll(() => $("[data-ag-lieblinge]"));
   if (update) update();
   requestAnimationFrame(() => { const r = list.getBoundingClientRect(); placeHiker(list, climbProgress(r.top, r.height, window.innerHeight)); });
-}
-
-export function openLieblingSheet(entry) {
-  const sheet = $("[data-ag-ww-sheet]");
-  const holder = $("[data-ag-ww-sheet-list]");
-  if (!sheet || !holder) return;
-  holder.innerHTML = "";
-  holder.appendChild(renderHistoryItemEl(entry));
-  sheet.hidden = false;
-  requestAnimationFrame(() => sheet.classList.add("is-open"));
-  const close = () => {
-    sheet.classList.remove("is-open");
-    setTimeout(() => { if (!sheet.classList.contains("is-open")) { sheet.hidden = true; renderLieblinge(); } }, 260);
-  };
-  sheet.querySelector("[data-ag-ww-sheet-close]").onclick = close;
-  sheet.onclick = (ev) => { if (ev.target === sheet) close(); };
-  sheet.onkeydown = (ev) => { if (ev.key === "Escape") close(); };
-  try { sheet.querySelector("[data-ag-ww-sheet-close]").focus(); } catch (_e) {}
 }
 
 // ── Odds ──────────────────────────────────────────────────────────────────────

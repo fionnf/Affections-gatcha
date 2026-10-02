@@ -903,8 +903,10 @@ mechanics, none of it load-bearing.
   under a starry sky, the start at the bottom, the summit flag at the top,
   the newest nearest the summit. A stop shows the date, the title and the
   first sentence (or the photo as a round thumbnail, with its caption); a
-  tap opens the full history card in a sheet, star and all. A small hiker
-  walks the trail as the page scrolls, facing the way the path turns.
+  tap opens the full history card right there on the trail — the path
+  below makes room — and another tap folds it; the star on the open card
+  works as everywhere. A small hiker walks the trail as the page scrolls,
+  facing the way the path turns.
 - **Kneifen** (`src/kneifen.js`). Pinch today's card with two fingers and
   it becomes a Liebling, the same as the star: a small copy of the card
   shrinks and flies into the star in the nav.

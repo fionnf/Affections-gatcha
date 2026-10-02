@@ -12,18 +12,22 @@ export const BOTTOM_PAD = 110;    // room for the start
 export const RIDGE_GAP = 230;
 
 // Where the stops sit: alternating left and right, oldest at the bottom.
-// `entries` arrive newest first, which is also top to bottom.
-export function stopPoints(count, width) {
+// `entries` arrive newest first, which is also top to bottom. An expanded
+// stop (`after`) pushes everything below it down by `extra`, the room its
+// open card needs.
+export const CARD_TOP = 64;       // the open card starts this far below its stop
+export function stopPoints(count, width, { after = -1, extra = 0 } = {}) {
   const pts = [];
   for (let i = 0; i < count; i++) {
     const left = i % 2 === 0;
-    pts.push({ x: Math.round(width * (left ? 0.24 : 0.76)), y: TOP_PAD + i * STOP_GAP, left });
+    const shift = after >= 0 && i > after ? extra : 0;
+    pts.push({ x: Math.round(width * (left ? 0.24 : 0.76)), y: TOP_PAD + i * STOP_GAP + shift, left });
   }
   return pts;
 }
 
-export function sceneHeight(count) {
-  return TOP_PAD + Math.max(0, count - 1) * STOP_GAP + BOTTOM_PAD;
+export function sceneHeight(count, extra = 0) {
+  return TOP_PAD + Math.max(0, count - 1) * STOP_GAP + BOTTOM_PAD + (count ? extra : 0);
 }
 
 // The trail from the start (bottom centre) through every stop to the
@@ -86,10 +90,14 @@ export function stopMark(entry) {
   return STOP_MARK[entry.tone] || "🌿";
 }
 
-export function renderWanderweg(container, entries, { width, onOpen } = {}) {
+// `expanded` is the index of the stop whose card is open; `renderCard`
+// builds that card. The card is placed, measured, and the scene laid out
+// again with the room it really needs (one extra pass, at most).
+export function renderWanderweg(container, entries, { width, onOpen, expanded = -1, renderCard, extra = 0, _pass = 0 } = {}) {
   const w = Math.max(220, Math.round(width || container.clientWidth || 300));
-  const h = sceneHeight(entries.length);
-  const points = stopPoints(entries.length, w);
+  const open = expanded >= 0 && expanded < entries.length && typeof renderCard === "function";
+  const h = sceneHeight(entries.length, open ? extra : 0);
+  const points = stopPoints(entries.length, w, { after: open ? expanded : -1, extra: open ? extra : 0 });
   const path = trailPath(points, w, h);
   const ridges = ridgePolygons(w, h);
   const stars = [];
@@ -114,8 +122,19 @@ export function renderWanderweg(container, entries, { width, onOpen } = {}) {
     <div class="ag-ww-summit" style="left:${Math.round(w / 2)}px;top:58px"><span class="ag-ww-flag">🚩</span><span class="ag-ww-summit-label">Gipfel · ${entries.length} ${entries.length === 1 ? "Liebling" : "Lieblinge"}</span></div>
     <div class="ag-ww-start" style="left:${Math.round(w / 2)}px;top:${h - 40}px"><span class="ag-ww-start-label">Start</span></div>
     <div class="ag-ww-hiker" data-ag-ww-hiker aria-hidden="true">🚶</div>
-    ${entries.map((e, i) => stopHtml(e, points[i], i)).join("")}
+    ${entries.map((e, i) => stopHtml(e, points[i], i, i === expanded && open)).join("")}
   `;
+  if (open) {
+    const card = document.createElement("div");
+    card.className = "ag-ww-card";
+    card.style.top = `${points[expanded].y + CARD_TOP}px`;
+    card.appendChild(renderCard(entries[expanded]));
+    container.appendChild(card);
+    const need = card.offsetHeight + CARD_TOP + 24;
+    if (_pass < 1 && Math.abs(need - extra) > 2) {
+      return renderWanderweg(container, entries, { width: w, onOpen, expanded, renderCard, extra: need, _pass: _pass + 1 });
+    }
+  }
   container.querySelectorAll("[data-ag-ww-stop]").forEach((el) => {
     el.addEventListener("click", () => onOpen && onOpen(entries[Number(el.dataset.agWwStop)], el));
     el.addEventListener("keydown", (ev) => {
@@ -126,15 +145,15 @@ export function renderWanderweg(container, entries, { width, onOpen } = {}) {
   return { width: w, height: h };
 }
 
-function stopHtml(entry, pt, i) {
-  const side = pt.left ? "is-left" : "is-right";
+function stopHtml(entry, pt, i, isOpen = false) {
+  const side = (pt.left ? "is-left" : "is-right") + (isOpen ? " is-open" : "");
   const photo = entry.photo && entry.photo.url && (entry.photo.type !== "video");
   const media = photo
     ? `<span class="ag-ww-thumb"><img src="${escapeHtml(entry.photo.url)}" alt="" loading="lazy"></span>`
     : `<span class="ag-ww-mark">${stopMark(entry)}</span>`;
   const line = photo ? escapeHtml((entry.photo.caption || "").trim() || firstLine(entry.message)) : escapeHtml(firstLine(entry.message));
   return `
-    <button class="ag-ww-stop ${side}" type="button" data-ag-ww-stop="${i}" style="left:${pt.x}px;top:${pt.y}px" data-tone="${escapeHtml(entry.tone || "soft")}">
+    <button class="ag-ww-stop ${side}" type="button" data-ag-ww-stop="${i}" style="left:${pt.x}px;top:${pt.y}px" data-tone="${escapeHtml(entry.tone || "soft")}" aria-expanded="${isOpen ? "true" : "false"}">
       <span class="ag-ww-dot"></span>
       <span class="ag-ww-label">
         ${media}

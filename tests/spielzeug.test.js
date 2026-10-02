@@ -104,6 +104,10 @@ test("the Wanderweg: stops zigzag down from the summit, the trail joins them, th
   assert.equal(pts[3].y, TOP_PAD + 3 * STOP_GAP);
   assert.equal(sceneHeight(4), TOP_PAD + 3 * STOP_GAP + BOTTOM_PAD);
   assert.equal(sceneHeight(1), TOP_PAD + BOTTOM_PAD);
+  const open = stopPoints(4, 300, { after: 1, extra: 200 });
+  assert.deepEqual(open.map((p) => p.y), [TOP_PAD, TOP_PAD + STOP_GAP, TOP_PAD + 2 * STOP_GAP + 200, TOP_PAD + 3 * STOP_GAP + 200], "an open stop pushes the ones below it down");
+  assert.equal(sceneHeight(4, 200), sceneHeight(4) + 200);
+  assert.equal(sceneHeight(0, 200), sceneHeight(0), "no stops, no room needed");
   const d = trailPath(pts, 300, sceneHeight(4));
   assert.match(d, /^M150,\d+ C/, "starts at the bottom centre");
   assert.ok(d.endsWith("150,58"), "ends at the summit");
