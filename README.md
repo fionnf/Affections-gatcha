@@ -244,7 +244,7 @@ sending lives in `push-notify.yml`:
 
 | Job | Schedule | Sends |
 |---|---|---|
-| `notify` | every 5 min | hugs and wishes, as they arrive — to Fionn's phone, which the Eingänge subscribe under the token `fionn` once notifications are allowed there |
+| `notify` | every 5 min | wishes, as they arrive — to Fionn's phone, which the Eingänge subscribe under the token `fionn` once notifications are allowed there; a Notfall-Umarmung goes to every subscribed device, Lennart's own included |
 | `daily` | hourly | the morning reminder and the evening streak warning |
 
 The `daily` job asks the backend (`?feed=push-due`) who still hasn't pulled
@@ -530,7 +530,9 @@ Under every capsule: **🥹 😂 🙃**. One tap stores the emoji on the day's
 history entry (unioned on sync like `bestanden`, shown beside the badge in
 Verlauf) and posts it through the existing `prompt-answer` endpoint — a row in
 the PromptAnswers sheet and a mail to Fionn — so the deployed script already
-understands it. A reaction can be changed; the last one wins.
+understands it. A reaction can be changed; the last one wins. On the card
+the chosen emoji is a sticker he can drag around (see *Aufkleber* under
+Kleine Freuden).
 
 ## Wallpaper
 
@@ -541,13 +543,15 @@ files is unsupported). Drawn from the same URL the app displays; a host that
 does not send CORS headers taints the canvas and the export explains itself
 instead of producing a blank file.
 
-## Capsule press-and-hold
+## Knob, capsule press-and-hold
 
-The capsule on the hero is a draw target: hold it and it charges — haptic ticks
-quicken, it swells and glows — and letting go after ~650 ms pulls. A short tap
-does nothing, so a stray touch cannot draw; it is inert once today's capsule is
-out, and in preview mode. The draw button keeps its own 3 s hold for the hidden
-letter.
+Three ways to draw: the knob under the window (one full clockwise turn, like
+the real machine — see *Der Knopf* under Kleine Freuden), the capsule, and the
+button. The capsule on the hero is a draw target: hold it and it charges —
+haptic ticks quicken, it swells and glows — and letting go after ~650 ms pulls.
+A short tap does nothing, so a stray touch cannot draw; it is inert once
+today's capsule is out, and in preview mode. The draw button keeps its own 3 s
+hold for the hidden letter.
 
 The letter is an easter egg (3 s hold on the draw button, or five taps on the
 title), and an egg nobody knows about is just hidden: on the tenth pull, and
@@ -585,7 +589,7 @@ player's streak-restore slot — local to the phone, like the Retter itself.
 |---|---|
 | 🎰 **Heute** | Today's capsule pull |
 | 🗓 **Verlauf** | Token-Bank, pull history (month calendar, 15 per page, total counter), Trophäenregal, and the album |
-| ⭐ **Lieblinge** | Starred favourites |
+| ⭐ **Lieblinge** | The Korkwand: favourites as pinned polaroids (star, or a pinch on the card) |
 | ⛰ **Berge** | Gipfelbuch — mountain log |
 | 💡 **Licht** | The lamps: state, power, brightness, colour, moods, scenes, a wink; `lichter.html` for the rest |
 
@@ -873,6 +877,34 @@ mechanics, none of it load-bearing.
   token (`PFAND_EVERY`, `PFAND_TOKEN` in `src/constants.js`). The count shows
   on the handle and in the Token-Bank head; each day returns once (`pfand`
   on the entry, local only, kept on sync).
+- **Der Knopf** (`src/knopf.js`). A gashapon knob under the window: wind it
+  one full turn clockwise and the capsule drops, with a detent every eighth
+  (haptic tick, a clink every half turn, the machine glows). Let go early
+  and it springs back. Once today's capsule is out the knob is locked: it
+  gives 22° and clacks back. It spins on its own while the machine rattles.
+  The button and the capsule hold still work.
+- **Mondfenster** (`src/mond.js`). After 22:00 the real moon hangs in the
+  window, upper left of the capsule, computed from the mean lunation (shape)
+  and Meeus' full-moon instants (exact day). A full-moon day gets one extra
+  line on the card above the title (`fullMoonLine`).
+- **Aufkleber** (`src/aufkleber.js`). The reaction is a sticker: tap 🥹 😂 🙃
+  under the card and it peels off the row onto the card, top right, at a
+  tilt; drag it anywhere and it stays there (per day, local,
+  `affektions-gacha:aufkleber:v1`). The reaction itself is unchanged.
+- **Korkwand** (`src/korkwand.js`). The Lieblinge are polaroids pinned to a
+  cork wall, each at its own angle. Pinch today's card with two fingers and
+  it shrinks onto the wall: it becomes a favourite and a copy flies into the
+  star in the nav.
+- **Geheimfach** (`src/geheimfach.js`). A long press on the coin slot, right
+  of the knob, slides a drawer out of the machine with one note from Fionn
+  (`geheimfach` in `config/theme.json`: `{ "id", "text" }`). *Zettel
+  behalten* empties it; a note with a new id fills it again.
+- **Kerze** (`src/kerze.js`). From 20:00 a candle sits beside the draw
+  button. Lit, it dims the whole app to a flicker and puts a warm, low,
+  unevenly breathing scene on both lamps (`startCandleLights` in
+  `src/lightsFx.js`, which captures and restores their state like a flash).
+  A swipe across the flame blows it out — the flame leans the way you
+  swiped — and so does leaving the app.
 
 ---
 
@@ -917,7 +949,7 @@ All worksheets are created on first use — none need to exist beforehand.
 |---|---|
 | `Backup` | Per-player snapshot: favourites, streak, tokens, quest points, Flaschenposten |
 | `History` | One row per gacha pull |
-| `Wünsche` | Wunschkapsel submissions and hugs (emails Fionn); `Status` / `StatusAt` hold Fionn's reply |
+| `Wünsche` | Wunschkapsel submissions (emails Fionn) and hugs (push to every device, no email); `Status` / `StatusAt` hold Fionn's reply |
 | `PromptAnswers` | Answers to outcome questions (emails Fionn) |
 | `BaerlauchScores` | Best level per player |
 | `Quests` | Quest solve log |

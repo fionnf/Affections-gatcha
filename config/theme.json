@@ -58,6 +58,10 @@
     "sky": "#263d35",
     "mountain": "#31452c"
   },
+  "geheimfach": {
+    "id": "fach-1",
+    "text": "Du hast das Fach gefunden. Hier passt genau ein Zettel rein, und Fionn tauscht ihn aus, wenn er mag."
+  },
   "stickers": [
     "Bärlauch",
     "Gespräch",

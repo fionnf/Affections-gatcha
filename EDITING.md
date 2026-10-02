@@ -406,6 +406,24 @@ The banner is shown only once per milestone per token (stored in
 milestone streaks the reveal also produces a slightly longer haptic
 pattern.
 
+## Geheimfach (a note in the machine)
+
+A long press on the machine's coin slot (right of the knob) opens a hidden
+drawer with one note. It comes from `config/theme.json`:
+
+```json
+"geheimfach": {
+  "id": "fach-1",
+  "text": "Du hast das Fach gefunden. …"
+}
+```
+
+Lennart reads it and taps **Zettel behalten**; from then on the drawer opens
+empty (*Leer. Fionn weiss, wo das Fach ist.*) until you change the `id` —
+any new value — and write a new `text`. The read state is local to the phone
+(`affektions-gacha:geheimfach:read`), so a new phone shows the current note
+again. Line breaks in `text` are kept.
+
 ## Wunschkapsel
 
 Once per ISO calendar week, a **Wunschkapsel** card appears below the
@@ -452,20 +470,22 @@ available (no weekly limit). One tap silently POSTs to the same Google
 Apps Script endpoint as the Wunschkapsel, but with `type: "hug"`. The
 script then:
 
-1. logs the ping in the `Wünsche` worksheet (prefixed with `[hug]` in the
-   Wish column, so the existing 5-column layout still works), and
-2. sends a short German email to `fionn@fionnferreira.com` using
-   `MailApp.sendEmail`.
+1. logs the ping in the `Wünsche` worksheet (type `Notfall-Umarmung`), and
+2. leaves it on the `push-pending` feed, where the `notify` job in
+   `push-notify.yml` picks it up within about five minutes and sends a
+   **Web Push to every subscribed device** — Fionn's phone (the Eingänge
+   subscribe under `fionn`), Lennart's own phone (a short "unterwegs"
+   confirmation) and any other device that has allowed notifications.
 
-Lennart never has to open Mail or WhatsApp — the email is sent
-server-side from Fionn's own Apps Script project. Local UI feedback:
-`Fionn wurde angestupst 🫂` on success, a soft retry hint on failure.
+No email is sent for a hug (a Wunschkapsel still mails Fionn, since it
+carries text). Local UI feedback: `Fionn wurde angestupst 🫂` on success,
+a soft retry hint on failure.
 
 > **After editing `scripts/google-apps-script-wish-inbox.js` you must
 > redeploy the Apps Script** (Deploy → Manage deployments → ✏️ → Version:
 > *New version* → Deploy). The `/exec` URL stays the same. The first
 > hug will trigger a one-time Google authorization dialog asking for
-> permission to *send email as you* — accept it.
+> permission to *send email as you* (for wishes) — accept it.
 
 ## Tägliche Erinnerung (push notifications)
 

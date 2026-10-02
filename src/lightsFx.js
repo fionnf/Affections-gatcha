@@ -124,6 +124,109 @@ export function flashReactionOnLamp(emoji, boardId = "board_a") {
   return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
 }
 
+// ── Kerze ────────────────────────────────────────────────────────────────────
+// Both lamps as one candle: a warm amber, low, breathing unevenly the way a
+// flame does. Runs until stopped; the stop puts the lamps back.
+export const CANDLE_PERIOD_MS = 3200;
+export const CANDLE_TINT = { pos: 1 / 29, w: 0.12 };
+export function candleCycle(rand = Math.random) {
+  const full = [{ ...CANDLE_TINT, size: NUM_LEDS }];
+  const j = () => (rand() - 0.5) * 0.08;
+  return [
+    { at: 0,    payload: { on: true, fade_steps: 70, brightness: 0.30 + j(), groups: full } },
+    { at: 900,  payload: { fade_steps: 60, brightness: 0.42 + j() } },
+    { at: 1700, payload: { fade_steps: 50, brightness: 0.26 + j() } },
+    { at: 2400, payload: { fade_steps: 60, brightness: 0.38 + j() } }
+  ];
+}
+// Returns a stop function. Best-effort like the flashes: no lamps, no harm.
+export function startCandleLights() {
+  let stopped = false;
+  let stopFn = null;
+  runLoop(() => candleCycle(), CANDLE_PERIOD_MS, (stop) => { stopFn = stop; if (stopped) stop(); }).catch(() => {});
+  return () => { stopped = true; if (stopFn) stopFn(); };
+}
+
+// Like runFlash, but open-ended: the cycle repeats every `periodMs` until
+// the stop handed to `onReady` is called, which restores and disconnects.
+async function runLoop(cycleFn, periodMs, onReady) {
+  if (_busy) { onReady(() => {}); return; }
+  _busy = true;
+  try {
+    await loadMqtt();
+    await new Promise((resolve) => {
+      const client = window.mqtt.connect(BROKER, {
+        clientId: "gachafx_" + Math.random().toString(16).slice(2),
+        clean: true,
+        connectTimeout: 8000,
+      });
+      const captured = {};
+      let running = false, done = false;
+      let stepTimers = [], loopTimer = null;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        try { client.end(true); } catch (_e) {}
+        resolve();
+      };
+      const publish = (payload) => {
+        payload.from = FROM_ID;
+        try { client.publish(TOPIC, JSON.stringify(payload)); } catch (_e) {}
+      };
+      const playCycle = () => {
+        for (const t of stepTimers) clearTimeout(t);
+        stepTimers = [];
+        for (const step of cycleFn()) stepTimers.push(setTimeout(() => publish({ ...step.payload }), step.at));
+        loopTimer = setTimeout(playCycle, periodMs);
+      };
+      const stop = () => {
+        clearTimeout(loopTimer);
+        for (const t of stepTimers) clearTimeout(t);
+        stepTimers = [];
+        if (!running) { finish(); return; }
+        running = false;
+        for (const id of BOARD_IDS) {
+          const state = captured[id] || captured[BOARD_IDS.find((b) => b !== id)];
+          if (!state) continue;
+          const base = { target: id, ..._restorePayload(state) };
+          if (state.on === false) {
+            publish({ ...base, on: true });
+            setTimeout(() => publish({ target: id, on: false }), 1500);
+          } else {
+            publish({ ...base, on: true });
+          }
+        }
+        setTimeout(finish, 2500);
+      };
+      client.on("connect", () => {
+        client.subscribe(TOPIC, (err) => {
+          if (err) { finish(); onReady(() => {}); return; }
+          publish({ nudge: true });
+          setTimeout(() => {
+            if (done) return;
+            if (!Object.keys(captured).length) { finish(); onReady(() => {}); return; }
+            running = true;
+            playCycle();
+            onReady(stop);
+          }, ECHO_WAIT_MS);
+        });
+      });
+      client.on("message", (t, msg) => {
+        try {
+          const d = JSON.parse(msg.toString());
+          if (d.from && BOARD_IDS.includes(d.from) && Array.isArray(d.groups) && !running) captured[d.from] = d;
+        } catch (_e) {}
+      });
+      client.on("error", () => { if (!running) { finish(); onReady(() => {}); } });
+      client.on("close", () => { if (!running) { finish(); onReady(() => {}); } });
+    });
+  } catch (_e) {
+    onReady(() => {});
+  } finally {
+    _busy = false;
+  }
+}
+
 // Connect, capture the lamps' state from their echoes, play the steps, put
 // everything back. `target` limits the show (and the restore) to one lamp.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

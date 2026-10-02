@@ -1061,16 +1061,8 @@ export const css = `
         50%{box-shadow:0 0 0 1px var(--ag-tone-glow) inset, 0 18px 60px -8px var(--ag-tone-glow)}
       }
 
-      /* ── Draw button: a slow sheen sweeps across, inviting the tap. Scoped
-         to the main draw button only, and it stops once you've drawn today. ── */
-      .ag-widget:not(.has-drawn) [data-ag-draw]{position:relative;overflow:hidden}
-      .ag-widget:not(.has-drawn) [data-ag-draw]::after{
-        content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
-        background:linear-gradient(115deg,transparent 34%,rgba(255,255,255,.22) 50%,transparent 64%);
-        transform:translateX(-120%);
-        animation:ag-sheen 5s ease-in-out infinite;
-      }
-      @keyframes ag-sheen{0%,74%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+      /* The draw button's sheen lives in the aurora rules further down,
+         together with every other primary button. */
 
       .ag-error{padding:24px;border:1px solid var(--ag-border);border-radius:18px;background:var(--ag-surface);color:var(--ag-text)}
 
@@ -1931,7 +1923,11 @@ export const css = `
         .ag-bottomnav{
           display:flex;
           position:fixed;
-          bottom:calc(12px + var(--ag-safe-bottom));
+          bottom:calc(12px + var(--ag-safe-bottom) + var(--ag-nav-shift,0px));
+          /* Its own compositing layer: WebKit has left fixed elements with a
+             backdrop-filter stranded mid-scroll without one. */
+          transform:translateZ(0);
+          transition:opacity 150ms var(--ag-ease);
           /* Side insets matter in landscape, where the notch eats one edge. */
           left:calc(16px + var(--ag-safe-left));
           right:calc(16px + var(--ag-safe-right));
@@ -2400,7 +2396,12 @@ body{
 
 /* ── Draw button: aurora glass ──
    A blurred conic halo behind the pill cycles its hue, a sheen sweeps over
-   the face, the orb breathes. Pressed, it sinks. */
+   the face, the orb breathes. Pressed, it sinks. The halo reuses the old
+   sheen pseudo-element, which rests one button-width to the left and slides
+   across on hover; pin it in place or the halo floats beside the button.
+   Both pseudo-elements sit at z-index -1, which still paints above the
+   button's own background, so the face gradient lives on the sheen layer
+   and the halo only shows around the rim. */
 @keyframes ag-hue{to{filter:blur(10px) hue-rotate(360deg)}}
 @keyframes ag-sheen{0%{background-position:200% 0}100%{background-position:-60% 0}}
 .ag-widget .ag-button{
@@ -2415,14 +2416,17 @@ body{
   content:"";position:absolute;inset:-3px;border-radius:inherit;z-index:-1;
   background:conic-gradient(from 0deg,#8fcf9e,#e0a75d,#8ab8cf,#c9a7ff,#8fcf9e);
   filter:blur(10px) hue-rotate(0deg);opacity:.8;
+  transform:none;transition:none;
   animation:ag-hue 5s linear infinite;
 }
+.ag-widget .ag-button:hover::before{transform:none}
 .ag-widget .ag-button::after{
-  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.55) 50%,transparent 58%);
-  background-size:260% 100%;
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:
+    linear-gradient(115deg,transparent 42%,rgba(255,255,255,.45) 50%,transparent 58%),
+    linear-gradient(135deg,#a9e3b5 0%,#5fb27a 45%,#2f7a4f 100%);
+  background-size:260% 100%,100% 100%;
   animation:ag-sheen 3.4s ease-in-out infinite;
-  mix-blend-mode:screen;
 }
 .ag-widget .ag-button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.18),0 16px 36px rgba(47,122,79,.5)}
 .ag-widget .ag-button:active{transform:translateY(1px) scale(.97);box-shadow:inset 0 2px 6px rgba(0,0,0,.28),0 6px 18px rgba(47,122,79,.35)}
@@ -2832,6 +2836,190 @@ body{
 .ag-widget .ag-licht-group-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 6px currentColor}
 .ag-widget .ag-licht-group-op{width:32px;justify-content:center;padding:5px 0;font-size:.95rem;line-height:1}
 .ag-widget .ag-licht-white{margin-top:-4px}
+
+/* The keyboard is up: the nav steps aside instead of floating mid-screen. */
+.ag-widget .ag-bottomnav.is-keyboard{opacity:0;pointer-events:none}
+
+/* ── Der Knopf: a gashapon knob under the window ──
+   A dark ring in the SVG is its seat; this is the knob itself, a disc with a
+   bar handle, turned by --ag-knob-angle while a finger winds it. */
+.ag-widget .ag-knob{
+  position:absolute;left:50%;top:83.75%;width:19%;aspect-ratio:1;
+  transform:translate(-50%,-50%) rotate(var(--ag-knob-angle,0deg));
+  border-radius:50%;cursor:grab;touch-action:none;z-index:5;
+  background:
+    radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),transparent 48%),
+    linear-gradient(180deg,#d9d2bf,#8f8773);
+  box-shadow:inset 0 -3px 6px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.5),0 4px 10px rgba(0,0,0,.45);
+  border:1px solid rgba(0,0,0,.35);
+}
+.ag-widget .ag-knob::before{
+  content:"";position:absolute;left:50%;top:50%;width:70%;height:22%;
+  transform:translate(-50%,-50%);border-radius:4px;
+  background:linear-gradient(180deg,#5a5446,#2d2922);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 2px rgba(0,0,0,.5);
+}
+.ag-widget .ag-knob::after{
+  content:"";position:absolute;left:50%;top:12%;width:9%;aspect-ratio:1;border-radius:50%;
+  transform:translateX(-50%);background:#e0a75d;box-shadow:0 0 6px rgba(224,167,93,.8);
+}
+.ag-widget .ag-knob.is-turning{cursor:grabbing;box-shadow:inset 0 -3px 6px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.5),0 6px 16px rgba(0,0,0,.5),0 0 18px rgba(255,236,170,.35)}
+.ag-widget .ag-knob.is-springing{transition:transform 380ms cubic-bezier(.3,1.6,.4,1)}
+.ag-widget .ag-knob.is-locked.is-turning{filter:saturate(.6)}
+.ag-widget .ag-knob.is-fired{box-shadow:inset 0 -3px 6px rgba(0,0,0,.35),0 0 30px rgba(255,236,170,.8)}
+@keyframes ag-knob-spin{to{transform:translate(-50%,-50%) rotate(calc(var(--ag-knob-angle,0deg) + 360deg))}}
+.ag-widget.is-revealing .ag-knob{animation:ag-knob-spin .9s linear infinite}
+.ag-widget.has-drawn .ag-knob{opacity:.85}
+.ag-widget .ag-knob:focus-visible{outline:2px solid var(--ag-gold);outline-offset:3px}
+
+/* ── Münzschlitz: the coin slot right of the knob; a long press opens the Geheimfach ── */
+.ag-widget .ag-coinslot{
+  position:absolute;left:78%;top:84%;width:12%;height:12%;
+  transform:translate(-50%,-50%);border-radius:8px;cursor:pointer;touch-action:none;z-index:5;
+  background:transparent;border:none;padding:0;
+}
+.ag-widget .ag-coinslot::before{
+  content:"";position:absolute;left:50%;top:50%;width:30%;height:78%;transform:translate(-50%,-50%);
+  border-radius:3px;background:linear-gradient(180deg,#0a1a10,#1b2f22);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.14);
+  transition:box-shadow 600ms ease;
+}
+.ag-widget .ag-coinslot.is-pressing::before{box-shadow:inset 0 1px 2px rgba(0,0,0,.8),0 0 14px rgba(255,236,170,.75)}
+.ag-widget .ag-coinslot:focus-visible{outline:2px solid var(--ag-gold);outline-offset:2px;border-radius:8px}
+
+/* ── Geheimfach: the drawer that slides out under the knob ── */
+.ag-widget .ag-fach{
+  position:absolute;left:12%;right:12%;top:91%;z-index:6;
+  transform:translateY(-70%) scaleY(.6);opacity:0;transform-origin:top center;
+  transition:transform 380ms cubic-bezier(.2,.9,.3,1.1),opacity 240ms ease;
+  border-radius:0 0 14px 14px;padding:14px 14px 12px;
+  background:linear-gradient(180deg,#1b2f22,#0f1f16);
+  border:1px solid rgba(255,255,255,.12);border-top:none;
+  box-shadow:0 18px 40px rgba(0,0,0,.55),inset 0 6px 10px -6px rgba(0,0,0,.8);
+}
+.ag-widget .ag-fach.is-open{transform:translateY(0) scaleY(1);opacity:1}
+.ag-widget .ag-machine-wrap.has-fach{z-index:7}
+.ag-widget .ag-fach-paper{
+  margin:0;padding:12px 14px;border-radius:3px;
+  background:linear-gradient(180deg,#fbf7ee,#efe7d4);color:#2a2a24;
+  font-family:"Boska",Georgia,serif;font-size:1rem;line-height:1.5;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);transform:rotate(-1.2deg);
+  white-space:pre-wrap;overflow-wrap:break-word;
+}
+.ag-widget .ag-fach.is-empty .ag-fach-paper{background:none;box-shadow:none;color:var(--ag-muted);font-style:italic;font-size:.9rem;transform:none;padding:6px 2px}
+.ag-widget .ag-fach-actions{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
+.ag-widget .ag-fach-actions .ag-secondary{min-height:32px;padding:0 12px;font-size:.82rem}
+
+/* ── Mondfenster: tonight's moon in the window, upper left of the capsule ── */
+.ag-widget .ag-moon{
+  position:absolute;left:33%;top:31%;width:10%;aspect-ratio:1;transform:translate(-50%,-50%);
+  z-index:2;pointer-events:none;opacity:0;transition:opacity 1.2s ease;
+}
+.ag-widget .ag-moon svg{width:100%;height:100%;display:block;filter:drop-shadow(0 0 6px rgba(255,246,214,.55))}
+.ag-widget .ag-moon-dark{fill:rgba(255,246,214,.07);stroke:rgba(255,246,214,.15);stroke-width:.6}
+.ag-widget .ag-moon-lit{fill:#fff6d6}
+.ag-widget.is-evening .ag-moon{opacity:.95}
+.ag-widget .ag-moon.is-full svg{filter:drop-shadow(0 0 12px rgba(255,246,214,.9))}
+.ag-widget .ag-moon-line{margin:-4px 0 10px;font-size:.86rem;color:var(--ag-muted);font-style:italic}
+
+/* ── Aufkleber: the reaction stuck on the card ── */
+.ag-widget .ag-result{position:relative}
+.ag-widget .ag-aufkleber-layer{position:absolute;inset:0;pointer-events:none;z-index:3;border-radius:inherit}
+.ag-widget .ag-aufkleber{
+  position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+  font-size:2rem;line-height:1;padding:4px;
+  transform:translate(-50%,-50%) rotate(var(--ag-aufkleber-rot,0deg));
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.35));
+  transition:transform 200ms var(--ag-ease);
+}
+.ag-widget .ag-aufkleber::before{
+  content:"";position:absolute;inset:-2px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,rgba(255,255,255,.95) 55%,rgba(255,255,255,.6) 70%,transparent 72%);
+}
+.ag-widget .ag-aufkleber.is-dragging{cursor:grabbing;transform:translate(-50%,-50%) rotate(var(--ag-aufkleber-rot,0deg)) scale(1.18);filter:drop-shadow(0 10px 10px rgba(0,0,0,.4));transition:none}
+
+/* ── Korkwand: the Lieblinge as pinned polaroids ── */
+.ag-widget .ag-korkwand{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;padding:18px 12px 22px;
+  border-radius:var(--ag-radius-md);
+  background:
+    radial-gradient(circle at 20% 30%,rgba(0,0,0,.08) 0 1px,transparent 2px) 0 0/9px 9px,
+    radial-gradient(circle at 70% 60%,rgba(255,255,255,.06) 0 1px,transparent 2px) 3px 4px/11px 11px,
+    linear-gradient(180deg,#9c7a52,#8a6a45);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),inset 0 2px 12px rgba(0,0,0,.25);
+}
+.ag-widget .ag-korkwand .ag-polaroid{
+  position:relative;padding:10px 10px 14px;border:none;border-radius:2px;
+  background:#fbf8f1;color:#2a2a24;
+  box-shadow:0 6px 14px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.6) inset;
+  transform:rotate(var(--ag-pin-rot,0deg));
+  content-visibility:visible;contain-intrinsic-size:auto;
+  transition:transform 220ms var(--ag-ease),box-shadow 220ms var(--ag-ease);
+}
+.ag-widget .ag-korkwand .ag-polaroid:hover,.ag-widget .ag-korkwand .ag-polaroid:focus-within{transform:rotate(0deg) scale(1.03);z-index:2;box-shadow:0 14px 28px rgba(0,0,0,.45)}
+.ag-widget .ag-korkwand .ag-pin{
+  position:absolute;left:50%;top:-7px;width:14px;height:14px;transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#ffd9d9,#c0392b 60%,#7a1d14);
+  box-shadow:0 2px 3px rgba(0,0,0,.45);z-index:3;
+}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-head{flex-wrap:wrap;gap:4px 6px;margin-bottom:6px}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-date{font-size:.62rem;color:#6b6659;letter-spacing:.04em;order:3;width:100%}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-badge{display:none}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-reaction{font-size:1rem}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-star{color:#b08a3a;padding:0}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-body{flex-direction:column;gap:6px}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-thumb{width:100%;height:auto;aspect-ratio:1;border-radius:2px;max-width:none;flex:none}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-thumb img{width:100%;height:100%;object-fit:cover}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-title{font-family:"Boska",Georgia,serif;font-size:.98rem;color:#2a2a24;line-height:1.25}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-message{font-size:.78rem;color:#514d43;line-height:1.4;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-message p{margin:0}
+.ag-widget .ag-korkwand .ag-polaroid .ag-history-link,.ag-widget .ag-korkwand .ag-polaroid .ag-history-answer-wrap{display:none}
+.ag-polaroid-ghost{
+  position:fixed;z-index:9999;pointer-events:none;border-radius:4px;
+  background:#fbf8f1;box-shadow:0 10px 30px rgba(0,0,0,.45);transform-origin:center;
+  border:8px solid #fbf8f1;border-bottom-width:22px;box-sizing:border-box;
+}
+.ag-polaroid-ghost::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(143,207,158,.5),rgba(47,122,79,.6))}
+
+/* ── Kerze ── */
+.ag-widget .ag-candle{
+  background:none;border:1px solid rgba(255,255,255,.14);border-radius:999px;
+  width:34px;height:34px;padding:0;font-size:1.05rem;line-height:1;cursor:pointer;
+  align-self:flex-start;margin-top:2px;
+  box-shadow:0 0 0 0 rgba(255,200,120,0);transition:box-shadow 400ms ease,transform 200ms var(--ag-ease);
+}
+.ag-widget .ag-candle:hover{transform:translateY(-1px);box-shadow:0 0 16px rgba(255,200,120,.35)}
+.ag-candle-veil{
+  position:fixed;inset:0;z-index:10000;touch-action:none;cursor:pointer;
+  background:radial-gradient(60% 50% at 50% 92%,rgba(255,170,70,.22),rgba(6,10,8,.94) 60%);
+  opacity:0;transition:opacity 900ms ease;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:14px;
+  padding-bottom:calc(72px + var(--ag-safe-bottom,0px));
+}
+.ag-candle-veil.is-lit{opacity:1;animation:ag-candle-room 3.1s ease-in-out infinite}
+@keyframes ag-candle-room{0%,100%{filter:brightness(1)}30%{filter:brightness(1.06)}55%{filter:brightness(.97)}80%{filter:brightness(1.04)}}
+.ag-candle-veil .ag-candle-body{
+  width:26px;height:84px;border-radius:5px 5px 3px 3px;
+  background:linear-gradient(90deg,#f4e9cf,#e6d8b4 50%,#c9b88f);
+  box-shadow:0 10px 20px rgba(0,0,0,.6);position:relative;
+}
+.ag-candle-veil .ag-candle-body::after{content:"";position:absolute;left:50%;top:-8px;width:3px;height:10px;background:#222;transform:translateX(-50%)}
+.ag-candle-veil .ag-flame{
+  width:22px;height:44px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;
+  background:radial-gradient(circle at 50% 70%,#fff8d6 0 18%,#ffcf5a 40%,#ff8c2a 70%,rgba(255,80,20,.1) 100%);
+  box-shadow:0 0 30px rgba(255,180,80,.8),0 0 80px rgba(255,140,40,.45);
+  transform-origin:50% 100%;margin-bottom:-6px;
+  animation:ag-flame 1.3s ease-in-out infinite alternate;
+  transition:transform 500ms ease,opacity 500ms ease;
+}
+@keyframes ag-flame{0%{transform:scale(1,1) rotate(-3deg)}40%{transform:scale(.92,1.08) rotate(2deg)}100%{transform:scale(1.04,.96) rotate(-1deg)}}
+.ag-candle-veil.is-blown .ag-flame{animation:none;transform:translate(calc(var(--ag-blow-x,0) * 60px),calc(var(--ag-blow-y,-1) * 30px)) scale(.3,.5) rotate(calc(var(--ag-blow-x,0) * 50deg));opacity:0}
+.ag-candle-veil.is-blown{opacity:0}
+.ag-candle-veil .ag-candle-hint{margin:0;color:rgba(255,236,190,.7);font-size:.82rem;letter-spacing:.06em;text-transform:uppercase}
+.ag-candle-veil .ag-candle-out{background:none;border:1px solid rgba(255,236,190,.25);color:rgba(255,236,190,.85);border-radius:999px;padding:6px 14px;font-size:.8rem;cursor:pointer}
+@media (prefers-reduced-motion:reduce){
+  .ag-candle-veil.is-lit,.ag-candle-veil .ag-flame,.ag-widget.is-revealing .ag-knob{animation:none}
+}
     `;
 
 export function injectStyles() {

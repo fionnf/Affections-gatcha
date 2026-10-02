@@ -50,9 +50,10 @@ subscribes to **Web Push** under the token `fionn` (same VAPID key as the
 gacha, `config/push.json`; same service worker). From then on a Notfall-Umarmung
 or a wish from Lennart arrives on this phone as a push within five minutes,
 sent by the `notify` job in `push-notify.yml`, whether the page is open or not
-(on iOS the page has to be installed to the home screen for push). The
-foreground poll stays as the instant path while the page is open, and email
-stays the guaranteed one.
+(on iOS the page has to be installed to the home screen for push). A hug is
+sent to every subscribed device, Lennart's own included; a wish to this page
+only, with an email as the guaranteed copy. The foreground poll stays as the
+instant path while the page is open.
 
 ## Build
 

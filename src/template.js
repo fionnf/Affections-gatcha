@@ -141,7 +141,11 @@ function machineSvg() {
           <circle cx="62" cy="148" r="2.4" fill="rgba(255,236,170,.7)"/>
         </g>
         <ellipse cx="140" cy="148" rx="34" ry="46" fill="url(#ag-glass)" opacity=".85"/>
-        <rect x="64" y="266" width="152" height="20" rx="10" fill="rgba(8,28,18,.55)"/>
+        <!-- outlet flap left, knob seat centre, coin slot right -->
+        <rect x="46" y="250" width="58" height="36" rx="9" fill="rgba(8,28,18,.6)" stroke="rgba(255,255,255,.1)"/>
+        <rect x="54" y="258" width="42" height="20" rx="5" fill="rgba(0,0,0,.35)"/>
+        <circle cx="140" cy="268" r="33" fill="rgba(8,28,18,.7)" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+        <rect x="204" y="250" width="40" height="36" rx="9" fill="rgba(8,28,18,.5)" stroke="rgba(255,255,255,.08)"/>
       </svg>
     `;
 }
@@ -162,6 +166,16 @@ export const html = `
                   <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="ag-emoji-orbit" data-ag-emoji-orbit aria-hidden="true"></div>
+                <div class="ag-moon" data-ag-moon hidden></div>
+                <div class="ag-knob" data-ag-knob role="button" tabindex="0" aria-label="Knopf: eine Runde drehen zum Ziehen" title="Eine Runde drehen"></div>
+                <button class="ag-coinslot" type="button" data-ag-coinslot aria-label="Münzschlitz" title="Münzschlitz"></button>
+                <div class="ag-fach" data-ag-fach hidden>
+                  <p class="ag-fach-paper" data-ag-fach-text></p>
+                  <div class="ag-fach-actions">
+                    <button class="ag-secondary" type="button" data-ag-fach-close>Zuschieben</button>
+                    <button class="ag-secondary" type="button" data-ag-fach-keep hidden>Zettel behalten</button>
+                  </div>
+                </div>
               </div>
               <div class="ag-copy">
                 <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>
@@ -356,6 +370,7 @@ export const html = `
                 <button class="ag-streak-restore" data-ag-streak-restore type="button" hidden title="Stelle deinen Streak einmalig wieder her">💎 Streak retten</button>
                 <span class="ag-draw-hint" data-ag-draw-hint></span>
               </div>
+              <button class="ag-candle" type="button" data-ag-candle hidden aria-label="Kerze anzünden" title="Kerze anzünden">🕯️</button>
               <button class="ag-button" type="button" data-ag-draw>
                 <span class="ag-button-orb" aria-hidden="true"></span>
                 <span data-ag-button-text>Kapsel ziehen</span>
@@ -363,6 +378,7 @@ export const html = `
             </div>
 
             <article class="ag-card ag-result" data-ag-result aria-live="polite" hidden>
+              <div class="ag-aufkleber-layer" data-ag-aufkleber aria-hidden="true"></div>
               <div class="ag-milestone" data-ag-milestone hidden>
                 <span data-ag-milestone-text></span>
               </div>
@@ -371,6 +387,7 @@ export const html = `
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
               </div>
+              <p class="ag-moon-line" data-ag-moon-line hidden></p>
               <h2 data-ag-title></h2>
               <div class="ag-message" data-ag-message hidden></div>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
@@ -716,6 +733,12 @@ export const html = `
       <div class="ag-ptr" data-ag-ptr aria-hidden="true"><span class="ag-ptr-icon">↓</span></div>
       <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
       <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
+      <div class="ag-candle-veil" data-ag-candle-veil hidden role="dialog" aria-label="Kerze">
+        <div class="ag-flame" aria-hidden="true"></div>
+        <div class="ag-candle-body" aria-hidden="true"></div>
+        <p class="ag-candle-hint">Zum Ausblasen wischen</p>
+        <button class="ag-candle-out" type="button" data-ag-candle-out>Ausblasen</button>
+      </div>
       <nav class="ag-bottomnav" aria-label="Navigation">
         <div class="ag-nav-pill" aria-hidden="true"></div>
         <button class="ag-bottomnav-btn is-active" type="button" role="tab" aria-selected="true" data-ag-tab="today">

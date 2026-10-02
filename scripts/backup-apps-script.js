@@ -14,7 +14,8 @@
  *   "History"        — one row per history entry, never fully overwritten
  *   "Quests"         — one row per solved quest
  *   "BaerlauchScores"— one row per player, stores best level (upsert)
- *   "Wünsche"        — one row per wish or hug (append-only); triggers email to Fionn.
+ *   "Wünsche"        — one row per wish or hug (append-only); a wish mails Fionn,
+ *                      a hug goes out as a push to every device (push-poll.cjs).
  *                      Columns G/H (Status, StatusAt) hold Fionn's reply to a
  *                      wish, set from the Eingänge; the app shows it to Lennart.
  *   "Gipfelbuch"     — one row per summit entry, upsert by id
@@ -651,15 +652,18 @@ function doPost(e) {
         data.userAgent || ""
       ]);
 
-      try {
-        const subject = isHug
-          ? `🫂 Notfall-Umarmung von ${sender}!`
-          : `💌 Neuer Wunsch von ${sender}`;
-        const body = isHug
-          ? `${sender} braucht gerade eine Umarmung! 🫂\n\n${tsLocal}`
-          : `Neuer Wunsch eingegangen:\n\n„${wishText}"\n\nVon: ${sender}\n${tsLocal}`;
-        MailApp.sendEmail(FIONN_EMAIL, subject, body);
-      } catch (_mailErr) { /* data is safe in sheet */ }
+      // A hug is not an email: the notifier job (push-poll.cjs) reads it off
+      // the push-pending feed and pushes it to every subscribed device. A
+      // wish still mails Fionn as well, since it carries text worth keeping.
+      if (!isHug) {
+        try {
+          MailApp.sendEmail(
+            FIONN_EMAIL,
+            `💌 Neuer Wunsch von ${sender}`,
+            `Neuer Wunsch eingegangen:\n\n„${wishText}"\n\nVon: ${sender}\n${tsLocal}`
+          );
+        } catch (_mailErr) { /* data is safe in sheet */ }
+      }
 
       return jsonOut_({ ok: true });
     }
