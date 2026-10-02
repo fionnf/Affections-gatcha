@@ -200,6 +200,14 @@ Losing the connection ends it (the lamps keep the last flame level). The
 candle in the Heute tab is separate: it dims the app and runs on both lamps
 regardless of the switch (`flickerStep`, `startFlicker` in `src/licht.js`).
 
+**Regenbogen.** The second mode button: the whole palette laid along the
+strip, one light per hue, creeping along it — every 1.6 s the band moves a
+thirty-sixth of the palette and the lamps fade to the new positions, a full
+cycle in about a minute. Brightness stays where it was. Same rules as the
+flicker (the switch's lamps, while connected, back on switching off); the two
+modes take turns, starting one ends the other (`rainbowGroups`,
+`startRainbow` in `src/licht.js`).
+
 **Pulsschlag.** A lamp pill tapped toggles that lamp; pressed and held, both
 lamps beat at a resting pulse — a lub-dub every second — for as long as the
 finger stays, then go back to what they were. Nothing is stored
