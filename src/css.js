@@ -2723,16 +2723,18 @@ body{
 .ag-widget .ag-ink.is-held .ag-ink-ch{opacity:1;text-shadow:none}
 .ag-widget .ag-ink-hint{margin:0 0 8px;font-size:.78rem;color:var(--ag-gold);font-style:italic;opacity:.9}
 
-/* ── Nachtlicht: after 22:00 the orbit is fireflies ────────────────────── */
-.ag-widget.is-evening .ag-emoji{font-size:0;pointer-events:auto;cursor:pointer;padding:12px;margin:-12px;filter:none;opacity:1}
+/* ── Nachtlicht: after 22:00 the orbit emoji keep circling, each with a
+   firefly glow breathing behind it; a tap still drops a word ──────────── */
+.ag-widget.is-evening .ag-emoji{position:absolute;pointer-events:auto;cursor:pointer;opacity:1}
 .ag-widget.is-evening .ag-emoji::after{
-  content:"";display:block;width:7px;height:7px;border-radius:50%;
-  background:#ffe9a0;box-shadow:0 0 10px 4px rgba(255,220,120,.55);
+  content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:50%;z-index:-1;
+  transform:translate(-50%,-50%);
+  background:#ffe9a0;box-shadow:0 0 12px 8px rgba(255,220,120,.45);
   animation:ag-firefly 2.8s ease-in-out infinite;animation-delay:var(--ag-emoji-delay,0s);
 }
 .ag-widget.is-evening .ag-emoji.is-flare::after{animation:ag-flare 900ms ease-out}
-@keyframes ag-firefly{0%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1.15)}}
-@keyframes ag-flare{0%{box-shadow:0 0 14px 8px rgba(255,230,140,.9);transform:scale(1.8)}100%{box-shadow:0 0 10px 4px rgba(255,220,120,.55);transform:scale(1)}}
+@keyframes ag-firefly{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(.8)}40%{opacity:.9;transform:translate(-50%,-50%) scale(1.3)}}
+@keyframes ag-flare{0%{box-shadow:0 0 18px 12px rgba(255,230,140,.9);transform:translate(-50%,-50%) scale(2)}100%{box-shadow:0 0 12px 8px rgba(255,220,120,.45);transform:translate(-50%,-50%) scale(1)}}
 
 /* ── Münzschlitz + Zugeklappt: things that fly into the nav ────────────── */
 .ag-coin,.ag-envelope{position:fixed;z-index:3000;pointer-events:none;font-size:1.8rem;line-height:1;transform:translate(-50%,-50%);will-change:transform,opacity;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))}

@@ -846,8 +846,9 @@ mechanics, none of it load-bearing.
 - **Geheimtinte.** An outcome with `"secret": true` arrives blank; the text
   appears letter by letter while a finger rests on it and fades when it
   lifts. Four capsules carry it. Kopieren and the share still carry the text.
-- **Nachtlicht.** After 22:00 the orbit emoji become fireflies. Tapping one
-  drops a single word (`NACHT_WORTE` in `src/delights.js`).
+- **Nachtlicht.** After 22:00 the orbit emoji keep circling, each with a
+  firefly glow breathing behind it. Tapping one drops a single word
+  (`NACHT_WORTE` in `src/delights.js`).
 - **Münzschlitz.** Redeeming a full Token-Bank bar drops the token as a coin
   into the Heute icon in the nav — the machine's stand-in on the Verlauf
   tab — with a clink, a haptic and a short lamp flash.
