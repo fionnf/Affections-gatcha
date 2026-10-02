@@ -162,7 +162,6 @@ export const html = `
                   <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="ag-emoji-orbit" data-ag-emoji-orbit aria-hidden="true"></div>
-                <div class="ag-moon" data-ag-moon hidden></div>
               </div>
               <div class="ag-copy">
                 <p class="ag-kicker" data-ag-kicker>Einmal pro Tag</p>

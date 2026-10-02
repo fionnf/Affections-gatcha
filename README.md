@@ -885,10 +885,9 @@ mechanics, none of it load-bearing.
   rattles. The label under it carries the old button's words (*Kapsel
   ziehen*, the loading steps, *Heute nochmal anzeigen*) and still works as
   a plain tap; the capsule hold works too.
-- **Mondfenster** (`src/mond.js`). After 22:00 the real moon hangs in the
-  window, upper left of the capsule, computed from the mean lunation (shape)
-  and Meeus' full-moon instants (exact day). A full-moon day gets one extra
-  line on the card above the title (`fullMoonLine`).
+- **Vollmond** (`src/mond.js`). A full-moon day gets one extra line on the
+  card above the title (`fullMoonLine`); the day comes from Meeus' full-moon
+  instants, computed, not fetched.
 - **Aufkleber** (`src/aufkleber.js`). The reaction is a sticker: tap 🥹 😂 🙃
   under the card and it peels off the row onto the card, top right, at a
   tilt; drag it anywhere and it stays there (per day, local,

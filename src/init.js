@@ -1,6 +1,5 @@
 // ── App initialisation ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { renderMoon } from "./mond.js";
 import { isCandleHour } from "./kerze.js";
 import { getToken, dateKeyInTimezone, getPreviewDay, registerVoucherTitles } from "./utils.js";
 import { readHistory } from "./storage.js";
@@ -157,8 +156,7 @@ export function applyEveningMode(timezone) {
     const { h } = hmInTimezone(timezone || "UTC");
     const evening = h >= 22 || h < 5;
     mount.classList.toggle("is-evening", evening);
-    // Tonight's moon in the window; the candle beside the draw button.
-    renderMoon(mount.querySelector("[data-ag-moon]"), { evening });
+    // The candle beside the draw button.
     const candle = mount.querySelector("[data-ag-candle]");
     if (candle) candle.hidden = !isCandleHour(h);
     const kicker = mount.querySelector("[data-ag-kicker]");

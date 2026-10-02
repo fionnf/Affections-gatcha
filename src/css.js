@@ -2882,16 +2882,7 @@ body{
 .ag-widget .ag-knob-label[disabled] span:after{content:"...";display:inline-block;width:1.2em;text-align:left}
 .ag-widget .ag-draw-card{justify-content:space-between}
 
-/* ── Mondfenster: tonight's moon in the window, upper left of the capsule ── */
-.ag-widget .ag-moon{
-  position:absolute;left:33%;top:31%;width:10%;aspect-ratio:1;transform:translate(-50%,-50%);
-  z-index:2;pointer-events:none;opacity:0;transition:opacity 1.2s ease;
-}
-.ag-widget .ag-moon svg{width:100%;height:100%;display:block;filter:drop-shadow(0 0 6px rgba(255,246,214,.55))}
-.ag-widget .ag-moon-dark{fill:rgba(255,246,214,.07);stroke:rgba(255,246,214,.15);stroke-width:.6}
-.ag-widget .ag-moon-lit{fill:#fff6d6}
-.ag-widget.is-evening .ag-moon{opacity:.95}
-.ag-widget .ag-moon.is-full svg{filter:drop-shadow(0 0 12px rgba(255,246,214,.9))}
+/* ── Vollmond: the line on the card ── */
 .ag-widget .ag-moon-line{margin:-4px 0 10px;font-size:.86rem;color:var(--ag-muted);font-style:italic}
 
 /* ── Aufkleber: the reaction stuck on the card ── */
