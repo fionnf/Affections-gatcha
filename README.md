@@ -172,8 +172,33 @@ connecting" forever. The status says *verbunden · keine Lampe antwortet* when
 the broker is there but no board has echoed — a lamp that is unplugged looks
 like that. No broker, no lamps: the tab says so and nothing else notices.
 
-**Alle Einstellungen ›** opens `lichter.html` for the rest — alarms, groups,
-Wi-Fi, reboot. That page is **vendored** from
+The second row of controls: a **Beide / Fionn / Lennart** switch that scopes
+every change to one lamp or both, the lamp pills themselves toggle that lamp,
+a **Übergang** slider for the fade (steps/60 = seconds), a 🎲 that throws two
+to four random tints across the strip, the palette bar takes a drag as well
+as a tap, and **So wie jetzt — als Szene sichern** writes the current state
+into the shared scene library (the retained scenes topic, same merge rules
+as the lights page, sent as `gacha_app` so that page does not drop it as its
+own copy).
+
+**Pulsschlag.** A lamp pill tapped toggles that lamp; pressed and held, both
+lamps beat at a resting pulse — a lub-dub every second — for as long as the
+finger stays, then go back to what they were. Nothing is stored
+(`heartbeatCycle`, `startPulse`, `stopPulse`).
+
+**🥁 Rhythmus an Fionn.** A pad takes a tapped rhythm (up to fourteen taps);
+after a pause of 1.6 s it plays on Fionn's lamp as brightness pulses in the
+lamp's own colour, then the lamp goes back to what it was (`morseSteps`).
+
+**🌅 Sonnenaufgang.** A friendlier front for the firmware's alarms: a time, a
+day preset (Mo–Fr, täglich, Sa+So) and an on/off, scoped to the lamps the
+Beide / Fionn / Lennart switch names. It manages exactly one entry in the
+retained alarm list, tagged `gacha: "sunrise"`, and leaves every alarm set on
+the lights page alone; twenty minutes from deep red to warm white, as the
+firmware's sunrise type does it (`sunriseAlarm`, `setSunrise`).
+
+**Alle Einstellungen ›** opens `lichter.html` for the rest — alarms in full,
+groups, Wi-Fi, reboot. That page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)
 (branch `master`) by `scripts/vendor-lights-ui.py`, which re-applies the local
 changes it needs: this app's favicon and apple-touch-icon, a ‹ back control,
@@ -791,6 +816,56 @@ recorded the ping, and the app never read the flag.)
 
 ---
 
+## Kleine Freuden
+
+Small things that make the machine feel alive. All decoration and tiny
+mechanics, none of it load-bearing.
+
+- **Kapsel-Wetter** (`src/wetter.js`). The machine knows the sky at pull time:
+  Open-Meteo for the coordinates in `config/theme.json` → `weather`, no key,
+  cached half an hour, fetched on load and again as the capsule falls. The
+  temperature and an emoji go onto the history entry (`weather: {t, c, e}`,
+  local only — the sheet has no column, so the sync keeps the local value) and
+  show on the card's date line and in Verlauf: *Fr, 2. Okt. · 4° 🌧*. The
+  hero reacts: rain streaks, snow drifting, fog, a flash of lightning in a
+  storm, all over the machine, not the title.
+- **Geheimtinte.** An outcome with `"secret": true` arrives blank; the text
+  appears letter by letter while a finger rests on it and fades when it
+  lifts. Four capsules carry it. Kopieren and the share still carry the text.
+- **Nachtlicht.** After 22:00 the orbit emoji become fireflies. Tapping one
+  drops a single word (`NACHT_WORTE` in `src/delights.js`).
+- **Münzschlitz.** Redeeming a full Token-Bank bar drops the token as a coin
+  into the Heute icon in the nav — the machine's stand-in on the Verlauf
+  tab — with a clink, a haptic and a short lamp flash.
+- **Umarmungs-Zähler.** Every Notfall-Umarmung ever sent, as a row of small
+  hearts at the bottom of Verlauf, counted locally at send time and unioned
+  with the sheet on sync (`hugs` in the GET answer). A tap on a heart says
+  when. Grows forever, never resets.
+- **Lieblingswort.** Long-press a word in a capsule to lift it into the
+  Glossar, on its own **Kapsel** shelf, with the capsule's title and date as
+  its meaning.
+- **Zugeklappt.** Leaving the Heute tab after a pull folds the card into an
+  envelope that flies into the Verlauf icon. Once per capsule.
+- **Flaschenpost.** Under the Wunschkapsel: a line Lennart writes to
+  himself, sealed with *in 30 Tagen* or *irgendwann* (twenty to ninety days,
+  fixed per post, never shown). On the due day it comes out of the machine
+  as the day's capsule — *Post von dir selbst*, tone warm — instead of the
+  draw; a special day wins and the post waits a day, a Freikarte reroll never
+  produces one, and a post is delivered once. Kept locally and in the Backup
+  row's seventh column (`flaschenpost`), unioned by id on sync, so a new phone
+  has them too (`sealFlaschenpost`, `dueFlaschenpost` in `src/storage.js`).
+- **Lampen-Echo.** The emoji he taps under the card has a colour — 🥹 violet,
+  😂 gold, 🙃 green — and Fionn's lamp shows it for ten seconds, breathing
+  twice, then goes back (`flashReactionOnLamp` in `src/lightsFx.js`).
+- **Pfand.** A Niete card can be dragged upward, into the machine (the handle
+  under the text; a plain tap arms a two-tap confirm instead). The capsule
+  flies in, the machine gulps, and every tenth returned capsule pays a 🛁
+  token (`PFAND_EVERY`, `PFAND_TOKEN` in `src/constants.js`). The count shows
+  on the handle and in the Token-Bank head; each day returns once (`pfand`
+  on the entry, local only, kept on sync).
+
+---
+
 ## Sending results
 
 The **An Fionn schicken** button opens a pre-filled message. Configure in `config/theme.json`:
@@ -830,7 +905,7 @@ All worksheets are created on first use — none need to exist beforehand.
 
 | Worksheet | Contents |
 |---|---|
-| `Backup` | Per-player snapshot: favourites, streak, tokens, quest points |
+| `Backup` | Per-player snapshot: favourites, streak, tokens, quest points, Flaschenposten |
 | `History` | One row per gacha pull |
 | `Wünsche` | Wunschkapsel submissions and hugs (emails Fionn); `Status` / `StatusAt` hold Fionn's reply |
 | `PromptAnswers` | Answers to outcome questions (emails Fionn) |

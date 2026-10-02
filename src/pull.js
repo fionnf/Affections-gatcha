@@ -1,7 +1,8 @@
 // ── Pull building ─────────────────────────────────────────────────────────────
 import { state, $ } from "./state.js";
 import { getToken, seededIndex, getPreviewDay, getPreviewCategory, dateKeyInTimezone, isVoucherEntry } from "./utils.js";
-import { readHistory, readFreikarteReroll } from "./storage.js";
+import { readHistory, readFreikarteReroll, dueFlaschenpost } from "./storage.js";
+import { formatHistoryDate } from "./utils.js";
 import { computeStreak, pickWeightedWithStreak } from "./streak.js";
 
 export function checkSpecialDay(day) {
@@ -128,6 +129,28 @@ export function buildPullForDay(day, streak, opts = {}) {
   // The day's record, if it was already opened. It pins the category below,
   // and the outcome further down.
   const drawn = !seedSuffix ? readHistory().find((e) => e.token === token && e.day === day) : null;
+
+  // A Flaschenpost that is due comes out instead of the day's draw — a line
+  // he wrote to himself, back on a day he does not know. A special day wins
+  // and the post waits one more day; a Freikarte reroll never produces one.
+  // A post that became due after today's capsule was opened (a sync landed
+  // late, a second phone) must not replace what was recorded: the drawn
+  // day wins, and the post comes out tomorrow.
+  const post = !seedSuffix && (!drawn || drawn.categoryId === "flaschenpost") ? dueFlaschenpost(day) : null;
+  if (post) {
+    const when = post.mode === "30" ? "in 30 Tagen" : "irgendwann";
+    return {
+      day, token,
+      category: { id: "flaschenpost", label: "Flaschenpost 🍾", weight: 0, tone: "warm", outcomes: [] },
+      outcome: {
+        title: "Post von dir selbst",
+        message: `Versiegelt am ${formatHistoryDate(post.createdDay)}, mit „${when}“ drauf. Heute ist ${post.mode === "30" ? "der dreissigste Tag" : "irgendwann"}.\n\n„${post.text}“`
+      },
+      photo: null, collectToken: null, voucher: false, freikarte: false,
+      flaschenpost: post.id
+    };
+  }
+
 
   let category;
   if (rerollRecord) {

@@ -13,6 +13,7 @@
   },
   "secret": "lennart-fionn-gruene-souvenir-gacha-maschine-2026",
   "timezone": "Europe/Zurich",
+  "weather": { "latitude": 47.3769, "longitude": 8.5417, "place": "Zürich" },
   "dayStartHour": 4,
   "tokenParam": "token",
   "messageTarget": "https://wa.me/+41778089500?text={text}",

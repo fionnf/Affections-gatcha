@@ -278,6 +278,7 @@ export const html = `
                 <button class="ag-glossary-tab" type="button" data-lang="portuguese">Português</button>
                 <button class="ag-glossary-tab" type="button" data-lang="irish">Gaeilge</button>
                 <button class="ag-glossary-tab" type="button" data-lang="deutsch-slang">Deutsch Slang</button>
+                <button class="ag-glossary-tab" type="button" data-lang="kapsel">Kapsel</button>
               </div>
             </div>
             <div class="ag-glossary-search-wrap">
@@ -383,6 +384,10 @@ export const html = `
                 </div>
                 <input type="file" accept="image/*" data-ag-beweis-file hidden />
               </div>
+              <div class="ag-pfand" data-ag-pfand hidden>
+                <button class="ag-pfand-handle" type="button" data-ag-pfand-handle>♻︎ Leere Kapsel zurückgeben <span class="ag-pfand-count" data-ag-pfand-count></span></button>
+                <p class="ag-pfand-hint">Nach oben in die Maschine ziehen — jede zehnte zahlt ein Token</p>
+              </div>
               <div class="ag-freikarte-wrap" data-ag-freikarte-wrap hidden>
                 <p class="ag-freikarte-hint">🎟️ Du hast eine Freikarte. Nochmal ziehen?</p>
                 <button class="ag-secondary ag-freikarte-btn" type="button" data-ag-freikarte-redeem>Freikarte einlösen</button>
@@ -446,6 +451,27 @@ export const html = `
                 <p class="ag-wish-label" data-ag-wish-done-title></p>
                 <p class="ag-wish-note" data-ag-wish-done-note></p>
                 <p class="ag-wish-meta" data-ag-wish-done-meta></p>
+              </div>
+              <div class="ag-post" data-ag-post>
+                <div class="ag-post-idle" data-ag-post-idle>
+                  <button class="ag-secondary" type="button" data-ag-post-open>🍾 Flaschenpost an dich selbst</button>
+                  <p class="ag-post-count" data-ag-post-count hidden></p>
+                </div>
+                <div class="ag-post-form" data-ag-post-form hidden>
+                  <p class="ag-wish-label">Eine Zeile an dich, später</p>
+                  <textarea class="ag-wish-input" data-ag-post-input rows="3" maxlength="280" placeholder="Was du dir in ein paar Wochen sagen willst…"></textarea>
+                  <div class="ag-post-modes" role="radiogroup" aria-label="Wann">
+                    <button type="button" class="ag-post-mode is-active" data-ag-post-mode="30" role="radio" aria-checked="true">in 30 Tagen</button>
+                    <button type="button" class="ag-post-mode" data-ag-post-mode="irgendwann" role="radio" aria-checked="false">irgendwann</button>
+                  </div>
+                  <div class="ag-wish-actions">
+                    <button class="ag-secondary" type="button" data-ag-post-cancel>Abbrechen</button>
+                    <button class="ag-button" type="button" data-ag-post-seal>
+                      <span class="ag-button-orb" aria-hidden="true"></span>
+                      <span>Versiegeln</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -518,6 +544,10 @@ export const html = `
               </summary>
               <div class="ag-album-grid" data-ag-album></div>
             </details>
+            <div class="ag-hugs" data-ag-hugs hidden>
+              <span class="ag-hugs-label" data-ag-hugs-label></span>
+              <div class="ag-hugs-row" data-ag-hugs-row></div>
+            </div>
           </section>
           <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
             <div class="ag-card">
@@ -598,6 +628,11 @@ export const html = `
                 <button class="ag-licht-conn" type="button" data-ag-licht-conn data-state="idle"></button>
               </div>
               <div class="ag-licht-strip" data-ag-licht-strip aria-hidden="true"></div>
+              <div class="ag-licht-target" data-ag-licht-target role="radiogroup" aria-label="Welche Lampe">
+                <button type="button" class="is-active" data-target="" role="radio" aria-checked="true">Beide</button>
+                <button type="button" data-target="board_a" role="radio" aria-checked="false">Fionn</button>
+                <button type="button" data-target="board_b" role="radio" aria-checked="false">Lennart</button>
+              </div>
               <div class="ag-licht-row">
                 <button class="ag-licht-power" type="button" data-ag-licht-power aria-pressed="false" disabled>Aus</button>
                 <label class="ag-licht-slider">
@@ -606,13 +641,44 @@ export const html = `
                 </label>
               </div>
               <div class="ag-licht-palette" data-ag-licht-palette role="slider" tabindex="0" aria-label="Farbe" aria-valuemin="0" aria-valuemax="29" aria-valuenow="0"></div>
+              <div class="ag-licht-row">
+                <button class="ag-licht-random" type="button" data-ag-licht-random disabled title="Zufällige Farben">🎲</button>
+                <label class="ag-licht-slider">
+                  <span>Übergang <em data-ag-licht-fade-val>1,0 s</em></span>
+                  <input type="range" min="10" max="600" value="60" data-ag-licht-fade aria-label="Übergang" disabled>
+                </label>
+              </div>
               <div class="ag-licht-moods" data-ag-licht-moods></div>
+              <div class="ag-licht-save" data-ag-licht-save>
+                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="So wie jetzt — als Szene sichern…" maxlength="32" autocomplete="off" disabled>
+                <button class="ag-secondary" type="button" data-ag-licht-scene-save disabled>Sichern</button>
+              </div>
               <div class="ag-licht-scenes" data-ag-licht-scenes hidden>
                 <p class="ag-licht-label">Gespeicherte Szenen</p>
                 <div class="ag-licht-scene-list" data-ag-licht-scene-list></div>
               </div>
               <div class="ag-licht-foot">
                 <button class="ag-secondary" type="button" data-ag-licht-wink disabled>👋 Fionns Lampe winken</button>
+                <button class="ag-secondary" type="button" data-ag-licht-morse-open disabled>🥁 Rhythmus an Fionn</button>
+              </div>
+              <div class="ag-morse" data-ag-morse hidden>
+                <button class="ag-morse-pad" type="button" data-ag-morse-pad><span>Tipp einen Rhythmus</span><small>Fionns Lampe blinkt ihn nach · nach einer Pause geht er los</small></button>
+                <div class="ag-morse-dots" data-ag-morse-dots aria-hidden="true"></div>
+              </div>
+              <div class="ag-sunrise" data-ag-sunrise>
+                <div class="ag-sunrise-row">
+                  <span class="ag-sunrise-title">🌅 Sonnenaufgang</span>
+                  <input class="ag-sunrise-time" type="time" value="07:00" data-ag-sunrise-time aria-label="Uhrzeit" disabled>
+                  <select class="ag-sunrise-days" data-ag-sunrise-days aria-label="Tage" disabled>
+                    <option value="werktags">Mo–Fr</option>
+                    <option value="taeglich">täglich</option>
+                    <option value="wochenende">Sa+So</option>
+                  </select>
+                  <button class="ag-sunrise-toggle" type="button" data-ag-sunrise-toggle aria-pressed="false" disabled>aus</button>
+                </div>
+                <p class="ag-sunrise-note" data-ag-sunrise-note>Zwanzig Minuten von tiefem Rot zu Warmweiss, auf den Lampen, die oben gewählt sind.</p>
+              </div>
+              <div class="ag-licht-foot ag-licht-foot-single">
                 <a class="ag-secondary ag-link" href="./lichter.html">Alle Einstellungen ›</a>
               </div>
               <p class="ag-licht-note">Beide Lampen hängen am selben Draht: was du hier stellst, sieht Fionn bei sich. Alarme, Gruppen, WLAN und Neustart wohnen auf der grossen Seite.</p>

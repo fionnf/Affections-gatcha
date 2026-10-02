@@ -30,6 +30,11 @@ export function setHistoryFilter(value) {
 
 import { escapeHtml as escHtml, formatHistoryDate } from "./utils.js";
 import { armConfirm } from "./confirm.js";
+import { weatherText } from "./wetter.js";
+import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
+import { addGlossaryWord } from "./glossary.js";
+import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
+import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
 import { haptic } from "./haptic.js";
 export { escHtml };
 
@@ -154,6 +159,8 @@ export function renderEmojiOrbit() {
     span.style.setProperty("--ag-emoji-duration", `${duration.toFixed(2)}s`);
     span.style.setProperty("--ag-emoji-delay", `${delay.toFixed(2)}s`);
     span.style.setProperty("--ag-emoji-direction", direction === 1 ? "normal" : "reverse");
+    // After 22:00 the orbit is fireflies; tapping one drops a word.
+    bindFirefly(span);
     orbit.appendChild(span);
   });
 }
@@ -198,6 +205,32 @@ export function renderStreakRestore() {
     gems.title = `${left} Streak-Retter in der Bank — springt ein, wenn mal ein Tag fehlt`;
     gems.setAttribute("aria-label", gems.title);
   }
+}
+
+// ── Umarmungs-Zähler ─────────────────────────────────────────────────────────
+// Every Notfall-Umarmung ever sent, as a row of small hearts at the bottom of
+// Verlauf. Grows forever, never resets. A tap on a heart says when.
+export function renderHugHearts() {
+  const wrap = $("[data-ag-hugs]");
+  const row = $("[data-ag-hugs-row]");
+  const label = $("[data-ag-hugs-label]");
+  if (!wrap || !row || !label) return;
+  const log = readHugLog();
+  wrap.hidden = !log.length;
+  if (!log.length) return;
+  const first = log[0].slice(0, 10);
+  label.textContent = `${log.length} ${log.length === 1 ? "Umarmung" : "Umarmungen"} seit ${formatHistoryDate(first)}`;
+  row.innerHTML = log.slice(-120).map((ts) => `<button type="button" class="ag-hug-heart" data-ts="${escHtml(ts)}" aria-label="Umarmung">♥</button>`).join("");
+  row.onclick = (ev) => {
+    const b = ev.target.closest("[data-ts]");
+    if (!b) return;
+    const d = new Date(b.dataset.ts);
+    let when = b.dataset.ts.slice(0, 10);
+    try { when = new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: state.theme?.timezone || "UTC" }).format(d); } catch (_e) {}
+    b.classList.add("is-flare");
+    setTimeout(() => b.classList.remove("is-flare"), 700);
+    showToast(`🫂 Umarmung am ${when}`);
+  };
 }
 
 // ── Fionn's reply on a wish ──────────────────────────────────────────────────
@@ -570,7 +603,8 @@ export function renderTokenInto(container, pull) {
         </button>
       </div>`;
     container.hidden = false;
-    container.querySelector("#ag-token-redeem").addEventListener("click", () => {
+    container.querySelector("#ag-token-redeem").addEventListener("click", (ev) => {
+      dropCoin(t, ev.currentTarget);
       redeemToken(t);
       container.innerHTML = `<p style="text-align:center;padding:12px;opacity:0.7;font-size:0.9rem">✅ Eingelöst! Fionn wurde informiert.</p>`;
       renderTokenBank();
@@ -617,11 +651,13 @@ export function renderTokenBank() {
   const head = $("[data-ag-tokenbank-head]");
   if (head) {
     const rest = hidden ? ` · ${hidden} ${hidden === 1 ? "Sorte" : "Sorten"} noch unentdeckt` : "";
-    head.textContent = total === 0
+    const pf = pfandProgress(readPfand().count);
+    const pfand = pf.inCycle || readPfand().count ? ` · Pfand ${pf.inCycle}/${pf.every}` : "";
+    head.textContent = (total === 0
       ? "Noch keine Sammeltokens — sie fallen bei etwa jeder fünften Kapsel."
       : ready
         ? `${total} Tokens · ${ready} ${ready === 1 ? "Belohnung" : "Belohnungen"} einlösbar${rest}`
-        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt${rest}`;
+        : `${total} ${total === 1 ? "Token" : "Tokens"} gesammelt${rest}`) + pfand;
   }
 
   wrap.innerHTML = "";
@@ -642,6 +678,7 @@ export function renderTokenBank() {
       btn.className = "ag-tokenrow-redeem";
       btn.textContent = "Einlösen";
       btn.addEventListener("click", () => {
+        dropCoin(t.emoji, btn);
         redeemToken(t.emoji);
         haptic([12, 30, 12]);
         showToast(`${t.emoji} eingelöst — Fionn weiss Bescheid`);
@@ -897,18 +934,69 @@ export function renderPull(pull) {
   mount.dataset.tone = pull.category.tone;
   setCapsuleTone(pull.category.tone);
   $("[data-ag-rarity]").textContent = pull.category.label;
-  $("[data-ag-date]").textContent = formatCardDate(pull.day);
+  // The weather the capsule fell under: on the pull while it is fresh, on
+  // the history entry on every later look.
+  const rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
+  const weather = pull.weather || (rec && rec.weather) || null;
+  const wText = weatherText(weather);
+  $("[data-ag-date]").textContent = wText ? `${formatCardDate(pull.day)}\u2009·\u2009${wText}` : formatCardDate(pull.day);
   $("[data-ag-title]").textContent = pull.outcome.title;
   const msgEl = $("[data-ag-message]");
   if (!msgEl) return;
   msgEl.innerHTML = formatMsg(pull.outcome.message);
   msgEl.hidden = false;
+  // Geheimtinte: the text appears under a resting finger, letter by letter.
+  setupInk(msgEl, pull.outcome.secret === true);
+  // Lieblingswort: a long press lifts a word out of the capsule into the Glossar.
+  bindWordSave(msgEl, (word) => {
+    const p = state.todaysPull || pull;
+    addGlossaryWord({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      lang: "kapsel", word,
+      meaning: `Aus der Kapsel „${p.outcome.title}“, ${formatHistoryDate(p.day)}`,
+      audioUrl: null, token: getToken()
+    });
+    try { haptic([12, 30, 12]); } catch (_e) {}
+    showToast(`„${word}“ ins Glossar gelegt 📖`);
+  });
   const resultEl = $("[data-ag-result]");
+
+  // Pfand: a Niete can be returned to the machine, once; every tenth pays.
+  const pfandWrap = $("[data-ag-pfand]");
+  if (pfandWrap) {
+    const returned = !!(rec && rec.pfand);
+    const show = pull.category.id === "niete" && !getPreviewDay() && !returned;
+    pfandWrap.hidden = !show;
+    const handle = $("[data-ag-pfand-handle]");
+    const countEl = $("[data-ag-pfand-count]");
+    if (countEl) {
+      const p = pfandProgress(readPfand().count);
+      countEl.textContent = `${p.inCycle}/${p.every}`;
+    }
+    if (show && handle) {
+      bindPfandDrag(handle, $("[data-ag-result]"), () => {
+        if (!markPfand(pull.day, pull.token)) return;
+        const result = addPfand();
+        flyCapsuleIntoMachine(handle);
+        pfandWrap.hidden = true;
+        if (result.earned) {
+          try { addToken(PFAND_TOKEN); } catch (_e) {}
+          try { triggerConfetti(70); } catch (_e) {}
+          showToast(`♻︎ Zehn leere Kapseln zurück — ein ${PFAND_TOKEN} dafür`);
+          renderTokenBank();
+        } else {
+          showToast(`♻︎ Pfand ${result.inCycle}/${PFAND_EVERY} — die Maschine nickt`);
+        }
+        backupToSheets();
+      });
+    }
+  }
 
   const freikarteWrap = $("[data-ag-freikarte-wrap]");
   if (freikarteWrap) {
     const isBadPull = pull.category.tone === "quiet" || pull.category.tone === "cursed";
-    freikarteWrap.hidden = !(isBadPull && freikarteCount(pull.token) > 0 && !getPreviewDay());
+    const inMachine = !!(rec && rec.pfand);   // returned as Pfand: no reroll of a capsule that is gone
+    freikarteWrap.hidden = !(isBadPull && !inMachine && freikarteCount(pull.token) > 0 && !getPreviewDay());
   }
 
   // Beweisstück: a quest capsule gets an end state. Visibility keys off the
@@ -1166,6 +1254,8 @@ export function renderPull(pull) {
         const emoji = btn.dataset.agReact;
         if (!setReaction(pull.day, pull.token, emoji)) return;
         _fireReactionNotification(pull, emoji);
+        // Fionn's lamp shows the reaction's colour for ten seconds.
+        if (!getPreviewDay()) import("./lightsFx.js").then((m) => m.flashReactionOnLamp(emoji)).catch(() => {});
         backupToSheets();
         try { haptic([12, 30, 18]); } catch (_e) {}
         renderPull(pull);
@@ -1263,6 +1353,8 @@ export function toggleFavorite(pull) {
 
 export function recordHistoryEntry(pull) {
   if (!pull) return;
+  // A Flaschenpost that came out today is delivered — it never comes again.
+  if (pull.flaschenpost) { try { markFlaschenpostDelivered(pull.flaschenpost, pull.day); } catch (_e) {} }
   const entry = {
     day: pull.day,
     token: pull.token,
@@ -1283,6 +1375,8 @@ export function recordHistoryEntry(pull) {
         }
       : null,
     voucher: pull.voucher || false,
+    weather: pull.weather || null,
+    flaschenpost: pull.flaschenpost || null,
     revealedAt: Date.now()
   };
   const existing = readHistory();
@@ -1359,7 +1453,8 @@ export function renderHistoryItemEl(entry) {
   head.className = "ag-history-head";
   const date = document.createElement("span");
   date.className = "ag-history-date";
-  date.textContent = formatHistoryDate(entry.day);
+  const wt = weatherText(entry.weather);
+  date.textContent = wt ? `${formatHistoryDate(entry.day)}\u2009·\u2009${wt}` : formatHistoryDate(entry.day);
   const badge = document.createElement("span");
   badge.className = "ag-history-badge";
   badge.textContent = entry.categoryLabel || "Kapsel";
@@ -1808,6 +1903,7 @@ export function renderHistory() {
   renderKapselKalender(allEntries);
   renderHistoryTally(allEntries);
   renderFerien();
+  renderHugHearts();
   renderTrophyShelf(allEntries);
   renderPulledAlbum(allEntries);
 
@@ -1928,7 +2024,17 @@ function wishMetaText(remoteStatus) {
   return baseline;
 }
 
+// How many Flaschenposten are still sealed, under the Wunschkapsel.
+export function renderFlaschenpost() {
+  const el = $("[data-ag-post-count]");
+  if (!el) return;
+  const open = readFlaschenpost().filter((p) => !p.deliveredDay).length;
+  el.hidden = !open;
+  el.textContent = open === 1 ? "🍾 Eine Flaschenpost ist unterwegs." : `🍾 ${open} Flaschenposten sind unterwegs.`;
+}
+
 export function renderWunschkapsel() {
+  renderFlaschenpost();
   const idle = $("[data-ag-wish-idle]");
   const form = $("[data-ag-wish-form]");
   const done = $("[data-ag-wish-done]");

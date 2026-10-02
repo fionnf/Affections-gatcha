@@ -1,7 +1,9 @@
 // ── Events / UI wiring ────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, formatHistoryDate } from "./utils.js";
-import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll } from "./storage.js";
+import { readHistory, writeHistory, writeWish, readWish, addToken, addFreikarte, spendFreikarte, writeFreikarteReroll, addHugToLog, sealFlaschenpost } from "./storage.js";
+import { fetchWeather, weatherForEntry } from "./wetter.js";
+import { foldCardIntoVerlauf } from "./delights.js";
 import { computeStreak, streakRestoreAvailable, streakRestoresLeft, birthdayBonusLeft, streakRestoreGapDay, restoreStreak, addVacation } from "./streak.js";
 import { buildPull, rerollPullForDay } from "./pull.js";
 import { playPullSound } from "./sound.js";
@@ -31,6 +33,10 @@ export { showToast } from "./toast.js";
 import { showToast } from "./toast.js";
 
 export function setActiveTab(tab) {
+  // Leaving the card: it folds into an envelope that flies into Verlauf.
+  if (state.activeTab === "today" && tab !== "today" && state.revealed && state.todaysPull && !getPreviewDay()) {
+    try { foldCardIntoVerlauf(state.todaysPull); } catch (_e) {}
+  }
   state.activeTab = tab;
   const tabs = mount.querySelectorAll("[data-ag-tab]");
   tabs.forEach((node) => {
@@ -105,8 +111,9 @@ export function sendHugToInbox() {
   const config = state.wishInbox;
   const button = $("[data-ag-hug-send]");
   const message = "🫂 Notfall-Umarmung gebraucht";
+  const sentAt = new Date().toISOString();
   const payload = {
-    timestamp: new Date().toISOString(),
+    timestamp: sentAt,
     token: getToken(),
     type: "hug",
     event: "hug",
@@ -130,7 +137,10 @@ export function sendHugToInbox() {
   setHugStatus("Stups wird gesendet…", "pending");
 
   const body = JSON.stringify(payload);
+  let logged = false;
   const onSuccess = () => {
+    // Counted once it went through — a retry after a failure is the same hug.
+    if (!logged) { logged = true; try { addHugToLog(sentAt); } catch (_e) {} }
     setHugStatus("Fionn wurde angestupst 🫂", "ok");
     if (button) {
       window.setTimeout(() => { button.disabled = false; }, 4000);
@@ -527,6 +537,8 @@ export function reveal() {
 
   mount.classList.add("is-revealing");
   button.disabled = true;
+  // The sky at pull time — the fetch has five seconds of fall to land in.
+  if (!getPreviewDay()) fetchWeather().catch(() => {});
   buttonText.textContent = steps[stepIndex];
   const stepTimer = window.setInterval(() => {
     stepIndex = Math.min(stepIndex + 1, steps.length - 1);
@@ -573,6 +585,12 @@ export function reveal() {
     if (state.todaysPull.freikarte && !alreadyRecordedToday) {
       addFreikarte(state.todaysPull.token);
     }
+    // The sky goes onto the pull before the card is drawn, so the date line
+    // carries it from the first paint, and onto the record a moment later.
+    if (!getPreviewDay()) {
+      const w = weatherForEntry(state.weather);
+      if (w && !state.todaysPull.weather) state.todaysPull.weather = w;
+    }
     renderPull(state.todaysPull);
     mount.classList.remove("is-revealing");
     mount.classList.add("is-revealed");
@@ -581,6 +599,8 @@ export function reveal() {
     buttonText.textContent = state.theme.brand.buttonShown;
     state.revealed = true;
     if (!getPreviewDay()) recordHistoryEntry(state.todaysPull);
+    // A Flaschenpost that just came out is no longer "unterwegs".
+    if (state.todaysPull.flaschenpost) renderWunschkapsel();
     updateAppBadge();
     scheduleStreakWarning();
     const streak = computeStreak();
@@ -654,16 +674,9 @@ export function bindEvents() {
     haptic(12);
     reveal();
   });
-  // Shake to draw — only while today's capsule is still in the machine, so a
-  // bumpy tram ride after the pull cannot re-run the reveal. Tilt feeds the
-  // foil sheen on rare/jackpot cards via two custom properties.
+  // Tilt feeds the foil sheen on rare/jackpot cards via two custom
+  // properties. (Shake-to-draw lived here too; removed on request.)
   initMotion({
-    onShake: () => {
-      if (mount.classList.contains("has-drawn") || mount.classList.contains("is-revealing")) return;
-      if (getPreviewDay()) return;
-      haptic(12);
-      reveal();
-    },
     onTilt: (x, y) => {
       mount.style.setProperty("--ag-foil-x", x.toFixed(1) + "%");
       mount.style.setProperty("--ag-foil-y", y.toFixed(1) + "%");
@@ -1312,6 +1325,47 @@ export function bindEvents() {
     hugSend.addEventListener("click", () => {
       haptic([20, 30, 20]);
       try { sendHugToInbox(); } catch (_error) { /* never block UI */ }
+    });
+  }
+
+  // Flaschenpost: a line to himself, sealed, returned by the machine.
+  const postOpen = $("[data-ag-post-open]");
+  const postForm = $("[data-ag-post-form]");
+  const postIdle = $("[data-ag-post-idle]");
+  let postMode = "30";
+  if (postOpen && postForm && postIdle) {
+    postOpen.addEventListener("click", () => {
+      haptic(8);
+      postIdle.hidden = true; postForm.hidden = false;
+      const input = $("[data-ag-post-input]");
+      if (input) input.focus();
+    });
+    $("[data-ag-post-cancel]")?.addEventListener("click", () => { postForm.hidden = true; postIdle.hidden = false; });
+    for (const b of postForm.querySelectorAll("[data-ag-post-mode]")) {
+      b.addEventListener("click", () => {
+        postMode = b.dataset.agPostMode;
+        for (const x of postForm.querySelectorAll("[data-ag-post-mode]")) {
+          const on = x === b;
+          x.classList.toggle("is-active", on);
+          x.setAttribute("aria-checked", on ? "true" : "false");
+        }
+        haptic(6);
+      });
+    }
+    $("[data-ag-post-seal]")?.addEventListener("click", () => {
+      const input = $("[data-ag-post-input]");
+      const text = (input && input.value || "").trim();
+      if (!text) { if (input) input.focus(); return; }
+      const today = dateKeyInTimezone(state.theme.timezone);
+      const post = sealFlaschenpost(text, postMode, today);
+      if (!post) return;
+      if (input) input.value = "";
+      postForm.hidden = true; postIdle.hidden = false;
+      haptic([20, 30, 40]);
+      try { triggerConfetti(40, ["#8fcf9e", "#e0a75d", "#fff"]); } catch (_e) {}
+      showToast(postMode === "30" ? "🍾 Versiegelt. In dreissig Tagen kommt sie zurück." : "🍾 Versiegelt. Die Maschine gibt sie dir zurück, wann sie will.");
+      renderWunschkapsel();
+      backupToSheets();
     });
   }
 

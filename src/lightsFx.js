@@ -96,7 +96,45 @@ function _restorePayload(state) {
   };
 }
 
-export async function flashLightsForPull(tone) {
+export function flashLightsForPull(tone) {
+  return runFlash(choreography(tone), FLASH_MS, null);
+}
+
+// The emoji he taps under the card has a colour; Fionn's lamp shows it for
+// ten seconds and breathes twice, then goes back. The reaction row already
+// has the emoji, this file already had the flash.
+export const REACTION_LIGHT = {
+  "🥹": { pos: 25 / 29, w: 0.0 },   // violet — gerührt
+  "😂": { pos: 0 / 29,  w: 0.0 },   // gold — lachen
+  "🙃": { pos: GREEN_POS, w: 0.0 }  // green — na gut
+};
+export const REACTION_MS = 10000;
+export function reactionChoreography(emoji) {
+  const tint = REACTION_LIGHT[emoji] || { pos: 2 / 29, w: 0.3 };
+  const full = [{ ...tint, size: NUM_LEDS }];
+  return [
+    { at: 0,    payload: { on: true, fade_steps: 20, brightness: 1.0, groups: full } },
+    { at: 2200, payload: { fade_steps: 60, brightness: 0.45 } },
+    { at: 4400, payload: { fade_steps: 60, brightness: 1.0 } },
+    { at: 6600, payload: { fade_steps: 60, brightness: 0.45 } },
+    { at: 8800, payload: { fade_steps: 60, brightness: 1.0 } }
+  ];
+}
+export function flashReactionOnLamp(emoji, boardId = "board_a") {
+  return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
+}
+
+// Connect, capture the lamps' state from their echoes, play the steps, put
+// everything back. `target` limits the show (and the restore) to one lamp.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function runFlash(steps, totalMs, target) {
+  // A targeted show (a reaction) right after a pull would find the pull's
+  // show still running — wait for it rather than drop the reaction. The
+  // pull show itself never waits: two pulls in a row is a replay.
+  if (_busy && target) {
+    const until = Date.now() + 25000;
+    while (_busy && Date.now() < until) await sleep(500);
+  }
   if (_busy) return;
   _busy = true;
   try {
@@ -134,7 +172,7 @@ export async function flashLightsForPull(tone) {
         stepTimers = [];
         if (!flashed) { finish(); return; }
         flashed = false;
-        for (const id of BOARD_IDS) {
+        for (const id of (target ? [target] : BOARD_IDS)) {
           // A board whose echo got lost is restored from its partner's
           // snapshot — the two are normally in sync anyway, and the boss
           // re-syncs the follower within a minute regardless.
@@ -170,10 +208,10 @@ export async function flashLightsForPull(tone) {
           setTimeout(() => {
             if (!Object.keys(captured).length) { finish(); return; }
             flashed = true;
-            for (const step of choreography(tone)) {
-              stepTimers.push(setTimeout(() => publish(step.payload), step.at));
+            for (const step of steps) {
+              stepTimers.push(setTimeout(() => publish(target ? { ...step.payload, target } : step.payload), step.at));
             }
-            restoreTimer = setTimeout(restore, FLASH_MS);
+            restoreTimer = setTimeout(restore, totalMs);
           }, ECHO_WAIT_MS);
         });
       });
@@ -189,7 +227,7 @@ export async function flashLightsForPull(tone) {
 
       client.on("error", () => { if (!flashed) finish(); });
       client.on("close", () => { if (!flashed) finish(); });
-      setTimeout(() => reject(new Error("lights flash timed out")), FLASH_MS + 20000);
+      setTimeout(() => reject(new Error("lights flash timed out")), totalMs + 20000);
     });
   } catch (_e) {
     /* best-effort: no lamps, no network, no problem */

@@ -14,6 +14,7 @@ import { restoreStimmung } from "./stimmung.js";
 import { updateAppBadge } from "./badge.js";
 import { hmInTimezone, setDayStartHour } from "./utils.js";
 import { initInstallPrompt } from "./installPrompt.js";
+import { fetchWeather, applyWeatherMood } from "./wetter.js";
 
 const defaultPhotos = { photos: [] };
 
@@ -131,6 +132,9 @@ export async function init() {
     updateAppBadge();
     applyEveningMode(theme.timezone);
     syncFromSheets().catch(() => {});
+    // The sky over the machine: rain streaks, snow, fog on the hero, and the
+    // number that goes onto today's card when it falls.
+    fetchWeather().then((w) => applyWeatherMood(w)).catch(() => {});
 
     // Ask about notifications on load, not only after a draw — the draw is
     // exactly the moment the daily reminder is no longer useful, so asking

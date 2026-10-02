@@ -85,7 +85,9 @@ function doGet(e) {
           streak:     backupValues[i][2] || 0,
           tokens:     JSON.parse(backupValues[i][3] || "{}"),
           questPoints: backupValues[i][4] || 0,
-          lastUpdated: backupValues[i][5]
+          lastUpdated: backupValues[i][5],
+          flaschenpost: (function () { try { return JSON.parse(backupValues[i][6] || "[]"); } catch (e) { return []; } })(),
+          pfand: Number(backupValues[i][7]) || 0
         };
         break;
       }
@@ -120,7 +122,8 @@ function doGet(e) {
         usedAt:        row[13] || null,
         bestanden:     row[14] === "yes" || row[14] === true,
         bestandenAt:   row[15] || null,
-        beweisUrl:     row[16] || null
+        beweisUrl:     row[16] || null,
+        pfand:         row[17] === "yes" || row[17] === true
       });
     }
 
@@ -200,17 +203,25 @@ function doGet(e) {
 
     // This token's own wishes, newest first, with Fionn's reply where there is
     // one. The app keeps the last few and shows a new reply on the next card.
+    // …and every hug this token ever sent, as timestamps, for the hearts
+    // at the bottom of Verlauf.
     let wishes = [];
+    let hugs = [];
     try {
       const wSheet = getOrCreateWuenscheSheet_(ss);
       const wRows = wSheet.getDataRange().getValues();
-      for (let i = wRows.length - 1; i >= 1 && wishes.length < 8; i--) {
+      // Newest first, and never more than the last 2000 rows — a sync should
+      // not grow with the sheet.
+      for (let i = wRows.length - 1; i >= 1 && i > wRows.length - 2001; i--) {
         if (!wRows[i][0]) continue;
         const w = wishRow_(wRows[i]);
-        if (w.type !== "wish" || w.token !== token) continue;
-        wishes.push({ timestamp: w.timestamp, text: w.text, status: w.status, statusAt: w.statusAt });
+        if (w.token !== token) continue;
+        if (w.type === "hug") { if (hugs.length < 500) hugs.push(w.timestamp); continue; }
+        if (w.type === "wish" && wishes.length < 8) {
+          wishes.push({ timestamp: w.timestamp, text: w.text, status: w.status, statusAt: w.statusAt });
+        }
       }
-    } catch (errW) { wishes = []; }
+    } catch (errW) { wishes = []; hugs = []; }
 
     // Activity feed for the Fionn admin app (only when explicitly requested,
     // so normal client syncs stay lightweight). Merges recent hugs/wishes,
@@ -376,12 +387,15 @@ function doGet(e) {
       tokens:        meta ? meta.tokens      : {},
       questPoints:   meta ? meta.questPoints : 0,
       lastUpdated:   meta ? meta.lastUpdated : null,
+      flaschenpost:  meta ? meta.flaschenpost : [],
+      pfand:         meta ? meta.pfand : 0,
       baerlauchScores,
       latestPing,
       gipfelbuch,
       glossary,
       stimmung,
       wishes,
+      hugs,
       activity,
     });
   } catch (err) {
@@ -620,7 +634,11 @@ function doPost(e) {
       const isHug = data.type === "hug";
       const wishText = data.wish || data.message || "";
       const sender  = (data.token || "lennart");
-      const ts      = new Date();
+      // The row keeps the client's own timestamp when it sends one: the app
+      // logs a hug locally under that stamp, and the sync unions the sheet's
+      // copy back — a server-side clock here made every hug count twice.
+      const sentMs  = Date.parse(data.timestamp || "");
+      const ts      = isNaN(sentMs) ? new Date() : new Date(sentMs);
       const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
 
       const wishSheet = getOrCreateWuenscheSheet_(ss);
@@ -661,15 +679,23 @@ function doPost(e) {
 
     let metaRow = -1;
     let existingStreak = 0;
+    let existingPost = "[]";
+    let existingPfand = 0;
     for (let i = 1; i < backupValues.length; i++) {
-      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; break; }
+      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; existingPost = backupValues[i][6] || "[]"; existingPfand = Number(backupValues[i][7]) || 0; break; }
     }
+    // The Pfand count only ever grows; a client that does not send it keeps
+    // the sheet's number.
+    const pfandCount = typeof data.pfand === "number" ? Math.max(data.pfand, existingPfand) : existingPfand;
+    // Flaschenposten: a client that does not send them (older build) must
+    // not blank the column.
+    const postJson = Array.isArray(data.flaschenpost) ? JSON.stringify(data.flaschenpost) : existingPost;
     // Latest wins. The old max() meant the sheet could only ever go up, and
     // since the app used the sheet's number as a floor, a missed day never
     // showed — the streak froze at its all-time high on every phone. The
     // client computes from the full synced history, so its number is right.
     const streak = incomingStreak;
-    const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp];
+    const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp, postJson, pfandCount];
     if (metaRow === -1) {
       backupSheet.appendRow(metaRowData);
     } else {
@@ -709,11 +735,12 @@ function doPost(e) {
         // overwrite would blank what the first device earned. Keep the
         // existing cell whenever the incoming entry is silent about it.
         const prevRow = existingByDay[day]
-          ? histSheet.getRange(existingByDay[day], 1, 1, 17).getValues()[0]
+          ? histSheet.getRange(existingByDay[day], 1, 1, 18).getValues()[0]
           : null;
         const bestanden   = entry.bestanden || (prevRow && prevRow[14] === "yes");
         const bestandenAt = entry.bestandenAt || (prevRow && prevRow[15]) || "";
         const beweisUrl   = entry.beweisUrl || (prevRow && prevRow[16]) || "";
+        const pfand       = entry.pfand || (prevRow && prevRow[17] === "yes");
         const row = [
           token, day,
           entry.categoryId    || "",
@@ -730,7 +757,8 @@ function doPost(e) {
           entry.usedAt        || "",
           bestanden ? "yes" : "",
           bestandenAt,
-          beweisUrl
+          beweisUrl,
+          pfand ? "yes" : ""
         ];
         if (existingByDay[day]) {
           histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
@@ -766,7 +794,7 @@ function getOrCreateBackupSheet_(ss) {
   let sheet = ss.getSheetByName(BACKUP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(BACKUP_SHEET_NAME);
-    sheet.appendRow(["Token", "Favourites", "Streak", "Tokens", "QuestPoints", "LastUpdated"]);
+    sheet.appendRow(["Token", "Favourites", "Streak", "Tokens", "QuestPoints", "LastUpdated", "Flaschenpost", "Pfand"]);
     sheet.setFrozenRows(1);
   }
   return sheet;
