@@ -281,6 +281,8 @@ function connect() {
 export function disconnectLicht() {
   generation++;
   connecting = null;
+  // A flicker cannot outlive its connection, and cannot restore without it.
+  stopFlicker({ restore: false });
   if (client) { try { client.end(true); } catch (_e) {} }
   client = null; conn = "idle"; connectedAt = 0;
   if (nudgeTimer) { clearInterval(nudgeTimer); nudgeTimer = null; }
@@ -598,6 +600,72 @@ export function stopPulse() {
   if (mount) mount.classList.remove("is-pulsing");
 }
 
+// ── Kerzenflackern ───────────────────────────────────────────────────────────
+// A mode for the lamps themselves: warm amber, low, the brightness wandering
+// the way a flame does — small steps at irregular intervals, now and then a
+// dip as if a draught caught it. Each lamp walks its own path, so two lamps
+// never flicker in step. Runs while the tab is connected; switching it off
+// (or losing the connection) puts the lamps back.
+export const FLICKER_TINT = { pos: 1 / 29, w: 0.12 };
+export const FLICKER_MIN = 0.16, FLICKER_MAX = 0.55;
+export const FLICKER_GAP_MS = [220, 720];
+// The next brightness from the current one: a small random step, with a
+// gust (a deep dip) roughly one time in twelve.
+export function flickerStep(prev, rand = Math.random) {
+  const gust = rand() < 1 / 12;
+  const step = (rand() - 0.5) * 0.16 - (gust ? 0.18 : 0);
+  const pull = (0.36 - prev) * 0.25;               // drifts back to a mid glow
+  const next = Math.min(FLICKER_MAX, Math.max(FLICKER_MIN, prev + step + pull));
+  return { brightness: Math.round(next * 1000) / 1000, fade_steps: gust ? 8 : 18 + Math.round(rand() * 26) };
+}
+export function flickerGap(rand = Math.random) {
+  return Math.round(FLICKER_GAP_MS[0] + rand() * (FLICKER_GAP_MS[1] - FLICKER_GAP_MS[0]));
+}
+let flicker = null;   // { timers: {id → timeout}, level: {id → brightness}, snap: {id → state}, boards: [] }
+export function flickerOn() { return !!flicker; }
+export function startFlicker(boardIds = targetLamps()) {
+  if (flicker) return false;
+  if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
+  const boards = boardIds.length ? boardIds : BOARDS.map((b) => b.id);
+  flicker = { timers: {}, level: {}, snap: {}, boards };
+  for (const id of boards) {
+    if (lamps[id] && lamps[id].groups) flicker.snap[id] = { ...lamps[id] };
+    flicker.level[id] = 0.36;
+    publishRaw({ target: id, on: true, fade_steps: 30, brightness: 0.36, groups: [{ ...FLICKER_TINT, size: NUM_LEDS }] });
+    const tick = () => {
+      if (!flicker) return;
+      const s = flickerStep(flicker.level[id]);
+      flicker.level[id] = s.brightness;
+      holdUntil = Date.now() + 1200;
+      publishRaw({ target: id, brightness: s.brightness, fade_steps: s.fade_steps });
+      flicker.timers[id] = setTimeout(tick, flickerGap());
+    };
+    flicker.timers[id] = setTimeout(tick, 600 + Math.random() * 300);
+  }
+  holdUntil = Date.now() + 1200;
+  haptic([10, 40, 10]);
+  if (mount) mount.classList.add("is-flickering");
+  renderLichtPanel();
+  return true;
+}
+export function stopFlicker({ restore = true } = {}) {
+  if (!flicker) return;
+  const f = flicker; flicker = null;
+  for (const id of Object.keys(f.timers)) clearTimeout(f.timers[id]);
+  if (restore) {
+    for (const id of f.boards) {
+      const s = f.snap[id];
+      if (!s) continue;
+      publishRaw({ target: id, on: true, groups: s.groups, brightness: s.brightness, fade_steps: s.fade_steps });
+      if (s.on === false) setTimeout(() => publishRaw({ target: id, on: false }), 1500);
+    }
+    holdUntil = Date.now() + 2500;
+  }
+  if (mount) mount.classList.remove("is-flickering");
+  renderLichtPanel();
+}
+export function toggleFlicker() { if (flicker) stopFlicker(); else startFlicker(); }
+
 // ── Sonnenaufgang ────────────────────────────────────────────────────────────
 // The firmware has alarms: a "sunrise" fades from deep red to warm white over
 // duration_min, on the boards listed, on the days listed (Monday = 0). The
@@ -734,6 +802,8 @@ function bindLichtPanel() {
   }
   const winkBtn = $("[data-ag-licht-wink]");
   if (winkBtn) winkBtn.addEventListener("click", () => wink());
+  const flickerBtn = $("[data-ag-licht-flicker]");
+  if (flickerBtn) flickerBtn.addEventListener("click", () => toggleFlicker());
   const target = $("[data-ag-licht-target]");
   if (target) target.addEventListener("click", (e) => {
     const b = e.target.closest("[data-target]");
@@ -943,7 +1013,12 @@ export function renderLichtPanel() {
   if (white) white.disabled = conn !== "connected";
   const whiteLabel = $("[data-ag-licht-white-label]");
   if (whiteLabel) whiteLabel.textContent = selectedGroup !== null ? `Weissanteil · Gruppe ${selectedGroup + 1}` : "Weissanteil";
-  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = conn !== "connected";
+  const flickerBtn = panel.querySelector("[data-ag-licht-flicker]");
+  if (flickerBtn) {
+    flickerBtn.classList.toggle("is-active", !!flicker);
+    flickerBtn.textContent = flicker ? "🕯️ Flackern aus" : "🕯️ Kerzenflackern";
+  }
+  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = conn !== "connected";
   const sr = findSunrise(alarms);
   const srTime = $("[data-ag-sunrise-time]");
   const srDays = $("[data-ag-sunrise-days]");
