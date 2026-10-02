@@ -2948,6 +2948,63 @@ body{
 @media (prefers-reduced-motion:reduce){
   .ag-candle-veil.is-lit,.ag-candle-veil .ag-flame,.ag-widget.is-revealing .ag-knob{animation:none}
 }
+
+/* ── Wanderweg: the Lieblinge as a hike ── */
+.ag-widget .ag-wanderweg{position:relative;width:100%;border-radius:var(--ag-radius-md);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 2px 14px rgba(0,0,0,.35)}
+.ag-widget .ag-ww-scene{position:absolute;inset:0;display:block}
+.ag-widget .ag-ww-star{fill:#fff6d6;opacity:.35;animation:ag-ww-twinkle 3.2s ease-in-out infinite}
+@keyframes ag-ww-twinkle{0%,100%{opacity:.25}50%{opacity:.8}}
+.ag-widget .ag-ww-ridge{fill:#0d2117;stroke:rgba(255,255,255,.07);stroke-width:1}
+.ag-widget .ag-ww-trail-shadow{fill:none;stroke:rgba(0,0,0,.45);stroke-width:7;stroke-linecap:round}
+.ag-widget .ag-ww-trail{fill:none;stroke:#f1e9d2;stroke-width:2.5;stroke-dasharray:6 8;stroke-linecap:round;opacity:.85}
+.ag-widget .ag-ww-summit,.ag-widget .ag-ww-start{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;color:#f1e9d2}
+.ag-widget .ag-ww-flag{font-size:1.5rem;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));animation:ag-ww-wave 2.4s ease-in-out infinite;transform-origin:20% 90%}
+@keyframes ag-ww-wave{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(4deg)}}
+.ag-widget .ag-ww-summit-label,.ag-widget .ag-ww-start-label{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;opacity:.75;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.ag-widget .ag-ww-start-label{margin-top:10px}
+.ag-widget .ag-ww-hiker{position:absolute;transform:translate(-50%,-78%);font-size:1.35rem;line-height:1;filter:drop-shadow(0 3px 3px rgba(0,0,0,.6));transition:left 220ms ease-out,top 220ms ease-out;pointer-events:none;z-index:3}
+.ag-widget .ag-ww-hiker.is-facing-left{transform:translate(-50%,-78%) scaleX(-1)}
+.ag-widget .ag-ww-stop{
+  position:absolute;transform:translate(-7px,-50%);background:none;border:none;padding:0;cursor:pointer;
+  display:flex;align-items:center;gap:8px;color:var(--ag-text);text-align:left;font:inherit;z-index:2;
+}
+.ag-widget .ag-ww-stop.is-right{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 7px),-50%)}
+.ag-widget .ag-ww-dot{width:14px;height:14px;border-radius:50%;flex:none;background:#f1e9d2;box-shadow:0 0 0 3px rgba(8,28,18,.8),0 0 14px rgba(255,236,170,.6)}
+.ag-widget .ag-ww-stop[data-tone="jackpot"] .ag-ww-dot,.ag-widget .ag-ww-stop[data-tone="special"] .ag-ww-dot{background:var(--ag-gold)}
+.ag-widget .ag-ww-stop[data-tone="photo"] .ag-ww-dot,.ag-widget .ag-ww-stop[data-tone="rare"] .ag-ww-dot{background:var(--ag-green)}
+.ag-widget .ag-ww-label{
+  display:flex;align-items:center;gap:8px;max-width:min(54vw,196px);padding:6px 10px 6px 6px;border-radius:14px;
+  background:rgba(10,22,16,.72);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  box-shadow:0 6px 16px rgba(0,0,0,.4);transition:transform 160ms var(--ag-ease),border-color 160ms;
+}
+.ag-widget .ag-ww-stop.is-right .ag-ww-label{flex-direction:row-reverse;padding:6px 6px 6px 10px}
+.ag-widget .ag-ww-stop:hover .ag-ww-label,.ag-widget .ag-ww-stop:focus-visible .ag-ww-label{transform:translateY(-1px);border-color:rgba(255,255,255,.3)}
+.ag-widget .ag-ww-stop:focus-visible{outline:none}
+.ag-widget .ag-ww-thumb{width:46px;height:46px;border-radius:50%;overflow:hidden;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.ag-widget .ag-ww-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ag-widget .ag-ww-mark{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:1.15rem;background:rgba(255,255,255,.08)}
+.ag-widget .ag-ww-text{display:flex;flex-direction:column;min-width:0;gap:1px}
+.ag-widget .ag-ww-date{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ag-muted);white-space:nowrap}
+.ag-widget .ag-ww-title{font-size:.86rem;font-weight:500;line-height:1.2;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ag-widget .ag-ww-line{font-size:.72rem;color:var(--ag-muted);line-height:1.3;font-style:italic;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* The sheet with the full card */
+.ag-widget .ag-ww-sheet{position:fixed;inset:0;z-index:10000;background:rgba(4,10,7,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 220ms ease}
+.ag-widget .ag-ww-sheet.is-open{opacity:1}
+.ag-widget .ag-ww-sheet-body{
+  position:relative;width:min(100%,560px);max-height:80vh;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:40px 14px calc(16px + var(--ag-safe-bottom,0px));border-radius:22px 22px 0 0;
+  background:var(--ag-surface);box-shadow:0 -12px 40px rgba(0,0,0,.5);
+  transform:translateY(24px);transition:transform 260ms cubic-bezier(.2,.9,.3,1);
+}
+.ag-widget .ag-ww-sheet.is-open .ag-ww-sheet-body{transform:translateY(0)}
+.ag-widget .ag-ww-sheet-body::before{content:"";position:absolute;left:50%;top:10px;width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.25);transform:translateX(-50%)}
+.ag-widget .ag-ww-sheet-close{position:absolute;right:12px;top:10px;background:none;border:none;color:var(--ag-muted);font-size:1.1rem;cursor:pointer;padding:6px}
+.ag-widget .ag-ww-sheet .ag-history{display:block}
+.ag-widget .ag-ww-sheet .ag-history-item{content-visibility:visible;contain-intrinsic-size:auto}
+@media (prefers-reduced-motion:reduce){
+  .ag-widget .ag-ww-star,.ag-widget .ag-ww-flag{animation:none}
+  .ag-widget .ag-ww-hiker{transition:none}
+}
     `;
 
 export function injectStyles() {

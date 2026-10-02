@@ -589,7 +589,7 @@ player's streak-restore slot — local to the phone, like the Retter itself.
 |---|---|
 | 🎰 **Heute** | Today's capsule pull |
 | 🗓 **Verlauf** | Token-Bank, pull history (month calendar, 15 per page, total counter), Trophäenregal, and the album |
-| ⭐ **Lieblinge** | Starred favourites (the star, or a pinch on the card) |
+| ⭐ **Lieblinge** | The Wanderweg: favourites as stops on a trail up through the ridges, a tap opens the card |
 | ⛰ **Berge** | Gipfelbuch — mountain log |
 | 💡 **Licht** | The lamps: state, power, brightness, colour, moods, scenes, a wink; `lichter.html` for the rest |
 
@@ -898,6 +898,13 @@ mechanics, none of it load-bearing.
   under the card and it peels off the row onto the card, top right, at a
   tilt; drag it anywhere and it stays there (per day, local,
   `affektions-gacha:aufkleber:v1`). The reaction itself is unchanged.
+- **Wanderweg** (`src/wanderweg.js`). The Lieblinge tab is a hike: every
+  favourite a stop on a dashed trail that zigzags up through seeded ridges
+  under a starry sky, the start at the bottom, the summit flag at the top,
+  the newest nearest the summit. A stop shows the date, the title and the
+  first sentence (or the photo as a round thumbnail, with its caption); a
+  tap opens the full history card in a sheet, star and all. A small hiker
+  walks the trail as the page scrolls, facing the way the path turns.
 - **Kneifen** (`src/kneifen.js`). Pinch today's card with two fingers and
   it becomes a Liebling, the same as the star: a small copy of the card
   shrinks and flies into the star in the nav.

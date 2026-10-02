@@ -10,6 +10,7 @@ const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant,
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
+const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
 const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS } = await import("../src/licht.js");
 
@@ -94,6 +95,36 @@ test("a pinch is a decisive squeeze", () => {
   assert.equal(pinched(200, 200 * PINCH_RATIO), true);
   assert.equal(pinched(200, 190), false);
   assert.equal(pinched(0, 10), false);
+});
+
+test("the Wanderweg: stops zigzag down from the summit, the trail joins them, the scene fits", () => {
+  const pts = stopPoints(4, 300);
+  assert.deepEqual(pts.map((p) => p.left), [true, false, true, false]);
+  assert.equal(pts[0].y, TOP_PAD);
+  assert.equal(pts[3].y, TOP_PAD + 3 * STOP_GAP);
+  assert.equal(sceneHeight(4), TOP_PAD + 3 * STOP_GAP + BOTTOM_PAD);
+  assert.equal(sceneHeight(1), TOP_PAD + BOTTOM_PAD);
+  const d = trailPath(pts, 300, sceneHeight(4));
+  assert.match(d, /^M150,\d+ C/, "starts at the bottom centre");
+  assert.ok(d.endsWith("150,58"), "ends at the summit");
+  assert.equal((d.match(/ C/g) || []).length, 5, "a curve per leg");
+  const ridges = ridgePolygons(300, 800);
+  assert.ok(ridges.length >= 3);
+  assert.deepEqual(ridges, ridgePolygons(300, 800), "the same mountains every visit");
+  assert.ok(ridges[0].opacity < ridges[ridges.length - 1].opacity, "nearer ridges are darker");
+});
+
+test("the Wanderweg: a stop's line is the first sentence; the hiker climbs with the scroll", () => {
+  assert.equal(firstLine("Wendeltreppen drehen rechts. Du verteidigst heute alles."), "Wendeltreppen drehen rechts.");
+  assert.equal(firstLine("  Kein   Punkt hier  "), "Kein Punkt hier");
+  assert.equal(firstLine("a".repeat(100)).length, 72);
+  assert.equal(firstLine(""), "");
+  assert.equal(climbProgress(0, 1000, 800), 0.6, "viewport middle at 400px of 1000: 60% of the way up");
+  assert.equal(climbProgress(-800, 1000, 800), 0, "scrolled past the bottom: at the start");
+  assert.equal(climbProgress(500, 1000, 800), 1, "scene below the fold: at the summit");
+  assert.equal(stopMark({ photo: { url: "x" } }), "📷");
+  assert.equal(stopMark({ tone: "jackpot" }), "💎");
+  assert.equal(stopMark({ tone: "whatever" }), "🌿");
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {

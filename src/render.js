@@ -33,6 +33,7 @@ import { armConfirm } from "./confirm.js";
 import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { renderAufkleber } from "./aufkleber.js";
+import { renderWanderweg, bindWanderwegScroll, placeHiker, climbProgress } from "./wanderweg.js";
 import { fullMoonLine } from "./mond.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
@@ -1987,25 +1988,48 @@ export function renderHistory() {
   }
 }
 
+// The Lieblinge are a hike: every favourite a stop on a trail up through
+// the ridges, the newest nearest the summit. A tap on a stop opens the full
+// card in a sheet; the star there works as everywhere.
 export function renderLieblinge() {
   const list = $("[data-ag-lieblinge]");
   const empty = $("[data-ag-lieblinge-empty]");
   const note = $("[data-ag-lieblinge-note]");
   list.innerHTML = "";
+  list.style.height = "";
 
   const favs = readFavorites();
-  note.textContent = "Deine gespeicherten Lieblingspreise — per Stern markiert, oder mit zwei Fingern zusammengekniffen.";
+  note.textContent = "Dein Wanderweg — jeder Liebling eine Etappe, der neueste ganz oben am Gipfel.";
 
   if (!favs.length) {
     empty.hidden = false;
-    empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel.";
+    empty.textContent = "Noch keine Lieblinge gespeichert. Tippe auf ☆ nach dem Ziehen einer Kapsel — oder kneif die Karte zusammen.";
     return;
   }
   empty.hidden = true;
 
-  for (const entry of favs) {
-    list.appendChild(renderHistoryItemEl(entry));
-  }
+  renderWanderweg(list, favs, { onOpen: openLieblingSheet });
+  const update = bindWanderwegScroll(() => $("[data-ag-lieblinge]"));
+  if (update) update();
+  requestAnimationFrame(() => { const r = list.getBoundingClientRect(); placeHiker(list, climbProgress(r.top, r.height, window.innerHeight)); });
+}
+
+export function openLieblingSheet(entry) {
+  const sheet = $("[data-ag-ww-sheet]");
+  const holder = $("[data-ag-ww-sheet-list]");
+  if (!sheet || !holder) return;
+  holder.innerHTML = "";
+  holder.appendChild(renderHistoryItemEl(entry));
+  sheet.hidden = false;
+  requestAnimationFrame(() => sheet.classList.add("is-open"));
+  const close = () => {
+    sheet.classList.remove("is-open");
+    setTimeout(() => { if (!sheet.classList.contains("is-open")) { sheet.hidden = true; renderLieblinge(); } }, 260);
+  };
+  sheet.querySelector("[data-ag-ww-sheet-close]").onclick = close;
+  sheet.onclick = (ev) => { if (ev.target === sheet) close(); };
+  sheet.onkeydown = (ev) => { if (ev.key === "Escape") close(); };
+  try { sheet.querySelector("[data-ag-ww-sheet-close]").focus(); } catch (_e) {}
 }
 
 // ── Odds ──────────────────────────────────────────────────────────────────────

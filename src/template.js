@@ -557,7 +557,7 @@ export const html = `
           <section class="ag-panel" data-ag-panel-lieblinge role="tabpanel" hidden>
             <div class="ag-card">
               <p class="ag-history-note" data-ag-lieblinge-note></p>
-              <ol class="ag-history" data-ag-lieblinge></ol>
+              <div class="ag-wanderweg" data-ag-lieblinge></div>
               <p class="ag-history-empty" data-ag-lieblinge-empty hidden></p>
             </div>
           </section>
@@ -721,6 +721,12 @@ export const html = `
       <div class="ag-ptr" data-ag-ptr aria-hidden="true"><span class="ag-ptr-icon">↓</span></div>
       <div class="ag-toast-container" data-ag-toasts aria-live="polite" aria-atomic="true"></div>
       <button class="ag-fab" type="button" data-ag-fab aria-label="Hinzufügen" hidden>+</button>
+      <div class="ag-ww-sheet" data-ag-ww-sheet hidden role="dialog" aria-label="Liebling">
+        <div class="ag-ww-sheet-body">
+          <button class="ag-ww-sheet-close" type="button" data-ag-ww-sheet-close aria-label="Schließen">✕</button>
+          <ul class="ag-history" data-ag-ww-sheet-list></ul>
+        </div>
+      </div>
       <div class="ag-candle-veil" data-ag-candle-veil hidden role="dialog" aria-label="Kerze">
         <div class="ag-flame" aria-hidden="true"></div>
         <div class="ag-candle-body" aria-hidden="true"></div>
