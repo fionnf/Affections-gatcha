@@ -675,14 +675,15 @@ export function stopFlicker({ restore = true } = {}) {
 export function toggleFlicker() { if (flicker) stopFlicker(); else startFlicker(); }
 
 // ── Regenbogen ───────────────────────────────────────────────────────────────
-// The whole palette laid along the strip, one light per hue, creeping along
-// it: every tick the band moves a fraction of a light and the lamps fade to
-// the new positions, so the colours flow slowly down the strip. Brightness
-// stays where it was. Runs like the flicker: while connected, on the lamps
-// the switch names, back to what they showed when switched off.
-export const RAINBOW_TICK_MS = 1600;
-export const RAINBOW_STEP = 1 / 36;     // of the palette per tick: a full cycle in about a minute
-export const RAINBOW_FADE = 120;
+// The whole palette laid along the strip, one light per hue, flowing along
+// it: every tick the band moves a good part of a light and the lamps fade
+// quickly to the new positions, so the colours visibly run down the strip,
+// a full cycle in about ten seconds. Brightness stays where it was. Runs
+// like the flicker: while connected, on the lamps the switch names, back to
+// what they showed when switched off.
+export const RAINBOW_TICK_MS = 500;
+export const RAINBOW_STEP = 1 / 20;     // of the palette per tick: half a light's worth, a cycle in ten seconds
+export const RAINBOW_FADE = 30;
 // One group per light; `offset` slides the band (0..1 of the palette).
 export function rainbowGroups(offset = 0) {
   const groups = [];
@@ -708,7 +709,7 @@ export function startRainbow(boardIds = targetLamps()) {
     for (const id of rainbow.boards) publishRaw({ target: id, on: true, fade_steps: RAINBOW_FADE, groups });
     rainbow.timer = setTimeout(tick, RAINBOW_TICK_MS);
   };
-  for (const id of boards) publishRaw({ target: id, on: true, fade_steps: 60, groups: rainbowGroups(0) });
+  for (const id of boards) publishRaw({ target: id, on: true, fade_steps: 40, groups: rainbowGroups(0) });
   holdUntil = Date.now() + RAINBOW_TICK_MS;
   rainbow.timer = setTimeout(tick, RAINBOW_TICK_MS);
   haptic([8, 30, 8, 30, 8]);
