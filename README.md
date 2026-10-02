@@ -901,9 +901,11 @@ mechanics, none of it load-bearing.
 - **Die Emoji um die Maschine.** The orbit's radius is a fraction of the
   machine box (88–121px on a phone, re-laid out on resize), so the
   constellation circles the whole window rather than hugging the capsule.
-- **Vollmond** (`src/mond.js`). A full-moon day gets one extra line on the
-  card above the title (`fullMoonLine`); the day comes from Meeus' full-moon
-  instants, computed, not fetched.
+- **Mondfenster** (`src/mond.js`). After 22:00 the real moon hangs in the
+  window, upper left of the capsule, computed, not fetched: the mean
+  lunation for the shape, Meeus' full-moon instants for the exact day. A
+  full-moon day gets one extra line on the card above the title
+  (`fullMoonLine`).
 - **Aufkleber** (`src/aufkleber.js`). The reaction is a sticker: tap 🥹 😂 🙃
   under the card and it peels off the row onto the card, top right, at a
   tilt; drag it anywhere and it stays there (per day, local,
