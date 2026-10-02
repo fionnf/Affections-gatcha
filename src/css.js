@@ -2840,75 +2840,47 @@ body{
 /* The keyboard is up: the nav steps aside instead of floating mid-screen. */
 .ag-widget .ag-bottomnav.is-keyboard{opacity:0;pointer-events:none}
 
-/* ── Der Knopf: a gashapon knob under the window ──
-   A dark ring in the SVG is its seat; this is the knob itself, a disc with a
-   bar handle, turned by --ag-knob-angle while a finger winds it. */
+/* ── Der Knopf: a gashapon knob in the draw card, in place of the button ──
+   A disc with a bar handle, turned by --ag-knob-angle while a finger winds
+   it; the label under it carries the button's old words. */
+.ag-widget .ag-draw-knob{display:flex;flex-direction:column;align-items:center;gap:8px;margin:0 auto}
 .ag-widget .ag-knob{
-  position:absolute;left:50%;top:83.75%;width:19%;aspect-ratio:1;
-  transform:translate(-50%,-50%) rotate(var(--ag-knob-angle,0deg));
-  border-radius:50%;cursor:grab;touch-action:none;z-index:5;
+  position:relative;width:88px;height:88px;flex:none;
+  transform:rotate(var(--ag-knob-angle,0deg));
+  border-radius:50%;cursor:grab;touch-action:none;
   background:
-    radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),transparent 48%),
-    linear-gradient(180deg,#d9d2bf,#8f8773);
-  box-shadow:inset 0 -3px 6px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.5),0 4px 10px rgba(0,0,0,.45);
+    radial-gradient(circle at 35% 30%,rgba(255,255,255,.3),transparent 48%),
+    linear-gradient(180deg,#dfd8c6,#8f8773);
+  box-shadow:inset 0 -4px 8px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.55),0 8px 18px rgba(0,0,0,.45),0 0 0 6px rgba(8,28,18,.55),0 0 0 7px rgba(255,255,255,.1);
   border:1px solid rgba(0,0,0,.35);
 }
 .ag-widget .ag-knob::before{
-  content:"";position:absolute;left:50%;top:50%;width:70%;height:22%;
-  transform:translate(-50%,-50%);border-radius:4px;
+  content:"";position:absolute;left:50%;top:50%;width:68%;height:20%;
+  transform:translate(-50%,-50%);border-radius:5px;
   background:linear-gradient(180deg,#5a5446,#2d2922);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 2px rgba(0,0,0,.5);
 }
 .ag-widget .ag-knob::after{
-  content:"";position:absolute;left:50%;top:12%;width:9%;aspect-ratio:1;border-radius:50%;
-  transform:translateX(-50%);background:#e0a75d;box-shadow:0 0 6px rgba(224,167,93,.8);
+  content:"";position:absolute;left:50%;top:9%;width:9%;aspect-ratio:1;border-radius:50%;
+  transform:translateX(-50%);background:#e0a75d;box-shadow:0 0 8px rgba(224,167,93,.9);
 }
-.ag-widget .ag-knob.is-turning{cursor:grabbing;box-shadow:inset 0 -3px 6px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.5),0 6px 16px rgba(0,0,0,.5),0 0 18px rgba(255,236,170,.35)}
+.ag-widget .ag-knob.is-turning{cursor:grabbing;box-shadow:inset 0 -4px 8px rgba(0,0,0,.35),inset 0 2px 2px rgba(255,255,255,.55),0 10px 24px rgba(0,0,0,.5),0 0 0 6px rgba(8,28,18,.55),0 0 0 7px rgba(255,255,255,.1),0 0 26px rgba(255,236,170,.4)}
 .ag-widget .ag-knob.is-springing{transition:transform 380ms cubic-bezier(.3,1.6,.4,1)}
 .ag-widget .ag-knob.is-locked.is-turning{filter:saturate(.6)}
-.ag-widget .ag-knob.is-fired{box-shadow:inset 0 -3px 6px rgba(0,0,0,.35),0 0 30px rgba(255,236,170,.8)}
-@keyframes ag-knob-spin{to{transform:translate(-50%,-50%) rotate(calc(var(--ag-knob-angle,0deg) + 360deg))}}
+.ag-widget .ag-knob.is-fired{box-shadow:inset 0 -4px 8px rgba(0,0,0,.35),0 0 0 6px rgba(8,28,18,.55),0 0 36px rgba(255,236,170,.85)}
+@keyframes ag-knob-spin{to{transform:rotate(calc(var(--ag-knob-angle,0deg) + 360deg))}}
 .ag-widget.is-revealing .ag-knob{animation:ag-knob-spin .9s linear infinite}
-.ag-widget.has-drawn .ag-knob{opacity:.85}
-.ag-widget .ag-knob:focus-visible{outline:2px solid var(--ag-gold);outline-offset:3px}
-
-/* ── Münzschlitz: the coin slot right of the knob; a long press opens the Geheimfach ── */
-.ag-widget .ag-coinslot{
-  position:absolute;left:78%;top:84%;width:12%;height:12%;
-  transform:translate(-50%,-50%);border-radius:8px;cursor:pointer;touch-action:none;z-index:5;
-  background:transparent;border:none;padding:0;
+.ag-widget.has-drawn .ag-knob{opacity:.8}
+.ag-widget .ag-knob:focus-visible{outline:2px solid var(--ag-gold);outline-offset:9px}
+.ag-widget .ag-knob-label{
+  background:none;border:none;padding:4px 10px;cursor:pointer;
+  color:var(--ag-text);font:inherit;font-size:.86rem;letter-spacing:.04em;
+  border-radius:999px;transition:background 150ms ease;
 }
-.ag-widget .ag-coinslot::before{
-  content:"";position:absolute;left:50%;top:50%;width:30%;height:78%;transform:translate(-50%,-50%);
-  border-radius:3px;background:linear-gradient(180deg,#0a1a10,#1b2f22);
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.14);
-  transition:box-shadow 600ms ease;
-}
-.ag-widget .ag-coinslot.is-pressing::before{box-shadow:inset 0 1px 2px rgba(0,0,0,.8),0 0 14px rgba(255,236,170,.75)}
-.ag-widget .ag-coinslot:focus-visible{outline:2px solid var(--ag-gold);outline-offset:2px;border-radius:8px}
-
-/* ── Geheimfach: the drawer that slides out under the knob ── */
-.ag-widget .ag-fach{
-  position:absolute;left:12%;right:12%;top:91%;z-index:6;
-  transform:translateY(-70%) scaleY(.6);opacity:0;transform-origin:top center;
-  transition:transform 380ms cubic-bezier(.2,.9,.3,1.1),opacity 240ms ease;
-  border-radius:0 0 14px 14px;padding:14px 14px 12px;
-  background:linear-gradient(180deg,#1b2f22,#0f1f16);
-  border:1px solid rgba(255,255,255,.12);border-top:none;
-  box-shadow:0 18px 40px rgba(0,0,0,.55),inset 0 6px 10px -6px rgba(0,0,0,.8);
-}
-.ag-widget .ag-fach.is-open{transform:translateY(0) scaleY(1);opacity:1}
-.ag-widget .ag-machine-wrap.has-fach{z-index:7}
-.ag-widget .ag-fach-paper{
-  margin:0;padding:12px 14px;border-radius:3px;
-  background:linear-gradient(180deg,#fbf7ee,#efe7d4);color:#2a2a24;
-  font-family:"Boska",Georgia,serif;font-size:1rem;line-height:1.5;
-  box-shadow:0 2px 6px rgba(0,0,0,.35);transform:rotate(-1.2deg);
-  white-space:pre-wrap;overflow-wrap:break-word;
-}
-.ag-widget .ag-fach.is-empty .ag-fach-paper{background:none;box-shadow:none;color:var(--ag-muted);font-style:italic;font-size:.9rem;transform:none;padding:6px 2px}
-.ag-widget .ag-fach-actions{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
-.ag-widget .ag-fach-actions .ag-secondary{min-height:32px;padding:0 12px;font-size:.82rem}
+.ag-widget .ag-knob-label:hover{background:rgba(255,255,255,.06)}
+.ag-widget .ag-knob-label[disabled]{cursor:wait;color:var(--ag-muted)}
+.ag-widget .ag-knob-label[disabled] span:after{content:"...";display:inline-block;width:1.2em;text-align:left}
+.ag-widget .ag-draw-card{justify-content:space-between}
 
 /* ── Mondfenster: tonight's moon in the window, upper left of the capsule ── */
 .ag-widget .ag-moon{

@@ -406,24 +406,6 @@ The banner is shown only once per milestone per token (stored in
 milestone streaks the reveal also produces a slightly longer haptic
 pattern.
 
-## Geheimfach (a note in the machine)
-
-A long press on the machine's coin slot (right of the knob) opens a hidden
-drawer with one note. It comes from `config/theme.json`:
-
-```json
-"geheimfach": {
-  "id": "fach-1",
-  "text": "Du hast das Fach gefunden. …"
-}
-```
-
-Lennart reads it and taps **Zettel behalten**; from then on the drawer opens
-empty (*Leer. Fionn weiss, wo das Fach ist.*) until you change the `id` —
-any new value — and write a new `text`. The read state is local to the phone
-(`affektions-gacha:geheimfach:read`), so a new phone shows the current note
-again. Line breaks in `text` are kept.
-
 ## Wunschkapsel
 
 Once per ISO calendar week, a **Wunschkapsel** card appears below the

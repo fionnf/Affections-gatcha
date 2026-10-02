@@ -44,11 +44,17 @@ export function pointerAngle(el, clientX, clientY) {
   return (Math.atan2(clientY - (r.top + r.height / 2), clientX - (r.left + r.width / 2)) * 180) / Math.PI;
 }
 
+export const HOLD_MS = 3000;
+export const HOLD_STILL_DEG = 8;
+
 // Wires a knob element. `drawable()` says whether a turn may fire; `onFire`
-// is the draw; `onTick` runs on each detent (sound, glow).
-export function bindKnob(el, { drawable, onFire, onTick } = {}) {
+// is the draw; `onTick` runs on each detent (sound, glow); `onHold` runs
+// when the knob is held three seconds without turning (the hidden letter).
+export function bindKnob(el, { drawable, onFire, onTick, onHold } = {}) {
   if (!el) return;
   let turn = null;
+  let holdTimer = null;
+  const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
   const setAngle = (deg) => el.style.setProperty("--ag-knob-angle", `${deg.toFixed(1)}deg`);
   const springBack = () => {
     el.classList.add("is-springing");
@@ -65,10 +71,13 @@ export function bindKnob(el, { drawable, onFire, onTick } = {}) {
     el.classList.add("is-turning");
     el.classList.toggle("is-locked", !can);
     try { el.setPointerCapture(e.pointerId); } catch (_e) {}
+    stopHold();
+    if (onHold) holdTimer = setTimeout(() => { if (turn && turn.wound < HOLD_STILL_DEG) { release(); onHold(); } }, HOLD_MS);
   });
   el.addEventListener("pointermove", (e) => {
     if (!turn) return;
     const { detent, fired } = turn.move(pointerAngle(el, e.clientX, e.clientY));
+    if (turn.wound >= HOLD_STILL_DEG) stopHold();
     setAngle(turn.wound);
     if (detent) {
       haptic(turn.locked ? 4 : 6 + turn.detents);
@@ -86,6 +95,7 @@ export function bindKnob(el, { drawable, onFire, onTick } = {}) {
     }
   });
   const release = () => {
+    stopHold();
     if (!turn) return;
     const wasLocked = turn.locked && turn.wound > 4;
     turn = null;
