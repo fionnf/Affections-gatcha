@@ -62,7 +62,7 @@ scripts/
   push-lib.cjs               Shared fetch-with-retry + exit-code policy for both push jobs
   check-undefined-refs.cjs   Fails CI on an identifier a module never imports
   vendor-lights-ui.py        Re-pulls lichter.html from the lights repo
-media/                      Icons, plus photos a special day carries itself (album sync never touches it)
+media/                      Icons (logo.svg is the source: an L with a mirrored F nested in it; the PNGs are rendered from it), plus photos a special day carries itself (album sync never touches it)
 media-preview.html          Preview page for all synced photos and videos
 EDITING.md                  Quick-reference for no-code edits
 PUSH-SETUP.md               Remaining owner steps to switch Web Push on

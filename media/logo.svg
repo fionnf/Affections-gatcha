@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- L and a mirrored F, nested: the F sits in the L's corner with its arms
+       reaching left, and its stem runs down through the L's foot, which
+       passes over it. Cream L, green F — the app's own colours. -->
+  <defs>
+    <radialGradient id="bg" cx="38%" cy="30%" r="90%">
+      <stop offset="0" stop-color="#1d3a28"/>
+      <stop offset="0.6" stop-color="#122218"/>
+      <stop offset="1" stop-color="#0b1510"/>
+    </radialGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9e2b6"/>
+      <stop offset="1" stop-color="#7cc48e"/>
+    </linearGradient>
+    <linearGradient id="cream" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf7ee"/>
+      <stop offset="1" stop-color="#e9e1cf"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#8fcf9e" stroke-opacity="0.10" stroke-width="2"/>
+
+  <g filter="url(#soft)">
+    <!-- L stem (cream) -->
+    <rect x="104" y="96" width="72" height="300" rx="10" fill="url(#cream)"/>
+
+    <!-- mirrored F (green): stem on the right, running down past the foot -->
+    <rect x="336" y="96" width="72" height="340" rx="10" fill="url(#green)"/>
+    <rect x="208" y="96" width="200" height="64" rx="10" fill="url(#green)"/>
+    <rect x="236" y="226" width="172" height="60" rx="10" fill="url(#green)"/>
+
+    <!-- L foot, passing over the F stem: a dark cut first, then the foot -->
+    <rect x="92" y="332" width="310" height="100" rx="18" fill="#0f1b13" opacity="0.95"/>
+    <rect x="104" y="344" width="286" height="66" rx="10" fill="url(#cream)"/>
+  </g>
+</svg>

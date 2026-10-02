@@ -3,26 +3,12 @@
 // phone. (Shaking the phone used to pull the capsule as well; that is gone —
 // the draw button and the capsule hold are the two ways in.)
 //
-// iOS gates the sensor behind DeviceOrientationEvent.requestPermission(),
-// which must be called from a user gesture — and the answer is remembered by
-// Safari, so a second call after a grant resolves without a prompt but still
-// needs the gesture. So: the first click on the page asks once (never again
-// after a denial), Android and desktop just listen. click, not pointerdown:
-// WebKit only counts click/touchend as user activation, and requestPermission()
-// from anything else rejects silently.
+// iOS gates the sensor behind a permission dialog; it is not asked for any
+// more. Android and desktop just listen.
 import { mount } from "./state.js";
-
-const MOTION_KEY = "affektions-gacha:motion:v1";
 
 let _onTilt = null;
 let _listening = false;
-
-function remembered() {
-  try { return window.localStorage.getItem(MOTION_KEY) || ""; } catch (_e) { return ""; }
-}
-function remember(v) {
-  try { window.localStorage.setItem(MOTION_KEY, v); } catch (_e) {}
-}
 
 function handleOrientation(e) {
   if (!_onTilt || e.gamma === null || e.beta === null) return;
@@ -39,29 +25,13 @@ function listen() {
   if (mount) mount.classList.add("has-tilt");
 }
 
-async function askOnce() {
-  const Orient = window.DeviceOrientationEvent;
-  const needsAsk = Orient && typeof Orient.requestPermission === "function";
-  if (!needsAsk) { listen(); return; }
-  if (remembered() === "denied") return;
-  try {
-    const r = await Orient.requestPermission();
-    remember(r === "granted" ? "granted" : "denied");
-    if (r === "granted") listen();
-  } catch (_e) {
-    // Not from a gesture, or dismissed — try again on the next tap.
-  }
-}
-
 export function initMotion({ onTilt } = {}) {
   _onTilt = onTilt || null;
   if (typeof window === "undefined") return;
   const Orient = window.DeviceOrientationEvent;
   if (!Orient) return;
-  if (typeof Orient.requestPermission !== "function") { listen(); return; }
-  // iOS: wait for the first real tap anywhere in the app.
-  const onFirstTap = () => {
-    askOnce().then(() => { if (_listening || remembered() === "denied") document.removeEventListener("click", onFirstTap); });
-  };
-  document.addEventListener("click", onFirstTap);
+  // Where the sensor is free (Android, desktop) the foil follows the tilt.
+  // Where it sits behind a permission dialog (iOS) nothing is asked: the
+  // popup was not worth a sheen, and the foil sweeps on its own there.
+  if (typeof Orient.requestPermission !== "function") listen();
 }
