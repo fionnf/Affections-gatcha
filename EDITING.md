@@ -159,7 +159,9 @@ introduction and, under it, one step at a time with **Weiter** and **Zurück**,
 a dot per step, and a final *Fertig* page (its text from an optional `done`
 string on the outcome). Where he got to is kept per day on the phone
 (`affektions-gacha:kurs:v1`), so the course can be picked up again later.
-Line breaks in a step's `text` are kept. A step can name a `figure`, one of
+Line breaks in a step's `text` are kept. Once a course has been seen, a
+**Kurs 🎞️** chip appears among the hero's chips and reopens the last course
+in a panel, also on later days. A step can name a `figure`, one of
 the small inline infographics in `src/kursfiguren.js` (`kamera`, `einlegen`,
 `iso`, `blende`, `zeit`, `dreieck`, `sunny16`, `fokus`, `schaerfentiefe`,
 `zonenfokus`, `mitziehen`, `rueckspulen`); it is drawn above the text.

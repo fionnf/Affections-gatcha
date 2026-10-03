@@ -242,6 +242,26 @@ export const html = `
             </div>
           </section>
 
+          <section class="ag-card ag-mini-panel" id="ag-kurs-panel" hidden>
+            <div class="ag-mini-head">
+              <span class="ag-badge">Kurs</span>
+              <button class="ag-secondary" type="button" id="ag-kurs-close">✕</button>
+            </div>
+            <h2 class="ag-mini-title" id="ag-kurs-panel-title">Kurs</h2>
+            <p class="ag-mini-copy" id="ag-kurs-panel-copy"></p>
+            <div class="ag-kurs" data-ag-kurs-panel-block hidden>
+              <p class="ag-kurs-count" data-ag-kurs-count></p>
+              <h3 class="ag-kurs-title" data-ag-kurs-title></h3>
+              <div class="ag-kurs-figure" data-ag-kurs-figure hidden></div>
+              <div class="ag-kurs-text ag-message" data-ag-kurs-text></div>
+              <div class="ag-kurs-dots" data-ag-kurs-dots aria-hidden="true"></div>
+              <div class="ag-kurs-nav">
+                <button class="ag-secondary ag-kurs-prev" type="button" data-ag-kurs-prev>‹ Zurück</button>
+                <button class="ag-button ag-kurs-next" type="button" data-ag-kurs-next>Weiter ›</button>
+              </div>
+            </div>
+          </section>
+
           <section class="ag-card ag-mini-panel" id="ag-quest-panel" hidden>
             <div class="ag-mini-head">
               <span class="ag-badge" id="ag-quest-badge">Quest</span>

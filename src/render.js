@@ -34,7 +34,7 @@ import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { renderAufkleber } from "./aufkleber.js";
 import { renderWanderweg, bindWanderwegScroll, placeHiker, climbProgress } from "./wanderweg.js";
-import { renderKurs } from "./kurs.js";
+import { renderKurs, ensureKursChip } from "./kurs.js";
 import { fullMoonLine } from "./mond.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
@@ -2139,6 +2139,8 @@ export function hydrateCopy() {
 
   const chips = $("[data-ag-chips]");
   if (chips) chips.innerHTML = "";
+  // The Kurs chip comes back after the loop, once a course has been seen.
+  queueMicrotask(ensureKursChip);
   const chipList = (Array.isArray(state.theme.stickers) && state.theme.stickers.length)
     ? state.theme.stickers
     : defaultChips();
