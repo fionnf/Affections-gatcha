@@ -86,6 +86,7 @@ if (Array.isArray(outcomes.categories)) {
           outcome.steps.forEach((step, k) => {
             assert(step && typeof step.title === "string" && step.title.trim() && typeof step.text === "string" && step.text.trim(),
               `Outcome ${category.id}[${index}] step ${k} needs a title and a text.`);
+            if (step.figure !== undefined) assert(typeof step.figure === "string" && /^[a-z]+$/.test(step.figure), `Outcome ${category.id}[${index}] step ${k}: figure must be a short lowercase name.`);
           });
         }
         if (outcome.link !== undefined) {

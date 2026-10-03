@@ -5,6 +5,7 @@
 // the message is the introduction, the steps follow it.
 import { haptic } from "./haptic.js";
 import { escapeHtml } from "./utils.js";
+import { figureHtml } from "./kursfiguren.js";
 
 // Paragraphs and line breaks, nothing more; the text comes from config.
 export function stepHtml(text) {
@@ -60,6 +61,12 @@ export function renderKurs(block, pull) {
     block.classList.toggle("is-done", done);
     block.querySelector("[data-ag-kurs-count]").textContent = done ? `${steps.length} von ${steps.length} · fertig` : `Schritt ${i + 1} von ${steps.length}`;
     block.querySelector("[data-ag-kurs-title]").textContent = done ? "Alle Schritte durch 🎞️" : step.title;
+    const fig = block.querySelector("[data-ag-kurs-figure]");
+    if (fig) {
+      const html = done ? "" : figureHtml(step.figure);
+      fig.innerHTML = html;
+      fig.hidden = !html;
+    }
     block.querySelector("[data-ag-kurs-text]").innerHTML = done
       ? stepHtml(pull.outcome.done || "Das war der Kurs. Jetzt gilt nur noch das Notizbuch und der Film.")
       : stepHtml(step.text);

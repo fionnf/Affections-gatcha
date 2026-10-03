@@ -11,6 +11,8 @@ const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { clampStep, validSteps, readKursIndex, writeKursIndex } = await import("../src/kurs.js");
+const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
+const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
 const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS, flickerStep, flickerGap, FLICKER_MIN, FLICKER_MAX, FLICKER_GAP_MS, rainbowGroups, RAINBOW_STEP } = await import("../src/licht.js");
@@ -172,6 +174,17 @@ test("the course: steps clamp to the done page, bad steps are dropped, the place
   writeKursIndex("2026-10-03", 4);
   assert.equal(readKursIndex("2026-10-03"), 4);
   assert.equal(readKursIndex("2026-10-04"), 0, "another day starts at the top");
+});
+
+test("the course figures: every key draws an svg, unknown keys draw nothing, the config only names real ones", () => {
+  assert.ok(FIGURE_KEYS.length >= 12);
+  for (const k of FIGURE_KEYS) assert.match(figureHtml(k), /^<svg [^>]*viewBox="0 0 320 \d+"/, k);
+  assert.equal(figureHtml("nope"), "");
+  assert.equal(figureHtml(undefined), "");
+  const days = JSON.parse(readFileSync(new URL("../config/special-days.json", import.meta.url), "utf8")).days;
+  for (const d of days) for (const o of d.outcomes || []) for (const s of o.steps || []) {
+    if (s.figure) assert.ok(FIGURE_KEYS.includes(s.figure), `${d.date}: unknown figure ${s.figure}`);
+  }
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {
