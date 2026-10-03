@@ -81,6 +81,13 @@ if (Array.isArray(outcomes.categories)) {
       category.outcomes.forEach((outcome, index) => {
         assert(typeof outcome.title === "string" && outcome.title.trim(), `Outcome ${category.id}[${index}] needs a title.`);
         assert(typeof outcome.message === "string" && outcome.message.trim(), `Outcome ${category.id}[${index}] needs a message.`);
+        if (outcome.steps !== undefined) {
+          assert(Array.isArray(outcome.steps) && outcome.steps.length > 0, `Outcome ${category.id}[${index}]: steps must be a non-empty array.`);
+          outcome.steps.forEach((step, k) => {
+            assert(step && typeof step.title === "string" && step.title.trim() && typeof step.text === "string" && step.text.trim(),
+              `Outcome ${category.id}[${index}] step ${k} needs a title and a text.`);
+          });
+        }
         if (outcome.link !== undefined) {
           assert(typeof outcome.link === "string" && isValidHttpUrl(outcome.link), `Outcome ${category.id}[${index}].link must be a valid http(s) URL when present.`);
         }

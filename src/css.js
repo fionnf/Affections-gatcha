@@ -3015,6 +3015,21 @@ body{
   .ag-widget .ag-ww-star,.ag-widget .ag-ww-flag,.ag-widget .ag-ww-card{animation:none}
   .ag-widget .ag-ww-hiker{transition:none}
 }
+
+/* ── Kurs: a course read one step at a time under the message ── */
+.ag-widget .ag-kurs{margin:14px 0 6px;padding:14px 14px 12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+.ag-widget .ag-kurs-count{margin:0 0 4px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ag-muted)}
+.ag-widget .ag-kurs-title{margin:0 0 8px;font-family:"Boska",Georgia,serif;font-size:1.25rem;line-height:1.2;letter-spacing:-.01em}
+.ag-widget .ag-kurs-text{min-height:3em}
+.ag-widget .ag-kurs-dots{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0 10px}
+.ag-widget .ag-kurs-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.14)}
+.ag-widget .ag-kurs-dots i.is-past{background:var(--ag-green)}
+.ag-widget .ag-kurs-dots i.is-now{background:var(--ag-gold);box-shadow:0 0 8px rgba(224,167,93,.8);transform:scale(1.25)}
+.ag-widget .ag-kurs-nav{display:flex;justify-content:space-between;gap:10px}
+.ag-widget .ag-kurs-nav .ag-kurs-next{min-height:40px;padding:0 18px}
+.ag-widget .ag-kurs-nav .ag-kurs-prev[disabled]{opacity:.4;cursor:default}
+.ag-widget .ag-kurs.is-done{border-color:rgba(143,207,158,.4)}
+.ag-widget .ag-kurs.is-done .ag-kurs-dots i{background:var(--ag-green)}
     `;
 
 export function injectStyles() {

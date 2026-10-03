@@ -379,6 +379,16 @@ export const html = `
               <p class="ag-moon-line" data-ag-moon-line hidden></p>
               <h2 data-ag-title></h2>
               <div class="ag-message" data-ag-message hidden></div>
+              <section class="ag-kurs" data-ag-kurs hidden aria-label="Kurs">
+                <p class="ag-kurs-count" data-ag-kurs-count></p>
+                <h3 class="ag-kurs-title" data-ag-kurs-title></h3>
+                <div class="ag-kurs-text ag-message" data-ag-kurs-text></div>
+                <div class="ag-kurs-dots" data-ag-kurs-dots aria-hidden="true"></div>
+                <div class="ag-kurs-nav">
+                  <button class="ag-secondary ag-kurs-prev" type="button" data-ag-kurs-prev>‹ Zurück</button>
+                  <button class="ag-button ag-kurs-next" type="button" data-ag-kurs-next>Weiter ›</button>
+                </div>
+              </section>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
               <div data-ag-token-wrap hidden></div>
               <div class="ag-quest-wrap" data-ag-quest-wrap hidden>

@@ -927,6 +927,10 @@ mechanics, none of it load-bearing.
   below makes room — and another tap folds it; the star on the open card
   works as everywhere. A small hiker walks the trail as the page scrolls,
   facing the way the path turns.
+- **Kurs** (`src/kurs.js`). An outcome with `steps` is a course: the message
+  is the introduction, then one step at a time under it with Weiter and
+  Zurück, a dot per step and a Fertig page; where he got to is kept per day.
+  See EDITING.md.
 - **Kneifen** (`src/kneifen.js`). Pinch today's card with two fingers and
   it becomes a Liebling, the same as the star: a small copy of the card
   shrinks and flies into the star in the nav.
