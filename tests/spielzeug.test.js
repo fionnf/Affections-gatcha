@@ -10,7 +10,7 @@ const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant,
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
-const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull } = await import("../src/kurs.js");
+const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull, configKurse } = await import("../src/kurs.js");
 const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
 const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
@@ -183,6 +183,15 @@ test("the course: steps clamp to the done page, bad steps are dropped, the place
   assert.equal(kursAsPull(last).category.label, "Film");
   rememberKurs({ day: "2026-10-05", outcome: { title: "no steps" } });
   assert.equal(readLastKurs().day, "2026-10-03", "an outcome without steps does not replace the course");
+  const days = [
+    { date: "2026-09-01", label: "Alt", outcomes: [{ title: "A", message: "m", steps: [{ title: "x", text: "y" }] }] },
+    { date: "2026-10-03", label: "Neu", outcomes: [{ title: "B", message: "m", steps: [{ title: "x", text: "y" }, { title: "z", text: "w" }] }] },
+    { date: "2026-10-04", label: "Ohne", outcomes: [{ title: "C", message: "m" }] }
+  ];
+  const kurse = configKurse(days);
+  assert.deepEqual(kurse.map((k) => k.title), ["B", "A"], "newest first, outcomes without steps skipped");
+  assert.equal(kurse[0].steps.length, 2);
+  assert.equal(configKurse(undefined).length, 0);
 });
 
 test("the course figures: every key draws an svg, unknown keys draw nothing, the config only names real ones", () => {

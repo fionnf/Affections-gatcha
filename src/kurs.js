@@ -6,6 +6,7 @@
 import { haptic } from "./haptic.js";
 import { escapeHtml } from "./utils.js";
 import { figureHtml } from "./kursfiguren.js";
+import { state } from "./state.js";
 
 // Paragraphs and line breaks, nothing more; the text comes from config.
 export function stepHtml(text) {
@@ -54,22 +55,42 @@ export function readLastKurs() {
     return k;
   } catch (_e) { return null; }
 }
+// The courses written into the config, newest first: every special-day
+// outcome that carries steps. This is what the chip opens on a phone that
+// has never seen the capsule, and what it falls back to anytime.
+export function configKurse(days = state.specialDays && state.specialDays.days) {
+  const out = [];
+  for (const d of Array.isArray(days) ? days : []) {
+    for (const o of Array.isArray(d.outcomes) ? d.outcomes : []) {
+      const steps = validSteps(o.steps);
+      if (!steps.length) continue;
+      out.push({ day: String(d.date || ""), title: o.title || "", label: d.label || "", steps, done: o.done || "" });
+    }
+  }
+  return out.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+}
+// The course the chip opens: the newest in the config, or the last one
+// seen if the config has none anymore.
+export function availableKurs() {
+  return configKurse()[0] || readLastKurs();
+}
 // What renderKurs needs, rebuilt from the stored course.
 export function kursAsPull(k) {
   return { day: k.day, category: { label: k.label }, outcome: { title: k.title, steps: k.steps, done: k.done } };
 }
 
-// The chip on the hero that reopens the course. Added once a course has
-// been seen; it binds its own click, so it can arrive after bindEvents.
+// The chip on the hero that opens the course, anytime: before the pull,
+// on a new phone, on a later day. It binds its own click, so it can arrive
+// after bindEvents.
 export function ensureKursChip() {
   const chips = document.querySelector("[data-ag-chips]");
-  if (!chips || chips.querySelector("#ag-btn-kurs") || !readLastKurs()) return;
+  if (!chips || chips.querySelector("#ag-btn-kurs") || !availableKurs()) return;
   const li = document.createElement("li");
   li.id = "ag-btn-kurs";
   li.textContent = "Kurs 🎞️";
   li.tabIndex = 0;
   li.setAttribute("role", "button");
-  li.setAttribute("aria-label", "Kurs nochmal öffnen");
+  li.setAttribute("aria-label", "Kurs öffnen");
   li.classList.add("ag-chip-clickable");
   const open = () => { haptic(6); openKursPanel(); };
   li.addEventListener("click", open);
@@ -79,7 +100,7 @@ export function ensureKursChip() {
 
 export function openKursPanel() {
   const panel = document.querySelector("#ag-kurs-panel");
-  const k = readLastKurs();
+  const k = availableKurs();
   if (!panel || !k) return;
   const title = panel.querySelector("#ag-kurs-panel-title");
   if (title) title.textContent = k.title || "Kurs";
