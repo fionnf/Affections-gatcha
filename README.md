@@ -930,7 +930,10 @@ mechanics, none of it load-bearing.
 - **Kurs** (`src/kurs.js`). An outcome with `steps` is a course: the message
   is the introduction, then one step at a time under it with Weiter and
   Zurück, a dot per step and a Fertig page; where he got to is kept per day.
-  See EDITING.md.
+  A step can carry a `figure`, one of the inline SVG infographics in
+  `src/kursfiguren.js` (dials, Quick Load, the aperture series, shutter
+  speeds, the triangle, Sunny 16, the split-image finder, depth of field,
+  zone focus, panning, rewinding). See EDITING.md.
 - **Kneifen** (`src/kneifen.js`). Pinch today's card with two fingers and
   it becomes a Liebling, the same as the star: a small copy of the card
   shrinks and flies into the star in the nav.

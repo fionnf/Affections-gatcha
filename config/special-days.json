@@ -106,39 +106,47 @@
       "outcomes": [
         {
           "title": "Zürich auf einer Rolle",
-          "message": "Heute keine Kapsel zum Lesen, sondern ein kleiner Kurs zum Mitnehmen. 📷\n\nEs ist bewölkt, und das ist gut so: flaches Licht ist das ehrlichste Licht zum Lernen. Filmkameras raus, du deine, ich meine. Alles manuell, kein Belichtungsmesser, keine App. Eine Rolle, ein Samstag, Zürich.\n\nUnten geht es Schritt für Schritt: erst die Kamera, dann das Licht, dann die Übungen. Tipp auf Weiter, wenn du bereit bist.",
+          "message": "Heute keine Kapsel zum Lesen, sondern ein kleiner Kurs zum Mitnehmen. 📷\n\nEs ist bewölkt, und das ist gut so: flaches Licht ist das ehrlichste Licht zum Lernen. Die Canon raus, AE-1 oder FT, du deine, ich meine. Alles von Hand, kein Blick auf die Nadel, keine App. Eine Rolle, ein Samstag, Zürich.\n\nUnten geht es Schritt für Schritt: erst die Kamera, dann das Licht, dann die Übungen. Tipp auf Weiter, wenn du bereit bist.",
           "steps": [
             {
               "title": "Die Kamera in der Hand",
-              "text": "Vier Ringe und ein Hebel, mehr ist es nicht.\n\nAm Objektiv: der Blendenring (Zahlen wie 2, 2.8, 4, 5.6, 8, 11, 16) und der Fokusring (Meter oder Feet). Oben an der Kamera: das Verschlusszeitenrad (1000, 500, 250 … 15, 8, B) und das ISO-Rad, oft unter dem Rückspulknopf. Dazu der Transporthebel, der den Film weiterzieht und den Verschluss spannt, und das Zählwerk.\n\nDreh einmal an jedem Ring, ohne auszulösen, und sag dir laut, was er tut. Das ist die ganze Bedienung."
+              "text": "Deine Canon von oben: rechts das Zeitenrad mit den Verschlusszeiten (1000 bis 2, dazu B), darin das kleine ASA-Fenster, daneben der Transporthebel und das Zählwerk. Links die Rückspulkurbel. Vorne am Objektiv zwei Ringe: hinten der Blendenring mit 1.8 oder 2 bis 16 (bei der AE-1 auch ein grünes A, das ist Automatik und heute tabu), vorne der breite Fokusring mit der Meterskala.\n\nDie FT hat zusätzlich einen kleinen Hebel seitlich am Bajonett, der das Objektiv zum Messen abblendet. Heute bleibt er in Ruhe.\n\nDreh einmal an jedem Ring, ohne auszulösen, und sag dir laut, was er tut. Das ist die ganze Bedienung.",
+              "figure": "kamera"
             },
             {
               "title": "Film einlegen",
-              "text": "Auf der Schachtel steht die Empfindlichkeit: ISO 200 oder 400. Stell sie am ISO-Rad ein, bevor du irgendetwas anderes tust, sie gilt für die ganze Rolle.\n\nRückwand auf, Patrone links rein, Filmanfang bis zur Aufwickelspule ziehen und einfädeln, einmal transportieren, prüfen, dass die Zähne in den Perforationslöchern sitzen. Rückwand zu. Zweimal auslösen und transportieren, bis das Zählwerk auf 1 steht.\n\nDer Test, ob der Film wirklich läuft: der Rückspulknopf dreht sich beim Transportieren mit. Wenn nicht, nochmal aufmachen, lieber jetzt als nach 36 Bildern ins Leere."
+              "text": "Auf der Schachtel steht die Empfindlichkeit, ISO 200 oder 400. Stell sie zuerst ein: Aussenring des Zeitenrads anheben und drehen, bis die Zahl im ASA-Fenster steht. Sie gilt für die ganze Rolle.\n\nCanon Quick Load, das QL auf der Rückwand: Rückspulkurbel hochziehen, die Rückwand springt auf. Patrone links hinein, Kurbel wieder runterdrücken. Den Filmanfang flach nach rechts ziehen, bis zur orangen Marke unter der QL-Klappe, nicht weiter. Rückwand zu, zweimal transportieren und auslösen, bis das Zählwerk auf 1 steht.\n\nDer Test, ob der Film wirklich läuft: die Rückspulkurbel dreht sich beim Transportieren mit. Wenn nicht, nochmal aufmachen, lieber jetzt als nach 36 Bildern ins Leere.",
+              "figure": "einlegen"
             },
             {
               "title": "ISO: wie empfindlich der Film ist",
-              "text": "ISO sagt, wie viel Licht der Film braucht. ISO 400 braucht halb so viel wie ISO 200, also eine Blende weniger.\n\nMerksatz für heute: eine Blende heisst immer doppelt oder halb so viel Licht. Das gilt für ISO, für die Blende und für die Verschlusszeit, und deshalb lassen sie sich gegeneinander tauschen.\n\nSchreib die ISO deines Films vorne ins Notizbuch. Alles Weitere rechnet sich von ihr aus."
+              "text": "ISO sagt, wie viel Licht der Film braucht. ISO 400 braucht halb so viel wie ISO 200, also eine Blende weniger.\n\nMerksatz für heute: eine Blende heisst immer doppelt oder halb so viel Licht. Das gilt für ISO, für die Blende und für die Verschlusszeit, und deshalb lassen sie sich gegeneinander tauschen.\n\nSchreib die ISO deines Films vorne ins Notizbuch. Alles Weitere rechnet sich von ihr aus.",
+              "figure": "iso"
             },
             {
               "title": "Die Blende",
-              "text": "Die Blende ist das Loch im Objektiv. Kleine Zahl, grosses Loch, viel Licht: f/2. Grosse Zahl, kleines Loch, wenig Licht: f/16.\n\nDie Reihe 2 · 2.8 · 4 · 5.6 · 8 · 11 · 16: jeder Schritt halbiert das Licht. Von f/4 auf f/8 sind zwei Blenden, also ein Viertel.\n\nUnd die Blende macht noch etwas: bei f/2 ist nur eine dünne Scheibe scharf, der Hintergrund verschwimmt. Bei f/11 ist fast alles scharf. Das üben wir später am selben Motiv."
+              "text": "Die Blende ist das Loch im Objektiv. Kleine Zahl, grosses Loch, viel Licht: f/2. Grosse Zahl, kleines Loch, wenig Licht: f/16.\n\nDie Reihe 2 · 2.8 · 4 · 5.6 · 8 · 11 · 16: jeder Schritt halbiert das Licht. Von f/4 auf f/8 sind zwei Blenden, also ein Viertel.\n\nUnd die Blende macht noch etwas: bei f/2 ist nur eine dünne Scheibe scharf, der Hintergrund verschwimmt. Bei f/11 ist fast alles scharf. Das üben wir später am selben Motiv.",
+              "figure": "blende"
             },
             {
               "title": "Die Verschlusszeit",
-              "text": "Die Verschlusszeit ist, wie lange Licht auf den Film fällt. 1/500 ist kurz und friert Bewegung ein. 1/15 ist lang, Bewegung wird zum Wisch.\n\nAuch hier halbiert jeder Schritt: 500 · 250 · 125 · 60 · 30 · 15.\n\nFaustregel fürs Freihandhalten: nicht länger als 1 durch die Brennweite. Mit einem 50er also 1/60 oder kürzer, sonst verwackelt es. Bei 1/15 brauchst du eine Mauer, ein Geländer oder angehaltene Luft."
+              "text": "Die Verschlusszeit ist, wie lange Licht auf den Film fällt. 1/500 ist kurz und friert Bewegung ein. 1/15 ist lang, Bewegung wird zum Wisch.\n\nAuch hier halbiert jeder Schritt: 500 · 250 · 125 · 60 · 30 · 15.\n\nFaustregel fürs Freihandhalten: nicht länger als 1 durch die Brennweite. Mit einem 50er also 1/60 oder kürzer, sonst verwackelt es. Bei 1/15 brauchst du eine Mauer, ein Geländer oder angehaltene Luft.",
+              "figure": "zeit"
             },
             {
               "title": "Das Dreieck",
-              "text": "ISO, Blende, Zeit: alle drei zusammen ergeben die Belichtung. Weil jeder Schritt doppelt oder halb ist, kannst du tauschen, ohne dass sich die Helligkeit ändert.\n\nf/8 bei 1/125 ist dasselbe wie f/5.6 bei 1/250 und wie f/11 bei 1/60. Du entscheidest nur, was dir wichtiger ist: Schärfentiefe (Blende) oder Bewegung (Zeit).\n\nRechne einmal laut: f/4 bei 1/500, gleiche Helligkeit mit f/16, welche Zeit? (1/30. Zwei Blenden mal zwei Blenden.)"
+              "text": "ISO, Blende, Zeit: alle drei zusammen ergeben die Belichtung. Weil jeder Schritt doppelt oder halb ist, kannst du tauschen, ohne dass sich die Helligkeit ändert.\n\nf/8 bei 1/125 ist dasselbe wie f/5.6 bei 1/250 und wie f/11 bei 1/60. Du entscheidest nur, was dir wichtiger ist: Schärfentiefe (Blende) oder Bewegung (Zeit).\n\nRechne einmal laut: f/4 bei 1/500, gleiche Helligkeit mit f/16, welche Zeit? (1/30. Zwei Blenden mal zwei Blenden.)",
+              "figure": "dreieck"
             },
             {
               "title": "Sunny 16, und was heute gilt",
-              "text": "Ohne Belichtungsmesser gilt die alte Regel: bei voller Sonne Blende 16 und die Zeit gleich 1 durch ISO. ISO 400, f/16, 1/500 (oder 1/400, wenn es die gibt).\n\nHeute ist der Himmel zu. Dann öffnest du zwei Blenden: f/8 bei 1/ISO. Wird es dunkel bewölkt, f/5.6. Im Schatten einer Gasse f/4.\n\nSchreib die Startwerte für heute ins Notizbuch: f/8 bei 1/500 für ISO 400, oder f/8 bei 1/250 für ISO 200. Alles andere sind Verschiebungen davon."
+              "text": "Ohne Belichtungsmesser gilt die alte Regel: bei voller Sonne Blende 16 und die Zeit gleich 1 durch ISO. ISO 400, f/16, 1/500.\n\nHeute ist der Himmel zu. Dann öffnest du zwei Blenden: f/8 bei 1/ISO. Wird es dunkel bewölkt, f/5.6. Im Schatten einer Gasse f/4.\n\nDie AE-1 hat eine Nadel im Sucher, die beim halben Drücken auf eine Blende zeigt. Die Regel für heute: erst schätzen und einstellen, dann kurz drücken und schauen, wie weit die Nadel von deiner Schätzung weg ist. Die Differenz ist der Unterricht, nicht die Nadel. Die FT misst nur mit dem Abblendhebel und einer Batterie, die vermutlich leer ist, also bleibt sie ehrlich beim Schätzen.\n\nSchreib die Startwerte für heute ins Notizbuch: f/8 bei 1/500 für ISO 400, oder f/8 bei 1/250 für ISO 200.",
+              "figure": "sunny16"
             },
             {
               "title": "Fokus von Hand",
-              "text": "Dreh den Fokusring, bis es im Sucher scharf wird. Bei einer Spiegelreflex hilft die Mitte: der Schnittbildindikator, der ein Bild in zwei versetzte Hälften teilt, die bei Schärfe zusammenrutschen. Bei einer Messsucherkamera siehst du ein helles Doppelbild, das bei Schärfe eins wird.\n\nBei Menschen immer auf die Augen. Bei f/2 verzeiht das Objektiv keine Handbreit.\n\nÜbung ohne Film: fokussiere fünfmal auf etwas in drei Metern und lies jedes Mal die Entfernung am Ring ab. Wenn es immer ungefähr dasselbe ist, traust du dem Ring später blind."
+              "text": "Dreh den Fokusring, bis es im Sucher scharf wird. Bei der AE-1 hilft die Mitte: das Schnittbild teilt eine Kante in zwei versetzte Hälften, die bei Schärfe zu einer Linie zusammenrutschen; der Ring darum, die Mikroprismen, flimmert, bis es stimmt. Bei der FT ist es der Mikroprismenfleck in der Mitte: unscharf körnig, scharf ruhig.\n\nBei Menschen immer auf die Augen. Bei f/1.8 verzeiht das Objektiv keine Handbreit.\n\nÜbung ohne Film: fokussiere fünfmal auf etwas in drei Metern und lies jedes Mal die Entfernung am Ring ab. Wenn es immer ungefähr dasselbe ist, traust du dem Ring später blind.",
+              "figure": "fokus"
             },
             {
               "title": "Übung 1 · Die Grauprobe",
@@ -158,15 +166,18 @@
             },
             {
               "title": "Übung 5 · Schärfentiefe",
-              "text": "Ein Motiv mit Vordergrund und Hintergrund, zum Beispiel ein Geländer an der Limmat mit der Stadt dahinter. Zweimal fotografieren, gleiche Helligkeit:\n\nf/2 bei 1/2000 (oder so kurz, wie die Kamera kann), und f/11 bei 1/60. Fokus beide Male auf das Geländer.\n\nAuf dem einen Bild ist die Stadt ein weicher Fleck, auf dem anderen scharf. Dasselbe Licht, zwei Geschichten."
+              "text": "Ein Motiv mit Vordergrund und Hintergrund, zum Beispiel ein Geländer an der Limmat mit der Stadt dahinter. Zweimal fotografieren, gleiche Helligkeit:\n\nf/2 bei 1/2000 (oder so kurz, wie die Kamera kann), und f/11 bei 1/60. Fokus beide Male auf das Geländer.\n\nAuf dem einen Bild ist die Stadt ein weicher Fleck, auf dem anderen scharf. Dasselbe Licht, zwei Geschichten.",
+              "figure": "schaerfentiefe"
             },
             {
               "title": "Übung 6 · Zonenfokus am Flohmarkt",
-              "text": "Flohmarkt Bürkliplatz, bis 15 Uhr. Stell den Fokusring auf 3 m und die Blende auf 8. Bei f/8 ist dann ungefähr alles von 2 bis 5 Metern scharf, das steht auch an der Skala auf dem Objektiv.\n\nJetzt drei Bilder von Händen bei der Arbeit, Kamera an der Hüfte, ohne durch den Sucher zu schauen. Nur die Entfernung schätzen und auslösen.\n\nSo haben die Strassenfotografen immer gearbeitet. Es fühlt sich falsch an und funktioniert erstaunlich oft."
+              "text": "Flohmarkt Bürkliplatz, bis 15 Uhr. Stell den Fokusring auf 3 m und die Blende auf 8. Auf dem Objektiv stehen links und rechts der Marke kleine Blendenzahlen: zwischen den beiden 8ern liegt, was scharf wird, bei 3 m ungefähr von 2 bis 5 Metern.\n\nJetzt drei Bilder von Händen bei der Arbeit, Kamera an der Hüfte, ohne durch den Sucher zu schauen. Nur die Entfernung schätzen und auslösen.\n\nSo haben die Strassenfotografen immer gearbeitet. Es fühlt sich falsch an und funktioniert erstaunlich oft.",
+              "figure": "zonenfokus"
             },
             {
               "title": "Übung 7 · Bewegung",
-              "text": "Zwei Bilder über die Verschlusszeit.\n\nEin Tram bei 1/15: die Kamera mit dem Tram mitdrehen und währenddessen auslösen. Das Tram wird scharf, der Hintergrund zieht Streifen. Blende dafür weit zu, f/16, sonst wird es zu hell.\n\nEin Brunnen bei 1/500: das Wasser wird zu Glas. Dafür muss die Blende ganz auf, rechne es laut vor: von f/8 bei 1/ISO zwei Zeiten kürzer heisst zwei Blenden offener."
+              "text": "Zwei Bilder über die Verschlusszeit.\n\nEin Tram bei 1/15: die Kamera mit dem Tram mitdrehen und währenddessen auslösen. Das Tram wird scharf, der Hintergrund zieht Streifen. Blende dafür weit zu, f/16, sonst wird es zu hell.\n\nEin Brunnen bei 1/500: das Wasser wird zu Glas. Dafür muss die Blende ganz auf, rechne es laut vor: von f/8 bei 1/ISO zwei Zeiten kürzer heisst zwei Blenden offener.",
+              "figure": "mitziehen"
             },
             {
               "title": "Übung 8 · Spiegelung und Fenster",
@@ -178,7 +189,8 @@
             },
             {
               "title": "Film zurückspulen",
-              "text": "Erst den Entriegelungsknopf am Boden drücken, dann mit der Kurbel zurückspulen, bis es leicht geht und das Zählwerk sich nicht mehr bewegt. Noch ein paar Umdrehungen, bis der Film hörbar aus der Spule rutscht.\n\nErst dann die Rückwand öffnen. Vorher nie, auch nicht kurz, auch nicht im Schatten.\n\nPatrone raus, Zunge einstecken oder Deckel drauf, Notizbuch dazu. Entwickeln lassen und die Negative behalten, nicht nur die Scans."
+              "text": "Unten an der Kamera sitzt der kleine Rückspulknopf, einmal drücken. Dann die Kurbel links ausklappen und im Uhrzeigersinn drehen, bis es leicht geht und das Zählwerk stillsteht. Noch ein paar Umdrehungen, bis der Film hörbar aus der Spule rutscht.\n\nErst dann die Kurbel hochziehen und die Rückwand öffnen. Vorher nie, auch nicht kurz, auch nicht im Schatten.\n\nPatrone raus, Deckel drauf, Notizbuch dazu. Entwickeln lassen und die Negative behalten, nicht nur die Scans.",
+              "figure": "rueckspulen"
             }
           ],
           "done": "Beweis: ein Foto von der Kamera mit dem Zähler auf 12 oder höher, oder vom Negativstreifen, sobald der Film entwickelt ist. Dann Bestanden drücken.\n\nAm Abend vergleichen wir die Notizbücher mit den Negativen. Die beste Schätzung kriegt ein Bier. Das beste Bild kommt gerahmt an die Wand. 💚"

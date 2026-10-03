@@ -382,6 +382,7 @@ export const html = `
               <section class="ag-kurs" data-ag-kurs hidden aria-label="Kurs">
                 <p class="ag-kurs-count" data-ag-kurs-count></p>
                 <h3 class="ag-kurs-title" data-ag-kurs-title></h3>
+                <div class="ag-kurs-figure" data-ag-kurs-figure hidden></div>
                 <div class="ag-kurs-text ag-message" data-ag-kurs-text></div>
                 <div class="ag-kurs-dots" data-ag-kurs-dots aria-hidden="true"></div>
                 <div class="ag-kurs-nav">
