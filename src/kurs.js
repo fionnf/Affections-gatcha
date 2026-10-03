@@ -13,6 +13,7 @@ export function stepHtml(text) {
 }
 
 const KEY = "affektions-gacha:kurs:v1";
+const LAST_KEY = "affektions-gacha:kurs:last";
 
 function readAll() {
   try {
@@ -34,6 +35,65 @@ export function writeKursIndex(day, index) {
   } catch (_e) {}
 }
 
+// The last course seen, kept whole, so the chip can reopen it on a later
+// day when the capsule itself is long in the Verlauf.
+export function rememberKurs(pull) {
+  const steps = validSteps(pull && pull.outcome && pull.outcome.steps);
+  if (!steps.length) return;
+  try {
+    window.localStorage.setItem(LAST_KEY, JSON.stringify({
+      day: pull.day, title: pull.outcome.title || "", label: (pull.category && pull.category.label) || "",
+      steps, done: pull.outcome.done || ""
+    }));
+  } catch (_e) {}
+}
+export function readLastKurs() {
+  try {
+    const k = JSON.parse(window.localStorage.getItem(LAST_KEY) || "null");
+    if (!k || typeof k.day !== "string" || !validSteps(k.steps).length) return null;
+    return k;
+  } catch (_e) { return null; }
+}
+// What renderKurs needs, rebuilt from the stored course.
+export function kursAsPull(k) {
+  return { day: k.day, category: { label: k.label }, outcome: { title: k.title, steps: k.steps, done: k.done } };
+}
+
+// The chip on the hero that reopens the course. Added once a course has
+// been seen; it binds its own click, so it can arrive after bindEvents.
+export function ensureKursChip() {
+  const chips = document.querySelector("[data-ag-chips]");
+  if (!chips || chips.querySelector("#ag-btn-kurs") || !readLastKurs()) return;
+  const li = document.createElement("li");
+  li.id = "ag-btn-kurs";
+  li.textContent = "Kurs 🎞️";
+  li.tabIndex = 0;
+  li.setAttribute("role", "button");
+  li.setAttribute("aria-label", "Kurs nochmal öffnen");
+  li.classList.add("ag-chip-clickable");
+  const open = () => { haptic(6); openKursPanel(); };
+  li.addEventListener("click", open);
+  li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  chips.appendChild(li);
+}
+
+export function openKursPanel() {
+  const panel = document.querySelector("#ag-kurs-panel");
+  const k = readLastKurs();
+  if (!panel || !k) return;
+  const title = panel.querySelector("#ag-kurs-panel-title");
+  if (title) title.textContent = k.title || "Kurs";
+  const sub = panel.querySelector("#ag-kurs-panel-copy");
+  if (sub) sub.textContent = k.label ? `${k.label} · ${k.day}` : k.day;
+  renderKurs(panel.querySelector("[data-ag-kurs-panel-block]"), kursAsPull(k), { remember: false });
+  panel.hidden = false;
+  try { panel.scrollIntoView({ block: "start", behavior: "smooth" }); } catch (_e) {}
+}
+export function closeKursPanel() {
+  const panel = document.querySelector("#ag-kurs-panel");
+  if (panel) panel.hidden = true;
+}
+
 // The pure part: where a Weiter or Zurück lands. `count` steps, plus one
 // final "done" position after the last step.
 export function clampStep(index, count) {
@@ -48,11 +108,12 @@ export function validSteps(steps) {
 // Renders the course block for a pull, or hides it when the outcome has no
 // steps. Buttons re-render in place; the block scrolls itself into view so a
 // long step starts at its title.
-export function renderKurs(block, pull) {
+export function renderKurs(block, pull, { remember = true } = {}) {
   if (!block) return;
   const steps = validSteps(pull && pull.outcome && pull.outcome.steps);
   if (!steps.length) { block.hidden = true; return; }
   block.hidden = false;
+  if (remember) { rememberKurs(pull); ensureKursChip(); }
   const day = pull.day;
   const paint = (scroll) => {
     const i = clampStep(readKursIndex(day), steps.length);

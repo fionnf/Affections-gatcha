@@ -3031,6 +3031,7 @@ body{
 .ag-widget .ag-kurs-nav .ag-kurs-next{min-height:40px;padding:0 18px}
 .ag-widget .ag-kurs-nav .ag-kurs-prev[disabled]{opacity:.4;cursor:default}
 .ag-widget .ag-kurs.is-done{border-color:rgba(143,207,158,.4)}
+.ag-widget #ag-kurs-panel .ag-kurs{margin-top:10px}
 .ag-widget .ag-kurs.is-done .ag-kurs-dots i{background:var(--ag-green)}
     `;
 

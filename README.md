@@ -933,7 +933,10 @@ mechanics, none of it load-bearing.
   A step can carry a `figure`, one of the inline SVG infographics in
   `src/kursfiguren.js` (dials, Quick Load, the aperture series, shutter
   speeds, the triangle, Sunny 16, the split-image finder, depth of field,
-  zone focus, panning, rewinding). See EDITING.md.
+  zone focus, panning, rewinding). Once a course has been seen, a **Kurs 🎞️**
+  chip joins the hero's chips and reopens it in a panel, on later days too
+  (the last course is kept whole, `affektions-gacha:kurs:last`); the place
+  in it is shared with the card. See EDITING.md.
 - **Kneifen** (`src/kneifen.js`). Pinch today's card with two fingers and
   it becomes a Liebling, the same as the star: a small copy of the card
   shrinks and flies into the star in the nav.
