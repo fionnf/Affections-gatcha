@@ -151,6 +151,28 @@ A special-day outcome can carry `token` too, exactly like a normal outcome,
 and a `link` — validated as an http(s) URL, since a link the app cannot parse
 is hidden rather than shown broken.
 
+### A course inside a capsule (`steps`)
+
+Any outcome, special day or category, can carry `steps`: an array of
+`{ "title", "text" }`. The capsule then shows the `message` as the
+introduction and, under it, one step at a time with **Weiter** and **Zurück**,
+a dot per step, and a final *Fertig* page (its text from an optional `done`
+string on the outcome). Where he got to is kept per day on the phone
+(`affektions-gacha:kurs:v1`), so the course can be picked up again later.
+Line breaks in a step's `text` are kept.
+
+```json
+"outcomes": [{
+  "title": "Zürich auf einer Rolle",
+  "message": "Heute ein kleiner Kurs. Tipp auf Weiter.",
+  "steps": [
+    { "title": "Die Kamera in der Hand", "text": "Vier Ringe und ein Hebel …" },
+    { "title": "Film einlegen", "text": "…" }
+  ],
+  "done": "Das war der Kurs."
+}]
+```
+
 ### Available color keys
 
 `background`, `surface`, `surfaceAlt`, `text`, `muted`, `border`, `primary`, `primaryDark`, `gold`, `green`, `blue`, `sky`, `mountain`

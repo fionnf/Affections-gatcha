@@ -34,6 +34,7 @@ import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { renderAufkleber } from "./aufkleber.js";
 import { renderWanderweg, bindWanderwegScroll, placeHiker, climbProgress } from "./wanderweg.js";
+import { renderKurs } from "./kurs.js";
 import { fullMoonLine } from "./mond.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
@@ -974,6 +975,9 @@ export function renderPull(pull) {
     showToast(`„${word}“ ins Glossar gelegt 📖`);
   });
   const resultEl = $("[data-ag-result]");
+
+  // A course under the message: one step at a time, Weiter and Zurück.
+  renderKurs($("[data-ag-kurs]"), pull);
 
   // Pfand: a Niete can be returned to the machine, once; every tenth pays.
   const pfandWrap = $("[data-ag-pfand]");

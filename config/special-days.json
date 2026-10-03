@@ -105,8 +105,83 @@
       "player": "lennart",
       "outcomes": [
         {
-          "title": "Zürich auf einer Rolle, bei grauem Himmel",
-          "message": "Heute keine Kapsel zum Lesen, sondern eine zum Losgehen. 📷\n\nEs ist bewölkt, und das ist gut so: flaches Licht verzeiht nichts beim Schätzen und alles beim Motiv. Filmkameras raus, du deine, ich meine. Alles manuell: Fokus von Hand, Belichtung geschätzt, kein Belichtungsmesser und keine App. Eine Rolle, ein Samstag, Zürich. Zwölf Übungen, mindestens acht davon kommen auf den Film:\n\n1. Die Grauprobe: eine graue Hauswand formatfüllend, so belichtet, dass sie auf dem Negativ mittelgrau wird. Das ist dein Referenzwert für den Tag.\n2. Dreimal dasselbe Motiv: einmal wie geschätzt, einmal eine Blende drüber, einmal drunter. Ins Notizbuch, welche du für richtig hältst.\n3. Ein Gesicht unter grauem Himmel, eine Blende heller als die Wand. Haut braucht bei Bewölkung Licht.\n4. Nasses Pflaster im Niederdorf mit einer Spiegelung drin. Auf die Spiegelung belichten, nicht auf den Stein.\n5. Etwas Weisses, das weiss bleibt: eine Markise, ein Boot, ein Hemd. Zwei Blenden über der Grauprobe.\n6. Etwas Schwarzes mit Zeichnung: ein Mantel, ein Reifen, ein Tram-Gummi. Zwei Blenden drunter.\n7. Zonenfokus: Entfernung auf 3 m, Blende 8, Kamera an der Hüfte, drei Bilder am Flohmarkt Bürkliplatz (bis 15 Uhr), ohne durch den Sucher zu schauen.\n8. Dasselbe Motiv zweimal: Blende 2 und Blende 11, gleiche Belichtung. Spüren, was die Schärfentiefe mit dem Hintergrund macht.\n9. Ein Tram bei 1/15 mitgezogen. Die Kamera dreht mit dem Tram, der Hintergrund darf verwischen.\n10. Ein Brunnen bei 1/500, das Wasser als Glas. Dafür muss die Blende ganz auf, rechne es laut vor.\n11. Ein Fenster von innen nach aussen, Himmel im Bild. Einmal auf den Raum belichtet, einmal auf den Himmel, beide ins Notizbuch.\n12. Das letzte Bild: vom Lindenhof runter, wenn das Grau am Abend blau wird. Eine Blende mehr als du denkst.\n\nRegeln: Sunny 16 im Kopf, heute heisst das Blende 8 bei 1/ISO unter geschlossener Decke, Blende 5.6 wenn es dunkel bewölkt wird. Erst schätzen, dann auslösen, dann ins Notizbuch: Zeit, Blende, Verschluss, und was du erwartest. Wer am Abend bei den Negativen näher dran war, hat die Übung gewonnen.\n\nBeweis: ein Foto von der Kamera mit dem Zähler auf 12 oder höher, oder vom Negativstreifen, sobald der Film entwickelt ist. Dann Bestanden drücken.\n\nDie beste Schätzung kriegt ein Bier. Das beste Bild kommt gerahmt an die Wand. 💚"
+          "title": "Zürich auf einer Rolle",
+          "message": "Heute keine Kapsel zum Lesen, sondern ein kleiner Kurs zum Mitnehmen. 📷\n\nEs ist bewölkt, und das ist gut so: flaches Licht ist das ehrlichste Licht zum Lernen. Filmkameras raus, du deine, ich meine. Alles manuell, kein Belichtungsmesser, keine App. Eine Rolle, ein Samstag, Zürich.\n\nUnten geht es Schritt für Schritt: erst die Kamera, dann das Licht, dann die Übungen. Tipp auf Weiter, wenn du bereit bist.",
+          "steps": [
+            {
+              "title": "Die Kamera in der Hand",
+              "text": "Vier Ringe und ein Hebel, mehr ist es nicht.\n\nAm Objektiv: der Blendenring (Zahlen wie 2, 2.8, 4, 5.6, 8, 11, 16) und der Fokusring (Meter oder Feet). Oben an der Kamera: das Verschlusszeitenrad (1000, 500, 250 … 15, 8, B) und das ISO-Rad, oft unter dem Rückspulknopf. Dazu der Transporthebel, der den Film weiterzieht und den Verschluss spannt, und das Zählwerk.\n\nDreh einmal an jedem Ring, ohne auszulösen, und sag dir laut, was er tut. Das ist die ganze Bedienung."
+            },
+            {
+              "title": "Film einlegen",
+              "text": "Auf der Schachtel steht die Empfindlichkeit: ISO 200 oder 400. Stell sie am ISO-Rad ein, bevor du irgendetwas anderes tust, sie gilt für die ganze Rolle.\n\nRückwand auf, Patrone links rein, Filmanfang bis zur Aufwickelspule ziehen und einfädeln, einmal transportieren, prüfen, dass die Zähne in den Perforationslöchern sitzen. Rückwand zu. Zweimal auslösen und transportieren, bis das Zählwerk auf 1 steht.\n\nDer Test, ob der Film wirklich läuft: der Rückspulknopf dreht sich beim Transportieren mit. Wenn nicht, nochmal aufmachen, lieber jetzt als nach 36 Bildern ins Leere."
+            },
+            {
+              "title": "ISO: wie empfindlich der Film ist",
+              "text": "ISO sagt, wie viel Licht der Film braucht. ISO 400 braucht halb so viel wie ISO 200, also eine Blende weniger.\n\nMerksatz für heute: eine Blende heisst immer doppelt oder halb so viel Licht. Das gilt für ISO, für die Blende und für die Verschlusszeit, und deshalb lassen sie sich gegeneinander tauschen.\n\nSchreib die ISO deines Films vorne ins Notizbuch. Alles Weitere rechnet sich von ihr aus."
+            },
+            {
+              "title": "Die Blende",
+              "text": "Die Blende ist das Loch im Objektiv. Kleine Zahl, grosses Loch, viel Licht: f/2. Grosse Zahl, kleines Loch, wenig Licht: f/16.\n\nDie Reihe 2 · 2.8 · 4 · 5.6 · 8 · 11 · 16: jeder Schritt halbiert das Licht. Von f/4 auf f/8 sind zwei Blenden, also ein Viertel.\n\nUnd die Blende macht noch etwas: bei f/2 ist nur eine dünne Scheibe scharf, der Hintergrund verschwimmt. Bei f/11 ist fast alles scharf. Das üben wir später am selben Motiv."
+            },
+            {
+              "title": "Die Verschlusszeit",
+              "text": "Die Verschlusszeit ist, wie lange Licht auf den Film fällt. 1/500 ist kurz und friert Bewegung ein. 1/15 ist lang, Bewegung wird zum Wisch.\n\nAuch hier halbiert jeder Schritt: 500 · 250 · 125 · 60 · 30 · 15.\n\nFaustregel fürs Freihandhalten: nicht länger als 1 durch die Brennweite. Mit einem 50er also 1/60 oder kürzer, sonst verwackelt es. Bei 1/15 brauchst du eine Mauer, ein Geländer oder angehaltene Luft."
+            },
+            {
+              "title": "Das Dreieck",
+              "text": "ISO, Blende, Zeit: alle drei zusammen ergeben die Belichtung. Weil jeder Schritt doppelt oder halb ist, kannst du tauschen, ohne dass sich die Helligkeit ändert.\n\nf/8 bei 1/125 ist dasselbe wie f/5.6 bei 1/250 und wie f/11 bei 1/60. Du entscheidest nur, was dir wichtiger ist: Schärfentiefe (Blende) oder Bewegung (Zeit).\n\nRechne einmal laut: f/4 bei 1/500, gleiche Helligkeit mit f/16, welche Zeit? (1/30. Zwei Blenden mal zwei Blenden.)"
+            },
+            {
+              "title": "Sunny 16, und was heute gilt",
+              "text": "Ohne Belichtungsmesser gilt die alte Regel: bei voller Sonne Blende 16 und die Zeit gleich 1 durch ISO. ISO 400, f/16, 1/500 (oder 1/400, wenn es die gibt).\n\nHeute ist der Himmel zu. Dann öffnest du zwei Blenden: f/8 bei 1/ISO. Wird es dunkel bewölkt, f/5.6. Im Schatten einer Gasse f/4.\n\nSchreib die Startwerte für heute ins Notizbuch: f/8 bei 1/500 für ISO 400, oder f/8 bei 1/250 für ISO 200. Alles andere sind Verschiebungen davon."
+            },
+            {
+              "title": "Fokus von Hand",
+              "text": "Dreh den Fokusring, bis es im Sucher scharf wird. Bei einer Spiegelreflex hilft die Mitte: der Schnittbildindikator, der ein Bild in zwei versetzte Hälften teilt, die bei Schärfe zusammenrutschen. Bei einer Messsucherkamera siehst du ein helles Doppelbild, das bei Schärfe eins wird.\n\nBei Menschen immer auf die Augen. Bei f/2 verzeiht das Objektiv keine Handbreit.\n\nÜbung ohne Film: fokussiere fünfmal auf etwas in drei Metern und lies jedes Mal die Entfernung am Ring ab. Wenn es immer ungefähr dasselbe ist, traust du dem Ring später blind."
+            },
+            {
+              "title": "Übung 1 · Die Grauprobe",
+              "text": "Such eine graue Hauswand, formatfüllend, keine Fenster. Stell deine Startwerte ein, f/8 und 1/ISO, und fotografier sie.\n\nDas ist dein Bild Nummer eins und dein Referenzwert: so sieht Mittelgrau auf diesem Film an diesem Tag aus. Alles Spätere vergleichst du damit.\n\nNotizbuch: Zeit, Blende, Verschluss, und das Wort Grauprobe."
+            },
+            {
+              "title": "Übung 2 · Die Reihe",
+              "text": "Ein Motiv, drei Bilder: einmal mit deinen Startwerten, einmal eine Blende offener, einmal eine Blende geschlossener. Alles andere bleibt gleich.\n\nSchreib zu jedem auf, welches du für richtig hältst, bevor du es weisst. Am Abend bei den Negativen sehen wir, ob dein Gefühl oder die Regel näher dran war.\n\nDas ist die wichtigste Übung des Tages. Wer sie dreimal gemacht hat, braucht keinen Belichtungsmesser mehr."
+            },
+            {
+              "title": "Übung 3 · Ein Gesicht unter Wolken",
+              "text": "Haut will Licht. Unter grauem Himmel wirkt ein Gesicht schnell grau und müde, also gibst du eine Blende mehr als für die Wand: f/5.6 statt f/8.\n\nFokus auf die Augen, Blende lieber offen (f/2.8 oder f/4) und die Zeit entsprechend kürzer, damit der Hintergrund weich wird.\n\nFrag vorher, lächel dabei, und schreib auf, wen du fotografiert hast."
+            },
+            {
+              "title": "Übung 4 · Weiss bleibt weiss, Schwarz hat Zeichnung",
+              "text": "Zwei Bilder, die den Film an seine Ränder bringen.\n\nEtwas Weisses, formatfüllend: eine Markise, ein Boot am See, ein Hemd. Zwei Blenden mehr als die Grauprobe, sonst wird Weiss zu Grau.\n\nEtwas Schwarzes mit Struktur: ein Mantel, ein Reifen, ein Tram-Gummi. Zwei Blenden weniger, sonst wird Schwarz zu Grau.\n\nDie Kamera will alles zu Mittelgrau machen. Du bist derjenige, der weiss, was weiss ist."
+            },
+            {
+              "title": "Übung 5 · Schärfentiefe",
+              "text": "Ein Motiv mit Vordergrund und Hintergrund, zum Beispiel ein Geländer an der Limmat mit der Stadt dahinter. Zweimal fotografieren, gleiche Helligkeit:\n\nf/2 bei 1/2000 (oder so kurz, wie die Kamera kann), und f/11 bei 1/60. Fokus beide Male auf das Geländer.\n\nAuf dem einen Bild ist die Stadt ein weicher Fleck, auf dem anderen scharf. Dasselbe Licht, zwei Geschichten."
+            },
+            {
+              "title": "Übung 6 · Zonenfokus am Flohmarkt",
+              "text": "Flohmarkt Bürkliplatz, bis 15 Uhr. Stell den Fokusring auf 3 m und die Blende auf 8. Bei f/8 ist dann ungefähr alles von 2 bis 5 Metern scharf, das steht auch an der Skala auf dem Objektiv.\n\nJetzt drei Bilder von Händen bei der Arbeit, Kamera an der Hüfte, ohne durch den Sucher zu schauen. Nur die Entfernung schätzen und auslösen.\n\nSo haben die Strassenfotografen immer gearbeitet. Es fühlt sich falsch an und funktioniert erstaunlich oft."
+            },
+            {
+              "title": "Übung 7 · Bewegung",
+              "text": "Zwei Bilder über die Verschlusszeit.\n\nEin Tram bei 1/15: die Kamera mit dem Tram mitdrehen und währenddessen auslösen. Das Tram wird scharf, der Hintergrund zieht Streifen. Blende dafür weit zu, f/16, sonst wird es zu hell.\n\nEin Brunnen bei 1/500: das Wasser wird zu Glas. Dafür muss die Blende ganz auf, rechne es laut vor: von f/8 bei 1/ISO zwei Zeiten kürzer heisst zwei Blenden offener."
+            },
+            {
+              "title": "Übung 8 · Spiegelung und Fenster",
+              "text": "Nasses Pflaster im Niederdorf mit einer Spiegelung drin: auf die Spiegelung belichten, nicht auf den Stein. Die Spiegelung ist heller als du denkst.\n\nDann ein Fenster von innen nach aussen, Himmel im Bild. Einmal auf den Raum belichtet (der Himmel brennt aus), einmal auf den Himmel (der Raum säuft ab). Beide ins Notizbuch.\n\nDer Film kann nicht beides. Du entscheidest, was die Geschichte ist."
+            },
+            {
+              "title": "Übung 9 · Blaue Stunde",
+              "text": "Das letzte Bild: vom Lindenhof runter, wenn das Grau am Abend blau wird.\n\nDas Auge passt sich an, der Film nicht. Gib eine Blende mehr, als du denkst, und leg die Kamera auf die Mauer: f/4, 1/15, Luft anhalten. Oder B und zwei Sekunden zählen, wenn die Kamera das kann.\n\nDann ist die Rolle durch."
+            },
+            {
+              "title": "Film zurückspulen",
+              "text": "Erst den Entriegelungsknopf am Boden drücken, dann mit der Kurbel zurückspulen, bis es leicht geht und das Zählwerk sich nicht mehr bewegt. Noch ein paar Umdrehungen, bis der Film hörbar aus der Spule rutscht.\n\nErst dann die Rückwand öffnen. Vorher nie, auch nicht kurz, auch nicht im Schatten.\n\nPatrone raus, Zunge einstecken oder Deckel drauf, Notizbuch dazu. Entwickeln lassen und die Negative behalten, nicht nur die Scans."
+            }
+          ],
+          "done": "Beweis: ein Foto von der Kamera mit dem Zähler auf 12 oder höher, oder vom Negativstreifen, sobald der Film entwickelt ist. Dann Bestanden drücken.\n\nAm Abend vergleichen wir die Notizbücher mit den Negativen. Die beste Schätzung kriegt ein Bier. Das beste Bild kommt gerahmt an die Wand. 💚"
         }
       ]
     }

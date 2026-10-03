@@ -10,6 +10,7 @@ const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant,
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
+const { clampStep, validSteps, readKursIndex, writeKursIndex } = await import("../src/kurs.js");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
 const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
 const { NUM_LEDS, flickerStep, flickerGap, FLICKER_MIN, FLICKER_MAX, FLICKER_GAP_MS, rainbowGroups, RAINBOW_STEP } = await import("../src/licht.js");
@@ -158,6 +159,19 @@ test("the rainbow: one hue per light across the palette, sliding with the offset
   assert.ok(moved.every((x, i) => Math.abs(x.pos - ((g[i].pos + RAINBOW_STEP) % 1)) < 0.002), "every light moves the same step");
   assert.deepEqual(rainbowGroups(1), g, "a full offset is a full cycle");
   assert.ok(rainbowGroups(0.95)[1].pos < 0.1, "wraps around the palette");
+});
+
+test("the course: steps clamp to the done page, bad steps are dropped, the place is kept per day", () => {
+  assert.equal(clampStep(-1, 5), 0);
+  assert.equal(clampStep(3, 5), 3);
+  assert.equal(clampStep(9, 5), 5, "one past the last step is the done page");
+  assert.equal(clampStep(2, 0), 0);
+  assert.equal(validSteps([{ title: "a", text: "b" }, { title: 1 }, null, "x"]).length, 1);
+  assert.equal(validSteps("nope").length, 0);
+  assert.equal(readKursIndex("2026-10-03"), 0);
+  writeKursIndex("2026-10-03", 4);
+  assert.equal(readKursIndex("2026-10-03"), 4);
+  assert.equal(readKursIndex("2026-10-04"), 0, "another day starts at the top");
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {
