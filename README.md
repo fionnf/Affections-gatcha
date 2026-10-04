@@ -190,6 +190,14 @@ apply to it alone; with *Alle*, to the whole strip. Up to ten groups, sizes
 always summing to the strip (`toggleCut`, `splitGroup`, `mergeGroup`,
 `setGroupColour`, all pure). Saved scenes keep the layout.
 
+**Lichtreaktionen aus.** A switch at the foot of the page, *Lampen reagieren
+auf die App*, turns off the lamp shows the app triggers on its own: the pull
+flash, the reaction echo, the hug strobe (and the coin's flash, which is the
+pull flash). Off, those do nothing; the Licht tab, the candle, the flicker and
+rainbow modes and the colour memory are deliberate lamp actions and stay as
+they are. Kept on the phone (`affektions-gacha:einstellung:lichtreaktionen`),
+on by default (`src/einstellungen.js`).
+
 **Farbgedächtnis.** The lamps boot in warm white, and the lights page's reset
 puts them there too, so after a power cut or a reboot the room is white until
 someone notices. The app remembers the last colour each lamp showed
