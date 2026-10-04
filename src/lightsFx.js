@@ -15,6 +15,8 @@
 // pull happens, and any failure (no network, CDN blocked, boards offline)
 // silently skips the effect without touching the reveal UX.
 
+import { isWhite, isColoured, rememberColour, recallColour, restorePayload } from "./farbe.js";
+
 const BROKER = "wss://broker.hivemq.com:8884/mqtt";
 const TOPIC = "picolight_lf26/events";
 const FROM_ID = "web_app";
@@ -122,6 +124,57 @@ export function reactionChoreography(emoji) {
 }
 export function flashReactionOnLamp(emoji, boardId = "board_a") {
   return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
+}
+
+// ── Farbgedächtnis beim Start ────────────────────────────────────────────────
+// Once in a while when the app opens: ask the lamps how they look, and put
+// the remembered colour back on any that answers white while a colour is on
+// record. A short connection, nothing else sent. Throttled, because the app
+// opens often and the lamps rarely reboot.
+const CHECK_KEY = "affektions-gacha:licht:farbe:checked";
+export const CHECK_EVERY_MS = 20 * 60000;
+export function checkColourOnStart({ force = false } = {}) {
+  try {
+    const last = Number(window.localStorage.getItem(CHECK_KEY) || 0);
+    if (!force && Date.now() - last < CHECK_EVERY_MS) return Promise.resolve(false);
+    window.localStorage.setItem(CHECK_KEY, String(Date.now()));
+  } catch (_e) {}
+  if (!BOARD_IDS.some((id) => recallColour(id))) return Promise.resolve(false);
+  return colourCheck().catch(() => false);
+}
+async function colourCheck() {
+  if (_busy) return false;
+  _busy = true;
+  try {
+    await loadMqtt();
+    return await new Promise((resolve) => {
+      const client = window.mqtt.connect(BROKER, { clientId: "gachafx_" + Math.random().toString(16).slice(2), clean: true, connectTimeout: 8000 });
+      let done = false, restored = 0;
+      const finish = () => { if (done) return; done = true; try { client.end(true); } catch (_e) {} resolve(restored > 0); };
+      const publish = (payload) => { payload.from = FROM_ID; try { client.publish(TOPIC, JSON.stringify(payload)); } catch (_e) {} };
+      client.on("connect", () => {
+        client.subscribe(TOPIC, (err) => {
+          if (err) { finish(); return; }
+          publish({ nudge: true });
+          setTimeout(() => setTimeout(finish, restored ? 2000 : 0), ECHO_WAIT_MS);
+        });
+      });
+      client.on("message", (t, msg) => {
+        try {
+          const d = JSON.parse(msg.toString());
+          if (!d.from || !BOARD_IDS.includes(d.from) || !Array.isArray(d.groups)) return;
+          if (isColoured(d)) { rememberColour(d.from, d); return; }
+          const m = d.on !== false && isWhite(d) ? recallColour(d.from) : null;
+          if (m) { publish(restorePayload(d.from, m)); restored++; }
+        } catch (_e) {}
+      });
+      client.on("error", finish);
+      client.on("close", finish);
+      setTimeout(finish, ECHO_WAIT_MS + 8000);
+    });
+  } finally {
+    _busy = false;
+  }
 }
 
 // ── Notfall-Umarmung ─────────────────────────────────────────────────────────
@@ -313,7 +366,11 @@ async function runFlash(steps, totalMs, target) {
           // re-syncs the follower within a minute regardless.
           const state = captured[id] || captured[BOARD_IDS.find((b) => b !== id)];
           if (!state) continue;
-          const base = { target: id, ..._restorePayload(state) };
+          // A lamp that was white when the show began, with a colour on
+          // record, gets the colour back rather than the white: it had come
+          // back from a reboot, not been asked for white.
+          const memory = state.on !== false && isWhite(state) ? recallColour(id) : null;
+          const base = memory ? restorePayload(id, memory) : { target: id, ..._restorePayload(state) };
           if (state.on === false) {
             // Firmware ignores colour while off: restore colour on, then
             // power back down once the fade has landed.
@@ -356,6 +413,7 @@ async function runFlash(steps, totalMs, target) {
           const d = JSON.parse(msg.toString());
           if (d.from && BOARD_IDS.includes(d.from) && Array.isArray(d.groups) && !flashed) {
             captured[d.from] = d;
+            if (isColoured(d)) rememberColour(d.from, d);
           }
         } catch (_e) {}
       });

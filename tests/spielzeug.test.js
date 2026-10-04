@@ -11,6 +11,7 @@ const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull, configKurse } = await import("../src/kurs.js");
+const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS } = await import("../src/farbe.js");
 const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
 const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
@@ -203,6 +204,38 @@ test("the course figures: every key draws an svg, unknown keys draw nothing, the
   for (const d of days) for (const o of d.outcomes || []) for (const s of o.steps || []) {
     if (s.figure) assert.ok(FIGURE_KEYS.includes(s.figure), `${d.date}: unknown figure ${s.figure}`);
   }
+});
+
+test("the colour memory: white is white, colour is kept per lamp, forgotten on purpose, aged out", () => {
+  const white = { on: true, groups: [{ pos: 0, w: 1, size: 10 }] };
+  const colour = { on: true, brightness: 0.6, fade_steps: 60, groups: [{ pos: 0.3, w: 0, size: 4 }, { pos: 0.7, w: 0.2, size: 6 }] };
+  assert.equal(isWhite(white), true);
+  assert.equal(isWhite({ groups: [{ pos: 0, w: 0.9, size: 5 }, { pos: 0, w: 0.3, size: 5 }] }), false, "one coloured group is colour");
+  assert.equal(isColoured(colour), true);
+  assert.equal(isColoured({ ...colour, on: false }), false, "off is not a colour to remember");
+  assert.equal(isColoured(white), false);
+  assert.equal(rememberColour("board_a", white), false);
+  assert.equal(recallColour("board_a"), null);
+  assert.equal(rememberColour("board_a", colour, 1000), true);
+  const m = recallColour("board_a", 2000);
+  assert.deepEqual(m.groups, colour.groups);
+  assert.equal(m.brightness, 0.6);
+  assert.deepEqual(restorePayload("board_a", m), { target: "board_a", on: true, groups: colour.groups, fade_steps: 60, brightness: 0.6 });
+  assert.equal(recallColour("board_a", 1000 + MEMORY_MAX_AGE_MS + 1), null, "a week-old colour is not forced back");
+  assert.equal(recallColour("board_b"), null, "each lamp its own");
+  forgetColour(["board_a"]);
+  assert.equal(recallColour("board_a", 2000), null);
+});
+
+test("the colour memory leaves a fresh sunrise alone", () => {
+  const alarm = { enabled: true, lh: 7, lm: 0, duration_min: 20 };
+  const at = (h, m) => { const d = new Date(2026, 9, 4); d.setHours(h, m, 0, 0); return d; };
+  assert.equal(inSunriseGrace(alarm, at(7, 30)), true, "ten minutes after it ended");
+  assert.equal(inSunriseGrace(alarm, at(9, 50)), true, "still inside three hours");
+  assert.equal(inSunriseGrace(alarm, at(10, 30)), false);
+  assert.equal(inSunriseGrace(alarm, at(6, 50)), false, "before it ended");
+  assert.equal(inSunriseGrace({ ...alarm, enabled: false }, at(7, 30)), false);
+  assert.equal(inSunriseGrace(null, at(7, 30)), false);
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {

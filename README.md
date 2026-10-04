@@ -190,6 +190,19 @@ apply to it alone; with *Alle*, to the whole strip. Up to ten groups, sizes
 always summing to the strip (`toggleCut`, `splitGroup`, `mergeGroup`,
 `setGroupColour`, all pure). Saved scenes keep the layout.
 
+**Farbgedächtnis.** The lamps boot in warm white, and the lights page's reset
+puts them there too, so after a power cut or a reboot the room is white until
+someone notices. The app remembers the last colour each lamp showed
+(`src/farbe.js`, `affektions-gacha:licht:farbe:v1`, a week at most) and puts
+it back whenever a lamp turns up white without having been asked: on the
+Licht tab's first echo after connecting and when a lamp comes back online, at
+the end of every pull flash or hug strobe whose capture found white, and in a
+short check a few seconds after the app opens (at most every twenty minutes).
+White chosen on purpose, the Weiß mood or the Weissanteil slider, forgets the
+memory for those lamps so it is not undone; a lamp that is off is left off;
+and for three hours after an enabled sunrise alarm ends, the Licht tab leaves
+warm white alone, since that is what the morning asked for.
+
 **Kerzenflackern.** A mode for the lamps themselves, under the strip: warm
 amber, low, the brightness wandering the way a flame does — small steps at
 irregular intervals (220–720 ms), a deep dip about one time in twelve as if a

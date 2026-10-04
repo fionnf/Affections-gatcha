@@ -143,6 +143,9 @@ export async function init() {
     // there meant the reminder never fired for anyone who hadn't already
     // said yes. A short delay keeps it clear of the first paint.
     window.setTimeout(() => { showNotifPrompt().catch(() => {}); }, 1800);
+    // The lamps' colour memory: a lamp that rebooted white gets its colour
+    // back, a few seconds after the app opens, at most every twenty minutes.
+    window.setTimeout(() => { import("./lightsFx.js").then((m) => m.checkColourOnStart()).catch(() => {}); }, 4000);
   } catch (error) {
     renderError(error);
   }

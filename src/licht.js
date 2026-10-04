@@ -14,6 +14,7 @@
 // Everything here is best-effort: no broker, no lamps, no problem — the tab
 // says so and nothing else in the app notices.
 import { mount, $ } from "./state.js";
+import { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace } from "./farbe.js";
 import { showToast } from "./toast.js";
 import { haptic } from "./haptic.js";
 import { loadMqtt } from "./lightsFx.js";
@@ -260,6 +261,8 @@ function connect() {
       c.subscribe([topicEvents(), topicStatus(), topicScenes(), topicAlarms()], () => {});
       // Boards change nothing on an unknown field, but echo their whole
       // state back — the fastest way to know what the room looks like.
+      // The first echo of each lamp is checked for a white comeback.
+      for (const b of BOARDS) comeback[b.id] = true;
       publishRaw({ nudge: true });
       setConn("connected");
       settle(true);
@@ -306,8 +309,12 @@ function onMessage(topic, msg) {
   const t = String(topic);
   if (t.startsWith(`${PREFIX}/status/`)) {
     const id = t.split("/").pop();
+    const wasOnline = lamps[id] && lamps[id].online;
     lamps[id] = { ...(lamps[id] || {}), online: !!d.online };
     if (d.online) lamps[id].seenAt = Date.now();
+    // A lamp that just came back (reboot, power cut) boots white: ask for
+    // its state and check the answer against the colour memory.
+    if (d.online && wasOnline === false) { comeback[id] = true; publishRaw({ nudge: true }); }
     renderLichtPanel();
     return;
   }
@@ -346,7 +353,30 @@ function onMessage(topic, msg) {
   if (typeof d.brightness === "number") l.brightness = d.brightness;
   if (typeof d.fade_steps === "number") l.fade_steps = d.fade_steps;
   if (Array.isArray(d.groups)) l.groups = d.groups;
+  if (Array.isArray(d.groups)) {
+    if (isColoured(l)) rememberColour(d.from, l);
+    else if (comeback[d.from] && isWhite(l)) restoreColour(d.from);
+    comeback[d.from] = false;
+  }
   renderLichtPanel();
+}
+
+// ── Farbgedächtnis ───────────────────────────────────────────────────────────
+// A lamp that answers white when it was not asked to be white (first echo
+// after connecting, or right after it came back online) gets its last
+// colour back, unless a sunrise just ended, or it was off, or nothing is
+// remembered.
+const comeback = {};   // id → true while the next echo should be checked
+export function restoreColour(id) {
+  const m = recallColour(id);
+  if (!m) return false;
+  if (inSunriseGrace(findSunrise(alarms))) return false;
+  const p = restorePayload(id, m);
+  lamps[id] = { ...(lamps[id] || {}), on: true, groups: p.groups, brightness: p.brightness ?? lamps[id]?.brightness, fade_steps: p.fade_steps };
+  holdUntil = Date.now() + HOLD_MS;
+  publishRaw(p);
+  showToast("🎨 Farbe zurückgeholt");
+  return true;
 }
 
 function publishRaw(payload) {
@@ -365,6 +395,12 @@ function send(payload, target = sendTarget || null) {
     if (typeof payload.brightness === "number") l.brightness = payload.brightness;
     if (typeof payload.fade_steps === "number") l.fade_steps = payload.fade_steps;
     if (Array.isArray(payload.groups)) l.groups = payload.groups;
+  }
+  // White asked for is white kept: the memory for these lamps is dropped,
+  // so the next comeback does not undo it. Colour asked for is remembered.
+  if (Array.isArray(payload.groups)) {
+    if (isWhite(payload)) forgetColour(ids);
+    else for (const id of ids) rememberColour(id, lamps[id]);
   }
   const ok = publishRaw(target ? { ...payload, target } : payload);
   if (!ok) showToast("Keine Verbindung zu den Lampen");
