@@ -18,6 +18,7 @@ import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
 import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, isFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
 import { bindKnob } from "./knopf.js";
 import { closeKursPanel } from "./kurs.js";
+import { bindLightReactionsToggle } from "./einstellungen.js";
 import { playClink } from "./sound.js";
 import { lightCandle, blowOut, candleLit } from "./kerze.js";
 import { bindPinch, flyCardToStar } from "./kneifen.js";
@@ -877,6 +878,7 @@ export function bindEvents() {
 
   $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
   $("#ag-kurs-close")?.addEventListener("click", closeKursPanel);
+  bindLightReactionsToggle($("[data-ag-lights-toggle]"));
   $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
   $("#ag-gesprach-wa")?.addEventListener("click", sendGesprachToWhatsApp);
   $("#ag-btn-gesprach")?.addEventListener("keydown", (event) => {

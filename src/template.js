@@ -728,6 +728,13 @@ export const html = `
               <p class="ag-licht-note">Beide Lampen hängen am selben Draht: was du hier stellst, sieht Fionn bei sich. Alarme, Gruppen, WLAN und Neustart wohnen auf der grossen Seite.</p>
             </div>
           </section>
+          <div class="ag-settings" data-ag-settings>
+            <label class="ag-setting-row">
+              <input class="ag-switch-input" type="checkbox" data-ag-lights-toggle checked>
+              <span class="ag-switch" aria-hidden="true"></span>
+              <span class="ag-setting-text"><strong>💡 Lampen reagieren auf die App</strong><small>Kapselzug, Reaktion, Notfall-Umarmung. Aus: die Lampen bleiben ruhig. Licht-Tab und Kerze bleiben.</small></span>
+            </label>
+          </div>
           <p class="ag-sync-status" data-ag-sync-status hidden></p>
         </div>
       </div>

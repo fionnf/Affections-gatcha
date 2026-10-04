@@ -12,6 +12,7 @@ const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull, configKurse } = await import("../src/kurs.js");
 const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS } = await import("../src/farbe.js");
+const { lightReactionsEnabled, setLightReactions } = await import("../src/einstellungen.js");
 const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
 const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
@@ -225,6 +226,15 @@ test("the colour memory: white is white, colour is kept per lamp, forgotten on p
   assert.equal(recallColour("board_b"), null, "each lamp its own");
   forgetColour(["board_a"]);
   assert.equal(recallColour("board_a", 2000), null);
+});
+
+test("the light-reactions switch: on by default, off is kept, on clears the key", () => {
+  assert.equal(lightReactionsEnabled(), true);
+  assert.equal(setLightReactions(false), false);
+  assert.equal(lightReactionsEnabled(), false);
+  assert.equal(env.localStorage.getItem("affektions-gacha:einstellung:lichtreaktionen"), "aus");
+  assert.equal(setLightReactions(true), true);
+  assert.equal(env.localStorage.getItem("affektions-gacha:einstellung:lichtreaktionen"), null);
 });
 
 test("the colour memory leaves a fresh sunrise alone", () => {

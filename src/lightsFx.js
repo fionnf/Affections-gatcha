@@ -16,6 +16,7 @@
 // silently skips the effect without touching the reveal UX.
 
 import { isWhite, isColoured, rememberColour, recallColour, restorePayload } from "./farbe.js";
+import { lightReactionsEnabled } from "./einstellungen.js";
 
 const BROKER = "wss://broker.hivemq.com:8884/mqtt";
 const TOPIC = "picolight_lf26/events";
@@ -99,6 +100,7 @@ function _restorePayload(state) {
 }
 
 export function flashLightsForPull(tone) {
+  if (!lightReactionsEnabled()) return Promise.resolve();
   return runFlash(choreography(tone), FLASH_MS, null);
 }
 
@@ -123,6 +125,7 @@ export function reactionChoreography(emoji) {
   ];
 }
 export function flashReactionOnLamp(emoji, boardId = "board_a") {
+  if (!lightReactionsEnabled()) return Promise.resolve();
   return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
 }
 
@@ -206,6 +209,7 @@ export function hugChoreography() {
   return steps;
 }
 export function flashHugOnLamps() {
+  if (!lightReactionsEnabled()) return Promise.resolve();
   return runFlash(hugChoreography(), HUG_MS, null);
 }
 
