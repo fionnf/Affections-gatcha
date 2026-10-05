@@ -13,6 +13,7 @@ const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull, configKurse } = await import("../src/kurs.js");
 const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS } = await import("../src/farbe.js");
 const { lightReactionsEnabled, setLightReactions } = await import("../src/einstellungen.js");
+const { formatHistoryTime } = await import("../src/utils.js");
 const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
 const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
@@ -226,6 +227,16 @@ test("the colour memory: white is white, colour is kept per lamp, forgotten on p
   assert.equal(recallColour("board_b"), null, "each lamp its own");
   forgetColour(["board_a"]);
   assert.equal(recallColour("board_a", 2000), null);
+});
+
+test("the first-opened time: epoch or ISO in, Zurich clock out, nothing for nothing", () => {
+  assert.equal(formatHistoryTime(Date.UTC(2026, 9, 2, 7, 14)), "09:14", "CEST in October");
+  assert.equal(formatHistoryTime("2026-01-15T08:05:00.000Z"), "09:05", "CET in January");
+  assert.equal(formatHistoryTime(Date.UTC(2026, 9, 2, 22, 30), "UTC"), "22:30");
+  assert.equal(formatHistoryTime(null), "");
+  assert.equal(formatHistoryTime(""), "");
+  assert.equal(formatHistoryTime("not a date"), "");
+  assert.equal(formatHistoryTime(0), "");
 });
 
 test("the light-reactions switch: on by default, off is kept, on clears the key", () => {

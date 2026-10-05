@@ -37,6 +37,22 @@ export function hmInTimezone(timezone) {
 // One formatter, not one per history row: Intl.DateTimeFormat construction
 // is the expensive part, formatting is cheap.
 let _historyDateFmt = null;
+// The clock time a capsule was first opened, in the app's timezone, as
+// "09:14". Takes the epoch milliseconds the entry records (or an ISO
+// string, which is what comes back from the sheet); "" when unknown.
+const _historyTimeFmts = new Map();
+export function formatHistoryTime(revealedAt, timezone = "Europe/Zurich") {
+  const ms = typeof revealedAt === "number" ? revealedAt : Date.parse(revealedAt || "");
+  if (!Number.isFinite(ms) || ms <= 0) return "";
+  try {
+    let fmt = _historyTimeFmts.get(timezone);
+    if (!fmt) { fmt = new Intl.DateTimeFormat("de-CH", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: timezone }); _historyTimeFmts.set(timezone, fmt); }
+    return fmt.format(new Date(ms));
+  } catch (_e) {
+    return "";
+  }
+}
+
 export function formatHistoryDate(dayKey) {
   const [y, m, d] = dayKey.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));

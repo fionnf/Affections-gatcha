@@ -28,7 +28,7 @@ export function setHistoryFilter(value) {
 }
 // ── Escape / format helpers ──────────────────────────────────────────────────
 
-import { escapeHtml as escHtml, formatHistoryDate } from "./utils.js";
+import { escapeHtml as escHtml, formatHistoryDate, formatHistoryTime } from "./utils.js";
 import { armConfirm } from "./confirm.js";
 import { weatherText } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
@@ -1483,8 +1483,19 @@ export function renderHistoryItemEl(entry) {
   head.className = "ag-history-head";
   const date = document.createElement("span");
   date.className = "ag-history-date";
+  // Date, the time it was first opened (not for a day a Streak-Retter
+  // filled in), and the weather.
   const wt = weatherText(entry.weather);
-  date.textContent = wt ? `${formatHistoryDate(entry.day)}\u2009·\u2009${wt}` : formatHistoryDate(entry.day);
+  const at = entry.restored ? "" : formatHistoryTime(entry.revealedAt);
+  date.textContent = formatHistoryDate(entry.day);
+  const meta = [at, wt].filter(Boolean).join("\u2009·\u2009");
+  if (meta) {
+    const sub = document.createElement("small");
+    sub.className = "ag-history-meta";
+    sub.textContent = meta;
+    if (at) sub.title = `Zum ersten Mal geöffnet um ${at}`;
+    date.appendChild(sub);
+  }
   const badge = document.createElement("span");
   badge.className = "ag-history-badge";
   badge.textContent = entry.categoryLabel || "Kapsel";
