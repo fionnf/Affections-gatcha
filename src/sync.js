@@ -133,6 +133,12 @@ export async function syncFromSheets() {
         if (prev && prev.pfand && !next.pfand) {
           next.pfand = true;
         }
+        // The first-opened time: rows written before the column, or by an
+        // older script, come back without it; the phone that opened the
+        // capsule still knows.
+        if (prev && prev.revealedAt && !next.revealedAt) {
+          next.revealedAt = prev.revealedAt;
+        }
         localByDay.set(key, next);
       }
       const merged = Array.from(localByDay.values()).sort((a, b) => b.day.localeCompare(a.day));

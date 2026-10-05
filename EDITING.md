@@ -355,6 +355,13 @@ empty or missing.
 
 ## History tab
 
+Every row's date line shows when the capsule was first opened, as a clock
+time in the app's timezone (*02. Okt. 2026 · 09:14 · 12° ☁️*). It comes from
+the `revealedAt` stamp the phone writes the moment a capsule is revealed,
+which the sheet keeps in the History column *RevealedAt*; a day filled in by
+a Streak-Retter has no such time and shows none. Opening the card again later
+(*Heute nochmal anzeigen*) does not move it.
+
 The main widget has a small `Heute` / `Verlauf` segmented control. The
 `Verlauf` tab is a **real local log**: it only shows capsules that were
 actually drawn and revealed in this browser/device. It is not a backwards

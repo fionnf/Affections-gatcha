@@ -952,6 +952,7 @@ export const css = `
       .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
       .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+      .ag-history-meta{display:block;font-size:.72rem;letter-spacing:.03em;text-transform:none;font-weight:400;opacity:.85;margin-top:1px}
       .ag-history-badge{
         display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:999px;
         background:var(--ag-surface-2);color:var(--ag-primary-dark);
