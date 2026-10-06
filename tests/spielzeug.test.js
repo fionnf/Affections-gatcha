@@ -14,6 +14,7 @@ const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, read
 const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS } = await import("../src/farbe.js");
 const { lightReactionsEnabled, setLightReactions } = await import("../src/einstellungen.js");
 const { formatHistoryTime } = await import("../src/utils.js");
+const { setWeather, writeHistory: writeHist, readHistory: readHist } = await import("../src/storage.js");
 const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
 const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
@@ -227,6 +228,16 @@ test("the colour memory: white is white, colour is kept per lamp, forgotten on p
   assert.equal(recallColour("board_b"), null, "each lamp its own");
   forgetColour(["board_a"]);
   assert.equal(recallColour("board_a", 2000), null);
+});
+
+test("the sky goes onto a record once", () => {
+  writeHist([{ day: "2026-10-06", token: "lennart", categoryId: "common", categoryLabel: "x", tone: "soft", title: "A", message: "a" }]);
+  assert.equal(setWeather("2026-10-06", "lennart", null), null);
+  assert.equal(setWeather("2026-10-07", "lennart", { t: 9, c: 61, e: "🌧" }), null, "no record, nothing to write");
+  assert.ok(setWeather("2026-10-06", "lennart", { t: 9, c: 61, e: "🌧" }));
+  assert.deepEqual(readHist()[0].weather, { t: 9, c: 61, e: "🌧" });
+  assert.equal(setWeather("2026-10-06", "lennart", { t: 20, c: 0, e: "☀️" }), null, "the first sky stays");
+  assert.equal(readHist()[0].weather.t, 9);
 });
 
 test("the first-opened time: epoch or ISO in, Zurich clock out, nothing for nothing", () => {

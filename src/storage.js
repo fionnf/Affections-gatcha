@@ -118,6 +118,18 @@ export function setBeweisUrl(day, token, url) {
 
 // A one-tap reaction to a capsule. Replaceable — he may change his mind
 // between 🥹 and 😂 — and unioned on sync like bestanden.
+// The sky onto a day's record, once: a record that already has one keeps
+// it (the weather at pull time is the point).
+export function setWeather(day, token, weather) {
+  if (!weather || typeof weather.t !== "number") return null;
+  const history = readHistory();
+  const match = history.find((e) => e.day === day && e.token === token);
+  if (!match || match.weather) return null;
+  match.weather = weather;
+  writeHistory(history);
+  return match;
+}
+
 export function setReaction(day, token, emoji) {
   const history = readHistory();
   const match = history.find((e) => e.day === day && e.token === token);

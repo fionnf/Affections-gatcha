@@ -1,7 +1,7 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
 import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, setWeather, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, streakRestoresLeft, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
 import { fetchJson } from "./sync.js";
@@ -30,7 +30,7 @@ export function setHistoryFilter(value) {
 
 import { escapeHtml as escHtml, formatHistoryDate, formatHistoryTime } from "./utils.js";
 import { armConfirm } from "./confirm.js";
-import { weatherText } from "./wetter.js";
+import { weatherText, weatherForEntry } from "./wetter.js";
 import { setupInk, bindWordSave, dropCoin, bindFirefly, bindPfandDrag, flyCapsuleIntoMachine } from "./delights.js";
 import { renderAufkleber } from "./aufkleber.js";
 import { renderWanderweg, bindWanderwegScroll, placeHiker, climbProgress } from "./wanderweg.js";
@@ -943,6 +943,21 @@ export function messageText(pull) {
     .join("\n");
 }
 
+// The card's date line, with the sky: the pull's own weather, else the
+// record's, else (today only) the current one, which is then written onto
+// the pull and the record so it stays. Called again when a forecast that
+// was still on its way lands after the card was drawn.
+export function renderPullDate(pull, rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token)) {
+  let weather = pull.weather || (rec && rec.weather) || null;
+  if (!weather && !getPreviewDay() && pull.day === dateKeyInTimezone(state.theme.timezone)) {
+    weather = weatherForEntry(state.weather);
+    if (weather) { pull.weather = weather; setWeather(pull.day, pull.token, weather); }
+  }
+  const wText = weatherText(weather);
+  const el = $("[data-ag-date]");
+  if (el) el.textContent = wText ? `${formatCardDate(pull.day)}\u2009·\u2009${wText}` : formatCardDate(pull.day);
+}
+
 // ── renderPull ────────────────────────────────────────────────────────────────
 
 export function renderPull(pull) {
@@ -950,11 +965,10 @@ export function renderPull(pull) {
   setCapsuleTone(pull.category.tone);
   $("[data-ag-rarity]").textContent = pull.category.label;
   // The weather the capsule fell under: on the pull while it is fresh, on
-  // the history entry on every later look.
+  // the history entry on every later look; for today, the current sky when
+  // neither has one yet.
   const rec = readHistory().find((e) => e.day === pull.day && e.token === pull.token);
-  const weather = pull.weather || (rec && rec.weather) || null;
-  const wText = weatherText(weather);
-  $("[data-ag-date]").textContent = wText ? `${formatCardDate(pull.day)}\u2009·\u2009${wText}` : formatCardDate(pull.day);
+  renderPullDate(pull, rec);
   $("[data-ag-title]").textContent = pull.outcome.title;
   const msgEl = $("[data-ag-message]");
   if (!msgEl) return;
