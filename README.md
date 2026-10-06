@@ -877,7 +877,10 @@ mechanics, none of it load-bearing.
 - **Kapsel-Wetter** (`src/wetter.js`). The machine knows the sky at pull time:
   Open-Meteo for the coordinates in `config/theme.json` → `weather`, no key,
   cached half an hour, fetched on load and again as the capsule falls. The
-  temperature and an emoji go onto the history entry (`weather: {t, c, e}`,
+  temperature and an emoji go onto the history entry (`weather: {t, c, e}`;
+  a forecast slower than the fall catches up with the card and the record
+  when it lands, and today's record is backfilled from the current sky on
+  any later look if it still has none),
   local only — the sheet has no column, so the sync keeps the local value) and
   show on the card's date line and in Verlauf: *Fr, 2. Okt. · 4° 🌧*. The
   hero reacts: rain streaks, snow drifting, fog, a flash of lightning in a

@@ -15,7 +15,7 @@ import { haptic, hapticForTone } from "./haptic.js";
 import { updateAppBadge } from "./badge.js";
 import { initMotion } from "./motion.js";
 import { startRumble, stopRumble, playRevealSpectacle } from "./spectacle.js";
-import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, isFavorite, messageText, closeLightbox, renderPull, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
+import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, renderWunschkapsel, toggleFavorite, isFavorite, messageText, closeLightbox, renderPull, renderPullDate, renderMilestoneBanner, recordHistoryEntry, setHistoryFilter, renderTokenBank, MILESTONE_MESSAGES, renderFerien, renderWishReply } from "./render.js";
 import { bindKnob } from "./knopf.js";
 import { closeKursPanel } from "./kurs.js";
 import { bindLightReactionsToggle } from "./einstellungen.js";
@@ -545,8 +545,9 @@ export function reveal() {
 
   mount.classList.add("is-revealing");
   button.disabled = true;
-  // The sky at pull time — the fetch has five seconds of fall to land in.
-  if (!getPreviewDay()) fetchWeather().catch(() => {});
+  // The sky at pull time — the fetch has the fall to land in, and if it is
+  // slower than that, it catches up with the card and the record below.
+  const weatherPromise = getPreviewDay() ? Promise.resolve(null) : fetchWeather().catch(() => null);
   buttonText.textContent = steps[stepIndex];
   const stepTimer = window.setInterval(() => {
     stepIndex = Math.min(stepIndex + 1, steps.length - 1);
@@ -600,6 +601,18 @@ export function reveal() {
       if (w && !state.todaysPull.weather) state.todaysPull.weather = w;
     }
     renderPull(state.todaysPull);
+    // A forecast that lands after the card was drawn catches up with it;
+    // one that failed (timeout, no network yet) gets a second try a little
+    // later, while the card is still today's.
+    const lateWeather = (w) => {
+      const pull = state.todaysPull;
+      if (!w || !pull || pull.weather || getPreviewDay()) return;
+      renderPullDate(pull);
+    };
+    weatherPromise.then((w) => {
+      if (w) { lateWeather(w); return; }
+      window.setTimeout(() => { fetchWeather().then(lateWeather).catch(() => {}); }, 8000);
+    });
     mount.classList.remove("is-revealing");
     mount.classList.add("is-revealed");
     mount.classList.add("has-drawn");
