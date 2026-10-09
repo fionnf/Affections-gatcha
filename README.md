@@ -443,7 +443,7 @@ Base weights (total = 1518), across **429 outcomes**:
 | Category | ID | Weight | Base chance | Outcomes | Carry a token |
 |---|---|---:|---:|---:|---:|
 | Niete | `niete` | 150 | 9.88% | 46 | 16 · 35% |
-| Gewöhnlich | `common` | 270 | 17.79% | 147 | 18 · 12% |
+| Gewöhnlich | `common` | 270 | 17.79% | 197 | 18 · 12% |
 | Mini-Quest | `quest` | 180 | 11.86% | 47 | 6 · 13% |
 | Ungewöhnlich | `uncommon` | 150 | 9.88% | 31 | 4 · 13% |
 | Verflucht | `cursed` | 90 | 5.93% | 54 | 19 · 35% |

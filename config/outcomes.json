@@ -874,6 +874,206 @@
         {
           "title": "Der schönere Weg",
           "message": "Nimm heute irgendwo den längeren Weg. Nur weil er schöner ist."
+        },
+        {
+          "title": "Taschen-Sonne",
+          "message": "Diese Kapsel enthält eine sehr kleine Sonne für die Jackentasche. Hand reinstecken, wenn es grau wird."
+        },
+        {
+          "title": "Unsichtbare Krone",
+          "message": "Du trägst heute eine unsichtbare Krone. Sie sitzt schief, das ist Absicht, so sieht man, dass du sie selbst aufgesetzt hast."
+        },
+        {
+          "title": "Kuschel-Zertifikat",
+          "message": "Hiermit amtlich bestätigt: du bist zum Kuscheln zugelassen. Gültig bis auf Widerruf. Ein Widerruf ist nicht vorgesehen."
+        },
+        {
+          "title": "Flauschmeter",
+          "message": "Die Maschine hat deinen Flauschwert gemessen. Ergebnis: zu hoch für das Gerät. Es piept noch immer."
+        },
+        {
+          "title": "Ein kleines Winken",
+          "message": "Irgendwo winkt dir gerade jemand, den du nicht siehst. Wink zurück, ganz klein, mit zwei Fingern."
+        },
+        {
+          "title": "Herz-Pflaster",
+          "message": "Ein winziges Pflaster mit Herzen drauf. Kleb es auf nichts, es ist nur für den Fall."
+        },
+        {
+          "title": "Gummibärchen-Lizenz",
+          "message": "Du darfst heute ein Gummibärchen mehr als sonst. Die Maschine schaut weg."
+        },
+        {
+          "title": "Wolken-Haustier",
+          "message": "Die kleinste Wolke am Himmel gehört heute dir. Gib ihr einen Namen und lass sie dann wieder ziehen."
+        },
+        {
+          "title": "Sockenglück",
+          "message": "Deine Socken passen heute zusammen, auch wenn sie es nicht tun. Die Maschine hat sie für ein Paar erklärt."
+        },
+        {
+          "title": "Kissen-Diplom",
+          "message": "Du hast deine Kissenseite gestern perfekt kühl gehalten. Dafür gibt es dieses Diplom, in Kissenform."
+        },
+        {
+          "title": "Dreimal Durchatmen",
+          "message": "Einmal für dich. Einmal für mich. Einmal für die Katze, die wir nicht haben."
+        },
+        {
+          "title": "Marmeladen-Orden",
+          "message": "Für besondere Verdienste beim Frühstück: der Orden am Toastband. Bitte vor dem Abbeissen abnehmen."
+        },
+        {
+          "title": "Kleiner Stern",
+          "message": "Hier ist ein kleiner Stern. Er ist aus Papier, aber er leuchtet, wenn du ihn ansiehst."
+        },
+        {
+          "title": "Teelöffel Mut",
+          "message": "Ein Teelöffel Mut, gestrichen. Für den einen Moment heute, den du etwas scheust."
+        },
+        {
+          "title": "Bärenumarmung in Dosen",
+          "message": "Eine Umarmung, haltbar bis unendlich. Deckel auf, Arme drum, Deckel zu. Reicht für mehrmals."
+        },
+        {
+          "title": "Regenbogen-Kaugummi",
+          "message": "Schmeckt nach nichts, färbt alles ein bisschen bunter. Nur heute im Angebot."
+        },
+        {
+          "title": "Pyjama-Pass",
+          "message": "Du darfst heute länger im Pyjama bleiben, als die Uhr erlaubt. Visum eingeklebt."
+        },
+        {
+          "title": "Lächel-Reserve",
+          "message": "Falls dir unterwegs das Lächeln ausgeht: hier sind drei auf Vorrat. Bitte nur echte Notfälle."
+        },
+        {
+          "title": "Zimtschnecken-Gefühl",
+          "message": "Du bist heute warm, rund und ein bisschen klebrig vor Zufriedenheit. Genau richtig."
+        },
+        {
+          "title": "Nickerchen-Gutschein",
+          "message": "Zwanzig Minuten Augen zu, amtlich. Der Wecker ist die Maschine. Sie weckt sanft."
+        },
+        {
+          "title": "Kleiner Applaus",
+          "message": "Ein sehr leiser Applaus für dich, von zwei kleinen Händen. Hörst du? Da. Nochmal."
+        },
+        {
+          "title": "Monsterchen im Rucksack",
+          "message": "In deinem Rucksack wohnt heute ein winziges Monster. Es frisst nur Sorgen. Füttere es ruhig."
+        },
+        {
+          "title": "Keks für später",
+          "message": "Ein Keks, den du jetzt bekommst und später isst. Die Maschine hält ihn solange warm."
+        },
+        {
+          "title": "Pfützen-Freifahrt",
+          "message": "Du darfst heute in eine Pfütze hüpfen, ohne dass es zählt. Die Maschine übernimmt die Hose."
+        },
+        {
+          "title": "Schneckenpost",
+          "message": "Eine Schnecke bringt dir einen Brief. Sie ist seit Dienstag unterwegs. Der Brief sagt: Hallo."
+        },
+        {
+          "title": "Flüsterkompliment",
+          "message": "Komm näher. Noch näher. Du siehst heute aus, als hättest du gut geschlafen, auch wenn nicht."
+        },
+        {
+          "title": "Hosentaschen-Konfetti",
+          "message": "Konfetti, sehr klein, für die Hosentasche. Zum Werfen in Gedanken, wenn etwas klappt."
+        },
+        {
+          "title": "Nudel-Horoskop",
+          "message": "Die Nudeln sagen: heute ist ein guter Tag für Nudeln. Die Nudeln haben selten unrecht."
+        },
+        {
+          "title": "Glücksbrot-Krümel",
+          "message": "Ein einzelner Krümel vom Glücksbrot. Reicht für ein Lächeln beim Fenster rausschauen."
+        },
+        {
+          "title": "Lieblingstag-Stempel",
+          "message": "Ganz normaler Tag, hiermit zum Lieblingstag gestempelt. Die Maschine darf das."
+        },
+        {
+          "title": "Hummel-Grüsse",
+          "message": "Eine Hummel hat sich erkundigt, ob es dir gut geht. Ich habe Ja gesagt. Sie war zufrieden."
+        },
+        {
+          "title": "Daumen-Kuss",
+          "message": "Der Kuss, den man sich auf den Daumen drückt und dann irgendwo hinhält. Hiermit auf deine Nase."
+        },
+        {
+          "title": "Wärmeflasche fürs Herz",
+          "message": "Füllmenge: ein Abend. Temperatur: genau richtig. Wirkung: sofort."
+        },
+        {
+          "title": "Tee-Orakel",
+          "message": "Das Teeblatt sagt: jemand denkt gerade an dich. Das Teeblatt bin ich."
+        },
+        {
+          "title": "Schattenfreund",
+          "message": "Dein Schatten hat heute gute Laune. Er geht extra breit neben dir her."
+        },
+        {
+          "title": "Kleine Welle",
+          "message": "Eine winzige Welle, nur für deinen Fuss. Sie kommt, kitzelt kurz und geht wieder. Schön, oder?"
+        },
+        {
+          "title": "Bauchkratz-Gutschein",
+          "message": "Fünf Minuten Bauch kraulen, für dich oder für ein Tier deiner Wahl. Nicht übertragbar, ausser an mich."
+        },
+        {
+          "title": "Keine-Ahnung-Erlaubnis",
+          "message": "Du musst heute nicht alles wissen. Hiermit genehmigt, Stempel, Unterschrift, Kuss."
+        },
+        {
+          "title": "Tüte voll Nichts",
+          "message": "Eine Papiertüte, drin ist nichts. Du darfst sie trotzdem aufblasen und zerknallen. Peng. Besser?"
+        },
+        {
+          "title": "Zwiebel-Kompliment",
+          "message": "Du bist wie eine Zwiebel: viele Schichten, und beim Schneiden weint man vor Rührung."
+        },
+        {
+          "title": "Bettdecken-Burg",
+          "message": "Heute Abend wird eine Burg gebaut, aus Decken, mit Platz für zwei. Baugenehmigung liegt bei."
+        },
+        {
+          "title": "Mini-Fanfare",
+          "message": "Tröööt. Das war die Fanfare. Sie ist klein, aber sie gilt dir ganz."
+        },
+        {
+          "title": "Erdbeer-Fakt",
+          "message": "Erdbeeren sind keine Beeren. Du bist auch kein gewöhnlicher Mensch. Es passt."
+        },
+        {
+          "title": "Pinguin-Tempo",
+          "message": "Du darfst heute im Pinguinschritt gehen. Watschelnd. Die Maschine findet das elegant."
+        },
+        {
+          "title": "Honig-Löffel",
+          "message": "Ein Löffel Honig, langsam ablecken, dabei an gar nichts denken. Das ist die ganze Aufgabe."
+        },
+        {
+          "title": "Lampen-Blinzeln",
+          "message": "Die Lampen haben für dich geblinzelt. Falls du es verpasst hast: es war süss."
+        },
+        {
+          "title": "Knopf im Glas",
+          "message": "Ein hübscher Knopf, der zu keinem Kleidungsstück gehört. Du darfst ihn trotzdem behalten. Schätze müssen nicht nützlich sein."
+        },
+        {
+          "title": "Kleine Mut-Münze",
+          "message": "Eine Münze mit einem Löwen drauf. Umdrehen: immer noch ein Löwe. Steck sie ein."
+        },
+        {
+          "title": "Kaffee-Herz",
+          "message": "Im Milchschaum war heute ein Herz. Falls nicht: jetzt schon."
+        },
+        {
+          "title": "Gähn-Gutschein",
+          "message": "Du darfst heute einmal herzhaft gähnen, ohne die Hand vor den Mund. Die Maschine schaut lieb."
         }
       ]
     },
