@@ -1074,6 +1074,206 @@
         {
           "title": "Gähn-Gutschein",
           "message": "Du darfst heute einmal herzhaft gähnen, ohne die Hand vor den Mund. Die Maschine schaut lieb."
+        },
+        {
+          "title": "Glühwürmchen im Glas",
+          "message": "Eines nur, und du musst es heute Abend wieder rauslassen. Bis dahin leuchtet es für dich."
+        },
+        {
+          "title": "Wackelzahn-Mut",
+          "message": "Der Mut, den man mit sechs hatte, kurz vor dem Wackelzahn. Für heute wieder ausgeliehen."
+        },
+        {
+          "title": "Puddinghaut-Verzicht",
+          "message": "Du musst heute die Puddinghaut nicht essen. Die Maschine nimmt sie. Sie mag sie wirklich."
+        },
+        {
+          "title": "Löwenzahn-Wunsch",
+          "message": "Einmal pusten. Egal ob ein Löwenzahn da ist. Der Wunsch zählt trotzdem, die Samen fliegen in Gedanken."
+        },
+        {
+          "title": "Katzen-Kompliment",
+          "message": "Eine Katze hat dich von einem Fensterbrett aus für gut befunden. Katzen irren sich nie."
+        },
+        {
+          "title": "Hosentaschen-Meer",
+          "message": "Ein Meer, zusammengefaltet, für die Hosentasche. Bei Bedarf ans Ohr halten und rauschen lassen."
+        },
+        {
+          "title": "Schaumbad-Orden",
+          "message": "Für Verdienste um die Entspannung: ein Orden aus Seifenschaum. Er platzt, aber die Ehre bleibt."
+        },
+        {
+          "title": "Blätter-Rascheln",
+          "message": "Du darfst heute extra durch Laub gehen, nur wegen des Geräuschs. Umwege sind erlaubt."
+        },
+        {
+          "title": "Brotkante-Privileg",
+          "message": "Du bekommst die Brotkante. Beide. Die Maschine weiss, dass du sie heimlich magst."
+        },
+        {
+          "title": "Flauschiger Gedanke",
+          "message": "Ein Gedanke, so weich wie ein Pulli von innen. Du darfst ihn den ganzen Tag anbehalten."
+        },
+        {
+          "title": "Zehen-Wackeln",
+          "message": "Jetzt gerade: mit den Zehen wackeln. Das war die ganze Kapsel. Sie ist zufrieden."
+        },
+        {
+          "title": "Seifenblasen-Brief",
+          "message": "Ein Brief, der nur eine Seifenblase lang hält. Er sagt: Du bist gut. Plopp."
+        },
+        {
+          "title": "Kakao-Schnurrbart",
+          "message": "Du darfst heute einen Kakao-Schnurrbart tragen und ihn erst nach einer Minute abwischen."
+        },
+        {
+          "title": "Igel-Moment",
+          "message": "Du darfst dich heute einmal einrollen, wenn es zu viel wird. Die Maschine stellt sich davor."
+        },
+        {
+          "title": "Sternschnuppe to go",
+          "message": "Eine Sternschnuppe, die wartet, bis du sie brauchst. Augen zu, wünschen, Augen auf. Fertig."
+        },
+        {
+          "title": "Pfannkuchen-Mathematik",
+          "message": "Der erste Pfannkuchen misslingt immer. Das gilt auch für Tage. Heute ist der zweite."
+        },
+        {
+          "title": "Kiesel in der Hand",
+          "message": "Ein glatter, kühler Kiesel für die Hand. Drücken, wenn etwas drückt. Er hält das aus."
+        },
+        {
+          "title": "Nachtlicht-Erlaubnis",
+          "message": "Du darfst heute mit Licht einschlafen. Die Maschine bleibt an und tut so, als wäre sie der Mond."
+        },
+        {
+          "title": "Schmetterling im Bauch",
+          "message": "Nur einer. Kein Grund zur Aufregung. Er fliegt eine Runde und setzt sich wieder."
+        },
+        {
+          "title": "Bananen-Lächeln",
+          "message": "Eine Banane, die dich anlächelt, wenn du sie richtig herum hältst. Probier es."
+        },
+        {
+          "title": "Kuschelsocken-Dekret",
+          "message": "Hiermit wird angeordnet: die dicken Socken, auch wenn es nicht kalt genug ist."
+        },
+        {
+          "title": "Sandkasten-Vertrag",
+          "message": "Du und ich teilen die Schaufel. Unterschrieben mit einem Grashalm."
+        },
+        {
+          "title": "Wimpern-Wunsch",
+          "message": "Da war eine Wimper auf deiner Wange. Ich habe sie weggepustet und etwas für dich gewünscht."
+        },
+        {
+          "title": "Rückwärts-Zählen",
+          "message": "Zehn, neun, acht. Bei null ist der Ärger weg. Die Maschine zählt mit, leise."
+        },
+        {
+          "title": "Kleiner Luftballon",
+          "message": "Ein Luftballon, nicht grösser als eine Faust. Er zieht dich um genau ein Gramm nach oben."
+        },
+        {
+          "title": "Kekskrümel-Spur",
+          "message": "Eine Spur aus Krümeln führt von hier zu einem schönen Abend. Bitte folgen."
+        },
+        {
+          "title": "Elefanten-Gedächtnis",
+          "message": "Die Maschine merkt sich, dass du heute lieb warst. Für immer. Sie vergisst nichts Nettes."
+        },
+        {
+          "title": "Pinselstrich",
+          "message": "Du bist heute ein Pinselstrich in der richtigen Farbe. Das Bild braucht dich genau da."
+        },
+        {
+          "title": "Decken-Zipfel",
+          "message": "Ein Zipfel der Decke, nur für dich reserviert. Niemand zieht ihn dir heute Nacht weg."
+        },
+        {
+          "title": "Zuckerwatte-Wolke",
+          "message": "Die Wolke über dir ist heute aus Zuckerwatte. Nicht essbar, aber sehr beruhigend anzuschauen."
+        },
+        {
+          "title": "Daumen-Hoch-Vorrat",
+          "message": "Drei Daumen hoch zum Mitnehmen. Einen für dich, einen zum Verschenken, einen Reserve."
+        },
+        {
+          "title": "Geräusch des Tages",
+          "message": "Sag heute einmal laut dein Lieblingsgeräusch. Die Maschine tippt auf Regen am Fenster."
+        },
+        {
+          "title": "Schulterklopfen",
+          "message": "Ein kleines Klopfen auf die Schulter. Von hinten, von mir. Dreh dich ruhig um."
+        },
+        {
+          "title": "Murmel im Kopf",
+          "message": "Eine Murmel, die im Kopf hin und her rollt, wenn man den Kopf schief legt. Probier es. Klack."
+        },
+        {
+          "title": "Kleine Welle Mut",
+          "message": "Nicht gross. Nur genug, um das eine Ding heute anzufangen. Der Rest kommt von selbst."
+        },
+        {
+          "title": "Ente im Entenmarsch",
+          "message": "Du darfst dich heute hinten anstellen und einfach mitwatscheln. Die Entenmutter weiss den Weg."
+        },
+        {
+          "title": "Plüsch-Erlaubnis",
+          "message": "Du darfst heute etwas Weiches festhalten. Ein Kissen, ein Pulli, eine Hand. Reihenfolge egal."
+        },
+        {
+          "title": "Blumentopf-Gruss",
+          "message": "Die Pflanze am Fenster hat heute ein neues Blatt. Sie hat es für dich gemacht, sagt sie."
+        },
+        {
+          "title": "Stilles Hurra",
+          "message": "Ein Hurra, ganz ohne Ton. Nur die Arme hoch. Die Maschine hat es gesehen."
+        },
+        {
+          "title": "Zimt auf alles",
+          "message": "Du darfst heute Zimt auf etwas streuen, das keinen Zimt braucht. Zum Beispiel den Tag."
+        },
+        {
+          "title": "Kleiner Regenbogen-Rest",
+          "message": "Vom letzten Regenbogen ist ein Stück übrig. Es passt in die Brusttasche. Links, beim Herzen."
+        },
+        {
+          "title": "Wärme im Nacken",
+          "message": "Die Sonne hat dir heute in den Nacken geschienen, auch wenn sie es nicht getan hat. Fühl mal."
+        },
+        {
+          "title": "Vogelsprache",
+          "message": "Ein Vogel hat heute früh etwas über dich gesungen. Es war freundlich. Die Maschine hat übersetzt."
+        },
+        {
+          "title": "Schneeflocke im Sommer",
+          "message": "Eine einzelne Schneeflocke, zur falschen Zeit. Sie schmilzt auf deiner Nase und sagt Hallo."
+        },
+        {
+          "title": "Baumhaus-Stunde",
+          "message": "Eine Stunde, in der du so tust, als wärst du in einem Baumhaus. Niemand kommt hoch. Nur ich, mit Keksen."
+        },
+        {
+          "title": "Ohrläppchen-Zupfer",
+          "message": "Ein sanftes Zupfen am Ohrläppchen. Bedeutet: ich hab dich gern. Steht so im Wörterbuch."
+        },
+        {
+          "title": "Kleines Fenster-Herz",
+          "message": "Mit dem Finger ein Herz auf ein beschlagenes Fenster. Wenn kein Fenster beschlagen ist: in die Luft."
+        },
+        {
+          "title": "Schlummertrunk-Gutschein",
+          "message": "Heute Abend etwas Warmes im Becher, und jemand, der ihn dir reicht. Der Jemand bin ich."
+        },
+        {
+          "title": "Mützen-Segen",
+          "message": "Deine Mütze ist heute besonders gut gesegnet. Von innen warm, von aussen frech."
+        },
+        {
+          "title": "Winzige Parade",
+          "message": "Eine Parade, nur für dich. Sie besteht aus einer Ameise mit Fähnchen. Sie meint es sehr ernst."
         }
       ]
     },
