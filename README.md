@@ -55,6 +55,7 @@ scripts/
   sync-shared-album.cjs      Reads album-source.json, writes photos.json
   build-photo-manifest.cjs   Builds photos.json from an exported Apple Photos folder
   backup-apps-script.js      Google Apps Script source for the Sheets web app
+  quest-proxy-apps-script.js Google Apps Script proxy that asks Claude to judge quest photos and write the hidden letter
   hash-admin-pin.cjs         Generates the salt + PIN hash for config/admin.json
   gen-vapid-keys.cjs         One-off VAPID keypair for Web Push
   send-push.cjs  push-poll.cjs  Web Push senders (manual, and the hug/wish poll)
@@ -848,6 +849,27 @@ had become a door that notifications pointed at but nobody could open.
 Mini-Quests with *Bestanden* cover the same ground.
 
 The **Mini-Quest** outcome category delivers a photo challenge from `config/quest.json`. Tap **Foto hochladen** to submit — the Apps Script backend validates the image. Solving earns quest points (shown in the header). 30 challenges, cycling on a 2-day period.
+
+### Claude proxy (quest judge + hidden letter)
+
+`scripts/quest-proxy-apps-script.js` is a separate Apps Script web app that
+the widget POSTs to (`config/quest.json → proxyUrl`). It calls the Claude
+Messages API (`claude-opus-5-5`) directly over HTTPS:
+
+- photo judging: the image goes in as a base64 `image` block, the answer
+  comes back as schema-enforced JSON (`success`, `message`, `hint`), so the
+  hint never leaks the solution and the widget never has to parse prose;
+- the hidden letter: two short paragraphs, with a random theme and tone
+  mixed into each request so the letters stay different.
+
+The key lives in the script's **Script Properties** as `ANTHROPIC_API_KEY`
+(Project Settings → Script properties); the constant at the top of the file
+is only a fallback. A safety refusal is retried on a fallback model
+server-side, and anything that still fails comes back as `{ok: false,
+error}` so the widget falls back to its built-in letters. `testLetter()` and
+`testJudge()` in the editor check the key before deploying. After editing
+the file, redeploy the web app (Deploy → Manage deployments → ✏️ → New
+version); the `/exec` URL stays the same.
 
 ---
 
