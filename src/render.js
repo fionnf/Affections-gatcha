@@ -1241,7 +1241,8 @@ export function renderPull(pull) {
       photoCaption.textContent = "";
       photoCaption.hidden = true;
     }
-    photoWrap.hidden = false;
+    // A picture waits behind the same door as the message.
+    photoWrap.hidden = !!(pull.outcome.prompt && !pull.promptAnswer);
   } else {
     photoMedia.innerHTML = "";
     photoCaption.textContent = "";
