@@ -209,7 +209,11 @@
           "prompt": "Bevor die Kapsel aufgeht: Welchen Moment von diesem Wochenende willst du nie vergessen?",
           "token": "💚"
         }
-      ]
+      ],
+      "photo": {
+        "url": "media/familie-2026-10-11.svg",
+        "alt": "Comic vom Wochenende: Küche, Sofa, Baustelle und alle zusammen am Tisch"
+      }
     }
   ]
 }
