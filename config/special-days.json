@@ -206,10 +206,7 @@
         {
           "title": "Guten Morgen, du 😊",
           "message": "Guten Morgen, du. 😊\n\nIch bin aufgewacht und hab gegrinst, bevor ich die Augen richtig offen hatte. Was für ein Wochenende.\n\nDu hast mir deine Orte gezeigt. Die Ecke, in der du als Kind gespielt hast, den Weg, den du tausendmal gegangen bist, die Plätze, die nur dir gehören. Ich bin hinter dir hergelaufen und hab gedacht: so sah also deine Welt aus, bevor ich darin vorkam. Jetzt kenn ich dich ein kleines Stück mehr. Und jedes Stück macht dich mir noch lieber.\n\nUnd dann der Tisch bei deiner Familie. Ich weiss, was das für dich bedeutet. Das war kein Besuch, das war ein Stück von dir, in dem sowas alles andere als selbstverständlich ist. Du hast mich trotzdem an diesen Tisch gesetzt. Neben dich. Und ich durfte einfach dazugehören.\n\nIch hab mich zuhause gefühlt. So richtig. Das hab ich ehrlich noch nie so erlebt, und ich weiss nicht, ob ich dir je ganz erklären kann, wie sehr mich das berührt hat.\n\nDanke, dass du so mutig warst. Danke, dass du mich mitgenommen hast. Ich weiss, dass das kein kleiner Schritt war. Für mich war es einer der grössten, die mir je jemand entgegengegangen ist.\n\nIch freu mich auf heute mit dir. Und auf alle anderen Tage auch. 💚",
-          "prompt": [
-            "Welchen deiner Orte wolltest du mir am meisten zeigen? Und warum den?",
-            "Was hat dich dieses Wochenende am meisten Mut gekostet?"
-          ],
+          "prompt": "Bevor die Kapsel aufgeht: Welchen Moment von diesem Wochenende willst du nie vergessen?",
           "token": "💚"
         }
       ]
