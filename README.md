@@ -183,7 +183,9 @@ as the lights page, sent as `gacha_app` so that page does not drop it as its
 own copy).
 
 **Groups.** The strip is one or more groups, each with its own tint and white
-level. A tap between two lights cuts there (or joins again), a tap on a light
+level. A colour picked on the palette bar starts at a white level of 50 %
+(`DEFAULT_W`), as do the 🎲 random tints, give or take a little; the
+Weissanteil slider moves it from there. A tap between two lights cuts there (or joins again), a tap on a light
 picks its group, the chips under the strip do the same, **+** splits the
 selected (else the largest) group in half and **−** merges it into its
 neighbour. With a group selected, the palette bar and the Weissanteil slider
