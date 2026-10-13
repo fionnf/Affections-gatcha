@@ -207,6 +207,10 @@ it back whenever a lamp turns up white without having been asked: on the
 Licht tab's first echo after connecting and when a lamp comes back online, at
 the end of every pull flash or hug strobe whose capture found white, and in a
 short check a few seconds after the app opens (at most every twenty minutes).
+"White" is what the firmware calls white: a group whose `pos` is 0 shows no
+tint at all, whatever its white level (`w` only scales the white LED on top),
+so a tapped lamp — taps land with `w` between 0.6 and 1 — is a colour and is
+remembered, and a dim warm white is still white (`WHITE_POS`).
 White chosen on purpose, the Weiß mood or the Weissanteil slider, forgets the
 memory for those lamps so it is not undone; a lamp that is off is left off;
 and for three hours after an enabled sunrise alarm ends, the Licht tab leaves
