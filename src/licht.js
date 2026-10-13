@@ -60,6 +60,10 @@ export function groupRgb(g) {
 }
 
 // ── Payloads ─────────────────────────────────────────────────────────────────
+// The white level a colour starts with when nothing says otherwise: a tap on
+// the palette, a throw of the dice. Half, so a fresh colour is soft rather
+// than full saturation; the Weissanteil slider moves it from there.
+export const DEFAULT_W = 0.5;
 export function stripGroups(pos, w = 0) {
   return [{ pos, w, size: NUM_LEDS }];
 }
@@ -433,7 +437,7 @@ export function sendGroups(groups) {
 export function setColour(pos, w) {
   const gs = currentGroups();
   const single = gs.length === 1 && selectedGroup === null;
-  sendGroups(single ? stripGroups(pos, w === undefined ? 0 : w) : setGroupColour(gs, selectedGroup, pos, w));
+  sendGroups(single ? stripGroups(pos, w === undefined ? DEFAULT_W : w) : setGroupColour(gs, selectedGroup, pos, w));
   haptic(6);
 }
 export function setWhite(w) {
@@ -467,15 +471,18 @@ export function toggleLamp(id) {
   haptic(8);
 }
 
-// Two to four groups of random tints, sizes summing to the strip. Pure, so a
-// test can check the sum; the RNG is injectable for the same reason.
+// Two to four groups of random tints, sizes summing to the strip, each at
+// the default white level give or take a little. Pure, so a test can check
+// the sum; the RNG is injectable for the same reason.
 export function randomGroups(rand = Math.random) {
   const n = 2 + Math.floor(rand() * 3);
   const cuts = new Set();
   while (cuts.size < n - 1) cuts.add(1 + Math.floor(rand() * (NUM_LEDS - 1)));
   const splits = [0, ...[...cuts].sort((a, b) => a - b), NUM_LEDS];
   return splits.slice(0, -1).map((start, i) => ({
-    pos: Math.round(rand() * 29) / 29, w: rand() < 0.2 ? Math.round(rand() * 60) / 100 : 0, size: splits[i + 1] - start
+    pos: Math.round(rand() * 29) / 29,
+    w: Math.round((DEFAULT_W + (rand() - 0.5) * 0.4) * 100) / 100,
+    size: splits[i + 1] - start
   }));
 }
 export function playRandom() { send({ on: true, fade_steps: 40, groups: randomGroups() }); haptic([6, 20, 6]); }

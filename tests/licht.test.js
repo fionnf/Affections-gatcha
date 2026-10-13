@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { setupBrowserEnv } from "./helpers.js";
 
 setupBrowserEnv("?player=lennart");
-const { paletteRgb, groupRgb, MOODS, moodPayload, scenePayload, stripGroups, winkSteps, NUM_LEDS } = await import("../src/licht.js");
+const { paletteRgb, groupRgb, MOODS, moodPayload, scenePayload, stripGroups, winkSteps, NUM_LEDS, DEFAULT_W, randomGroups } = await import("../src/licht.js");
 
 test("paletteRgb stays inside 0–255 across the whole bar and clamps outside it", () => {
   for (let i = 0; i <= 40; i++) {
@@ -60,4 +60,17 @@ test("the wink pulses three times and puts the lamp back, off lamps included", (
   assert.deepEqual(restore.payload.groups, snap.groups);
   assert.equal(steps[steps.length - 1].payload.on, false, "a lamp that was off goes back off");
   assert.equal(winkSteps(null)[winkSteps(null).length - 1].payload.on, false, "no snapshot: end dark rather than stuck green");
+});
+
+test("a fresh colour starts at half white; the dice stay near it", () => {
+  assert.equal(DEFAULT_W, 0.5);
+  let k = 0;
+  const seq = [0.9, 0.3, 0.7, 0.1, 0.5, 0.95, 0.2, 0.6, 0.4, 0.8, 0.05, 0.5, 0.33];
+  const rand = () => seq[k++ % seq.length];
+  const gs = randomGroups(rand);
+  assert.equal(gs.reduce((n, g) => n + g.size, 0), NUM_LEDS);
+  for (const g of gs) {
+    assert.ok(g.w >= DEFAULT_W - 0.2 && g.w <= DEFAULT_W + 0.2, `w ${g.w} within ±0.2 of the default`);
+    assert.ok(g.pos >= 0 && g.pos <= 1);
+  }
 });
