@@ -10,22 +10,32 @@
 // the memory for those lamps, so it is not undone. A sunrise alarm ends in
 // warm white by design; for three hours after it the Licht tab leaves white
 // alone.
+//
+// What "white" is, in the firmware's terms: a group's hue comes from `pos`
+// alone (0 = no tint at all, the warm-white LED only; higher = more of the
+// palette tint). `w` only scales the white LED on top of that. So a group
+// at pos 0.5 with w 0.9 is a pastel colour, and a group at pos 0 with w 0.3
+// is dim warm white. The first version of this read `w` as whiteness, the
+// way the strip preview mixes it, and so called a tapped lamp (taps land
+// with w between 0.6 and 1) white: it never remembered those colours, and
+// it "restored" an older colour over them after a flash.
 
 const KEY = "affektions-gacha:licht:farbe:v1";
 export const MEMORY_MAX_AGE_MS = 7 * 86400000;
-export const WHITE_W = 0.85;
+export const WHITE_POS = 0.02;   // below this a group shows no tint at all
 export const SUNRISE_GRACE_MS = 3 * 3600000;
 
+function tinted(g) { return (Number(g.pos) || 0) > WHITE_POS; }
 export function isWhite(state) {
   const gs = state && Array.isArray(state.groups) ? state.groups : null;
   if (!gs || !gs.length) return false;
-  return gs.every((g) => (Number(g.w) || 0) >= WHITE_W);
+  return gs.every((g) => !tinted(g));
 }
 export function isColoured(state) {
   const gs = state && Array.isArray(state.groups) ? state.groups : null;
   if (!gs || !gs.length) return false;
   if (state.on === false) return false;
-  return gs.some((g) => (Number(g.w) || 0) < WHITE_W);
+  return gs.some(tinted);
 }
 
 function readAll() {

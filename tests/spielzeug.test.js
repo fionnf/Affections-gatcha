@@ -11,7 +11,7 @@ const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull, configKurse } = await import("../src/kurs.js");
-const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS } = await import("../src/farbe.js");
+const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS, WHITE_POS } = await import("../src/farbe.js");
 const { lightReactionsEnabled, setLightReactions } = await import("../src/einstellungen.js");
 const { formatHistoryTime } = await import("../src/utils.js");
 const { setWeather, writeHistory: writeHist, readHistory: readHist } = await import("../src/storage.js");
@@ -213,7 +213,10 @@ test("the colour memory: white is white, colour is kept per lamp, forgotten on p
   const white = { on: true, groups: [{ pos: 0, w: 1, size: 10 }] };
   const colour = { on: true, brightness: 0.6, fade_steps: 60, groups: [{ pos: 0.3, w: 0, size: 4 }, { pos: 0.7, w: 0.2, size: 6 }] };
   assert.equal(isWhite(white), true);
-  assert.equal(isWhite({ groups: [{ pos: 0, w: 0.9, size: 5 }, { pos: 0, w: 0.3, size: 5 }] }), false, "one coloured group is colour");
+  assert.equal(isWhite({ groups: [{ pos: 0, w: 0.9, size: 5 }, { pos: 0, w: 0.3, size: 5 }] }), true, "pos 0 is warm white whatever the white level, dim or bright");
+  assert.equal(isWhite({ groups: [{ pos: 0, w: 1, size: 5 }, { pos: 0.5, w: 0.9, size: 5 }] }), false, "a pastel group (tint under a lot of white) is colour");
+  assert.equal(isColoured({ on: true, groups: [{ pos: 0.4, w: 0.95, size: 10 }] }), true, "a tap lands with w 0.6–1 and is still a colour");
+  assert.equal(isColoured({ on: true, groups: [{ pos: WHITE_POS, w: 0, size: 10 }] }), false, "at the threshold it is white");
   assert.equal(isColoured(colour), true);
   assert.equal(isColoured({ ...colour, on: false }), false, "off is not a colour to remember");
   assert.equal(isColoured(white), false);
