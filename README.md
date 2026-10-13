@@ -489,13 +489,13 @@ capsule.
 ### Sammeltokens
 
 About **one pull in five** (19.8%) awards a collectible emoji. There are **six
-types**, each buying a different reward at a different price — 3 for a home
-evening, 6 for a weekend away. `TOKEN_REWARDS` in `src/constants.js` holds
+types**, each buying a different reward at a different price — 5 for a home
+evening, 8 for a weekend away. `TOKEN_REWARDS` in `src/constants.js` holds
 both, and `tokenGoal()` is the single source for "how many".
 
 There used to be twelve. With the one-in-five rate spread twelve ways every
 reward took six months to a year to complete, and the bank was twelve bars
-that crawled. Six bars at goals of 3–6 complete a set every **three to five
+that crawled. Six bars at goals of 5–8 complete a set every **five to eight
 weeks**. The old twelve fold into the six via `TOKEN_MERGES` — ☕→🌿, 🔥→🏔,
 🎧→🎬, 🍕→🛁, ☁️→🛁, ⭐→💚, ✈️ stays — applied on every read of a token map (local,
 sent-base, and the sheet alike), so counts already earned carry over and a
