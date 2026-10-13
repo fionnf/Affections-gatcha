@@ -38,16 +38,16 @@ export const FREIKARTE_REROLL_KEY    = "affektions-gacha:freikarte-reroll:v1";
 // Each token type is one reward, and each reward costs a different number of
 // tokens. Six types, not twelve: with the one-in-five token rate spread
 // twelve ways, every reward took six months to a year to complete and the
-// bank was twelve bars that crawled. Six bars at goals of 3-6 complete a set
+// bank was twelve bars that crawled. Six bars at goals of 5-8 complete a set
 // every three to five weeks. The old twelve fold into these (TOKEN_MERGES),
 // and counts already earned are carried over, never lost.
 export const TOKEN_REWARDS = {
-  "🌿": { goal: 4, reward: "Essen: Fionn kocht, oder ein Café deiner Wahl" },
-  "🏔": { goal: 5, reward: "Ein Abenteuer: Bergtour mit Hütte, oder ein Wochenende weg" },
-  "🎬": { goal: 4, reward: "Ein Abend aus: Film, Konzert oder DJ — du wählst" },
-  "🛁": { goal: 3, reward: "Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag" },
-  "💚": { goal: 4, reward: "Eine Überraschung von Fionn, mit handgeschriebenem Brief" },
-  "✈️": { goal: 6, reward: "Ein Städtetrip — ein ganzes Wochenende weg" }
+  "🌿": { goal: 6, reward: "Essen: Fionn kocht, oder ein Café deiner Wahl" },
+  "🏔": { goal: 7, reward: "Ein Abenteuer: Bergtour mit Hütte, oder ein Wochenende weg" },
+  "🎬": { goal: 6, reward: "Ein Abend aus: Film, Konzert oder DJ — du wählst" },
+  "🛁": { goal: 5, reward: "Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag" },
+  "💚": { goal: 6, reward: "Eine Überraschung von Fionn, mit handgeschriebenem Brief" },
+  "✈️": { goal: 8, reward: "Ein Städtetrip — ein ganzes Wochenende weg" }
 };
 
 // Where each retired token goes. Applied on every read, so a count earned
