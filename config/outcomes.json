@@ -2131,88 +2131,88 @@
       "tone": "rare",
       "outcomes": [
         {
-          "title": "Grüne Kapsel 🌿",
-          "message": "Du sammelst ein 🌿. Bring 5 davon zusammen und Fionn kocht dir ein Abendessen — Gericht nach deiner Wahl.",
-          "token": "🛁"
-        },
-        {
-          "title": "Feuer-Kapsel 🔥",
-          "message": "Du sammelst ein 🔥. Bring 5 davon zusammen und ihr unternehmt ein Wochenend-Abenteuer — Ziel nach deiner Wahl.",
-          "token": "✈️"
-        },
-        {
-          "title": "Stern-Kapsel ⭐",
-          "message": "Du sammelst ein ⭐. Bring 5 davon zusammen und Fionn entscheidet was ihr macht. Überraschung garantiert.",
-          "token": "🏔"
-        },
-        {
-          "title": "Wolken-Kapsel ☁️",
-          "message": "Du sammelst ein ☁️. Bring 4 davon zusammen und wir verbringen einen ganzen faulen Tag ohne Pläne.",
-          "token": "🌿"
-        },
-        {
-          "title": "Berg-Kapsel 🏔",
-          "message": "Du sammelst ein 🏔. Bring 5 davon zusammen und wir planen eine richtige Bergtour, Hütte inklusive.",
-          "token": "💚"
-        },
-        {
-          "title": "Kaffee-Kapsel ☕",
-          "message": "Du sammelst ein ☕. Bring 4 davon zusammen und ich lade dich in dein Traumcafé ein, egal wo.",
-          "token": "🎬"
-        },
-        {
-          "title": "Herz-Kapsel 💚",
-          "message": "Du sammelst ein 💚. Bring 3 davon zusammen und du bekommst einen langen, handgeschriebenen Brief von mir.",
-          "token": "🛁"
-        },
-        {
-          "title": "Moos-Kapsel 🌿",
-          "message": "Du sammelst ein 🌿. Bring 5 davon zusammen und Fionn kocht dir ein Abendessen — Gericht nach deiner Wahl.",
-          "token": "✈️"
-        },
-        {
-          "title": "Funken-Kapsel 🔥",
-          "message": "Du sammelst ein 🔥. Bring 5 davon zusammen und ihr unternehmt ein Wochenend-Abenteuer — Ziel nach deiner Wahl.",
-          "token": "🛁"
-        },
-        {
-          "title": "Sternenstaub-Kapsel ⭐",
-          "message": "Du sammelst ein ⭐. Bring 5 davon zusammen und Fionn entscheidet, was ihr macht. Überraschung garantiert.",
-          "token": "🎬"
-        },
-        {
-          "title": "Nebel-Kapsel ☁️",
-          "message": "Du sammelst ein ☁️. Bring 4 davon zusammen und ihr verbringt einen ganzen faulen Tag ohne Pläne.",
-          "token": "🏔"
-        },
-        {
-          "title": "Espresso-Kapsel ☕",
-          "message": "Du sammelst ein ☕. Bring 4 davon zusammen und ihr fahrt in dein Traumcafé, egal wo es steht.",
-          "token": "🌿"
-        },
-        {
-          "title": "Kino-Kapsel 🎬",
-          "message": "Du sammelst ein 🎬. Bring 3 davon zusammen: Filmabend — du wählst, ich mache Popcorn.",
-          "token": "💚"
-        },
-        {
-          "title": "Pizza-Kapsel 🍕",
-          "message": "Du sammelst ein 🍕. Bring 3 davon zusammen: Essen kommt ins Haus, du bestimmst was.",
-          "token": "🎬"
-        },
-        {
-          "title": "Kopfhörer-Kapsel 🎧",
-          "message": "Du sammelst ein 🎧. Bring 5 davon zusammen: Konzert oder DJ-Abend, Tickets gehen auf mich.",
-          "token": "🛁"
-        },
-        {
           "title": "Wannen-Kapsel 🛁",
-          "message": "Du sammelst ein 🛁. Bring 4 davon zusammen: Ein Wellness-Abend, komplett vorbereitet.",
-          "token": "✈️"
+          "message": "Du sammelst ein 🛁. Bring 3 davon zusammen: Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag.",
+          "token": "🛁"
         },
         {
           "title": "Flug-Kapsel ✈️",
-          "message": "Du sammelst ein ✈️. Bring 7 davon zusammen: Ein Städtetrip — ein ganzes Wochenende weg.",
+          "message": "Du sammelst ein ✈️. Bring 6 davon zusammen: Ein Städtetrip — ein ganzes Wochenende weg.",
+          "token": "✈️"
+        },
+        {
+          "title": "Berg-Kapsel 🏔",
+          "message": "Du sammelst ein 🏔. Bring 5 davon zusammen: Ein Abenteuer: Bergtour mit Hütte, oder ein Wochenende weg.",
+          "token": "🏔"
+        },
+        {
+          "title": "Blatt-Kapsel 🌿",
+          "message": "Du sammelst ein 🌿. Bring 4 davon zusammen: Essen: Fionn kocht, oder ein Café deiner Wahl.",
+          "token": "🌿"
+        },
+        {
+          "title": "Herz-Kapsel 💚",
+          "message": "Du sammelst ein 💚. Bring 4 davon zusammen: Eine Überraschung von Fionn, mit handgeschriebenem Brief.",
+          "token": "💚"
+        },
+        {
+          "title": "Kino-Kapsel 🎬",
+          "message": "Du sammelst ein 🎬. Bring 4 davon zusammen: Ein Abend aus: Film, Konzert oder DJ — du wählst.",
+          "token": "🎬"
+        },
+        {
+          "title": "Schaum-Kapsel 🛁",
+          "message": "Du sammelst ein 🛁. Bring 3 davon zusammen: Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag.",
+          "token": "🛁"
+        },
+        {
+          "title": "Koffer-Kapsel ✈️",
+          "message": "Du sammelst ein ✈️. Bring 6 davon zusammen: Ein Städtetrip — ein ganzes Wochenende weg.",
+          "token": "✈️"
+        },
+        {
+          "title": "Faultag-Kapsel 🛁",
+          "message": "Du sammelst ein 🛁. Bring 3 davon zusammen: Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag.",
+          "token": "🛁"
+        },
+        {
+          "title": "Klappe-Kapsel 🎬",
+          "message": "Du sammelst ein 🎬. Bring 4 davon zusammen: Ein Abend aus: Film, Konzert oder DJ — du wählst.",
+          "token": "🎬"
+        },
+        {
+          "title": "Gipfel-Kapsel 🏔",
+          "message": "Du sammelst ein 🏔. Bring 5 davon zusammen: Ein Abenteuer: Bergtour mit Hütte, oder ein Wochenende weg.",
+          "token": "🏔"
+        },
+        {
+          "title": "Moos-Kapsel 🌿",
+          "message": "Du sammelst ein 🌿. Bring 4 davon zusammen: Essen: Fionn kocht, oder ein Café deiner Wahl.",
+          "token": "🌿"
+        },
+        {
+          "title": "Brief-Kapsel 💚",
+          "message": "Du sammelst ein 💚. Bring 4 davon zusammen: Eine Überraschung von Fionn, mit handgeschriebenem Brief.",
+          "token": "💚"
+        },
+        {
+          "title": "Popcorn-Kapsel 🎬",
+          "message": "Du sammelst ein 🎬. Bring 4 davon zusammen: Ein Abend aus: Film, Konzert oder DJ — du wählst.",
+          "token": "🎬"
+        },
+        {
+          "title": "Sofa-Kapsel 🛁",
+          "message": "Du sammelst ein 🛁. Bring 3 davon zusammen: Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag.",
+          "token": "🛁"
+        },
+        {
+          "title": "Städtetrip-Kapsel ✈️",
+          "message": "Du sammelst ein ✈️. Bring 6 davon zusammen: Ein Städtetrip — ein ganzes Wochenende weg.",
+          "token": "✈️"
+        },
+        {
+          "title": "Kerzen-Kapsel 🛁",
+          "message": "Du sammelst ein 🛁. Bring 3 davon zusammen: Ein Abend zuhause: Essen kommt, Wellness dazu, oder ein ganzer fauler Tag.",
           "token": "🛁"
         }
       ]
