@@ -608,7 +608,7 @@ export function renderTokenInto(container, pull) {
 
   if (redeemed) {
     container.innerHTML = `
-      <div style="text-align:center;padding:16px 0;animation:ag-pop 400ms var(--ag-ease) both">
+      <div style="text-align:center;padding:16px 0;animation:ag-pop-in 400ms var(--ag-ease) both">
         <div style="font-size:2.5rem;margin-bottom:8px">${t.repeat(goal)}</div>
         <p style="font-weight:700;font-size:1.1rem;margin-bottom:4px">${goal} erreicht — einlösbar!</p>
         <p style="opacity:0.8;font-size:0.9rem;margin-bottom:12px">${reward}</p>
