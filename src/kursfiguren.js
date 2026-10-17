@@ -4,7 +4,7 @@
 // app's cream on the card's dark glass, no images to load. Drawn for a
 // Canon AE-1 / FT QL, which is what hangs around the neck today.
 
-const C = "#f1e9d2", M = "rgba(241,233,210,.45)", G = "#e0a75d", GR = "#8fcf9e", D = "rgba(241,233,210,.12)";
+const C = "#f1e9d2", M = "rgba(241,233,210,.45)", G = "#e0a75d", GR = "#8fcf9e", B = "#8ab8cf", D = "rgba(241,233,210,.12)";
 const T = `font-family:inherit;fill:${C}`;
 const txt = (x, y, s, o = "") => `<text x="${x}" y="${y}" style="${T};font-size:11px;${o}">${s}</text>`;
 const small = (x, y, s, o = "") => `<text x="${x}" y="${y}" style="${T};font-size:9px;fill:${M};${o}">${s}</text>`;
@@ -176,7 +176,78 @@ export const FIGUREN = {
       <text x="${x}" y="58" text-anchor="middle" style="${T};font-size:16px">${n}</text>
       <foreignObject x="${x - 50}" y="82" width="100" height="70"><div xmlns="http://www.w3.org/1999/xhtml" style="font-size:9.5px;line-height:1.3;font-family:inherit;color:${C};opacity:.85;text-align:center">${l}</div></foreignObject>`).join("")}
     <path d="M80 52 h54 M184 52 h54" stroke="${M}" stroke-width="1" stroke-dasharray="3 3"/>
-  `, 122)
+  `, 122),
+
+  // ── Portugal, in five small pictures ──────────────────────────────────
+  // Not diagrams but little icons: the thing to photograph, drawn cute,
+  // with the one exposure line that matters underneath.
+  // A wall of azulejos, four tiles, petals around a dot.
+  azulejo: () => wrap(`
+    ${[0, 1, 2, 3].map((i) => { const x = 104 + (i % 2) * 56, y = 14 + Math.floor(i / 2) * 44; return `
+      <rect x="${x}" y="${y}" width="54" height="42" rx="3" fill="${D}" stroke="${C}" stroke-width="1.2"/>
+      <circle cx="${x + 27}" cy="${y + 21}" r="4" fill="${B}"/>
+      ${[[0, -11], [11, 0], [0, 11], [-11, 0]].map(([dx, dy]) => `<ellipse cx="${x + 27 + dx}" cy="${y + 21 + dy}" rx="${dx ? 7 : 4}" ry="${dx ? 4 : 7}" fill="none" stroke="${B}" stroke-width="1.6"/>`).join("")}
+      ${[[4, 4], [50, 4], [4, 38], [50, 38]].map(([cx, cy]) => `<circle cx="${x + cx}" cy="${y + cy}" r="1.6" fill="${B}"/>`).join("")}`; }).join("")}
+    <path d="M60 60 h30 M226 60 h30" stroke="${M}" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="48" cy="60" r="5" fill="none" stroke="${G}" stroke-width="1.5"/><circle cx="48" cy="60" r="1.5" fill="${G}"/>
+    ${txt(160, 114, "frontal · f/8 · Fugen gerade", "text-anchor:middle")}
+  `, 122),
+  // A pastel de nata with its scorched top, a bica beside it.
+  nata: () => wrap(`
+    <path d="M118 52 l4 36 q38 10 76 0 l4 -36 q-42 -8 -84 0z" fill="${D}" stroke="${C}" stroke-width="1.5"/>
+    ${[126, 140, 154, 168, 182, 196].map((x) => `<path d="M${x} 56 l3 30" stroke="${M}" stroke-width="1"/>`).join("")}
+    <ellipse cx="160" cy="52" rx="42" ry="12" fill="${G}" stroke="${C}" stroke-width="1.5"/>
+    ${[[146, 50], [162, 46], [174, 54], [155, 57]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="5" ry="2.6" fill="#5a3a1a" opacity=".85"/>`).join("")}
+    ${[150, 160, 170].map((x, i) => `<path d="M${x} ${34 - i * 2} q-5 -8 0 -16" stroke="${M}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`).join("")}
+    <path d="M236 70 h30 v16 q0 8 -8 8 h-14 q-8 0 -8 -8z" fill="${D}" stroke="${C}" stroke-width="1.5"/>
+    <path d="M266 76 q10 0 10 7 q0 7 -10 7" fill="none" stroke="${C}" stroke-width="1.5"/>
+    <ellipse cx="251" cy="94" rx="14" ry="2" fill="none" stroke="${M}" stroke-width="1"/>
+    <circle cx="70" cy="70" r="14" fill="none" stroke="${G}" stroke-width="1.5"/><circle cx="70" cy="70" r="6" fill="${G}"/>
+    ${small(70, 98, "0,6 m", "text-anchor:middle")}
+    ${txt(160, 114, "nah ran · f/4 · 1/60 · Ellbogen auf den Tisch", "text-anchor:middle")}
+  `, 122),
+  // A door in a colour you like, with its enamel number.
+  tuer: () => wrap(`
+    <rect x="124" y="14" width="72" height="92" rx="4" fill="${GR}" opacity=".9"/>
+    <rect x="132" y="22" width="56" height="30" rx="3" fill="none" stroke="#0e1c14" stroke-width="1.5" opacity=".6"/>
+    <rect x="132" y="60" width="56" height="40" rx="3" fill="none" stroke="#0e1c14" stroke-width="1.5" opacity=".6"/>
+    <circle cx="182" cy="68" r="3.5" fill="${G}"/>
+    <rect x="146" y="2" width="28" height="12" rx="2" fill="${C}"/>
+    <text x="160" y="11.5" text-anchor="middle" style="${T};font-size:8.5px;fill:#0e1c14;font-weight:700">17</text>
+    ${[0, 1, 2].map((i) => `<rect x="${98}" y="${16 + i * 30}" width="22" height="26" rx="2" fill="${D}" stroke="${B}" stroke-width="1"/><rect x="${200}" y="${16 + i * 30}" width="22" height="26" rx="2" fill="${D}" stroke="${B}" stroke-width="1"/>`).join("")}
+    <path d="M60 60 h26" stroke="${G}" stroke-width="1.5"/><circle cx="54" cy="60" r="4" fill="${G}"/>
+    ${small(70, 50, "2 m", "text-anchor:middle")}
+    <path d="M258 60 h20" stroke="${M}" stroke-width="1.5" stroke-dasharray="3 3"/>
+    ${txt(160, 120, "Zonenfokus 2 m · f/8 · hinstellen, drücken", "text-anchor:middle")}
+  `, 128),
+  // A little yellow tram, mid-pan.
+  tram: () => wrap(`
+    ${[34, 52, 70].map((y, i) => `<path d="M22 ${y} h${50 + i * 14}" stroke="${M}" stroke-width="2" stroke-linecap="round" stroke-dasharray="10 8"/>`).join("")}
+    <path d="M160 18 v10 M146 20 l14 8 l14 -8" stroke="${C}" stroke-width="1.5" fill="none"/>
+    <rect x="108" y="28" width="104" height="58" rx="10" fill="${G}" stroke="${C}" stroke-width="1.5"/>
+    ${[118, 144, 170].map((x) => `<rect x="${x}" y="38" width="20" height="18" rx="3" fill="#0e1c14" opacity=".75"/>`).join("")}
+    <rect x="196" y="38" width="10" height="18" rx="3" fill="#0e1c14" opacity=".75"/>
+    <rect x="108" y="66" width="104" height="6" fill="#0e1c14" opacity=".35"/>
+    <circle cx="130" cy="90" r="7" fill="#0e1c14" stroke="${C}" stroke-width="1.5"/><circle cx="190" cy="90" r="7" fill="#0e1c14" stroke="${C}" stroke-width="1.5"/>
+    <circle cx="204" cy="78" r="3" fill="${C}"/>
+    <path d="M230 90 h30" stroke="${G}" stroke-width="2" marker-end="url(#ag-arr4)"/>
+    <defs><marker id="ag-arr4" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="${G}"/></marker></defs>
+    ${txt(160, 114, "1/30 · mitdrehen · drei Versuche", "text-anchor:middle")}
+  `, 122),
+  // The two of us and the sea: sun low, waves, a wall for the camera.
+  meer: () => wrap(`
+    <circle cx="238" cy="52" r="16" fill="${G}"/>
+    <rect x="20" y="52" width="280" height="30" fill="#0e1c14"/>
+    <path d="M20 52 h280" stroke="${C}" stroke-width="1.5"/>
+    ${[62, 72].map((y) => `<path d="M24 ${y} q10 -5 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t16 0" fill="none" stroke="${B}" stroke-width="1.5"/>`).join("")}
+    <circle cx="124" cy="80" r="7" fill="${C}"/><path d="M124 87 v18 M114 96 h20 M124 105 l-7 12 M124 105 l7 12" stroke="${C}" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="150" cy="80" r="7" fill="${G}"/><path d="M150 87 v18 M140 96 h20 M150 105 l-7 12 M150 105 l7 12" stroke="${G}" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M137 70 c-5 -4 -6 -9 -2 -10 c2 0 3 2 3 3 c0 -1 1 -3 3 -3 c4 1 3 6 -2 10z" fill="${GR}"/>
+    <rect x="40" y="90" width="40" height="26" rx="2" fill="${D}" stroke="${C}" stroke-width="1.2"/>
+    <rect x="50" y="80" width="20" height="12" rx="2" fill="#0e1c14" stroke="${C}" stroke-width="1.2"/><circle cx="60" cy="86" r="3.5" fill="none" stroke="${C}" stroke-width="1.2"/>
+    ${small(60, 126, "Mauer + Selbstauslöser", "text-anchor:middle")}
+    ${txt(160, 142, "f/8 · 1/250 · Selbstauslöser · dann zu mir laufen", "text-anchor:middle")}
+  `, 150)
 };
 
 export function figureHtml(key) {
