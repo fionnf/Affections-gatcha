@@ -214,6 +214,81 @@
         "url": "media/familie-2026-10-11.svg",
         "alt": "Comic vom Wochenende: Küche, Sofa, Baustelle und alle zusammen am Tisch"
       }
+    },
+    {
+      "date": "2026-10-17",
+      "label": "Film-Challenge Portugal 🎞️",
+      "tone": "quest",
+      "player": "lennart",
+      "outcomes": [
+        {
+          "title": "Portugal auf einer Rolle",
+          "message": "Heute keine Kapsel zum Lesen, sondern eine Rolle zum Füllen. 📷\n\nWir sind in Portugal, und dieses Licht wartet nicht. Weisse Wände, blaue Kacheln, der Atlantik am Ende jeder Gasse. Die Canon raus, alles von Hand, die Nadel nur zum Nachprüfen.\n\nUnten stehen zehn Motive, eins nach dem anderen, jedes mit der Belichtung dazu. Du musst sie nicht in der Reihenfolge finden. Tipp auf Weiter, wenn du bereit bist.",
+          "steps": [
+            {
+              "title": "Das Licht hier",
+              "text": "Portugal ist eine andere Lichtklasse als Zürich. Die Sonne steht hart, die Wände sind weiss, der Atlantik wirft alles zurück. Für die Canon heisst das: Sunny 16 gilt hier wirklich.\n\nVolle Sonne: Blende 16, Verschlusszeit 1 durch ISO. ISO 200 → 1/250, ISO 400 → 1/500. Leichter Dunst über dem Meer: eine Blende auf, 11.\n\nUnd die weissen Wände lügen der Nadel ins Gesicht: sie will abdunkeln, das Bild wird grau. Trau der Regel, nicht der Nadel.",
+              "figure": "sunny16"
+            },
+            {
+              "title": "1 · Azulejos, frontal",
+              "text": "Such eine gekachelte Fassade und stell dich gerade davor, Film parallel zur Wand. Die Fugen müssen gerade durchs Bild laufen, sonst kippt alles.\n\nBlende 8 für die Schärfe über die ganze Fläche, fokussiert auf eine Fuge in Augenhöhe. Kacheln glänzen: wenn die Sonne direkt drauf steht, eine Blende zu, 11. Im Schatten der Gasse zwei Blenden auf, 5.6 bei 1/250.\n\nNotizbuch: Blau-Weiss ist für den Film eine Falle, es kommt gern zu hell. Lieber knapp belichten.",
+              "figure": "blende"
+            },
+            {
+              "title": "2 · Calçada, das Pflaster",
+              "text": "Die schwarz-weissen Steinmuster unter deinen Füssen. Von oben fotografiert sind sie ein Teppich, schräg aufgenommen eine Welle.\n\nStell dich so, dass das Muster diagonal aus einer Ecke kommt. Blende 11, Fokus auf einen Punkt im unteren Drittel, dann trägt die Tiefenschärfe den Rest. Mittags ist der Kontrast am härtesten, das ist hier ausnahmsweise erwünscht.",
+              "figure": "schaerfentiefe"
+            },
+            {
+              "title": "3 · Eine Tür mit Nummer",
+              "text": "Jede Gasse hat eine Tür, die aussieht wie eine Kapsel aus diesem Spiel: grün, blau, rosa, mit Emaille-Nummer. Finde deine.\n\nZonenfokus: Entfernungsring auf 2 Meter, Blende 8, dann steht alles zwischen 1,4 und 3,5 Metern scharf, du musst nur noch hinstellen und drücken. So fotografiert man in Gassen, ohne jedes Mal zu fokussieren.",
+              "figure": "zonenfokus"
+            },
+            {
+              "title": "4 · Wäsche über der Gasse",
+              "text": "Leintücher und Hemden zwischen den Häusern, die Sonne dahinter: Gegenlicht. Die Nadel sieht den hellen Himmel und will zumachen, dann wird die Wäsche ein schwarzer Scherenschnitt.\n\nEntscheide dich. Scherenschnitt: der Nadel folgen. Stoff mit Zeichnung: eine bis zwei Blenden auf. Und 1/250 oder kürzer, sonst wird das Flattern unscharf, was auch schön sein kann.",
+              "figure": "zeit"
+            },
+            {
+              "title": "5 · Etwas, das fährt",
+              "text": "Tram, Fähre, Tuk-Tuk, ein Roller mit zwei Leuten drauf. Mitziehen: 1/30, Blende dazu, bis die Nadel in der Mitte steht (in der Sonne wird das 16 und du brauchst 1/60).\n\nKamera auf das Fahrzeug, mitdrehen aus der Hüfte, auslösen, während du noch mitdrehst, und weiterdrehen. Hintergrund verwischt, das Ding bleibt scharf. Drei Versuche, mindestens einer sitzt.",
+              "figure": "mitziehen"
+            },
+            {
+              "title": "6 · Der Horizont",
+              "text": "Der Atlantik ist eine Linie. Entscheide, ob sie ins obere oder untere Drittel kommt, nie in die Mitte, und dann halte sie waagrecht; beim Film merkst du es erst im Labor.\n\nBlende 16, Zeit nach Sunny 16, Fokus auf unendlich. Wenn Gischt oder ein Schiff drin ist: Fokus trotzdem unendlich, das reicht bei 16 ab zehn Metern.",
+              "figure": "dreieck"
+            },
+            {
+              "title": "7 · Im Schatten der Gasse",
+              "text": "Jetzt der Sprung: aus der Sonne in eine enge Gasse. Das sind drei Blenden weniger Licht, nicht eine. Aus 16 bei 1/250 wird 5.6 bei 1/250, oder 8 bei 1/125.\n\nSchau einmal auf die Nadel, um deine Schätzung zu prüfen, dann stell sie dir vor und mach die nächsten zwei Bilder ohne. Schreib beide Werte ins Notizbuch.",
+              "figure": "dreieck"
+            },
+            {
+              "title": "8 · Pastel de Nata, von nah",
+              "text": "Café, ein Teller, das Törtchen. Nahgrenze deines Objektivs, bei den meisten 45 bis 60 Zentimeter, näher geht nicht, also näher ran mit den Füssen, nicht mit dem Ring.\n\nBlende 2.8 oder 4, damit das Törtchen scharf ist und der Tisch nicht. Drinnen bei Fensterlicht: ISO 400, 1/60 bei 2.8, Ellbogen auf den Tisch. Unter 1/60 verwackelt es aus der Hand.",
+              "figure": "fokus"
+            },
+            {
+              "title": "9 · Fionn, im Gegenlicht am Meer",
+              "text": "Ein Porträt, bitte. Spät am Nachmittag, Sonne tief, hinter mir. Blende 4, Fokus auf das Auge, das dir näher ist.\n\nBelichtung auf das Gesicht, nicht auf den Himmel: Nadel aufs Gesicht halten, Wert merken, dann so bleiben, auch wenn die Nadel beim Zurücktreten ausschlägt. Der Himmel darf ausfressen. Das Gesicht nicht.",
+              "figure": "fokus"
+            },
+            {
+              "title": "10 · Blaue Stunde",
+              "text": "Zum Schluss, wenn die Sonne weg ist und die Strassenlampen an: ISO 400, Blende 2.8, 1/15 oder 1/8. Die Kamera auf eine Mauer, ein Geländer, einen Pfosten stellen, Luft anhalten, auslösen.\n\nOder B: Auslöser halten, bis zwei zählen, loslassen. Was sich bewegt, wird zu Licht. Das letzte Bild der Rolle gehört dem Abend.",
+              "figure": "zeit"
+            },
+            {
+              "title": "Film zurückspulen",
+              "text": "Wenn der Hebel blockiert, ist die Rolle voll. Knopf unten drücken, Kurbel ausklappen, in Pfeilrichtung drehen, bis es leicht geht und noch zwei Umdrehungen. Rückwand erst dann auf.\n\nDie Rolle kommt mit nach Hause und ins Labor. Was wir hier gesehen haben, sehen wir dann noch einmal, in Körnern.",
+              "figure": "rueckspulen"
+            }
+          ],
+          "done": "Beweis: ein Foto von der Kamera mit dem Zähler auf 24 oder höher, oder von dir mit der Rolle in der Hand am Meer. Dann Bestanden drücken.\n\nAm Abend vergleichen wir die Notizbücher. Wer bei den weissen Wänden am nächsten dran lag, bestellt das Dessert. Das beste Bild kommt zu den anderen an die Wand. 💚"
+        }
+      ]
     }
   ]
 }
