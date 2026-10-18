@@ -247,7 +247,39 @@ export const FIGUREN = {
     <rect x="50" y="80" width="20" height="12" rx="2" fill="#0e1c14" stroke="${C}" stroke-width="1.2"/><circle cx="60" cy="86" r="3.5" fill="none" stroke="${C}" stroke-width="1.2"/>
     ${small(60, 126, "Mauer + Selbstauslöser", "text-anchor:middle")}
     ${txt(160, 142, "f/8 · 1/250 · Selbstauslöser · dann zu mir laufen", "text-anchor:middle")}
-  `, 150)
+  `, 150),
+
+  // ── Lisbon, three small pictures ──────────────────────────────────────
+  // The Bica funicular on its slope, houses either side.
+  elevador: () => wrap(`
+    <path d="M30 100 L290 36" stroke="${M}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M30 108 L290 44" stroke="${M}" stroke-width="3" stroke-linecap="round"/>
+    ${[[40, 48, 30], [78, 40, 34], [240, 0, 26], [274, -6, 30]].map(([x, y, h]) => `
+      <rect x="${x}" y="${y + 20}" width="26" height="${h}" fill="${D}" stroke="${C}" stroke-width="1"/>
+      <rect x="${x + 7}" y="${y + 28}" width="6" height="8" fill="${B}" opacity=".8"/><rect x="${x + 7}" y="${y + 42}" width="6" height="8" fill="${B}" opacity=".8"/>`).join("")}
+    <g transform="translate(160 72) rotate(-14)">
+      <rect x="-40" y="-26" width="80" height="40" rx="8" fill="${G}" stroke="${C}" stroke-width="1.5"/>
+      ${[-30, -8, 14].map((x) => `<rect x="${x}" y="-18" width="16" height="14" rx="2" fill="#0e1c14" opacity=".75"/>`).join("")}
+      <circle cx="-22" cy="18" r="5" fill="#0e1c14" stroke="${C}" stroke-width="1.5"/><circle cx="22" cy="18" r="5" fill="#0e1c14" stroke="${C}" stroke-width="1.5"/>
+      <path d="M0 -26 v-10 M-8 -30 l8 -6 l8 6" stroke="${C}" stroke-width="1.5" fill="none"/>
+    </g>
+    <path d="M150 50 c-4 -3 -5 -7 -2 -8 c2 0 2 2 2 2 c0 0 0 -2 2 -2 c3 1 2 5 -2 8z" fill="${GR}"/>
+    ${txt(160, 122, "oben einsteigen, unten aussteigen, dann zu Fuss zurück", "text-anchor:middle")}
+  `, 130),
+  // A viewpoint at sunset: railing, rooftops, the river, a glass of ginjinha.
+  miradouro: () => wrap(`
+    <circle cx="200" cy="48" r="14" fill="${G}"/>
+    <rect x="20" y="48" width="280" height="14" fill="${B}" opacity=".45"/>
+    ${[[30, 70, 18], [52, 64, 24], [80, 72, 16], [100, 60, 28], [132, 68, 20], [156, 74, 14], [174, 64, 22], [200, 70, 18], [222, 62, 26], [252, 72, 16], [272, 66, 22]].map(([x, y, w]) => `
+      <rect x="${x}" y="${y}" width="${w}" height="${90 - y}" fill="${D}" stroke="${C}" stroke-width=".8"/>
+      <path d="M${x} ${y} l${w / 2} -6 l${w / 2} 6" fill="#b9432c" opacity=".8"/>`).join("")}
+    <path d="M20 92 h280" stroke="${C}" stroke-width="2"/>
+    ${[40, 70, 100, 130, 160, 190, 220, 250, 280].map((x) => `<path d="M${x} 92 v16" stroke="${C}" stroke-width="1.5"/>`).join("")}
+    <path d="M20 108 h280" stroke="${C}" stroke-width="2"/>
+    <path d="M280 80 l5 22 h-14 l5 -22z" fill="#b9432c" stroke="${C}" stroke-width="1.2"/><path d="M272 80 h22" stroke="${C}" stroke-width="1.5"/>
+    <path d="M60 86 c-5 -4 -6 -9 -2 -10 c2 0 3 2 3 3 c0 -1 1 -3 3 -3 c4 1 3 6 -2 10z" fill="${GR}"/>
+    ${txt(160, 128, "kurz vor Sonnenuntergang da sein, dann nichts mehr tun", "text-anchor:middle")}
+  `, 136)
 };
 
 export function figureHtml(key) {

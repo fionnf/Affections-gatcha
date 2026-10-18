@@ -254,6 +254,37 @@
           "done": "Beweis: ein Foto von der Kamera mit dem Zähler auf 5 oder höher, oder von uns zwei mit der Kamera am Meer. Dann Bestanden drücken.\n\nWer bei den weissen Wänden am nächsten dran lag, bestellt das Dessert. Das beste Bild kommt zu den anderen an die Wand. 💚"
         }
       ]
+    },
+    {
+      "date": "2026-10-18",
+      "label": "Lissabon 🚋",
+      "tone": "warm",
+      "player": "lennart",
+      "outcomes": [
+        {
+          "title": "Drei Dinge für Lissabon",
+          "message": "Heute drei Dinge, nicht mehr. Lissabon ist ein Hügel nach dem anderen, und wer alles will, sieht nichts. 🚋\n\nEins zum Essen, eins zum Fahren, eins zum Sitzen. Dazwischen laufen lassen, verlaufen erlaubt. Tipp auf Weiter.",
+          "steps": [
+            {
+              "title": "1 · Ein Pastel de Belém, noch warm",
+              "figure": "nata",
+              "text": "Nicht irgendein Pastel de Nata: das aus Belém, aus der Bäckerei mit den blauen Kacheln, wo es seit 1837 nach demselben Rezept gemacht wird. Die Schlange draussen ist für die Theke; drinnen hinten sind Tische, da geht es schneller.\n\nZimt drauf, Puderzucker drauf, und essen, solange es warm ist. Dann ein zweites, weil das erste zu schnell weg war."
+            },
+            {
+              "title": "2 · Mit dem Elevador da Bica hinauf",
+              "figure": "elevador",
+              "text": "Die kleine gelbe Standseilbahn, die seit 1892 die steile Rua da Bica hinaufkriecht, zwischen Wäsche und Kacheln. Unten einsteigen, ans Fenster, die Strasse kippt.\n\nOben aussteigen und die Gasse zu Fuss wieder hinunter, das ist der schönere Teil. Am Fuss der Bica warten die Bars, falls es schon Nachmittag ist."
+            },
+            {
+              "title": "3 · Sonnenuntergang am Miradouro",
+              "figure": "miradouro",
+              "text": "Miradouro de Santa Catarina, bei den Lissabonnern einfach Adamastor, nach der Steinfigur. Eine Mauer, der Tejo darunter, die Brücke rechts, die Sonne geht genau davor unter.\n\nEine halbe Stunde vorher da sein, Platz an der Mauer, ein Glas Ginjinha vom Kiosk. Dann nichts mehr tun. Das ist das dritte Ding."
+            }
+          ],
+          "done": "Welches war das schönste? Ich tippe auf das dritte, aber ich hab leicht reden, ich sitze daneben. 💚",
+          "token": "💚"
+        }
+      ]
     }
   ]
 }

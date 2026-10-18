@@ -55,12 +55,15 @@ export function readLastKurs() {
     return k;
   } catch (_e) { return null; }
 }
-// The courses written into the config, newest first: every special-day
-// outcome that carries steps. This is what the chip opens on a phone that
-// has never seen the capsule, and what it falls back to anytime.
+// The courses written into the config, newest first: every quest-day
+// outcome that carries steps. Other days may carry steps too (a list of
+// three things for a city), but the chip says Kurs and means the film
+// course, so only quest days count. This is what the chip opens on a
+// phone that has never seen the capsule, and what it falls back to anytime.
 export function configKurse(days = state.specialDays && state.specialDays.days) {
   const out = [];
   for (const d of Array.isArray(days) ? days : []) {
+    if (d.tone !== "quest") continue;
     for (const o of Array.isArray(d.outcomes) ? d.outcomes : []) {
       const steps = validSteps(o.steps);
       if (!steps.length) continue;
