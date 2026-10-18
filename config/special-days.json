@@ -263,25 +263,25 @@
       "outcomes": [
         {
           "title": "Drei Dinge für Lissabon",
-          "message": "Heute drei Dinge, nicht mehr, und keins davon steht vorne im Reiseführer. 🚋\n\nEins hinter einer Tür, eins auf einem Hügel, eins am Ende einer Tramlinie. Dazwischen laufen lassen, verlaufen erlaubt. Tipp auf Weiter.",
+          "message": "Heute drei Dinge, nicht mehr, und keins davon kennt jemand, der nur ein Wochenende hier war. 🚋\n\nEine Kirche, die man nicht repariert hat, ein Hügel ohne Reisebus, und ein Abendessen am Ende eines Piers auf der anderen Seite des Flusses. Dazwischen laufen lassen. Tipp auf Weiter.",
           "steps": [
             {
-              "title": "1 · Hinter der Tür: Casa do Alentejo",
-              "figure": "arcos",
-              "text": "Rua das Portas de Santo Antão 58, eine Strasse voller Touristenrestaurants, und eine unscheinbare Tür dazwischen. Einfach hinein und die Treppe hoch.\n\nOben ein maurischer Innenhof mit Hufeisenbögen und Kacheln bis unter die Decke, ein Palast aus dem 17. Jahrhundert, in dem der Verein der Alentejaner sitzt. Kaffee oder ein Glas Wein im Salon mit den Spiegeln, keiner schaut schief. Die meisten laufen draussen vorbei."
+              "title": "1 · Igreja de São Domingos",
+              "figure": "kirche",
+              "text": "Direkt am Rossio, zwischen Ginjinha-Ständen, eine Kirche, in die keiner schaut. 1959 ist sie ausgebrannt, und statt sie zu restaurieren, hat man sie so gelassen: Säulen verkohlt, der Stein rot, das Licht drinnen wie Glut.\n\nTür immer offen, kostet nichts, fünf Minuten reichen. Vorher stand hier das Tribunal der Inquisition; auf dem Platz davor erinnert ein Stein daran. Für den Film: 1/30 an eine Bank gelehnt, Blende auf, der Rotstich gehört dazu."
             },
             {
-              "title": "2 · Panorâmico de Monsanto",
-              "figure": "panoramico",
-              "text": "Ein Restaurant aus den Sechzigern auf dem höchsten Hügel der Stadt, rund, aus Beton, seit Jahrzehnten verlassen und von oben bis unten besprüht. Die Stadt hat es als Aussichtspunkt wieder aufgemacht, Eintritt frei.\n\nTaxi oder Bus 711 hinauf nach Monsanto, dann die Treppen bis aufs Dach: 360 Grad, Tejo, Brücke, Sintra am Horizont. Zur goldenen Stunde hinauf und bleiben, bis die Lichter angehen. Jacke mitnehmen, oben zieht es."
+              "title": "2 · Miradouro do Monte Agudo",
+              "figure": "monteagudo",
+              "text": "Nicht Graça, nicht Senhora do Monte, wo alle sind. Von Anjos aus die Rua Heliodoro Salgado hinauf, am Ende der Strasse ein kleiner Platz, eine Bank, ein Quiosque, und darunter die ganze Stadt bis zum Fluss, von der Seite, aus der sie keiner fotografiert.\n\nKein Reisebus kommt hier hoch, die Strasse ist zu eng. Nachbarn mit Hunden, zwei Studenten, ihr. Ein Bier vom Quiosque und bleiben, bis die Katzen kommen."
             },
             {
-              "title": "3 · Mit der 28 bis ganz zum Schluss",
-              "figure": "zypressen",
-              "text": "Alle steigen in Alfama aus. Du bleibst sitzen, bis die 28 an ihrer Endstation steht: Prazeres. Gegenüber das Tor des Cemitério dos Prazeres, der schönste Friedhof der Stadt, Zypressenalleen wie in einem Film, und am hinteren Ende der Blick auf die Brücke.\n\nDanach drei Strassen weiter in Campo de Ourique, wo die Lissabonner wohnen: Pastelaria Aloma, Rua Francisco Metrass. Ihr Pastel de Nata hat den Wettbewerb der Stadt mehrfach gewonnen, und keiner steht an."
+              "title": "3 · Mit der Fähre zum Ponto Final",
+              "figure": "faehre",
+              "text": "Am Cais do Sodré auf die orange Fähre nach Cacilhas, zehn Minuten über den Tejo, Lissabon rückt zurück und wird zu einer Skyline. Drüben nach rechts, am Wasser entlang, an rostigen Lagerhallen und Booten vorbei, bis der Weg aufhört.\n\nDa steht das Ponto Final: Tische direkt auf dem Pier, die Füsse fast im Fluss, die ganze Stadt gegenüber, die Brücke links. Gegrillter Fisch, Vinho Verde, die Sonne geht hinter der Stadt unter. Unbedingt reservieren, und die letzte Fähre nicht verpassen."
             }
           ],
-          "done": "Welches war das schönste? Ich tippe auf den Hügel, aber ich hab leicht reden, ich stehe daneben. 💚",
+          "done": "Welches war das schönste? Ich tippe auf den Pier, aber ich hab leicht reden, ich sitze dir gegenüber. 💚",
           "token": "💚"
         }
       ]
