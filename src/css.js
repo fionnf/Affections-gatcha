@@ -3049,6 +3049,13 @@ body{
 .ag-widget .ag-setting-text{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:.9rem}
 .ag-widget .ag-setting-text strong{font-weight:500}
 .ag-widget .ag-setting-text small{font-size:.74rem;color:var(--ag-muted);line-height:1.35}
+      /* Liste: a few things at once, each with its picture, nothing to tap through. */
+      .ag-liste{margin:14px 0 6px}
+      .ag-liste-item{padding:12px 0 2px;border-top:1px solid rgba(255,255,255,.08)}
+      .ag-liste-item:first-child{border-top:0;padding-top:4px}
+      .ag-liste-item .ag-kurs-title{margin:0 0 6px;font-size:1.12rem}
+      .ag-liste-item .ag-kurs-figure{margin:0 0 10px}
+      .ag-liste-text{margin:0;font-size:.95rem;line-height:1.5;color:var(--ag-text)}
     `;
 
 export function injectStyles() {
