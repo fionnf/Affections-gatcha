@@ -151,6 +151,13 @@ A special-day outcome can carry `token` too, exactly like a normal outcome,
 and a `link` — validated as an http(s) URL, since a link the app cannot parse
 is hidden rather than shown broken.
 
+### A list inside a capsule (`items`)
+
+An outcome can carry `items` instead: a few things shown all at once under
+the message, each `{ "title", "text", "figure"? }`, with the same figures as
+a course. Nothing to tap through, nothing remembered, no chip. Three things
+to do in a city, say. Keep each text to a line or two.
+
 ### A course inside a capsule (`steps`)
 
 Any outcome, special day or category, can carry `steps`: an array of

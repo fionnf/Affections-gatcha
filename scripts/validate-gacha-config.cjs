@@ -89,6 +89,14 @@ if (Array.isArray(outcomes.categories)) {
             if (step.figure !== undefined) assert(typeof step.figure === "string" && /^[a-z]+$/.test(step.figure), `Outcome ${category.id}[${index}] step ${k}: figure must be a short lowercase name.`);
           });
         }
+        if (outcome.items !== undefined) {
+          assert(Array.isArray(outcome.items) && outcome.items.length > 0, `Outcome ${category.id}[${index}]: items must be a non-empty array.`);
+          outcome.items.forEach((item, k) => {
+            assert(item && typeof item.title === "string" && item.title.trim() && typeof item.text === "string" && item.text.trim(),
+              `Outcome ${category.id}[${index}] item ${k} needs a title and a text.`);
+            if (item.figure !== undefined) assert(typeof item.figure === "string" && /^[a-z]+$/.test(item.figure), `Outcome ${category.id}[${index}] item ${k}: figure must be a short lowercase name.`);
+          });
+        }
         if (outcome.link !== undefined) {
           assert(typeof outcome.link === "string" && isValidHttpUrl(outcome.link), `Outcome ${category.id}[${index}].link must be a valid http(s) URL when present.`);
         }

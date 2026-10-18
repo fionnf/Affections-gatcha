@@ -410,6 +410,7 @@ export const html = `
                   <button class="ag-button ag-kurs-next" type="button" data-ag-kurs-next>Weiter ›</button>
                 </div>
               </section>
+              <div class="ag-liste" data-ag-liste hidden></div>
               <div class="ag-link-embed" data-ag-link-wrap hidden></div>
               <div data-ag-token-wrap hidden></div>
               <div class="ag-quest-wrap" data-ag-quest-wrap hidden>

@@ -16,6 +16,7 @@ const { lightReactionsEnabled, setLightReactions } = await import("../src/einste
 const { formatHistoryTime } = await import("../src/utils.js");
 const { setWeather, writeHistory: writeHist, readHistory: readHist } = await import("../src/storage.js");
 const { figureHtml, FIGURE_KEYS } = await import("../src/kursfiguren.js");
+const { listeHtml, validItems } = await import("../src/liste.js");
 const { readFileSync } = await import("node:fs");
 const { stopPoints, sceneHeight, trailPath, ridgePolygons, firstLine, climbProgress, stopMark, STOP_GAP, TOP_PAD, BOTTOM_PAD } = await import("../src/wanderweg.js");
 const { candleCycle, CANDLE_PERIOD_MS, hugGroups, hugChoreography, HUG_MS } = await import("../src/lightsFx.js");
@@ -205,9 +206,19 @@ test("the course figures: every key draws an svg, unknown keys draw nothing, the
   assert.equal(figureHtml("nope"), "");
   assert.equal(figureHtml(undefined), "");
   const days = JSON.parse(readFileSync(new URL("../config/special-days.json", import.meta.url), "utf8")).days;
-  for (const d of days) for (const o of d.outcomes || []) for (const s of o.steps || []) {
+  for (const d of days) for (const o of d.outcomes || []) for (const s of [...(o.steps || []), ...(o.items || [])]) {
     if (s.figure) assert.ok(FIGURE_KEYS.includes(s.figure), `${d.date}: unknown figure ${s.figure}`);
   }
+});
+
+test("a list shows every item at once, with its picture, and escapes its text", () => {
+  const html = listeHtml([{ title: "A <b>", text: "x\ny", figure: "nata" }, { title: "B", text: "z" }, { title: 3 }]);
+  assert.equal((html.match(/ag-liste-item/g) || []).length, 2, "the item without a text is dropped");
+  assert.ok(html.includes("A &lt;b&gt;") && html.includes("x<br>y"));
+  assert.equal((html.match(/<svg /g) || []).length, 1, "only the item with a figure gets one");
+  assert.equal(listeHtml([]), "");
+  assert.equal(listeHtml(undefined), "");
+  assert.equal(validItems(null).length, 0);
 });
 
 test("the colour memory: white is white, colour is kept per lamp, forgotten on purpose, aged out", () => {

@@ -979,6 +979,9 @@ mechanics, none of it load-bearing.
   below makes room — and another tap folds it; the star on the open card
   works as everywhere. A small hiker walks the trail as the page scrolls,
   facing the way the path turns.
+- **Liste** (`src/liste.js`). An outcome with `items` shows them all at once
+  under the message, each with a figure, a title and a line or two; nothing
+  to tap through.
 - **Kurs** (`src/kurs.js`). An outcome with `steps` is a course: the message
   is the introduction, then one step at a time under it with Weiter and
   Zurück, a dot per step and a Fertig page; where he got to is kept per day.
