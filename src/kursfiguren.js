@@ -322,7 +322,52 @@ export const FIGUREN = {
     ${small(66, 122, "28, Endstation")}
     ${small(300, 36, "Ponte 25 de Abril", "text-anchor:end")}
     ${txt(160, 140, "die Alleen entlang, dann ein Pastel bei Aloma", "text-anchor:middle")}
-  `, 148)
+  `, 148),
+  // São Domingos: the nave after the fire, columns scorched, a red light.
+  kirche: () => wrap(`
+    <path d="M60 110 v-50 q100 -60 200 0 v50z" fill="#2a1410" opacity=".9"/>
+    <path d="M60 60 q100 -60 200 0" fill="none" stroke="${C}" stroke-width="1.5"/>
+    ${[84, 124, 196, 236].map((x) => `
+      <rect x="${x - 7}" y="56" width="14" height="54" fill="#1a0c0a" stroke="${C}" stroke-width="1"/>
+      <path d="M${x - 7} 70 q7 6 14 0 M${x - 7} 86 q7 -6 14 0 M${x - 7} 100 q7 6 14 0" fill="none" stroke="#b9432c" stroke-width="1.2" opacity=".9"/>`).join("")}
+    <circle cx="160" cy="88" r="26" fill="#e85d75" opacity=".18"/><circle cx="160" cy="88" r="14" fill="#e85d75" opacity=".25"/>
+    <rect x="148" y="78" width="24" height="32" rx="2" fill="#1a0c0a" stroke="${G}" stroke-width="1.2"/>
+    <path d="M160 72 v-10 M154 66 h12" stroke="${G}" stroke-width="1.5"/>
+    ${[100, 112, 208, 220].map((x) => `<rect x="${x}" y="96" width="8" height="14" fill="${D}" stroke="${M}" stroke-width=".8"/>`).join("")}
+    ${small(160, 24, "1959 gebrannt, so gelassen", "text-anchor:middle")}
+    ${txt(160, 130, "am Rossio, Tür immer offen, kostet nichts", "text-anchor:middle")}
+  `, 138),
+  // Monte Agudo: a small hill, a kiosk, a bench, the city below.
+  monteagudo: () => wrap(`
+    ${[[30, 92, 12], [48, 86, 16], [70, 94, 10], [250, 90, 14], [270, 84, 18], [292, 92, 10]].map(([x, y, w]) => `<rect x="${x}" y="${y}" width="${w}" height="${110 - y}" fill="${D}" stroke="${M}" stroke-width=".8"/>`).join("")}
+    <path d="M20 112 h280" stroke="${M}" stroke-width="1"/>
+    <path d="M80 112 q80 -70 160 0z" fill="#1f4633" stroke="${C}" stroke-width="1.2"/>
+    <rect x="128" y="56" width="26" height="22" rx="2" fill="${D}" stroke="${C}" stroke-width="1.2"/>
+    <path d="M122 56 h38 l-6 -10 h-26z" fill="${G}" stroke="${C}" stroke-width="1"/>
+    ${[131, 139, 147].map((x) => `<path d="M${x} 46 v10" stroke="#0e1c14" stroke-width="2"/>`).join("")}
+    <rect x="166" y="68" width="30" height="4" rx="1" fill="${C}"/><path d="M170 72 v8 M192 72 v8" stroke="${C}" stroke-width="1.5"/>
+    <circle cx="176" cy="62" r="4" fill="${C}"/><circle cx="186" cy="62" r="4" fill="${G}"/>
+    <path d="M181 56 c-3 -2 -3 -5 -1 -5 c1 0 1 1 1 1 c0 0 0 -1 1 -1 c2 0 2 3 -1 5z" fill="${GR}"/>
+    ${small(160, 30, "Anjos · kein Reisebus kommt hier hoch", "text-anchor:middle")}
+    ${txt(160, 130, "Quiosque, Bank, Graça und der Fluss, sonst nichts", "text-anchor:middle")}
+  `, 138),
+  // The ferry to Cacilhas, the city behind, a table at the end of the pier.
+  faehre: () => wrap(`
+    ${[[30, 44, 10, 22], [44, 38, 8, 28], [56, 46, 14, 20], [74, 40, 10, 26], [88, 48, 12, 18], [104, 42, 8, 24], [116, 36, 12, 30], [132, 46, 10, 20]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${D}" stroke="${M}" stroke-width=".8"/>`).join("")}
+    <path d="M20 66 h280" stroke="${C}" stroke-width="1.5"/>
+    ${[76, 86, 96].map((y) => `<path d="M20 ${y} q10 -4 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="${B}" stroke-width="1.2" opacity=".8"/>`).join("")}
+    <path d="M150 90 l10 10 h60 l10 -10z" fill="${G}" stroke="${C}" stroke-width="1.2"/>
+    <rect x="166" y="78" width="38" height="12" rx="2" fill="${D}" stroke="${C}" stroke-width="1.2"/>
+    ${[170, 180, 190].map((x) => `<rect x="${x}" y="81" width="6" height="6" fill="#0e1c14" opacity=".7"/>`).join("")}
+    <path d="M188 78 v-6" stroke="${C}" stroke-width="1.5"/>
+    <path d="M236 110 h60 M240 110 v-10 h50 v10" fill="none" stroke="${C}" stroke-width="1.5"/>
+    <rect x="252" y="90" width="26" height="4" rx="1" fill="${C}"/><path d="M265 94 v6" stroke="${C}" stroke-width="1.5"/>
+    <circle cx="248" cy="84" r="4" fill="${C}"/><circle cx="282" cy="84" r="4" fill="${G}"/>
+    <path d="M262 86 l2 -6 l2 6z" fill="#b9432c"/><path d="M270 86 l2 -6 l2 6z" fill="#b9432c"/>
+    ${small(80, 30, "Lissabon, von drüben", "text-anchor:middle")}
+    ${small(266, 120, "Ponto Final", "text-anchor:middle")}
+    ${txt(160, 134, "Fähre ab Cais do Sodré · 10 Min · reservieren", "text-anchor:middle")}
+  `, 142)
 };
 
 export function figureHtml(key) {
