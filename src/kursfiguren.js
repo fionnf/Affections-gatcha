@@ -4,7 +4,7 @@
 // app's cream on the card's dark glass, no images to load. Drawn for a
 // Canon AE-1 / FT QL, which is what hangs around the neck today.
 
-const C = "#f1e9d2", M = "rgba(241,233,210,.45)", G = "#e0a75d", GR = "#8fcf9e", B = "#8ab8cf", D = "rgba(241,233,210,.12)";
+const C = "#f1e9d2", M = "rgba(241,233,210,.45)", G = "#e0a75d", GR = "#8fcf9e", B = "#8ab8cf", LEAF = "#3e8a55", D = "rgba(241,233,210,.12)";
 const T = `font-family:inherit;fill:${C}`;
 const txt = (x, y, s, o = "") => `<text x="${x}" y="${y}" style="${T};font-size:11px;${o}">${s}</text>`;
 const small = (x, y, s, o = "") => `<text x="${x}" y="${y}" style="${T};font-size:9px;fill:${M};${o}">${s}</text>`;
@@ -279,7 +279,50 @@ export const FIGUREN = {
     <path d="M280 80 l5 22 h-14 l5 -22z" fill="#b9432c" stroke="${C}" stroke-width="1.2"/><path d="M272 80 h22" stroke="${C}" stroke-width="1.5"/>
     <path d="M60 86 c-5 -4 -6 -9 -2 -10 c2 0 3 2 3 3 c0 -1 1 -3 3 -3 c4 1 3 6 -2 10z" fill="${GR}"/>
     ${txt(160, 128, "kurz vor Sonnenuntergang da sein, dann nichts mehr tun", "text-anchor:middle")}
-  `, 136)
+  `, 136),
+  // Casa do Alentejo: a plain door, and behind it horseshoe arches and tiles.
+  arcos: () => wrap(`
+    <rect x="22" y="30" width="56" height="86" rx="3" fill="${D}" stroke="${C}" stroke-width="1.2"/>
+    <rect x="36" y="48" width="28" height="68" rx="2" fill="#0e1c14" stroke="${C}" stroke-width="1.2"/><circle cx="58" cy="84" r="2" fill="${G}"/>
+    ${small(22, 128, "Portas de Sto. Antão 58")}
+    <path d="M90 74 h12" stroke="${M}" stroke-width="1.5" stroke-dasharray="3 3"/>
+    ${[124, 182, 240].map((x) => `
+      <path d="M${x - 22} 116 v-50 a22 22 0 0 1 44 0 v50" fill="${D}" stroke="${G}" stroke-width="1.8"/>
+      <path d="M${x - 22} 66 a22 22 0 0 1 44 0" fill="none" stroke="${G}" stroke-width="1.8" stroke-dasharray="4 3"/>
+      <circle cx="${x}" cy="60" r="3" fill="${B}"/>`).join("")}
+    ${[0, 1, 2, 3, 4, 5, 6].map((i) => `<rect x="${106 + i * 26}" y="116" width="24" height="10" fill="none" stroke="${B}" stroke-width="1"/><circle cx="${118 + i * 26}" cy="121" r="2" fill="${B}"/>`).join("")}
+    ${txt(182, 30, "drinnen: Hof, Kacheln, Kaffee im Salon", "text-anchor:middle")}
+  `, 134),
+  // Panorâmico de Monsanto: the round concrete ring on the hill, painted all over.
+  panoramico: () => wrap(`
+    <circle cx="246" cy="40" r="13" fill="${G}"/>
+    <path d="M20 118 q140 -70 280 0z" fill="${D}" stroke="${C}" stroke-width="1"/>
+    ${[[60, 102], [100, 92], [220, 90], [262, 100]].map(([x, y]) => `<path d="M${x} ${y} l-6 14 h12z M${x} ${y - 8} l-5 12 h10z" fill="${LEAF}"/>`).join("")}
+    <rect x="150" y="80" width="20" height="30" fill="${D}" stroke="${C}" stroke-width="1.2"/>
+    <ellipse cx="160" cy="80" rx="52" ry="12" fill="${D}" stroke="${C}" stroke-width="1.5"/>
+    <ellipse cx="160" cy="68" rx="52" ry="12" fill="${D}" stroke="${C}" stroke-width="1.5"/>
+    <path d="M108 68 v12 M212 68 v12" stroke="${C}" stroke-width="1.5"/>
+    ${[[118, 74, "#e85d75"], [134, 72, GR], [150, 76, B], [168, 72, G], [186, 75, "#e85d75"], [202, 73, B]].map(([x, y, c]) => `<rect x="${x}" y="${y}" width="10" height="6" rx="2" fill="${c}" opacity=".85"/>`).join("")}
+    <ellipse cx="160" cy="56" rx="52" ry="12" fill="none" stroke="${C}" stroke-width="1.5"/>
+    <path d="M108 56 v12 M212 56 v12" stroke="${C}" stroke-width="1.5"/>
+    ${[[-30, 0], [30, 0], [0, -8]].map(([dx, dy]) => `<circle cx="${160 + dx}" cy="${52 + dy}" r="2" fill="${C}"/>`).join("")}
+    ${small(160, 36, "360°", "text-anchor:middle;fill:" + G)}
+    ${txt(160, 134, "goldene Stunde oben · bleiben, bis es dunkel ist", "text-anchor:middle")}
+  `, 142),
+  // Prazeres: cypress avenues, the bridge beyond, the tram's last stop.
+  zypressen: () => wrap(`
+    <path d="M20 54 h280" stroke="${M}" stroke-width="1"/>
+    <path d="M190 54 v-14 M230 54 v-14 M180 44 h60 M178 54 c18 -14 36 -14 54 0" stroke="#b9432c" stroke-width="1.5" fill="none"/>
+    ${[[40, 1], [66, .85], [90, .7], [110, .58], [126, .48], [194, .48], [210, .58], [230, .7], [254, .85], [280, 1]].map(([x, k]) => `
+      <path d="M${x} ${106} l${-8 * k} 0 l${8 * k} ${-62 * k} l${8 * k} ${62 * k}z" fill="${LEAF}"/>
+      <path d="M${x} ${106} v${-62 * k}" stroke="#0e1c14" stroke-width="1" opacity=".5"/>`).join("")}
+    <path d="M128 106 L160 56 L192 106z" fill="${D}" stroke="${M}" stroke-width="1"/>
+    <path d="M20 106 h280" stroke="${C}" stroke-width="1.5"/>
+    <rect x="22" y="110" width="30" height="16" rx="5" fill="${G}" stroke="${C}" stroke-width="1"/><rect x="28" y="113" width="6" height="6" fill="#0e1c14" opacity=".7"/><rect x="38" y="113" width="6" height="6" fill="#0e1c14" opacity=".7"/>
+    ${small(66, 122, "28, Endstation")}
+    ${small(300, 36, "Ponte 25 de Abril", "text-anchor:end")}
+    ${txt(160, 140, "die Alleen entlang, dann ein Pastel bei Aloma", "text-anchor:middle")}
+  `, 148)
 };
 
 export function figureHtml(key) {

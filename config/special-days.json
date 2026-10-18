@@ -263,25 +263,25 @@
       "outcomes": [
         {
           "title": "Drei Dinge für Lissabon",
-          "message": "Heute drei Dinge, nicht mehr. Lissabon ist ein Hügel nach dem anderen, und wer alles will, sieht nichts. 🚋\n\nEins zum Essen, eins zum Fahren, eins zum Sitzen. Dazwischen laufen lassen, verlaufen erlaubt. Tipp auf Weiter.",
+          "message": "Heute drei Dinge, nicht mehr, und keins davon steht vorne im Reiseführer. 🚋\n\nEins hinter einer Tür, eins auf einem Hügel, eins am Ende einer Tramlinie. Dazwischen laufen lassen, verlaufen erlaubt. Tipp auf Weiter.",
           "steps": [
             {
-              "title": "1 · Ein Pastel de Belém, noch warm",
-              "figure": "nata",
-              "text": "Nicht irgendein Pastel de Nata: das aus Belém, aus der Bäckerei mit den blauen Kacheln, wo es seit 1837 nach demselben Rezept gemacht wird. Die Schlange draussen ist für die Theke; drinnen hinten sind Tische, da geht es schneller.\n\nZimt drauf, Puderzucker drauf, und essen, solange es warm ist. Dann ein zweites, weil das erste zu schnell weg war."
+              "title": "1 · Hinter der Tür: Casa do Alentejo",
+              "figure": "arcos",
+              "text": "Rua das Portas de Santo Antão 58, eine Strasse voller Touristenrestaurants, und eine unscheinbare Tür dazwischen. Einfach hinein und die Treppe hoch.\n\nOben ein maurischer Innenhof mit Hufeisenbögen und Kacheln bis unter die Decke, ein Palast aus dem 17. Jahrhundert, in dem der Verein der Alentejaner sitzt. Kaffee oder ein Glas Wein im Salon mit den Spiegeln, keiner schaut schief. Die meisten laufen draussen vorbei."
             },
             {
-              "title": "2 · Mit dem Elevador da Bica hinauf",
-              "figure": "elevador",
-              "text": "Die kleine gelbe Standseilbahn, die seit 1892 die steile Rua da Bica hinaufkriecht, zwischen Wäsche und Kacheln. Unten einsteigen, ans Fenster, die Strasse kippt.\n\nOben aussteigen und die Gasse zu Fuss wieder hinunter, das ist der schönere Teil. Am Fuss der Bica warten die Bars, falls es schon Nachmittag ist."
+              "title": "2 · Panorâmico de Monsanto",
+              "figure": "panoramico",
+              "text": "Ein Restaurant aus den Sechzigern auf dem höchsten Hügel der Stadt, rund, aus Beton, seit Jahrzehnten verlassen und von oben bis unten besprüht. Die Stadt hat es als Aussichtspunkt wieder aufgemacht, Eintritt frei.\n\nTaxi oder Bus 711 hinauf nach Monsanto, dann die Treppen bis aufs Dach: 360 Grad, Tejo, Brücke, Sintra am Horizont. Zur goldenen Stunde hinauf und bleiben, bis die Lichter angehen. Jacke mitnehmen, oben zieht es."
             },
             {
-              "title": "3 · Sonnenuntergang am Miradouro",
-              "figure": "miradouro",
-              "text": "Miradouro de Santa Catarina, bei den Lissabonnern einfach Adamastor, nach der Steinfigur. Eine Mauer, der Tejo darunter, die Brücke rechts, die Sonne geht genau davor unter.\n\nEine halbe Stunde vorher da sein, Platz an der Mauer, ein Glas Ginjinha vom Kiosk. Dann nichts mehr tun. Das ist das dritte Ding."
+              "title": "3 · Mit der 28 bis ganz zum Schluss",
+              "figure": "zypressen",
+              "text": "Alle steigen in Alfama aus. Du bleibst sitzen, bis die 28 an ihrer Endstation steht: Prazeres. Gegenüber das Tor des Cemitério dos Prazeres, der schönste Friedhof der Stadt, Zypressenalleen wie in einem Film, und am hinteren Ende der Blick auf die Brücke.\n\nDanach drei Strassen weiter in Campo de Ourique, wo die Lissabonner wohnen: Pastelaria Aloma, Rua Francisco Metrass. Ihr Pastel de Nata hat den Wettbewerb der Stadt mehrfach gewonnen, und keiner steht an."
             }
           ],
-          "done": "Welches war das schönste? Ich tippe auf das dritte, aber ich hab leicht reden, ich sitze daneben. 💚",
+          "done": "Welches war das schönste? Ich tippe auf den Hügel, aber ich hab leicht reden, ich stehe daneben. 💚",
           "token": "💚"
         }
       ]
