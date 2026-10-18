@@ -188,12 +188,13 @@ test("the course: steps clamp to the done page, bad steps are dropped, the place
   rememberKurs({ day: "2026-10-05", outcome: { title: "no steps" } });
   assert.equal(readLastKurs().day, "2026-10-03", "an outcome without steps does not replace the course");
   const days = [
-    { date: "2026-09-01", label: "Alt", outcomes: [{ title: "A", message: "m", steps: [{ title: "x", text: "y" }] }] },
-    { date: "2026-10-03", label: "Neu", outcomes: [{ title: "B", message: "m", steps: [{ title: "x", text: "y" }, { title: "z", text: "w" }] }] },
-    { date: "2026-10-04", label: "Ohne", outcomes: [{ title: "C", message: "m" }] }
+    { date: "2026-09-01", label: "Alt", tone: "quest", outcomes: [{ title: "A", message: "m", steps: [{ title: "x", text: "y" }] }] },
+    { date: "2026-10-03", label: "Neu", tone: "quest", outcomes: [{ title: "B", message: "m", steps: [{ title: "x", text: "y" }, { title: "z", text: "w" }] }] },
+    { date: "2026-10-04", label: "Ohne", tone: "quest", outcomes: [{ title: "C", message: "m" }] },
+    { date: "2026-10-18", label: "Liste", tone: "warm", outcomes: [{ title: "D", message: "m", steps: [{ title: "x", text: "y" }] }] }
   ];
   const kurse = configKurse(days);
-  assert.deepEqual(kurse.map((k) => k.title), ["B", "A"], "newest first, outcomes without steps skipped");
+  assert.deepEqual(kurse.map((k) => k.title), ["B", "A"], "newest first, outcomes without steps skipped, and a warm day's list is not a course");
   assert.equal(kurse[0].steps.length, 2);
   assert.equal(configKurse(undefined).length, 0);
 });
