@@ -36,6 +36,7 @@ export async function registerServiceWorker() {
     }
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data && e.data.type === "POLL_INBOX") pollOnce();
+      if (e.data && e.data.type === "PUSH_RESUBSCRIBE") subscribeToPush().catch(() => {});
     });
     return swReg;
   } catch { return null; }

@@ -124,10 +124,17 @@ self.addEventListener("notificationclick", (event) => {
   const target = (event.notification.data && event.notification.data.url) || "./";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if (client.url && "focus" in client) return client.focus();
-      }
-      if (self.clients.openWindow) return self.clients.openWindow(target);
+      // A wish push points at the Eingänge, a reminder at the gacha: prefer a
+      // window already on that page, else take an open one there, else open it.
+      const targetUrl = new URL(target, self.registration.scope);
+      const samePage = (c) => {
+        try { return new URL(c.url).pathname === targetUrl.pathname; } catch (_e) { return false; }
+      };
+      const exact = clients.find((c) => samePage(c) && "focus" in c);
+      if (exact) return exact.focus();
+      const any = clients.find((c) => "focus" in c && "navigate" in c);
+      if (any) return any.focus().then((c) => (c || any).navigate(targetUrl.href)).catch(() => any.focus());
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl.href);
     })
   );
 });
@@ -167,14 +174,24 @@ self.addEventListener("fetch", (event) => {
       .then((res) => {
         if (res && res.ok) {
           const copy = res.clone();
-          caches.open(SHELL_CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+          caches.open(SHELL_CACHE).then(async (cache) => {
+            // One copy per bundle path: every ?v= used to pile up beside the
+            // last, and an offline ignoreSearch match returned the oldest.
+            if (url.search && url.pathname.endsWith(".js")) {
+              const olds = await cache.matchAll(req, { ignoreSearch: true });
+              await Promise.all(olds.filter((o) => o.url !== req.url).map((o) => cache.delete(o.url)));
+            }
+            await cache.put(req, copy);
+          }).catch(() => {});
         }
         return res;
       })
       .catch(async () => {
         // Ignore the query string for bundles (?v= cache-bust) and navigations
         // (?player=/... identity params) — offline, the last-seen copy wins.
-        const cached = await caches.match(req, { ignoreSearch: url.pathname.endsWith(".js") || req.mode === "navigate" });
+        // The exact URL first, so the bundle the cached page asks for wins.
+        const cached = await caches.match(req)
+          || await caches.match(req, { ignoreSearch: url.pathname.endsWith(".js") || req.mode === "navigate" });
         if (cached) return cached;
         // Navigations fall back to a cached entry page so a cold offline open
         // still boots instead of showing the browser error page — and only to

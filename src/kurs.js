@@ -4,7 +4,7 @@
 // day, so a course can be picked up again after lunch. Nothing else changes:
 // the message is the introduction, the steps follow it.
 import { haptic } from "./haptic.js";
-import { escapeHtml } from "./utils.js";
+import { escapeHtml, dateKeyInTimezone } from "./utils.js";
 import { figureHtml } from "./kursfiguren.js";
 import { state } from "./state.js";
 
@@ -60,14 +60,19 @@ export function readLastKurs() {
 // three things for a city), but the chip says Kurs and means the film
 // course, so only quest days count. This is what the chip opens on a
 // phone that has never seen the capsule, and what it falls back to anytime.
-export function configKurse(days = state.specialDays && state.specialDays.days) {
+export function configKurse(days = state.specialDays && state.specialDays.days, today = dateKeyInTimezone(state.theme?.timezone || "UTC")) {
   const out = [];
   for (const d of Array.isArray(days) ? days : []) {
     if (d.tone !== "quest") continue;
+    // A course written for a later day stays sealed until that day — the
+    // chip used to show its title and every step weeks early.
+    const raw = String(d.date || "");
+    const day = /^\d{2}-\d{2}$/.test(raw) ? `${today.slice(0, 4)}-${raw}` : raw;
+    if (!day || day > today) continue;
     for (const o of Array.isArray(d.outcomes) ? d.outcomes : []) {
       const steps = validSteps(o.steps);
       if (!steps.length) continue;
-      out.push({ day: String(d.date || ""), title: o.title || "", label: d.label || "", steps, done: o.done || "" });
+      out.push({ day, title: o.title || "", label: d.label || "", steps, done: o.done || "" });
     }
   }
   return out.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));

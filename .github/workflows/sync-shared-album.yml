@@ -49,4 +49,10 @@ jobs:
             exit 0
           fi
           git commit -m "chore(album): sync shared album [skip ci]"
-          git push
+          # build-bundles and sync-lights-ui push to master too; a bare push
+          # lost the race whenever one landed during the Drive upload.
+          for i in 1 2 3; do
+            git pull --rebase origin master && git push && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

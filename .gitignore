@@ -9,3 +9,7 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# OAuth material written by scripts/auth-drive.cjs — full Drive access
+scripts/token.json
+scripts/oauth_client.json

@@ -55,6 +55,12 @@ var WORKSHEET_NAME = "Wünsche";
 var HUG_EMAIL_TO = "fionn@fionnferreira.com";
 var HUG_EMAIL_SUBJECT = "🫂 Notfall-Umarmung von Lennart";
 
+// Sheets reads a string starting with = + - or @ as a formula; the leading
+// apostrophe keeps client text plain and is not part of the stored value.
+function safe_(v) {
+  return typeof v === "string" && /^[=+\-@]/.test(v) ? "'" + v : v;
+}
+
 function doPost(e) {
   try {
     var data = parsePayload(e);
@@ -67,11 +73,13 @@ function doPost(e) {
     var userAgent = data.userAgent || "";
     var text = data.wish || data.message || "";
 
+    // A redeemed voucher is not a wish: tagged like a hug, so the Eingänge
+    // and the push feed show it as one instead of offering wish replies.
     var sheetText = type === "hug"
       ? ("[hug] " + (text || "🫂 Notfall-Umarmung gebraucht"))
-      : text;
+      : type === "voucher" ? ("[voucher] " + text) : text;
 
-    sheet.appendRow([timestamp, token, sheetText, pageUrl, userAgent]);
+    sheet.appendRow([timestamp, token, sheetText, pageUrl, userAgent].map(safe_));
 
     if (type === "hug") {
       try {
@@ -125,6 +133,7 @@ function normaliseType_(data) {
   var raw = (data && (data.type || data.event)) || "";
   var t = String(raw).toLowerCase().trim();
   if (t === "hug" || t === "umarmung" || t === "emergency-hug") return "hug";
+  if (t === "voucher" || t === "voucher-redeemed") return "voucher";
   return "wish";
 }
 

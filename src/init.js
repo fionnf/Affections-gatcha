@@ -47,7 +47,7 @@ export async function init() {
       fetchJson("config/backup.json", { enabled: false, endpointUrl: "" }),
       fetchJson("config/quest.json", { enabled: false }),
       fetchJson("config/push.json", { enabled: false }),
-      fetchJson("config/skincare.json", null)
+      fetchJson("config/skincare.json").catch(() => null)
     ]);
     state.theme = theme;
     state.outcomes = outcomes;

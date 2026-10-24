@@ -40,6 +40,7 @@ function messageFor(item, recipient) {
     if (recipient === item.from) return { title: "🫂 Umarmung unterwegs", body: "Deine Notfall-Umarmung ist raus." };
     return { title: "🫂 Notfall-Umarmung", body: `${who} braucht gerade eine Umarmung.` };
   }
+  if (item.type === "voucher") return { title: "🎟️ Gutschein eingelöst", body: item.text || `${who} hat einen Gutschein eingelöst.` };
   return { title: "✨ Neuer Wunsch", body: `${who} hat einen Wunsch geschickt.` };
 }
 

@@ -17,7 +17,7 @@ import { mount, $ } from "./state.js";
 import { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace } from "./farbe.js";
 import { showToast } from "./toast.js";
 import { haptic } from "./haptic.js";
-import { loadMqtt } from "./lightsFx.js";
+import { loadMqtt, isFxBusy } from "./lightsFx.js";
 import { escapeHtml as esc } from "./utils.js";
 
 export const BROKER = "wss://broker.hivemq.com:8884/mqtt";
@@ -160,7 +160,7 @@ export function moodPayload(mood) {
 export function scenePayload(scene) {
   let groups = Array.isArray(scene.groups) && scene.groups.length ? scene.groups : null;
   if (!groups && Array.isArray(scene.groupPositions)) {
-    const splits = [0, ...(scene.boundaries || []).slice().sort((a, b) => a - b), NUM_LEDS];
+    const splits = [0, ...(Array.isArray(scene.boundaries) ? scene.boundaries : []).slice().sort((a, b) => a - b), NUM_LEDS];
     groups = splits.slice(0, -1).map((start, i) => ({
       pos: scene.groupPositions[i] ?? 0,
       w: (scene.groupWLevels || [])[i] ?? 1,
@@ -246,6 +246,9 @@ function connect() {
   const gen = ++generation;
   setConn("connecting");
   connecting = loadMqtt().then(() => new Promise((resolve, reject) => {
+    // Disconnected while the library was still loading (app backgrounded on
+    // the first open): a client made now would carry a dead generation.
+    if (gen !== generation) { reject(new Error("licht: stale connect")); return; }
     const c = window.mqtt.connect(BROKER, {
       clientId: "gacha_licht_" + Math.random().toString(16).slice(2),
       clean: true, connectTimeout: 10000, reconnectPeriod: 4000, keepalive: 30
@@ -286,12 +289,17 @@ function connect() {
 }
 
 export function disconnectLicht() {
+  // A mode cannot outlive its connection. While the socket is still up it
+  // puts the lamps back first — backgrounding the app used to leave them
+  // frozen on the last rainbow or flicker frame — and the client then ends
+  // gracefully, so the queued restore still goes out.
+  const live = !!(client && client.connected);
+  const restoring = live && !!(flicker || rainbow);
+  stopFlicker({ restore: live });
+  stopRainbow({ restore: live });
   generation++;
   connecting = null;
-  // A mode cannot outlive its connection, and cannot restore without it.
-  stopFlicker({ restore: false });
-  stopRainbow({ restore: false });
-  if (client) { try { client.end(true); } catch (_e) {} }
+  if (client) { try { client.end(!restoring); } catch (_e) {} }
   client = null; conn = "idle"; connectedAt = 0;
   if (nudgeTimer) { clearInterval(nudgeTimer); nudgeTimer = null; }
   renderLichtPanel();
@@ -310,6 +318,8 @@ function startNudging() {
 function onMessage(topic, msg) {
   let d;
   try { d = JSON.parse(msg.toString()); } catch (_e) { return; }
+  // A public broker: anything can be published here, including a bare null.
+  if (!d || typeof d !== "object") return;
   const t = String(topic);
   if (t.startsWith(`${PREFIX}/status/`)) {
     const id = t.split("/").pop();
@@ -358,7 +368,7 @@ function onMessage(topic, msg) {
   if (typeof d.fade_steps === "number") l.fade_steps = d.fade_steps;
   if (Array.isArray(d.groups)) l.groups = d.groups;
   if (Array.isArray(d.groups)) {
-    if (isColoured(l)) rememberColour(d.from, l);
+    if (isColoured(l)) { if (!isFxBusy()) rememberColour(d.from, l); }
     else if (comeback[d.from] && isWhite(l)) restoreColour(d.from);
     comeback[d.from] = false;
   }
@@ -1167,10 +1177,13 @@ export function renderLichtPanel() {
   const sceneList = $("[data-ag-licht-scene-list]");
   if (scenesWrap && sceneList) {
     scenesWrap.hidden = !scenes.length;
-    sceneList.innerHTML = scenes.slice(0, 12).map((s) => {
+    const html = scenes.slice(0, 12).map((s) => {
       const groups = scenePayload(s).groups;
       const dots = groups.slice(0, 5).map((g) => { const [r, gg, b] = groupRgb(g); return `<i style="background:rgb(${r},${gg},${b})"></i>`; }).join("");
       return `<button type="button" class="ag-licht-scene" data-scene="${esc(s.id)}"${conn !== "connected" ? " disabled" : ""}><span class="ag-licht-scene-dots" aria-hidden="true">${dots}</span><span>${esc(s.name)}</span></button>`;
     }).join("");
+    // Same guard as the lamp pills: every echo re-renders, and a button
+    // replaced between pointerdown and pointerup swallows the tap.
+    if (sceneList.dataset.html !== html) { sceneList.innerHTML = html; sceneList.dataset.html = html; }
   }
 }

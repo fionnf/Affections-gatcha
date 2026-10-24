@@ -170,7 +170,11 @@ export async function registerServiceWorker() {
     await navigator.serviceWorker.register(swUrl, {
       scope: new URL("./", swUrl).pathname
     });
-    if (Notification.permission === "granted") {
+    // sw.js posts this when the browser rotates the push subscription.
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data && e.data.type === "PUSH_RESUBSCRIBE") subscribeToPush().catch(() => {});
+    });
+    if ("Notification" in window && Notification.permission === "granted") {
       await scheduleNotification();
       await scheduleStreakWarning();
       await tryPeriodicSync();

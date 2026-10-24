@@ -103,11 +103,14 @@ export function winBaerlauchGame() {
   const nextButton = $("#ag-baerlauch-next");
 
   stopBaerlauchTimer();
+  // The poison is still drifting across the field. A fast tap on a 🍂 right
+  // after the last good leaf used to turn the win into a lost, locked round.
+  document.querySelectorAll("#ag-baerlauch-field .ag-forage-item").forEach((b) => { b.disabled = true; });
 
   const cleared = state.baerlauch.level;
   state.baerlauch.level += 1;
   const isNewHighscore = saveBaerlauchScore(getToken(), state.baerlauch.level);
-  saveBaerlauchRound(getToken(), state.baerlauch.level, true);
+  saveBaerlauchRound(getToken(), cleared, true);
   updateBaerlauchScoreDisplay();
   updateBaerlauchLevelText();
   if (isNewHighscore) triggerConfetti();
@@ -116,7 +119,7 @@ export function winBaerlauchGame() {
   // reached the rest of the app. Now the first level-5 clear each week pays a
   // 🌿 into the Token-Bank, the same coin a capsule drops.
   let earned = false;
-  const week = currentWeekKey();
+  const week = currentWeekKey(state.theme?.timezone);
   if (baerlauchTokenDue(cleared, week)) {
     markBaerlauchWeekClaimed(week);
     try { addToken(BAERLAUCH_TOKEN); } catch (_e) {}
@@ -320,13 +323,16 @@ export function saveBaerlauchScore(player, level) {
   if (isNew) {
     scores[player] = level;
     try { localStorage.setItem("affektions-gacha:baerlauch-scores:v1", JSON.stringify(scores)); } catch (_) {}
-    const url = state.backup?.endpointUrl;
-    if (url) {
-      fetch(url, {
-        method: "POST",
-        body: JSON.stringify({ type: "baerlauch-score", player, level }),
-        headers: { "Content-Type": "application/json" }
-      }).catch(() => {});
+    // text/plain like every other sender: application/json needs a CORS
+    // preflight Apps Script never answers, so no score ever arrived.
+    const cfg = state.backup;
+    if (cfg && cfg.enabled && cfg.endpointUrl) {
+      const opts = {
+        method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ type: "baerlauch-score", player, level })
+      };
+      fetch(cfg.endpointUrl, opts).catch(() => fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}));
     }
   }
   return isNew;
@@ -372,7 +378,8 @@ export function updateBaerlauchScoreDisplay() {
       const isMe = r.player === myKey;
       const nameClass = isMe ? "ag-score-mine" : "ag-score-theirs";
       const name = isMe ? "Du" : theirName;
-      const result = r.won ? `✓ Level ${r.level}` : `✗ Level ${r.level - 1 >= 1 ? r.level - 1 : "–"}`;
+      // Both sides record the level that was played.
+      const result = r.won ? `✓ Level ${r.level}` : `✗ Level ${r.level}`;
       return `<div class="ag-score-row"><span class="ag-score-date">${fmt(r.date)}</span><span class="ag-score-pill ${nameClass}">${name}</span><span class="ag-score-result">${result}</span></div>`;
     }).join("");
     html += `<div class="ag-score-table">${rows}</div>`;

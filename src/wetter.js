@@ -76,8 +76,10 @@ export async function fetchWeather({ force = false } = {}) {
     state.weather = w;
     return w;
   } catch (_e) {
-    // A stale cache is better than nothing on the card.
-    if (cached) { state.weather = cached; return cached; }
+    // A stale cache is better than nothing on the card — within reason: the
+    // sky goes onto the day's record for good, and last night's -2° 🌙 is
+    // not today's noon.
+    if (cached && Date.now() - (cached.at || 0) < 3 * 3600000) { state.weather = cached; return cached; }
     return null;
   } finally {
     clearTimeout(tid);

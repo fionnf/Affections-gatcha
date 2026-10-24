@@ -77,16 +77,25 @@ const ECHO_WAIT_MS = 2500;
 const BOARD_IDS = ["board_a", "board_b"];
 
 let _busy = false;
+// A show (pull flash, hug, candle) is tinting the lamps. Their echoes are not
+// a colour anyone chose, so the Licht tab must not remember them.
+export function isFxBusy() { return _busy; }
 
+// Pinned: an unversioned URL follows every new major release of the library
+// that drives the lamps. One load in flight at a time — two callers used to
+// add two script tags.
+let _mqttLoading = null;
 export function loadMqtt() {
   if (window.mqtt) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (_mqttLoading) return _mqttLoading;
+  _mqttLoading = new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = "https://unpkg.com/mqtt/dist/mqtt.min.js";
+    s.src = "https://unpkg.com/mqtt@5.16.0/dist/mqtt.min.js";
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error("mqtt load failed"));
+    s.onerror = () => { _mqttLoading = null; s.remove(); reject(new Error("mqtt load failed")); };
     document.head.appendChild(s);
   });
+  return _mqttLoading;
 }
 
 function _restorePayload(state) {

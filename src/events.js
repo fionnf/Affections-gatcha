@@ -277,7 +277,7 @@ export function sendWishToInbox(wish) {
 
 export function retryPendingWishSend() {
   const wish = readWish();
-  if (!wish || wish.week !== currentWeekKey()) return;
+  if (!wish || wish.week !== currentWeekKey(state.theme?.timezone)) return;
   if (wish.remoteStatus === "sent") return;
   sendWishToInbox(wish);
 }
@@ -585,9 +585,16 @@ export function reveal() {
       span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
     });
     // Add reward token / Freikarte once — guard prevents double-increment on re-reveal
-    const alreadyRecordedToday = readHistory().some(
+    const todaysRecord = readHistory().find(
       (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
     );
+    const alreadyRecordedToday = !!todaysRecord;
+    // A replay after a reload builds the pull fresh, without the answer the
+    // prompt gate already got or the sky it was opened under.
+    if (todaysRecord) {
+      if (!state.todaysPull.promptAnswer && todaysRecord.promptAnswer) state.todaysPull.promptAnswer = todaysRecord.promptAnswer;
+      if (!state.todaysPull.weather && todaysRecord.weather) state.todaysPull.weather = todaysRecord.weather;
+    }
     if (state.todaysPull.collectToken && !alreadyRecordedToday) {
       addToken(state.todaysPull.collectToken);
     }
@@ -1150,7 +1157,8 @@ export function bindEvents() {
       syncBtn.disabled = true;
       const result = await syncFromSheets();
       renderHistory();
-      syncBtn.textContent = result < 0 ? "✗" : `✓${result}`;
+      // false = skipped or the sheet said no, -1 = the request threw.
+      syncBtn.textContent = result === false || result < 0 ? "✗" : `✓${result}`;
       setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 3000);
     });
   }
@@ -1475,7 +1483,7 @@ export function bindEvents() {
       const text = (input?.value || "").trim();
       if (!text) return;
       haptic([20, 20, 40]);
-      const entry = { week: currentWeekKey(), text, submittedAt: Date.now(), remoteStatus: "idle" };
+      const entry = { week: currentWeekKey(state.theme?.timezone), text, submittedAt: Date.now(), remoteStatus: "idle" };
       writeWish(entry);
       renderWunschkapsel();
       try { sendWishToInbox(entry); } catch (_error) { /* never block local confirmation */ }
@@ -1560,11 +1568,11 @@ export function bindEvents() {
   document.addEventListener("touchend", async () => {
     if (_ptrTriggered && ptr) {
       ptr.classList.add("is-loading");
-      await syncFromSheets();
+      const result = await syncFromSheets();
       if (state.activeTab === "berge") renderBergePanel();
       if (state.activeTab === "history") renderHistory();
       ptr.classList.remove("is-visible", "is-loading");
-      showToast("Aktualisiert ✓");
+      showToast(result === false || result < 0 ? "Keine Verbindung ✗" : "Aktualisiert ✓");
     }
     _ptrStartY = 0;
     _ptrTriggered = false;

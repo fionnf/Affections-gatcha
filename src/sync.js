@@ -4,7 +4,7 @@ import {
   readHistory, writeHistory, readFavorites, writeFavorites,
   readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
   readBaerlauchScores, writeWishReplies, mergeHugLog, readFlaschenpost, mergeFlaschenpost, readPfand, mergePfandCount,
-  readQuestState, writeQuestState, readQuestPoints, writeQuestPoints
+  readQuestState, writeQuestState, readQuestPoints, writeQuestPoints, readFreikarteReroll
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
@@ -138,6 +138,24 @@ export async function syncFromSheets() {
         // capsule still knows.
         if (prev && prev.revealedAt && !next.revealedAt) {
           next.revealedAt = prev.revealedAt;
+        }
+        // A redeemed voucher stays redeemed, like Bestanden. A redeem whose
+        // POST never landed (or a read that started before it did) used to
+        // come back unredeemed — and the next backup wrote that to the sheet.
+        if (prev && prev.used && !next.used) {
+          next.used = true;
+          next.usedAt = prev.usedAt || null;
+        }
+        if (prev && prev.promptAnswer && !next.promptAnswer) {
+          next.promptAnswer = prev.promptAnswer;
+        }
+        // A Freikarte reroll rewrote this day locally; the sheet may still
+        // hold the original Niete. The reroll record is the truth for the card.
+        const reroll = prev ? readFreikarteReroll(normToken, day) : null;
+        if (reroll && prev.categoryId === reroll.categoryId && next.categoryId !== reroll.categoryId) {
+          for (const f of ["categoryId", "categoryLabel", "tone", "title", "message", "link", "unlockTime", "photo", "voucher"]) {
+            next[f] = prev[f];
+          }
         }
         localByDay.set(key, next);
       }

@@ -7,7 +7,7 @@ import {
   FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken, PFAND_EVERY
 } from "./constants.js";
 import { state } from "./state.js";
-import { dateKeyInTimezone, getToken, seededRandom } from "./utils.js";
+import { dateKeyInTimezone, getToken, seededRandom, currentQuestPeriod } from "./utils.js";
 
 // Several pieces of state (Sammelkapsel tokens, streak caches, quest
 // state/points, the in-flight wish) used to live under one shared
@@ -199,9 +199,13 @@ export function addToken(token) {
   return tokens[token];
 }
 
-export function resetToken(token) {
+// Spends one reward's worth. Counts keep climbing past the goal (the bank
+// shows min(count, goal)), so zeroing here threw the surplus away. Without an
+// amount it still empties the slot.
+export function resetToken(token, amount) {
   const tokens = readTokens();
-  tokens[token] = 0;
+  const n = Number(amount);
+  tokens[token] = Number.isFinite(n) && n > 0 ? Math.max(0, (tokens[token] || 0) - n) : 0;
   writeTokens(tokens);
 }
 
@@ -392,7 +396,9 @@ export function readBaerlauchHistory() {
   } catch (_) { return []; }
 }
 
-export function readQuestState(currentQuestPeriodFn) {
+// Most callers pass nothing; the period then comes from the app state.
+// Without the default every one of them threw on the first quest render.
+export function readQuestState(currentQuestPeriodFn = () => currentQuestPeriod(state)) {
   try {
     const parsed = readPlayerSlot(QUEST_STORAGE_KEY, {});
     const period = currentQuestPeriodFn();

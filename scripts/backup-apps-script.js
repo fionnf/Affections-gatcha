@@ -57,6 +57,7 @@ function wishRow_(row) {
   else if (key === "wunschkapsel" || key === "wish") { type = "wish"; text = row[3] || ""; }
   else if (key === "voucher") { type = "voucher"; text = row[3] || ""; }
   else if (c.indexOf("[hug]") === 0) { type = "hug"; text = c.replace(/^\[hug\]\s*/, ""); }
+  else if (c.indexOf("[voucher]") === 0) { type = "voucher"; text = c.replace(/^\[voucher\]\s*/, ""); }
   else { type = "wish"; text = c; }
   return {
     timestamp: tsStr_(row[0]),
@@ -80,7 +81,7 @@ function doGet(e) {
     const backupValues = backupSheet.getDataRange().getValues();
     let meta = null;
     for (let i = 1; i < backupValues.length; i++) {
-      if ((backupValues[i][0] || "").toLowerCase() === token) {
+      if (String(backupValues[i][0] || "").toLowerCase() === token) {
         meta = {
           favourites: JSON.parse(backupValues[i][1] || "[]"),
           streak:     backupValues[i][2] || 0,
@@ -105,7 +106,7 @@ function doGet(e) {
     }
     for (let i = 1; i < histValues.length; i++) {
       const row = histValues[i];
-      if ((row[0] || "").toLowerCase() !== token) continue;
+      if (String(row[0] || "").toLowerCase() !== token) continue;
       history.push({
         token:         token,
         day:           normDay(row[1]),
@@ -408,7 +409,9 @@ function doGet(e) {
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+  // waitLock throws when busy, and outside the try that reached the client as
+  // Google's HTML error page instead of JSON.
+  if (!lock.tryLock(30000)) return jsonOut_({ ok: false, error: "busy" });
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
@@ -419,7 +422,7 @@ function doPost(e) {
     // the googleusercontent URL — the same form config/photos.json uses — is
     // written onto the day's History row and returned to the app.
     if (data.type === "beweis-upload") {
-      const token = (data.token || "").toLowerCase();
+      const token = String(data.token || "").toLowerCase();
       const day = String(data.day || "").slice(0, 10);
       if (!token || !day || !data.image) return jsonOut_({ ok: false, error: "missing fields" });
 
@@ -437,7 +440,7 @@ function doPost(e) {
       const histSheet = getOrCreateHistorySheet_(ss);
       const values = histSheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
-        if ((values[i][0] || "").toLowerCase() !== token) continue;
+        if (String(values[i][0] || "").toLowerCase() !== token) continue;
         const d = values[i][1] instanceof Date
           ? Utilities.formatDate(values[i][1], "UTC", "yyyy-MM-dd")
           : String(values[i][1]).slice(0, 10);
@@ -453,13 +456,13 @@ function doPost(e) {
       const sheet = getOrCreatePromptAnswersSheet_(ss);
       const ts = new Date();
       const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
-      sheet.appendRow([
+      sheet.appendRow(safeRow_([
         ts.toISOString(),
         data.token || "",
         data.day   || "",
         data.prompt || "",
         data.answer || ""
-      ]);
+      ]));
       try {
         MailApp.sendEmail({
           to: FIONN_EMAIL,
@@ -483,9 +486,9 @@ function doPost(e) {
       }
       if (level > existing) {
         if (rowIdx === -1) {
-          sheet.appendRow([player, level, new Date().toISOString()]);
+          sheet.appendRow(safeRow_([player, level, new Date().toISOString()]));
         } else {
-          sheet.getRange(rowIdx, 1, 1, 3).setValues([[player, level, new Date().toISOString()]]);
+          sheet.getRange(rowIdx, 1, 1, 3).setValues(safeRows_([[player, level, new Date().toISOString()]]));
         }
       }
       return jsonOut_({ ok: true });
@@ -502,8 +505,8 @@ function doPost(e) {
         if (values[i][0] === id) { rowIdx = i + 1; break; }
       }
       const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString(), data.distance || "", data.elevGain || "", data.lat || "", data.lng || "", data.locLabel || "", data.cover || ""];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -520,8 +523,8 @@ function doPost(e) {
       // Client sends the author as `token` (matching the Gipfelbuch payload
       // convention); accept `createdBy` too in case that ever changes.
       const row = [id, data.word || "", data.meaning || "", data.lang || "swabian", data.audioUrl || "", data.createdBy || data.token || "", data.createdAt || new Date().toISOString()];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -577,8 +580,8 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (String(values[i][0]).slice(0, 10) === data.day) { rowIdx = i + 1; break; }
       }
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -596,8 +599,8 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (values[i][1] === endpoint) { rowIdx = i + 1; break; }
       }
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -615,7 +618,7 @@ function doPost(e) {
       for (let i = values.length - 1; i >= 1; i--) {
         const ts = tsStr_(values[i][0]);
         if (ts === want || (wantMs && Date.parse(ts) === wantMs)) {
-          sheet.getRange(i + 1, 7, 1, 2).setValues([[status, status ? new Date().toISOString() : ""]]);
+          sheet.getRange(i + 1, 7, 1, 2).setValues(safeRows_([[status, status ? new Date().toISOString() : ""]]));
           return jsonOut_({ ok: true, status: status });
         }
       }
@@ -633,29 +636,32 @@ function doPost(e) {
     // ── Notfall-Umarmung & Wunschkapsel ──────────────────────────────────────
     if (data.type === "hug" || data.wish) {
       const isHug = data.type === "hug";
+      const isVoucher = data.type === "voucher";
       const wishText = data.wish || data.message || "";
       const sender  = (data.token || "lennart");
       // The row keeps the client's own timestamp when it sends one: the app
       // logs a hug locally under that stamp, and the sync unions the sheet's
       // copy back — a server-side clock here made every hug count twice.
+      // A clock running ahead (or a made-up 2099) would push the push-pending
+      // pointer past every later row and silence all pushes after it.
       const sentMs  = Date.parse(data.timestamp || "");
-      const ts      = isNaN(sentMs) ? new Date() : new Date(sentMs);
+      const ts      = isNaN(sentMs) || sentMs > Date.now() + 5 * 60000 ? new Date() : new Date(sentMs);
       const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
 
       const wishSheet = getOrCreateWuenscheSheet_(ss);
-      wishSheet.appendRow([
+      wishSheet.appendRow(safeRow_([
         ts.toISOString(),
         sender,
-        isHug ? "Notfall-Umarmung" : "Wunschkapsel",
+        isHug ? "Notfall-Umarmung" : isVoucher ? "voucher" : "Wunschkapsel",
         wishText,
         data.pageUrl || "",
         data.userAgent || ""
-      ]);
+      ]));
 
       // A hug is not an email: the notifier job (push-poll.cjs) reads it off
       // the push-pending feed and pushes it to every subscribed device. A
       // wish still mails Fionn as well, since it carries text worth keeping.
-      if (!isHug) {
+      if (!isHug && !isVoucher) {
         try {
           MailApp.sendEmail(
             FIONN_EMAIL,
@@ -670,7 +676,7 @@ function doPost(e) {
 
     if (data.type !== "gacha-backup") return jsonOut_({ ok: false, error: "unknown type" });
 
-    const token      = (data.token || "lennart").toLowerCase();
+    const token      = String(data.token || "lennart").toLowerCase();
     const timestamp  = new Date().toISOString();
 
     // ── Write metadata to Backup sheet ──────────────────────────────────────
@@ -686,7 +692,7 @@ function doPost(e) {
     let existingPost = "[]";
     let existingPfand = 0;
     for (let i = 1; i < backupValues.length; i++) {
-      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; existingPost = backupValues[i][6] || "[]"; existingPfand = Number(backupValues[i][7]) || 0; break; }
+      if (String(backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; existingPost = backupValues[i][6] || "[]"; existingPfand = Number(backupValues[i][7]) || 0; break; }
     }
     // The Pfand count only ever grows; a client that does not send it keeps
     // the sheet's number.
@@ -701,9 +707,9 @@ function doPost(e) {
     const streak = incomingStreak;
     const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp, postJson, pfandCount];
     if (metaRow === -1) {
-      backupSheet.appendRow(metaRowData);
+      backupSheet.appendRow(safeRow_(metaRowData));
     } else {
-      backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues([metaRowData]);
+      backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues(safeRows_([metaRowData]));
     }
 
     // ── Write history entries — upsert by day, never delete absent days ────────
@@ -720,7 +726,7 @@ function doPost(e) {
       const existingByDay = {};
       const dupeRows = [];
       for (let i = histValues.length - 1; i >= 1; i--) {
-        if ((histValues[i][0] || "").toLowerCase() !== token) continue;
+        if (String(histValues[i][0] || "").toLowerCase() !== token) continue;
         const day = normDay(histValues[i][1]);
         if (!day) continue;
         if (existingByDay[day] !== undefined) {
@@ -765,9 +771,9 @@ function doPost(e) {
           pfand ? "yes" : ""
         ];
         if (existingByDay[day]) {
-          histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
+          histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues(safeRows_([row]));
         } else {
-          histSheet.appendRow(row);
+          histSheet.appendRow(safeRow_(row));
           existingByDay[day] = histSheet.getLastRow();
         }
       }
@@ -781,7 +787,7 @@ function doPost(e) {
     // ── Log quest solves ────────────────────────────────────────────────────
     if (data.questLog) {
       const questSheet = getOrCreateQuestSheet_(ss);
-      questSheet.appendRow([timestamp, token, data.questLog.challenge, data.questLog.attempts, data.questLog.points, data.questLog.period]);
+      questSheet.appendRow(safeRow_([timestamp, token, data.questLog.challenge, data.questLog.attempts, data.questLog.points, data.questLog.period]));
     }
 
     return jsonOut_({ ok: true });
@@ -816,7 +822,7 @@ function getOrCreateHistorySheet_(ss) {
   // Sheets created before the Bestanden columns existed get the two headers
   // filled in, so the columns are labelled rather than mystery cells.
   if (sheet.getRange(1, 15).getValue() === "") {
-    sheet.getRange(1, 15, 1, 2).setValues([["Bestanden", "BestandenAt"]]);
+    sheet.getRange(1, 15, 1, 2).setValues(safeRows_([["Bestanden", "BestandenAt"]]));
   }
   if (sheet.getRange(1, 17).getValue() === "") {
     sheet.getRange(1, 17).setValue("BeweisUrl");
@@ -926,6 +932,17 @@ function getOrCreatePushSheet_(ss) {
   }
   return sheet;
 }
+
+// Sheets reads a string that starts with = + - or @ as a formula. Every value
+// written here comes from a client, so one wish or token of "=1+1" turned into
+// a number — and the readers' .toLowerCase() then threw on every GET until
+// the row was deleted by hand. The leading apostrophe forces plain text and
+// is not part of the value getValues() returns.
+function safe_(v) {
+  return typeof v === "string" && /^[=+\-@]/.test(v) ? "'" + v : v;
+}
+function safeRow_(row) { return row.map(safe_); }
+function safeRows_(rows) { return rows.map(safeRow_); }
 
 function jsonOut_(data) {
   return ContentService
