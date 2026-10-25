@@ -67,6 +67,21 @@ function urlBase64ToUint8Array(base64String) {
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
 }
+// A subscription is bound to the VAPID key it was made with. After a key
+// change (config/push.json) the old one can never receive a push again, and
+// reusing it — as this did — left the phone silently deaf. Compare, and
+// start over when the key moved.
+async function subscriptionMatchesKey(sub, publicKey) {
+  try {
+    const have = sub && sub.options && sub.options.applicationServerKey;
+    if (!have) return true; // browser does not say; keep it
+    const a = new Uint8Array(have), b = urlBase64ToUint8Array(publicKey);
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  } catch (_e) { return true; }
+}
+
 export async function subscribeToPush() {
   const cfg = state.push;
   if (!cfg || !cfg.enabled || !cfg.vapidPublicKey) return false;
@@ -77,6 +92,10 @@ export async function subscribeToPush() {
   try {
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
+    if (sub && !(await subscriptionMatchesKey(sub, cfg.vapidPublicKey))) {
+      try { await sub.unsubscribe(); } catch {}
+      sub = null;
+    }
     if (!sub) {
       sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(cfg.vapidPublicKey) });
     }
