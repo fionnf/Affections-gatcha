@@ -4,7 +4,7 @@ import { getToken, escapeHtml } from "./utils.js";
 import { armConfirm } from "./confirm.js";
 import { haptic } from "./haptic.js";
 import { GLOSSARY_KEY } from "./constants.js";
-import { markRecentWrite, withinGracePeriod } from "./sheetSync.js";
+import { markRecentWrite, withinGracePeriod, queueSheetOp, flushSheetOps, overlayPendingOps, sheetReadStamp, sheetReadIsStale } from "./sheetSync.js";
 
 // Module-level state
 // Mutable UI state shared with events.js. A single object whose properties
@@ -54,6 +54,13 @@ let glossaryLoading = false;
 export async function fetchGlossaryFromSheet() {
   const cfg = state.backup;
   if (!cfg || !cfg.enabled || !cfg.endpointUrl) return 0;
+  // Taken before anything goes out: a POST confirmed while this read is in
+  // flight makes its answer too old to overwrite with (see sheetSync.js).
+  const stamp = sheetReadStamp("glossary");
+  // Whatever is still unsent gets another go now. Not awaited — the read
+  // does not depend on it, because the overlay below keeps unsent words
+  // either way.
+  flushSheetOps("glossary", cfg.endpointUrl).catch(() => {});
   try {
     const token = getToken();
     const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
@@ -73,24 +80,46 @@ export async function fetchGlossaryFromSheet() {
     // and letting stale local entries linger. Skip the overwrite once if a
     // word was just added/edited here — this GET may have raced ahead of
     // that write actually landing in the sheet; the next sync picks it up.
-    if (withinGracePeriod("glossary")) return data.glossary.length;
-    writeGlossary(data.glossary.filter((e) => e.id));
+    // Same if a write was confirmed while this GET was out: the sheet copy
+    // may predate it, and its op has already left the queue.
+    if (withinGracePeriod("glossary") || sheetReadIsStale("glossary", stamp)) return data.glossary.length;
+    // Words not yet confirmed by the sheet are laid over its copy, so a word
+    // added offline (or whose POST failed) is not deleted by this overwrite,
+    // and a delete that has not landed does not bring the word back.
+    writeGlossary(overlayPendingOps("glossary", data.glossary.filter((e) => e.id)));
     return data.glossary.length;
   } catch (_) { return 0; }
 }
 
+// Used to be a single fire-and-forget POST: a word added offline, or whose
+// POST failed, was never sent again and the next sheet read deleted it. Now
+// the write is queued first (durably, in localStorage) and the queue is
+// flushed; the op leaves the queue only once Apps Script answers {ok:true}.
+// The op is queued even while sync is switched off, so the word still
+// reaches the sheet once a backup endpoint is configured.
 export function postGlossaryToSheet(type, payload) {
+  const body = { type, token: getToken(), ...payload };
+  const isDelete = type === "glossary-delete";
+  queueSheetOp("glossary", {
+    kind: isDelete ? "delete" : "upsert",
+    id: payload && payload.id,
+    entry: isDelete ? null : payload,
+    body
+  });
   const cfg = state.backup;
-  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-  const body = JSON.stringify({ type, token: getToken(), ...payload });
-  fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body })
-    .catch(() => fetch(cfg.endpointUrl, { method: "POST", mode: "no-cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }).catch(() => {}));
+  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return Promise.resolve(0);
+  return flushSheetOps("glossary", cfg.endpointUrl).catch(() => 0);
 }
 
 export async function _blobToDataUrl(blob) {
   return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
 }
 
+// The audio is its own request, made before the word is saved, and is not
+// part of the word's pending op: whatever happens to it, the caller still
+// gets a usable audioUrl (the Drive link, or the recording inline as a data:
+// URL) and then saves the word, which is what gets queued. A failed upload
+// therefore costs at most the Drive copy of the recording, never the word.
 export async function uploadGlossaryAudio(blob, wordId) {
   const cfg = state.backup;
   if (!cfg || !cfg.enabled || !cfg.endpointUrl) return _blobToDataUrl(blob);
@@ -99,7 +128,17 @@ export async function uploadGlossaryAudio(blob, wordId) {
     const base64 = dataUrl.split(",")[1];
     const mimeType = blob.type || "audio/webm";
     const body = JSON.stringify({ type: "glossary-audio", token: getToken(), filename: `glossary-${wordId}.webm`, mimeType, data: base64 });
-    const resp = await fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
+    // Bounded, because the word is only saved once this returns: an upload
+    // that hung (a dead connection rather than a refused one) used to keep
+    // the save button waiting, and closing the app then lost the word too.
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 20000);
+    let resp;
+    try {
+      resp = await fetch(cfg.endpointUrl, { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body, signal: controller.signal });
+    } finally {
+      clearTimeout(tid);
+    }
     const json = await resp.json();
     if (json.ok && json.url) return json.url;
     return dataUrl;

@@ -139,7 +139,7 @@ year in front of the date, or `"repeat": "yearly"` beside it.
 | `label` | ✅ | Shown as the capsule category label |
 | `outcomes` | ✅ | Array of `{title, message}` — one is picked deterministically (stable across reloads) |
 | `tone` | optional | Visual style of the capsule (default: `"jackpot"`). Same values as categories: `quiet`, `soft`, `quest`, `warm`, `cursed`, `rare`, `photo`, `jackpot` |
-| `player` | optional | `"lennart"` or `"fionn"` — scopes the day to one app. **Omit it and the entry fires in both**, so a message addressed to one of them is also read by the other, and any token is banked twice |
+| `player` | optional | Only `"lennart"` (the app's one player token). Anything else never matches and fails `npm run validate`. Omitting it has the same effect |
 | `colors` | optional | Overrides any subset of the light-mode palette for that day |
 | `darkColors` | optional | Same but for dark mode |
 | `unlockTime` | optional | `"HH:MM"` — a `link` on the outcome stays behind *🔒 Ab … verfügbar* until then; the message shows normally |
@@ -173,6 +173,7 @@ step can name a `figure`, one of
 the small inline infographics in `src/kursfiguren.js` (`kamera`, `einlegen`,
 `iso`, `blende`, `zeit`, `dreieck`, `sunny16`, `fokus`, `schaerfentiefe`,
 `zonenfokus`, `mitziehen`, `rueckspulen`); it is drawn above the text.
+A figure name not in that file draws nothing and fails `npm run validate`.
 
 ```json
 "outcomes": [{

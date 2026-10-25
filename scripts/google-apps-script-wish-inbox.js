@@ -79,7 +79,9 @@ function doPost(e) {
       ? ("[hug] " + (text || "🫂 Notfall-Umarmung gebraucht"))
       : type === "voucher" ? ("[voucher] " + text) : text;
 
-    sheet.appendRow([timestamp, token, sheetText, pageUrl, userAgent].map(safe_));
+    // Column I is the server's receive time, which the push feed's pointer
+    // reads — the client's own timestamp can be hours old on a retry.
+    sheet.appendRow([timestamp, token, sheetText, pageUrl, userAgent, "", "", "", new Date().toISOString()].map(safe_));
 
     if (type === "hug") {
       try {

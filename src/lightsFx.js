@@ -247,9 +247,11 @@ export function startCandleLights() {
 
 // Like runFlash, but open-ended: the cycle repeats every `periodMs` until
 // the stop handed to `onReady` is called, which restores and disconnects.
+let _looping = false;
 async function runLoop(cycleFn, periodMs, onReady) {
   if (_busy) { onReady(() => {}); return; }
   _busy = true;
+  _looping = true;
   try {
     await loadMqtt();
     await new Promise((resolve) => {
@@ -322,6 +324,7 @@ async function runLoop(cycleFn, periodMs, onReady) {
     onReady(() => {});
   } finally {
     _busy = false;
+    _looping = false;
   }
 }
 
@@ -335,6 +338,13 @@ async function runFlash(steps, totalMs, target) {
   if (_busy && target) {
     const until = Date.now() + 25000;
     while (_busy && Date.now() < until) await sleep(500);
+  }
+  // The colour check on opening the app holds the lamps for a few seconds;
+  // a pull made right then used to get no flash at all. Wait it out — but
+  // not a lit candle, which holds them for as long as it burns.
+  if (_busy && !target && !_looping) {
+    const until = Date.now() + 12000;
+    while (_busy && !_looping && Date.now() < until) await sleep(400);
   }
   if (_busy) return;
   _busy = true;

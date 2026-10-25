@@ -40,6 +40,7 @@ jobs:
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
+          BACKUP_ADMIN_KEY: ${{ secrets.BACKUP_ADMIN_KEY }}
         run: node scripts/push-poll.cjs
 
   # Daily reminder + evening streak warning. Separate job on its own hourly
@@ -60,4 +61,5 @@ jobs:
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
+          BACKUP_ADMIN_KEY: ${{ secrets.BACKUP_ADMIN_KEY }}
         run: node scripts/push-due.cjs

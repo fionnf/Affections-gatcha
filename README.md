@@ -137,13 +137,21 @@ See **[EDITING.md](EDITING.md)** for field-by-field details.
 
 ### Fionn's Eingänge (private)
 
-`fionn-gacha.html` is a PIN-gated page showing what Lennart sends back —
+`fionn-gacha.html` is a key-gated page showing what Lennart sends back —
 hugs, wishes, reactions, prompt answers — with a reply on every wish
 (*erfüllt / irgendwann / lieber nicht*) that lands on Lennart's next capsule,
 and a **Stups** button that puts a line on his card. It used to be a curator
 app that committed config to GitHub with a token stored in the browser, and
 later a tab inside a second gacha; both are gone. See
 **[admin/README.md](admin/README.md)**.
+
+**The lock lives on the backend.** Set a long passphrase as the Script
+Property `ADMIN_KEY` in the Apps Script project; from then on the activity
+feed, wish replies, Stups and the push feeds answer only to that key, and the
+Eingänge asks for it once per device. Put the same value into the GitHub
+secret `BACKUP_ADMIN_KEY` for the push jobs. Until `ADMIN_KEY` is set the
+page falls back to the old PIN in `config/admin.json` — whose hash is public,
+so it keeps out a casual visitor and nobody else.
 
 ---
 
@@ -1052,7 +1060,15 @@ All worksheets are created on first use — none need to exist beforehand.
 | `Gipfelbuch` | Mountain log entries |
 | `Glossar` | Shared vocabulary entries |
 | `Stimmung` | Colour of the day (one row per day, shared) |
-| `PushSubscriptions` | Web Push endpoints, one row per device |
+| `PushSubscriptions` | Web Push endpoints, one row per device (dead ones are pruned by the push jobs) |
+
+**Weekly snapshot.** Everything the two of you have written lives in this
+one file. Run `installSnapshotTrigger` once from the Apps Script editor and
+every Sunday at 03:00 a full copy lands in a Drive folder called
+`Gacha-Sicherungen` (the last 26 are kept). `snapshotSpreadsheet` takes one
+on demand. On Lennart's phone, **Einstellungen → 💾 Sicherung** saves
+everything the app remembers locally as a file, and reads it back on a new
+phone.
 
 `MissionLog`, `MissionFeedback` and `Werkstatt` may still exist in the sheet from the two-player days; nothing reads or writes them any more.
 

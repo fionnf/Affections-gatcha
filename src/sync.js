@@ -2,14 +2,15 @@
 import { state, mount } from "./state.js";
 import {
   readHistory, writeHistory, readFavorites, writeFavorites,
-  readTokens, applySharedTokens, writeTokensSent, writeGipfelbuch,
+  readTokens, applySharedTokens, confirmTokensSent, tokenSyncStamp, isStaleTokenRead, writeGipfelbuch,
+  readFavoriteTombstones, clearFavoriteTombstones,
   readBaerlauchScores, writeWishReplies, mergeHugLog, readFlaschenpost, mergeFlaschenpost, readPfand, mergePfandCount,
   readQuestState, writeQuestState, readQuestPoints, writeQuestPoints, readFreikarteReroll
 } from "./storage.js";
 import { dateKeyInTimezone, normaliseDay, getToken, currentChallenge, currentQuestPeriod } from "./utils.js";
 import { computeStreak, writeStreakCache, writeSyncedStreak } from "./streak.js";
 import { BAERLAUCH_SCORE_KEY, LAST_PING_KEY } from "./constants.js";
-import { withinGracePeriod } from "./sheetSync.js";
+import { withinGracePeriod, flushAllSheetOps, overlayPendingOps, sheetReadStamp, sheetReadIsStale } from "./sheetSync.js";
 import { applySharedStimmung } from "./stimmung.js";
 
 let _baseUrl = "";
@@ -69,6 +70,16 @@ export async function syncFromSheets() {
     if (!cfg || !cfg.enabled || !cfg.endpointUrl) return false;
     const token = getToken();
     const url = `${cfg.endpointUrl}?token=${encodeURIComponent(token)}`;
+    // Noted before the request leaves. If a backup POST is confirmed while
+    // this GET is out, the sheet copy it brings back may predate that POST,
+    // and the fields below that let the sheet win must not apply it. See
+    // isStaleTokenRead in storage.js for the token case this was found on.
+    const tokenStamp = tokenSyncStamp();
+    const gipfelStamp = sheetReadStamp("gipfelbuch");
+    // Glossar words and summits still waiting for the sheet get another go
+    // with every sync. Not awaited: the gipfelbuch overlay below keeps them
+    // either way, and a hanging POST should not hold up the read.
+    flushAllSheetOps(cfg.endpointUrl).catch(() => {});
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 12000);
     let res;
@@ -80,6 +91,7 @@ export async function syncFromSheets() {
     if (!res.ok) { setSyncStatus(false); return false; }
     const data = await res.json();
     if (!data.ok) { setSyncStatus(false); return false; }
+    const staleRead = isStaleTokenRead(tokenStamp);
 
     const today = dateKeyInTimezone(state.theme?.timezone || "UTC");
 
@@ -112,6 +124,12 @@ export async function syncFromSheets() {
         // a local true. A sheet that does carry the flag simply agrees; it can
         // never carry a false that has to win, because nothing ever unsets it.
         const prev = localByDay.get(key);
+        // The backend only returns this player's own rows, all of them sent
+        // by this player's backups. From a read that predates the latest
+        // confirmed backup, a row this device already has is at best equal
+        // to it and at worst older (a reaction or answer changed since), so
+        // keep the local row; rows we do not have yet are still welcome.
+        if (staleRead && prev) continue;
         if (prev && prev.bestanden && !next.bestanden) {
           next.bestanden = true;
           next.bestandenAt = prev.bestandenAt || null;
@@ -165,12 +183,19 @@ export async function syncFromSheets() {
       writeStreakCache(computeStreak());
     }
 
-    if (Array.isArray(data.favourites) && data.favourites.length) {
+    // Skipped for a stale read: favourites are this player's own list as
+    // last backed up, and an older copy can only re-add an un-star whose
+    // tombstone the confirmed backup has just cleared.
+    if (Array.isArray(data.favourites) && data.favourites.length && !staleRead) {
       const localFavs = readFavorites();
       const favsByDay = new Map(localFavs.map((e) => [`${e.day}|${e.token}`, e]));
+      // Un-starred here but maybe not yet on the sheet — see the tombstones
+      // in storage.js. The union must not put those back.
+      const unstarred = new Set(readFavoriteTombstones());
       for (const entry of data.favourites) {
         if (entry.day > today) continue;
         const normToken = typeof entry.token === "string" ? entry.token.toLowerCase() : entry.token;
+        if (unstarred.has(`${entry.day}|${normToken}`)) continue;
         favsByDay.set(`${entry.day}|${normToken}`, { ...entry, token: normToken });
       }
       writeFavorites(Array.from(favsByDay.values()).sort((a, b) => b.day.localeCompare(a.day)));
@@ -181,7 +206,9 @@ export async function syncFromSheets() {
       // holding tokens the sheet has not got. If so, push them now instead of
       // waiting for whatever the player happens to do next — that wait was how
       // an unsent token stayed unsent long enough to be lost.
-      if (applySharedTokens(data.tokens)) backupToSheets();
+      // A read older than the latest confirmed backup is not applied (and
+      // reports nothing unsent); the next sync brings a fresh copy.
+      if (applySharedTokens(data.tokens, tokenStamp)) backupToSheets();
     }
 
     if (typeof data.questPoints === "number" && data.questPoints > readQuestPoints()) {
@@ -244,9 +271,14 @@ export async function syncFromSheets() {
       try { applySharedStimmung(data.stimmung); } catch (_e) {}
     }
 
-    if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch")) {
-      const sorted = data.gipfelbuch
-        .filter((e) => e.id)
+    // Sheet-authoritative, with the pending ops (summits logged or deleted
+    // here but not yet confirmed by the sheet) laid on top — without them a
+    // summit logged offline was gone after the first sync past the grace
+    // period. A read that started before a gipfel POST was confirmed may not
+    // contain it, while its op has already left the queue, so that read is
+    // not applied; the grace period stays as a further cushion.
+    if (Array.isArray(data.gipfelbuch) && !withinGracePeriod("gipfelbuch") && !sheetReadIsStale("gipfelbuch", gipfelStamp)) {
+      const sorted = overlayPendingOps("gipfelbuch", data.gipfelbuch.filter((e) => e.id))
         .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       writeGipfelbuch(sorted);
     }
@@ -278,6 +310,9 @@ export function backupToSheets() {
     // Snapshotted before the POST goes out, and recorded only once the request
     // comes back, so a failed send leaves the tokens marked unsent.
     const tokensSent = readTokens();
+    // Likewise the un-starred favourites this backup's list already leaves
+    // out: once the sheet confirms it, they no longer need protecting.
+    const tombstonesSent = readFavoriteTombstones();
     const qs = readQuestState(() => currentQuestPeriod(state));
     const questLog = (qs.solved && qs.pointsEarned && !qs._logged) ? {
       challenge: currentChallenge(state),
@@ -311,11 +346,26 @@ export function backupToSheets() {
     // then are the tokens marked sent; a rejection (offline, blocked) leaves
     // the mark where it was, which is what keeps the next sync from treating
     // the sheet's older copy as the truth.
+    //
+    // A readable answer that says it did NOT save (HTTP error, or {ok:false}
+    // — e.g. "busy" when the script lock was taken) is treated like a
+    // rejection: moving the base then would make the next merge drop exactly
+    // the tokens that never arrived. The opaque no-cors answer still counts
+    // as sent, as before: leaving the base behind when the POST did land
+    // would count those tokens twice, which is the older, known trade-off.
+    // Favourite tombstones are only cleared on a readable {ok:true} — a
+    // lingering tombstone costs nothing, a cleared one too early resurrects
+    // an un-starred favourite.
     return fetch(cfg.endpointUrl, opts)
-      .then(() => { writeTokensSent(tokensSent); })
-      .catch(() =>
+      .then(async (res) => {
+        let json = null;
+        try { json = await res.json(); } catch (_j) { json = null; }
+        if (!res.ok || (json && json.ok === false)) return;
+        confirmTokensSent(tokensSent);
+        if (json && json.ok === true) clearFavoriteTombstones(tombstonesSent);
+      }, () =>
         fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" })
-          .then(() => { writeTokensSent(tokensSent); })
+          .then(() => { confirmTokensSent(tokensSent); })
           .catch(() => {})
       );
   } catch (_e) {}

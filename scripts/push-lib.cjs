@@ -67,6 +67,39 @@ async function fetchFeed(url, { attempts = 3, label = "feed" } = {}) {
   throw new TransientError(`${label}: ${last}`);
 }
 
+// The backend's admin key (BACKUP_ADMIN_KEY secret). Optional: a deployment
+// without ADMIN_KEY ignores it. An endpoint that wants one and doesn't get it
+// answers "unauthorised", which is a configuration fault, not a blip.
+function withKey(url) {
+  const key = process.env.BACKUP_ADMIN_KEY;
+  return key ? `${url}${url.includes("?") ? "&" : "?"}key=${encodeURIComponent(key)}` : url;
+}
+
+async function fetchAdminFeed(url, opts) {
+  const data = await fetchFeed(withKey(url), opts);
+  if (data && data.ok === false && data.error === "unauthorised") {
+    throw new AuthError(`${(opts && opts.label) || "feed"}: backend wants the admin key — set BACKUP_ADMIN_KEY`);
+  }
+  return data;
+}
+
+// Best-effort POST of a bookkeeping message (ack, unsubscribe). Returns the
+// parsed answer, or null when the backend could not be reached or is an
+// older deployment that does not know the type — callers carry on either way.
+async function postBackend(endpoint, payload, { attempts = 2 } = {}) {
+  const key = process.env.BACKUP_ADMIN_KEY;
+  const body = JSON.stringify(key ? { ...payload, key } : payload);
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body, redirect: "follow" });
+      const text = await res.text();
+      try { return JSON.parse(text); } catch (_e) { /* HTML error page */ }
+    } catch (_e) { /* network */ }
+    if (i < attempts) await sleep(i * 2000);
+  }
+  return null;
+}
+
 // Wraps a job body so the two failure classes get different exit codes.
 function run(main) {
   main().catch((err) => {
@@ -84,4 +117,4 @@ function run(main) {
   });
 }
 
-module.exports = { TransientError, AuthError, requireEnv, warn, fetchFeed, run, sleep };
+module.exports = { TransientError, AuthError, requireEnv, warn, fetchFeed, fetchAdminFeed, postBackend, withKey, run, sleep };

@@ -5,7 +5,7 @@ import { armConfirm } from "./confirm.js";
 import { showToast } from "./toast.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
-import { markRecentWrite } from "./sheetSync.js";
+import { markRecentWrite, queueSheetOp, flushSheetOps } from "./sheetSync.js";
 
 export function elevationAnalogy(m) {
   if (!m || m <= 0) return null;
@@ -111,12 +111,22 @@ export function extractAllTrailsEmbed(url) {
   return slug ? cleanParams(`https://www.alltrails.com/widget/${slug}?scrollZoom=false&u=m`) : null;
 }
 
+// Same queue as the Glossar (see sheetSync.js): the write is recorded as a
+// pending op before it is sent, and stays queued until Apps Script answers
+// {ok:true}. A fire-and-forget POST meant a summit logged without signal was
+// deleted by the next sync, and a delete that failed brought the entry back.
+// syncFromSheets lays the queue over the sheet's copy and re-sends it.
 export function postGipfelToSheet(type, payload) {
+  const isDelete = type === "gipfel-delete";
+  queueSheetOp("gipfelbuch", {
+    kind: isDelete ? "delete" : "upsert",
+    id: payload && payload.id,
+    entry: isDelete ? null : payload,
+    body: { type, ...payload }
+  });
   const cfg = state.backup;
-  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-  const body = JSON.stringify({ type, ...payload });
-  const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
-  fetch(cfg.endpointUrl, opts).catch(() => fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}));
+  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return Promise.resolve(0);
+  return flushSheetOps("gipfelbuch", cfg.endpointUrl).catch(() => 0);
 }
 
 export function addGipfelEntry(entry) {

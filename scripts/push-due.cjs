@@ -17,7 +17,7 @@
 //   BACKUP_ENDPOINT=https://script.google.com/…/exec \
 //   node scripts/push-due.cjs
 const webpush = require("web-push");
-const { requireEnv, fetchFeed, run, warn, AuthError } = require("./push-lib.cjs");
+const { requireEnv, fetchAdminFeed, postBackend, run, warn, AuthError } = require("./push-lib.cjs");
 
 requireEnv(["VAPID_PUBLIC", "VAPID_PRIVATE", "BACKUP_ENDPOINT"]);
 const { VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT, BACKUP_ENDPOINT } = process.env;
@@ -54,7 +54,7 @@ function hash(str) {
 }
 
 async function subsFor(token) {
-  const data = await fetchFeed(
+  const data = await fetchAdminFeed(
     `${BACKUP_ENDPOINT}?feed=push-subs&for=${encodeURIComponent(token)}`,
     { label: `push-subs(${token})` }
   );
@@ -62,7 +62,9 @@ async function subsFor(token) {
 }
 
 run(async () => {
-  const data = await fetchFeed(`${BACKUP_ENDPOINT}?feed=push-due`, { label: "push-due" });
+  // mode=ack: the backend marks a reminder as sent only once we confirm it,
+  // so a run that cannot reach the push service tries again next hour.
+  const data = await fetchAdminFeed(`${BACKUP_ENDPOINT}?feed=push-due&mode=ack`, { label: "push-due" });
   const due = (data && data.due) || [];
   if (!due.length) {
     console.log(`Nobody due${data && data.reason ? ` (${data.reason})` : ""}.`);
@@ -70,8 +72,10 @@ run(async () => {
   }
 
   let sent = 0, gone = 0, failed = 0, authFailed = 0;
+  const dead = new Set();
   for (const item of due) {
     const subs = await subsFor(item.token);
+    const sentBefore = sent;
     if (!subs.length) {
       console.log(`${item.token}: due (${item.kind}) but no subscribed device.`);
       continue;
@@ -86,7 +90,7 @@ run(async () => {
         // 404/410 mean the browser threw the subscription away (app deleted,
         // permission revoked). Not an error worth failing the run over.
         const status = err && err.statusCode;
-        if (status === 404 || status === 410) gone++;
+        if (status === 404 || status === 410) { gone++; dead.add(entry.subscription && entry.subscription.endpoint); }
         else {
           failed++;
           if (status === 401 || status === 403) authFailed++;
@@ -94,7 +98,11 @@ run(async () => {
         }
       }
     }
+    // Confirmed once it reached at least one device; otherwise the next
+    // hourly run inside the window tries again.
+    if (sent > sentBefore) await postBackend(BACKUP_ENDPOINT, { type: "push-due-ack", token: item.token, kind: item.kind, day: item.day });
   }
+  for (const endpoint of dead) if (endpoint) await postBackend(BACKUP_ENDPOINT, { type: "push-unsubscribe", endpoint });
   console.log(`sent ${sent}, expired ${gone}, failed ${failed}`);
 
   // This used to be `if (failed) process.exitCode = 1`, so one browser refusing

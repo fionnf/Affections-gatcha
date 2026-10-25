@@ -10,6 +10,31 @@ export function _getAudioCtx() {
   return _audioCtx;
 }
 
+// iOS Safari only lets a page make sound from an AudioContext that was
+// created or resumed inside a user gesture. The pull sound plays from a
+// timer 3 s after the tap, so on iPhone it could stay silent for good. The
+// first touch anywhere wakes the context, and later sounds reuse it.
+function unlockAudio() {
+  const ctx = _getAudioCtx();
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const src = ctx.createBufferSource();
+    src.buffer = ctx.createBuffer(1, 1, 22050);
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch (_) {}
+}
+if (typeof document !== "undefined" && document.addEventListener) {
+  const once = () => {
+    unlockAudio();
+    document.removeEventListener("pointerdown", once, true);
+    document.removeEventListener("touchend", once, true);
+  };
+  document.addEventListener("pointerdown", once, true);
+  document.addEventListener("touchend", once, true);
+}
+
 export function soundEnabled() {
   try { return window.localStorage.getItem(SOUND_KEY) !== "off"; } catch (_) { return true; }
 }

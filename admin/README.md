@@ -1,6 +1,6 @@
 # Fionn: Eingänge
 
-Fionn's side of the machine: a small PIN-gated page at **`/fionn-gacha.html`**
+Fionn's side of the machine: a small key-gated page at **`/fionn-gacha.html`**
 (the file name is historical — it was his gacha once, and the installed
 home-screen app still points there).
 
@@ -26,17 +26,19 @@ the device.
 
 ## Setup (one-time)
 
-### 1. Set the PIN
-The page is gated by a PIN. Generate a hash and paste it into
-`config/admin.json`:
+### 1. Set the key
+The real lock is on the backend. In the Apps Script editor → Project
+Settings → Script Properties, add `ADMIN_KEY` with a long random passphrase
+(e.g. `openssl rand -base64 24`). From then on the activity feed, wish
+replies, Stups and the push feeds refuse any request without it. Type it once
+into the gate on each of Fionn's devices; it is kept in that browser. Put the
+same value into the GitHub secret `BACKUP_ADMIN_KEY` so the push jobs keep
+working.
 
-```bash
-node scripts/hash-admin-pin.cjs <your-pin>
-# → prints { "salt": "...", "pinHash": "..." }
-```
-
-Put `salt` and `pinHash` into `config/admin.json`. **Do not commit the PIN
-itself.** (The default shipped PIN is a placeholder — change it.)
+Without `ADMIN_KEY` the gate falls back to the PIN in `config/admin.json`
+(`node scripts/hash-admin-pin.cjs <pin>` prints the salt and hash). That hash
+is public and a short PIN falls to it in seconds, so treat the PIN as a
+curtain, not a lock.
 
 ### 2. The backend
 Everything here talks to the Apps Script in `scripts/backup-apps-script.js`
@@ -68,5 +70,5 @@ Or just this one: `npm run build:admin`.
 - The app's own `sw.js` serves this page too; there is no separate worker
 - `fionn.html` — redirect kept for old bookmarks and installed PWAs
 - `admin/*.js` — source (entry `admin/main.js`)
-- `config/admin.json` — PIN hash + poll interval
+- `config/admin.json` — fallback PIN hash + poll interval
 - `vite.config.admin.js` — build config for this bundle

@@ -35,6 +35,10 @@ In the GitHub repo → Settings → Secrets and variables → Actions:
 - `VAPID_PUBLIC` — must match `config/push.json`'s `vapidPublicKey`.
 - `VAPID_SUBJECT` — `mailto:your-email`.
 - `BACKUP_ENDPOINT` — the Apps Script `…/exec` URL.
+- `BACKUP_ADMIN_KEY` — the same passphrase as the Script Property
+  `ADMIN_KEY` (see the README, *Fionn's Eingänge*). Optional until that
+  property is set; once it is, the push feeds refuse requests without it and
+  the jobs fail loudly saying so.
 
 **Variable** (not a secret): `PUSH_ENABLED` = `true` — this gates the workflow.
 
@@ -57,8 +61,15 @@ existing install nudge covers this) — Safari tabs can't receive push.
   instant. For instant delivery, point Apps Script's hug handler at a tiny
   always-on signer (Cloudflare Worker running `web-push`) instead of polling —
   everything server-side is already in place for that.
-- Expired subscriptions (410/404) are logged and self-heal: the device
-  re-subscribes next time the app opens.
+- Expired subscriptions (410/404) are removed from the sheet by the job that
+  hit them; the device re-subscribes next time the app opens.
+- **Nothing is marked sent until it was sent.** The jobs read the pending
+  hugs/wishes and due reminders with `mode=ack` and confirm afterwards
+  (`push-ack`, `push-due-ack`). A run that dies halfway resends the rest on
+  the next run instead of dropping it. The pointer follows the server's own
+  receive time (column I of `Wünsche`), so a wish retried hours after it was
+  written is still pushed, and a phone with its clock set ahead cannot push
+  the pointer into the future.
 - **A failing run does not always mean something is wrong.** Apps Script
   intermittently answers a GET with an HTML error page; the jobs retry three
   times, then warn and finish green rather than mailing you about a blip they

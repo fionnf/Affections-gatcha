@@ -4,6 +4,7 @@
 import { state } from "./state.js";
 import { LAST_SEEN_KEY, NOTIF_KEY } from "./constants.js";
 import { fetchActivity, tsOf } from "./inbox.js";
+import { adminKey } from "./auth.js";
 
 let swReg = null;
 let pollTimer = null;
@@ -79,7 +80,8 @@ export async function subscribeToPush() {
     if (!sub) {
       sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(cfg.vapidPublicKey) });
     }
-    const body = JSON.stringify({ type: "push-subscribe", token: "fionn", subscription: sub.toJSON() });
+    const key = adminKey();
+    const body = JSON.stringify({ type: "push-subscribe", token: "fionn", subscription: sub.toJSON(), ...(key ? { key } : {}) });
     const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
     await fetch(endpoint, opts).catch(() => fetch(endpoint, { ...opts, mode: "no-cors" }));
     return true;

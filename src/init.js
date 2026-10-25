@@ -100,6 +100,11 @@ export async function init() {
       }
     } catch (_error) {}
     registerServiceWorker();
+    // Ask the browser to keep this origin's storage. Everything the app
+    // remembers lives in localStorage; without this a browser short on space
+    // (or Safari's tidy-up of unused sites) may clear it. The Sheet restores
+    // most of it, but not all — local-only things like the weather would go.
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (_e) {}
     // iOS keeps an installed web app alive in the background for days. Resumed
     // the next morning, nothing here knew the date had changed: yesterday's
     // capsule stayed revealed, the button still said "Heute nochmal anzeigen",
