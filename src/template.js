@@ -693,7 +693,7 @@ export const html = `
               </div>
               <div class="ag-licht-moods" data-ag-licht-moods></div>
               <div class="ag-licht-save" data-ag-licht-save>
-                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="So wie jetzt — als Szene sichern…" maxlength="32" autocomplete="off" disabled>
+                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="Name der Szene" maxlength="32" autocomplete="off" disabled>
                 <button class="ag-secondary" type="button" data-ag-licht-scene-save disabled>Sichern</button>
               </div>
               <div class="ag-licht-scenes" data-ag-licht-scenes hidden>
