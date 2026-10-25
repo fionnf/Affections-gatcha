@@ -1536,18 +1536,37 @@ export function bindEvents() {
   }
 
   // ── Swipe left/right to switch tabs ─────────────────────────────────────────
-  const tabOrder = ["today", "history", "lieblinge", "berge"];
-  let _swipeX = 0, _swipeY = 0;
+  // Not when the finger started on something that is dragged sideways by
+  // design: a slider, the colour bar, the knob, a map, a text field. Dragging
+  // the lamp brightness used to flip the app to the next tab.
+  const NO_SWIPE = "input, textarea, select, canvas, [role=slider], [data-ag-noswipe], .leaflet-container, .ag-licht-palette, .ag-licht-strip, .ag-licht-lamps, [data-ag-morse-pad]";
+  const scrollsSideways = (el) => {
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 2) {
+        const ox = getComputedStyle(n).overflowX;
+        if (ox === "auto" || ox === "scroll") return true;
+      }
+    }
+    return false;
+  };
+  // Same order as the tab bar. Licht was missing, so in the Licht tab every
+  // sideways drag (a slider included) read as index -1 and jumped to Heute.
+  const tabOrder = ["today", "history", "lieblinge", "berge", "licht"];
+  let _swipeX = 0, _swipeY = 0, _swipeOff = false;
   const _swipeTarget = $(".ag-content") || mount;
   _swipeTarget.addEventListener("touchstart", (e) => {
     _swipeX = e.touches[0].clientX;
     _swipeY = e.touches[0].clientY;
+    const t = e.target instanceof Element ? e.target : null;
+    _swipeOff = e.touches.length > 1 || !!(t && (t.closest(NO_SWIPE) || scrollsSideways(t)));
   }, { passive: true });
   _swipeTarget.addEventListener("touchend", (e) => {
+    if (_swipeOff) { _swipeOff = false; return; }
     const dx = e.changedTouches[0].clientX - _swipeX;
     const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
     if (Math.abs(dx) > 52 && dy < 44) {
       const cur = tabOrder.indexOf(state.activeTab);
+      if (cur === -1) return;
       const next = dx < 0 ? Math.min(cur + 1, tabOrder.length - 1) : Math.max(cur - 1, 0);
       if (next !== cur) { haptic(6); setActiveTab(tabOrder[next]); }
     }
@@ -1557,6 +1576,9 @@ export function bindEvents() {
   const ptr = $("[data-ag-ptr]");
   let _ptrStartY = 0, _ptrTriggered = false;
   document.addEventListener("touchstart", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    // A vertical drag on a slider or the colour bar is not a refresh.
+    if (t && t.closest(NO_SWIPE)) { _ptrStartY = 0; return; }
     if (window.scrollY === 0) _ptrStartY = e.touches[0].clientY;
   }, { passive: true });
   document.addEventListener("touchmove", (e) => {

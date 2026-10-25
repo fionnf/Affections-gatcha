@@ -1,0 +1,96 @@
+name: Deploy Apps Script
+
+# Pushes the Apps Script sources in scripts/ to their Google projects and
+# moves the live web-app deployment onto the new code — same /exec URL, so
+# nothing in config/ changes. Until now every backend change waited for
+# someone to paste the file into the editor and click through a redeploy,
+# and a fix that sat in the repo for weeks looked deployed when it wasn't.
+#
+# Does nothing until its secrets exist (see "Deploying the Apps Script" in
+# PUSH-SETUP.md):
+#   CLASPRC_JSON                — ~/.clasprc.json after `npx @google/clasp login`
+#   GAS_BACKUP_SCRIPT_ID        — backup-apps-script.js project (Project Settings → IDs)
+#   GAS_BACKUP_DEPLOYMENT_ID    — its web-app deployment (Deploy → Manage deployments)
+#   GAS_WISH_SCRIPT_ID          — optional: google-apps-script-wish-inbox.js project
+#   GAS_WISH_DEPLOYMENT_ID      — optional: its deployment
+#
+# The project ends up holding exactly the repo file (plus its own manifest,
+# which is read back first and left as it is): whatever else is pasted into
+# that project in the editor is replaced.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "scripts/backup-apps-script.js"
+      - "scripts/google-apps-script-wish-inbox.js"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-apps-script
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - name: backup
+            file: scripts/backup-apps-script.js
+            script_secret: GAS_BACKUP_SCRIPT_ID
+            deploy_secret: GAS_BACKUP_DEPLOYMENT_ID
+          - name: wish-inbox
+            file: scripts/google-apps-script-wish-inbox.js
+            script_secret: GAS_WISH_SCRIPT_ID
+            deploy_secret: GAS_WISH_DEPLOYMENT_ID
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check configuration
+        id: cfg
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets[matrix.script_secret] }}
+          DEPLOYMENT_ID: ${{ secrets[matrix.deploy_secret] }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ] || [ -z "$SCRIPT_ID" ] || [ -z "$DEPLOYMENT_ID" ]; then
+            echo "::notice::${{ matrix.name }}: secrets not set, skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Syntax check
+        if: steps.cfg.outputs.skip != 'true'
+        run: node --check "${{ matrix.file }}"
+
+      - name: Push and redeploy
+        if: steps.cfg.outputs.skip != 'true'
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets[matrix.script_secret] }}
+          DEPLOYMENT_ID: ${{ secrets[matrix.deploy_secret] }}
+          SRC: ${{ matrix.file }}
+        run: |
+          set -euo pipefail
+          npm install -g @google/clasp@3.4.1 >/dev/null
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          mkdir -p "$RUNNER_TEMP/gas" && cd "$RUNNER_TEMP/gas"
+          printf '{"scriptId":"%s","rootDir":"."}' "$SCRIPT_ID" > .clasp.json
+          # Read the live project back first: its manifest (time zone,
+          # scopes, web-app access) is kept exactly as it is.
+          clasp pull
+          test -f appsscript.json
+          find . -maxdepth 1 -type f \( -name '*.js' -o -name '*.gs' \) -delete
+          cp "$GITHUB_WORKSPACE/$SRC" Code.js
+          clasp push --force
+          clasp redeploy "$DEPLOYMENT_ID" --description "${GITHUB_SHA::9}"
+          rm -f "$HOME/.clasprc.json"

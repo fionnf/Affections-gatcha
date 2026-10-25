@@ -2651,9 +2651,20 @@ body{
 .ag-widget .ag-licht-power:disabled{opacity:.45;cursor:default}
 .ag-widget .ag-licht-slider{flex:1;display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:var(--ag-muted)}
 .ag-widget .ag-licht-slider input{width:100%;accent-color:var(--ag-gold);margin:0}
+/* Sliders: a finger-sized thumb on a slim track. pan-y keeps the page
+   scrollable over them while a sideways drag stays with the slider. */
+.ag-widget .ag-licht-slider input[type=range]{-webkit-appearance:none;appearance:none;height:30px;background:transparent;touch-action:pan-y;cursor:pointer}
+.ag-widget .ag-licht-slider input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(to right,var(--ag-gold) var(--ag-fill,50%),rgba(255,255,255,.16) var(--ag-fill,50%))}
+.ag-widget .ag-licht-slider input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:rgba(255,255,255,.16)}
+.ag-widget .ag-licht-slider input[type=range]::-moz-range-progress{height:6px;border-radius:999px;background:var(--ag-gold)}
+.ag-widget .ag-licht-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:#fbf4e2;border:0;box-shadow:0 2px 8px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.06);transition:transform 140ms ease}
+.ag-widget .ag-licht-slider input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fbf4e2;border:0;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.ag-widget .ag-licht-slider input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
+.ag-widget .ag-licht-slider input[type=range]:disabled{opacity:.45;cursor:default}
 /* The palette bar: the firmware's 30 tints, tap to set. */
 .ag-widget .ag-licht-palette{
-  position:relative;height:30px;border-radius:999px;cursor:pointer;outline:none;
+  position:relative;height:34px;border-radius:999px;cursor:pointer;outline:none;
+  touch-action:none;-webkit-user-select:none;user-select:none;
   background:linear-gradient(to right,rgb(255,200,80) 0%,rgb(255,60,0) 10%,rgb(255,0,140) 20%,rgb(80,0,255) 31%,rgb(0,140,255) 41%,rgb(0,255,160) 52%,rgb(80,255,0) 62%,rgb(255,240,0) 72%,rgb(255,80,160) 83%,rgb(0,180,180) 93%,rgb(255,220,120) 100%);
   border:1px solid rgba(255,255,255,.12);
 }

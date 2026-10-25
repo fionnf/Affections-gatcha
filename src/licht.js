@@ -233,6 +233,33 @@ function setConn(next) {
   renderLichtPanel();
 }
 
+// Whether a tap can reach the lamps now or once the socket is (back) up.
+// Controls used to be disabled for anything but "connected", so every brief
+// reconnect on the public broker — and the second or two after opening the
+// tab — swallowed taps without a word. The lights page simply keeps one
+// socket open; here the change waits in the outbox and goes out on connect.
+function live() {
+  return conn === "connected" || conn === "connecting" || (conn === "error" && !!client);
+}
+
+// Changes made while the socket is not up, newest last. A slider dragged
+// offline would queue dozens of steps; only the latest of each shape counts.
+let outbox = [];
+const OUTBOX_MAX = 8;
+function enqueue(payload) {
+  const shape = Object.keys(payload).sort().join(",");
+  outbox = outbox.filter((p) => Object.keys(p).sort().join(",") !== shape);
+  outbox.push(payload);
+  if (outbox.length > OUTBOX_MAX) outbox = outbox.slice(-OUTBOX_MAX);
+}
+function flushOutbox() {
+  if (!client || !client.connected || !outbox.length) return;
+  const queued = outbox;
+  outbox = [];
+  holdUntil = Date.now() + HOLD_MS;
+  for (const p of queued) publishRaw(p);
+}
+
 // One client at a time. A generation counter guards every handler: after a
 // disconnect (tap on the status, app backgrounded) a late event from the old
 // socket must not flip the state of the new one. The promise only covers the
@@ -272,6 +299,7 @@ function connect() {
       for (const b of BOARDS) comeback[b.id] = true;
       publishRaw({ nudge: true });
       setConn("connected");
+      flushOutbox();
       settle(true);
     });
     c.on("message", (t, m) => { if (mine()) onMessage(t, m); });
@@ -299,6 +327,7 @@ export function disconnectLicht() {
   stopRainbow({ restore: live });
   generation++;
   connecting = null;
+  outbox = [];
   if (client) { try { client.end(!restoring); } catch (_e) {} }
   client = null; conn = "idle"; connectedAt = 0;
   if (nudgeTimer) { clearInterval(nudgeTimer); nudgeTimer = null; }
@@ -416,11 +445,20 @@ function send(payload, target = sendTarget || null) {
     if (isWhite(payload)) forgetColour(ids);
     else for (const id of ids) rememberColour(id, lamps[id]);
   }
-  const ok = publishRaw(target ? { ...payload, target } : payload);
-  if (!ok) showToast("Keine Verbindung zu den Lampen");
+  const out = target ? { ...payload, target } : payload;
+  let ok = publishRaw(out);
+  if (!ok) {
+    // Not up yet (tab just opened, or a reconnect on the public broker):
+    // keep it for the moment the socket is back instead of dropping it.
+    enqueue(out);
+    if (!client && !connecting) connect().catch(() => {});
+    if (Date.now() - queuedToastAt > 4000) { queuedToastAt = Date.now(); showToast("💡 Kommt an, sobald die Lampen verbunden sind"); }
+    ok = true;
+  }
   renderLichtPanel();
   return ok;
 }
+let queuedToastAt = 0;
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 function anyOn() { return BOARDS.some((b) => lamps[b.id] && lamps[b.id].on); }
@@ -840,8 +878,29 @@ export function setSunrise({ enabled, time, days, retarget = false } = {}) {
 }
 
 // ── Panel ────────────────────────────────────────────────────────────────────
+// A slider sends while it moves — at most every `ms`, and always its final
+// value. The debounce it had sent nothing until the thumb stopped, so a slow
+// drag looked dead and a quick one jumped.
+function throttled(fn, ms) {
+  let last = 0, timer = null, pending;
+  return (v) => {
+    pending = v;
+    const wait = ms - (Date.now() - last);
+    clearTimeout(timer);
+    if (wait <= 0) { last = Date.now(); fn(pending); }
+    else timer = setTimeout(() => { last = Date.now(); fn(pending); }, wait);
+  };
+}
+
+// The filled part of a slider's track (WebKit has no ::range-progress).
+function paintFill(input) {
+  if (!input) return;
+  const min = Number(input.min) || 0, max = Number(input.max) || 100;
+  const pct = ((Number(input.value) - min) / ((max - min) || 1)) * 100;
+  input.style.setProperty("--ag-fill", `${Math.max(0, Math.min(100, pct))}%`);
+}
+
 let bound = false;
-let brightnessTimer = null;
 
 export function openLicht() {
   renderLichtPanel();
@@ -855,12 +914,14 @@ function bindLichtPanel() {
   bound = true;
   const power = $("[data-ag-licht-power]");
   if (power) power.addEventListener("click", () => setPower(!anyOn()));
+  const panelEl = $("[data-ag-panel-licht]");
+  if (panelEl) panelEl.addEventListener("input", (e) => { if (e.target && e.target.type === "range") paintFill(e.target); });
   const slider = $("[data-ag-licht-brightness]");
   if (slider) {
+    const sendBrightness = throttled((v) => setBrightness(v), 140);
     slider.addEventListener("input", () => {
       holdUntil = Date.now() + HOLD_MS;
-      clearTimeout(brightnessTimer);
-      brightnessTimer = setTimeout(() => setBrightness(Number(slider.value) / 100), 120);
+      sendBrightness(Number(slider.value) / 100);
     });
   }
   const palette = $("[data-ag-licht-palette]");
@@ -932,12 +993,12 @@ function bindLichtPanel() {
     const endPress = (e) => {
       clearTimeout(pressTimer); pressTimer = null;
       if (pulsed) { stopPulse(); pulsed = false; }
-      else if (pressed && conn === "connected") toggleLamp(pressed);
+      else if (pressed && live()) toggleLamp(pressed);
       pressed = null;
     };
     lampsEl.addEventListener("pointerdown", (e) => {
       const b = e.target.closest("[data-lamp]");
-      if (!b || conn !== "connected") return;
+      if (!b || !live()) return;
       e.preventDefault();
       pressed = b.dataset.lamp; pulsed = false;
       try { b.setPointerCapture(e.pointerId); } catch (_e) {}
@@ -947,19 +1008,18 @@ function bindLichtPanel() {
     lampsEl.addEventListener("pointercancel", () => { clearTimeout(pressTimer); pressTimer = null; if (pulsed) { stopPulse(); pulsed = false; } pressed = null; });
   }
   const fade = $("[data-ag-licht-fade]");
-  let fadeTimer = null;
+  const sendFade = throttled((v) => setFade(v), 180);
   if (fade) fade.addEventListener("input", () => {
     holdUntil = Date.now() + HOLD_MS;
     const v = $("[data-ag-licht-fade-val]");
     if (v) v.textContent = `${(Number(fade.value) / 60).toFixed(1).replace(".", ",")} s`;
-    clearTimeout(fadeTimer);
-    fadeTimer = setTimeout(() => setFade(Number(fade.value)), 160);
+    sendFade(Number(fade.value));
   });
   // Groups: a tap between two lights cuts or joins, a tap on a light picks
   // its group, the chips do the same, + and − split and merge.
   const strip = $("[data-ag-licht-strip]");
   if (strip) strip.addEventListener("click", (e) => {
-    if (conn !== "connected") return;
+    if (!live()) return;
     const cut = e.target.closest("[data-cut]");
     if (cut) { cutAt(Number(cut.dataset.cut)); return; }
     const led = e.target.closest("[data-led]");
@@ -968,17 +1028,16 @@ function bindLichtPanel() {
   const groupsEl = $("[data-ag-licht-groups]");
   if (groupsEl) groupsEl.addEventListener("click", (e) => {
     const b = e.target.closest("button");
-    if (!b || conn !== "connected") return;
+    if (!b || !live()) return;
     if (b.dataset.group !== undefined) { selectGroup(b.dataset.group === "all" ? null : Number(b.dataset.group)); haptic(4); }
     else if (b.dataset.split !== undefined) splitSelected();
     else if (b.dataset.merge !== undefined) mergeSelected();
   });
   const white = $("[data-ag-licht-white]");
-  let whiteTimer = null;
+  const sendWhite = throttled((v) => setWhite(v), 140);
   if (white) white.addEventListener("input", () => {
     holdUntil = Date.now() + HOLD_MS;
-    clearTimeout(whiteTimer);
-    whiteTimer = setTimeout(() => setWhite(Number(white.value) / 100), 120);
+    sendWhite(Number(white.value) / 100);
   });
   const random = $("[data-ag-licht-random]");
   if (random) random.addEventListener("click", playRandom);
@@ -1100,7 +1159,7 @@ export function renderLichtPanel() {
     chips.push(`<button type="button" data-merge class="ag-licht-group ag-licht-group-op" title="Gruppen verbinden" ${groups.length < 2 ? "disabled" : ""}>−</button>`);
     const html = chips.join("");
     if (groupsEl.dataset.html !== html) { groupsEl.innerHTML = html; groupsEl.dataset.html = html; }
-    for (const b of groupsEl.querySelectorAll("button")) if (!b.hasAttribute("disabled") || b.dataset.group !== undefined) b.disabled = conn !== "connected" || (b.dataset.split !== undefined && groups.length >= MAX_GROUPS) || (b.dataset.merge !== undefined && groups.length < 2);
+    for (const b of groupsEl.querySelectorAll("button")) if (!b.hasAttribute("disabled") || b.dataset.group !== undefined) b.disabled = !live() || (b.dataset.split !== undefined && groups.length >= MAX_GROUPS) || (b.dataset.merge !== undefined && groups.length < 2);
   }
 
   const power = $("[data-ag-licht-power]");
@@ -1108,13 +1167,14 @@ export function renderLichtPanel() {
     power.setAttribute("aria-pressed", on ? "true" : "false");
     power.classList.toggle("is-on", on);
     power.textContent = on ? "An" : "Aus";
-    power.disabled = conn !== "connected";
+    power.disabled = !live();
   }
   const slider = $("[data-ag-licht-brightness]");
   if (slider && Date.now() >= holdUntil && ref && typeof ref.brightness === "number") {
     slider.value = String(Math.round(ref.brightness * 100));
+    paintFill(slider);
   }
-  if (slider) slider.disabled = conn !== "connected";
+  if (slider) slider.disabled = !live();
   const palette = $("[data-ag-licht-palette]");
   const shown = groups[selectedGroup !== null ? selectedGroup : 0];
   if (palette && shown) {
@@ -1125,8 +1185,8 @@ export function renderLichtPanel() {
     palette.setAttribute("aria-label", selectedGroup !== null ? `Farbe von Gruppe ${selectedGroup + 1}` : "Farbe");
   }
   const white = $("[data-ag-licht-white]");
-  if (white && shown && Date.now() >= holdUntil) white.value = String(Math.round((Number(shown.w) || 0) * 100));
-  if (white) white.disabled = conn !== "connected";
+  if (white && shown && Date.now() >= holdUntil) { white.value = String(Math.round((Number(shown.w) || 0) * 100)); paintFill(white); }
+  if (white) white.disabled = !live();
   const whiteLabel = $("[data-ag-licht-white-label]");
   if (whiteLabel) whiteLabel.textContent = selectedGroup !== null ? `Weissanteil · Gruppe ${selectedGroup + 1}` : "Weissanteil";
   const flickerBtn = panel.querySelector("[data-ag-licht-flicker]");
@@ -1139,7 +1199,7 @@ export function renderLichtPanel() {
     rainbowBtn.classList.toggle("is-active", !!rainbow);
     rainbowBtn.textContent = rainbow ? "🌈 Regenbogen aus" : "🌈 Regenbogen";
   }
-  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-rainbow], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = conn !== "connected";
+  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-rainbow], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = !live();
   const sr = findSunrise(alarms);
   const srTime = $("[data-ag-sunrise-time]");
   const srDays = $("[data-ag-sunrise-days]");
@@ -1169,6 +1229,7 @@ export function renderLichtPanel() {
   const fade = $("[data-ag-licht-fade]");
   if (fade && Date.now() >= holdUntil && ref && typeof ref.fade_steps === "number") {
     fade.value = String(Math.round(ref.fade_steps));
+    paintFill(fade);
     const v = $("[data-ag-licht-fade-val]");
     if (v) v.textContent = `${(ref.fade_steps / 60).toFixed(1).replace(".", ",")} s`;
   }
@@ -1180,7 +1241,7 @@ export function renderLichtPanel() {
     const html = scenes.slice(0, 12).map((s) => {
       const groups = scenePayload(s).groups;
       const dots = groups.slice(0, 5).map((g) => { const [r, gg, b] = groupRgb(g); return `<i style="background:rgb(${r},${gg},${b})"></i>`; }).join("");
-      return `<button type="button" class="ag-licht-scene" data-scene="${esc(s.id)}"${conn !== "connected" ? " disabled" : ""}><span class="ag-licht-scene-dots" aria-hidden="true">${dots}</span><span>${esc(s.name)}</span></button>`;
+      return `<button type="button" class="ag-licht-scene" data-scene="${esc(s.id)}"${!live() ? " disabled" : ""}><span class="ag-licht-scene-dots" aria-hidden="true">${dots}</span><span>${esc(s.name)}</span></button>`;
     }).join("");
     // Same guard as the lamp pills: every echo re-renders, and a button
     // replaced between pointerdown and pointerup swallows the tap.

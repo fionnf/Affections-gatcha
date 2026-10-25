@@ -87,3 +87,30 @@ existing install nudge covers this) — Safari tabs can't receive push.
   attention: **07:00–10:00** for the morning nudge, **20:00–23:00** for the
   streak warning. Each fires at most once per player per day, so a cron that
   GitHub delays — or runs twice — can't double-send.
+
+## Deploying the Apps Script from GitHub
+
+`.github/workflows/deploy-apps-script.yml` pushes `scripts/backup-apps-script.js`
+(and the wish-inbox script) to their Google projects whenever they change on
+`master`, and moves the existing web-app deployment onto the new code — the
+`/exec` URL stays the same. One-time setup:
+
+1. Turn on the Apps Script API for your Google account:
+   <https://script.google.com/home/usersettings> → *Google Apps Script API* → On.
+2. On your computer: `npx @google/clasp@3.4.1 login`. It opens the browser,
+   then writes `~/.clasprc.json`. Paste that file's whole content into the
+   GitHub secret `CLASPRC_JSON`. It is a login to your Google account — keep
+   it in the secret only, never in the repo.
+3. In the Apps Script editor: *Project Settings* → copy the **Script ID** into
+   `GAS_BACKUP_SCRIPT_ID`; *Deploy → Manage deployments* → copy the active web
+   app's **Deployment ID** into `GAS_BACKUP_DEPLOYMENT_ID`. Same for the
+   wish-inbox project (`GAS_WISH_SCRIPT_ID`, `GAS_WISH_DEPLOYMENT_ID`) if it is
+   still deployed separately.
+4. *Actions → Deploy Apps Script → Run workflow* once to check it.
+
+The project ends up holding exactly the repo file; its manifest is read back
+and kept. Script Properties (`ADMIN_KEY`, the push pointer) live outside the
+code and are untouched. A new scope (the first time the weekly snapshot needs
+Drive) still needs one manual run of `installSnapshotTrigger` in the editor to
+grant it.
+
