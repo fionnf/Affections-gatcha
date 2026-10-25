@@ -693,7 +693,7 @@ export const html = `
               </div>
               <div class="ag-licht-moods" data-ag-licht-moods></div>
               <div class="ag-licht-save" data-ag-licht-save>
-                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="So wie jetzt — als Szene sichern…" maxlength="32" autocomplete="off" disabled>
+                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="Name der Szene" maxlength="32" autocomplete="off" disabled>
                 <button class="ag-secondary" type="button" data-ag-licht-scene-save disabled>Sichern</button>
               </div>
               <div class="ag-licht-scenes" data-ag-licht-scenes hidden>
@@ -735,6 +735,14 @@ export const html = `
               <span class="ag-switch" aria-hidden="true"></span>
               <span class="ag-setting-text"><strong>💡 Lampen reagieren auf die App</strong><small>Kapselzug, Reaktion, Notfall-Umarmung. Aus: die Lampen bleiben ruhig. Licht-Tab und Kerze bleiben.</small></span>
             </label>
+            <div class="ag-setting-backup">
+              <span class="ag-setting-text"><strong>💾 Sicherung</strong><small>Alles, was die App sich merkt, als eine Datei — für ein neues Handy, oder einfach zum Aufheben.</small></span>
+              <div class="ag-setting-actions">
+                <button class="ag-secondary" type="button" data-ag-backup-export>Sichern</button>
+                <button class="ag-secondary" type="button" data-ag-backup-import>Zurückholen</button>
+                <input type="file" accept="application/json,.json" data-ag-backup-file hidden>
+              </div>
+            </div>
           </div>
           <p class="ag-sync-status" data-ag-sync-status hidden></p>
         </div>

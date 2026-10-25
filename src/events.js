@@ -19,6 +19,7 @@ import { renderHistory, renderStreak, renderStreakRestore, renderLieblinge, rend
 import { bindKnob } from "./knopf.js";
 import { closeKursPanel } from "./kurs.js";
 import { bindLightReactionsToggle } from "./einstellungen.js";
+import { bindSicherung } from "./sicherung.js";
 import { playClink } from "./sound.js";
 import { lightCandle, blowOut, candleLit } from "./kerze.js";
 import { bindPinch, flyCardToStar } from "./kneifen.js";
@@ -277,7 +278,7 @@ export function sendWishToInbox(wish) {
 
 export function retryPendingWishSend() {
   const wish = readWish();
-  if (!wish || wish.week !== currentWeekKey()) return;
+  if (!wish || wish.week !== currentWeekKey(state.theme?.timezone)) return;
   if (wish.remoteStatus === "sent") return;
   sendWishToInbox(wish);
 }
@@ -585,9 +586,16 @@ export function reveal() {
       span.style.setProperty("--ag-emoji-duration", `${originalDurations[i].toFixed(2)}s`);
     });
     // Add reward token / Freikarte once — guard prevents double-increment on re-reveal
-    const alreadyRecordedToday = readHistory().some(
+    const todaysRecord = readHistory().find(
       (e) => e.day === state.todaysPull.day && e.token === state.todaysPull.token
     );
+    const alreadyRecordedToday = !!todaysRecord;
+    // A replay after a reload builds the pull fresh, without the answer the
+    // prompt gate already got or the sky it was opened under.
+    if (todaysRecord) {
+      if (!state.todaysPull.promptAnswer && todaysRecord.promptAnswer) state.todaysPull.promptAnswer = todaysRecord.promptAnswer;
+      if (!state.todaysPull.weather && todaysRecord.weather) state.todaysPull.weather = todaysRecord.weather;
+    }
     if (state.todaysPull.collectToken && !alreadyRecordedToday) {
       addToken(state.todaysPull.collectToken);
     }
@@ -892,6 +900,7 @@ export function bindEvents() {
   $("#ag-gesprach-close")?.addEventListener("click", closeGesprachPanel);
   $("#ag-kurs-close")?.addEventListener("click", closeKursPanel);
   bindLightReactionsToggle($("[data-ag-lights-toggle]"));
+  bindSicherung($("[data-ag-backup-export]"), $("[data-ag-backup-import]"), $("[data-ag-backup-file]"));
   $("#ag-gesprach-next")?.addEventListener("click", showNextGesprach);
   $("#ag-gesprach-wa")?.addEventListener("click", sendGesprachToWhatsApp);
   $("#ag-btn-gesprach")?.addEventListener("keydown", (event) => {
@@ -1150,7 +1159,8 @@ export function bindEvents() {
       syncBtn.disabled = true;
       const result = await syncFromSheets();
       renderHistory();
-      syncBtn.textContent = result < 0 ? "✗" : `✓${result}`;
+      // false = skipped or the sheet said no, -1 = the request threw.
+      syncBtn.textContent = result === false || result < 0 ? "✗" : `✓${result}`;
       setTimeout(() => { syncBtn.textContent = "☁"; syncBtn.disabled = false; }, 3000);
     });
   }
@@ -1475,7 +1485,7 @@ export function bindEvents() {
       const text = (input?.value || "").trim();
       if (!text) return;
       haptic([20, 20, 40]);
-      const entry = { week: currentWeekKey(), text, submittedAt: Date.now(), remoteStatus: "idle" };
+      const entry = { week: currentWeekKey(state.theme?.timezone), text, submittedAt: Date.now(), remoteStatus: "idle" };
       writeWish(entry);
       renderWunschkapsel();
       try { sendWishToInbox(entry); } catch (_error) { /* never block local confirmation */ }
@@ -1526,18 +1536,37 @@ export function bindEvents() {
   }
 
   // ── Swipe left/right to switch tabs ─────────────────────────────────────────
-  const tabOrder = ["today", "history", "lieblinge", "berge"];
-  let _swipeX = 0, _swipeY = 0;
+  // Not when the finger started on something that is dragged sideways by
+  // design: a slider, the colour bar, the knob, a map, a text field. Dragging
+  // the lamp brightness used to flip the app to the next tab.
+  const NO_SWIPE = "input, textarea, select, canvas, [role=slider], [data-ag-noswipe], .leaflet-container, .ag-licht-palette, .ag-licht-strip, .ag-licht-lamps, [data-ag-morse-pad]";
+  const scrollsSideways = (el) => {
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 2) {
+        const ox = getComputedStyle(n).overflowX;
+        if (ox === "auto" || ox === "scroll") return true;
+      }
+    }
+    return false;
+  };
+  // Same order as the tab bar. Licht was missing, so in the Licht tab every
+  // sideways drag (a slider included) read as index -1 and jumped to Heute.
+  const tabOrder = ["today", "history", "lieblinge", "berge", "licht"];
+  let _swipeX = 0, _swipeY = 0, _swipeOff = false;
   const _swipeTarget = $(".ag-content") || mount;
   _swipeTarget.addEventListener("touchstart", (e) => {
     _swipeX = e.touches[0].clientX;
     _swipeY = e.touches[0].clientY;
+    const t = e.target instanceof Element ? e.target : null;
+    _swipeOff = e.touches.length > 1 || !!(t && (t.closest(NO_SWIPE) || scrollsSideways(t)));
   }, { passive: true });
   _swipeTarget.addEventListener("touchend", (e) => {
+    if (_swipeOff) { _swipeOff = false; return; }
     const dx = e.changedTouches[0].clientX - _swipeX;
     const dy = Math.abs(e.changedTouches[0].clientY - _swipeY);
     if (Math.abs(dx) > 52 && dy < 44) {
       const cur = tabOrder.indexOf(state.activeTab);
+      if (cur === -1) return;
       const next = dx < 0 ? Math.min(cur + 1, tabOrder.length - 1) : Math.max(cur - 1, 0);
       if (next !== cur) { haptic(6); setActiveTab(tabOrder[next]); }
     }
@@ -1547,6 +1576,9 @@ export function bindEvents() {
   const ptr = $("[data-ag-ptr]");
   let _ptrStartY = 0, _ptrTriggered = false;
   document.addEventListener("touchstart", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    // A vertical drag on a slider or the colour bar is not a refresh.
+    if (t && t.closest(NO_SWIPE)) { _ptrStartY = 0; return; }
     if (window.scrollY === 0) _ptrStartY = e.touches[0].clientY;
   }, { passive: true });
   document.addEventListener("touchmove", (e) => {
@@ -1560,11 +1592,11 @@ export function bindEvents() {
   document.addEventListener("touchend", async () => {
     if (_ptrTriggered && ptr) {
       ptr.classList.add("is-loading");
-      await syncFromSheets();
+      const result = await syncFromSheets();
       if (state.activeTab === "berge") renderBergePanel();
       if (state.activeTab === "history") renderHistory();
       ptr.classList.remove("is-visible", "is-loading");
-      showToast("Aktualisiert ✓");
+      showToast(result === false || result < 0 ? "Keine Verbindung ✗" : "Aktualisiert ✓");
     }
     _ptrStartY = 0;
     _ptrTriggered = false;

@@ -7,7 +7,7 @@ import {
   FREIKARTE_KEY, FREIKARTE_REROLL_KEY, canonicalToken, PFAND_EVERY
 } from "./constants.js";
 import { state } from "./state.js";
-import { dateKeyInTimezone, getToken, seededRandom } from "./utils.js";
+import { dateKeyInTimezone, getToken, seededRandom, currentQuestPeriod } from "./utils.js";
 
 // Several pieces of state (Sammelkapsel tokens, streak caches, quest
 // state/points, the in-flight wish) used to live under one shared
@@ -161,10 +161,64 @@ export function readFavorites() {
 export function writeFavorites(entries) {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
+    noteFavoriteRemovals(window.localStorage.getItem(FAVORITES_KEY), entries);
     window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(entries));
   } catch (error) {
     /* localStorage unavailable or full — ignore */
   }
+}
+
+// ── Un-starred favourites ────────────────────────────────────────────────────
+// The favourites merge in syncFromSheets is a union: anything the sheet has
+// is added back. That is right for a favourite starred on another device, but
+// it also undid an un-star whose backup had not landed yet — the sheet still
+// listed it, so it came straight back. Every removal is remembered here as a
+// tombstone (day|token) that the merge honours, until a backup that no longer
+// carries the favourite is confirmed by the sheet. Starring it again lifts the
+// tombstone at once. Detected in writeFavorites itself, so every un-star path
+// (card, Lieblinge list) is covered without each caller having to know.
+const FAV_TOMBSTONES_KEY = "affektions-gacha:favourite-tombstones:v1";
+const FAV_TOMBSTONES_MAX = 200;
+
+function favKey(e) {
+  return `${e.day}|${String(e.token || "").toLowerCase()}`;
+}
+
+export function readFavoriteTombstones() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(FAV_TOMBSTONES_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((k) => typeof k === "string") : [];
+  } catch (_) { return []; }
+}
+
+function writeFavoriteTombstones(keys) {
+  try {
+    if (keys.length) window.localStorage.setItem(FAV_TOMBSTONES_KEY, JSON.stringify(keys.slice(-FAV_TOMBSTONES_MAX)));
+    else window.localStorage.removeItem(FAV_TOMBSTONES_KEY);
+  } catch (_) {}
+}
+
+function noteFavoriteRemovals(prevRaw, next) {
+  let prev = [];
+  try { prev = JSON.parse(prevRaw || "[]"); } catch (_) { prev = []; }
+  if (!Array.isArray(prev)) prev = [];
+  const nextKeys = new Set((Array.isArray(next) ? next : []).filter(Boolean).map(favKey));
+  const removed = prev.filter(Boolean).map(favKey).filter((k) => !nextKeys.has(k));
+  const stones = readFavoriteTombstones();
+  const kept = stones.filter((k) => !nextKeys.has(k));
+  const added = removed.filter((k) => !kept.includes(k));
+  if (added.length || kept.length !== stones.length) writeFavoriteTombstones(kept.concat(added));
+}
+
+// Called with the tombstones that were in place when a backup was built,
+// once the sheet has confirmed that backup: its favourites list went out
+// without those entries, so the sheet no longer has them to send back.
+export function clearFavoriteTombstones(keys) {
+  if (!keys || !keys.length) return;
+  const drop = new Set(keys);
+  const stones = readFavoriteTombstones();
+  const kept = stones.filter((k) => !drop.has(k));
+  if (kept.length !== stones.length) writeFavoriteTombstones(kept);
 }
 
 // Folds retired emoji into their successors and sums the counts. Every
@@ -199,9 +253,13 @@ export function addToken(token) {
   return tokens[token];
 }
 
-export function resetToken(token) {
+// Spends one reward's worth. Counts keep climbing past the goal (the bank
+// shows min(count, goal)), so zeroing here threw the surplus away. Without an
+// amount it still empties the slot.
+export function resetToken(token, amount) {
   const tokens = readTokens();
-  tokens[token] = 0;
+  const n = Number(amount);
+  tokens[token] = Number.isFinite(n) && n > 0 ? Math.max(0, (tokens[token] || 0) - n) : 0;
   writeTokens(tokens);
 }
 
@@ -228,6 +286,33 @@ export function writeTokensSent(tokens) {
   writePlayerSlot(TOKENS_SENT_KEY, numTokens(tokens));
 }
 
+// ── Stale reads ──────────────────────────────────────────────────────────────
+// The base only means something for a sheet copy read AFTER the send it
+// records. A GET that left before a backup POST was saved, but whose answer
+// arrives after the POST came back, carries the pre-POST counts — and merged
+// against the already-moved base it hands those back as the truth: local 5,
+// base 4, POST ok → base 5, the stale 4 arrives → 4 + (5 − 5) = 4, one token
+// gone. So every confirmed send bumps an epoch; a sync notes the epoch when
+// its request leaves, and a sheet copy from an older epoch is not applied at
+// all. Nothing is lost by skipping it: the next sync reads a fresh copy.
+// In memory only — no request outlives the page that started it.
+let _sendEpoch = 0;
+
+export function tokenSyncStamp() {
+  return _sendEpoch;
+}
+
+export function isStaleTokenRead(stamp) {
+  return typeof stamp === "number" && stamp !== _sendEpoch;
+}
+
+// What backupToSheets calls when its POST comes back, instead of moving the
+// base directly — so the move and the epoch bump can never drift apart.
+export function confirmTokensSent(tokens) {
+  writeTokensSent(tokens);
+  _sendEpoch++;
+}
+
 // Three-way merge of the sheet's copy against ours, using the last confirmed
 // send as the common base. Per emoji: whatever the sheet has, plus whatever we
 // have changed since we last successfully sent.
@@ -237,7 +322,12 @@ export function writeTokensSent(tokens) {
 // unsent, the delta rides on top of the sheet instead of being thrown away,
 // and a redeem (which zeroes the count) carries across as a negative delta
 // rather than being undone.
-export function applySharedTokens(sheetTokens) {
+//
+// readStamp is tokenSyncStamp() as it was when the sheet request left; a copy
+// read before the latest confirmed send is ignored (see isStaleTokenRead).
+// Callers that pass nothing get the plain merge.
+export function applySharedTokens(sheetTokens, readStamp) {
+  if (isStaleTokenRead(readStamp)) return false;
   const sheet = numTokens(sheetTokens);
   const local = numTokens(readTokens());
   let base = readTokensSent();
@@ -392,7 +482,9 @@ export function readBaerlauchHistory() {
   } catch (_) { return []; }
 }
 
-export function readQuestState(currentQuestPeriodFn) {
+// Most callers pass nothing; the period then comes from the app state.
+// Without the default every one of them threw on the first quest render.
+export function readQuestState(currentQuestPeriodFn = () => currentQuestPeriod(state)) {
   try {
     const parsed = readPlayerSlot(QUEST_STORAGE_KEY, {});
     const period = currentQuestPeriodFn();

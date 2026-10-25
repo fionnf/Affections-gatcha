@@ -3,6 +3,18 @@
 // lets Fionn answer a wish, and sends a Stups back to Lennart's phone.
 import { state } from "./state.js";
 import { h } from "./ui.js";
+import { adminKey, clearSession } from "./auth.js";
+
+// The backend refused the key (changed, or set after this device logged in
+// with the PIN). main.js catches this and shows the gate again.
+export class UnauthorisedError extends Error {}
+function checkAuth(data) {
+  if (data && data.ok === false && data.error === "unauthorised") {
+    clearSession();
+    throw new UnauthorisedError("Schlüssel abgelehnt");
+  }
+  return data;
+}
 
 const ICONS = { hug: "🫂", wish: "✨", voucher: "🎟️", answer: "💬", quest: "📸", ping: "📍" };
 
@@ -26,16 +38,20 @@ function endpoint() {
 export async function postToBackend(payload) {
   const url = endpoint();
   if (!url) throw new Error("Kein Backend konfiguriert");
-  const body = JSON.stringify(payload);
+  const key = adminKey();
+  const body = JSON.stringify(key ? { ...payload, key } : payload);
   const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
     headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
+  let res;
   try {
-    const res = await fetch(url, opts);
-    try { return await res.json(); } catch { return null; }
+    res = await fetch(url, opts);
   } catch {
     await fetch(url, { ...opts, mode: "no-cors" });
     return null;
   }
+  let data = null;
+  try { data = await res.json(); } catch { return null; }
+  return checkAuth(data);
 }
 
 export function sendPing() {
@@ -50,9 +66,10 @@ export function setWishStatus(timestamp, status) {
 export async function fetchActivity() {
   const url = endpoint();
   if (!url) return [];
-  const res = await fetch(`${url}?token=lennart&feed=activity`, { method: "GET", cache: "no-store" });
+  const key = adminKey();
+  const res = await fetch(`${url}?token=lennart&feed=activity${key ? `&key=${encodeURIComponent(key)}` : ""}`, { method: "GET", cache: "no-store" });
   if (!res.ok) throw new Error(`Feed (${res.status})`);
-  const data = await res.json();
+  const data = checkAuth(await res.json());
   const items = Array.isArray(data.activity) ? data.activity : [];
   items.sort((a, b) => tsOf(b) - tsOf(a));
   return items;
@@ -170,6 +187,8 @@ export async function renderInbox(mount) {
       ]));
     }
   } catch (e) {
+    // The key was refused: back to the gate (the session is already gone).
+    if (e instanceof UnauthorisedError) { window.location.reload(); return; }
     loading.remove();
     mount.appendChild(h("div", { class: "fa-status err", text: `Feed konnte nicht geladen werden: ${e.message}` }));
     mount.appendChild(h("p", { class: "fa-muted", style: "font-size:.78rem;margin-top:8px",

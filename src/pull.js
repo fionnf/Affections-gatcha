@@ -84,8 +84,13 @@ export function buildPullForDay(day, streak, opts = {}) {
   const token = getToken();
   const baseSeed = `${state.theme.secret}|${token}|${day}${seedSuffix ? "|" + seedSuffix : ""}`;
 
+  // The day's record, if it was already opened. It pins the category and
+  // outcome below — and keeps a special day added after the capsule was
+  // opened from replacing the card that was seen.
+  const drawn = !seedSuffix ? readHistory().find((e) => e.token === token && e.day === day) : null;
+
   const special = checkSpecialDay(day);
-  if (special && !seedSuffix) {
+  if (special && !seedSuffix && (!drawn || drawn.categoryId === "special")) {
     const specialOutcomes = Array.isArray(special.outcomes) && special.outcomes.length
       ? special.outcomes
       : [{ title: special.label, message: "" }];
@@ -125,10 +130,6 @@ export function buildPullForDay(day, streak, opts = {}) {
   // result on every subsequent call (e.g. after a page reload) instead of
   // recomputing the original deterministic (and now-discarded) pull.
   const rerollRecord = !seedSuffix ? readFreikarteReroll(token, day) : null;
-
-  // The day's record, if it was already opened. It pins the category below,
-  // and the outcome further down.
-  const drawn = !seedSuffix ? readHistory().find((e) => e.token === token && e.day === day) : null;
 
   // A Flaschenpost that is due comes out instead of the day's draw — a line
   // he wrote to himself, back on a day he does not know. A special day wins
@@ -183,14 +184,16 @@ export function buildPullForDay(day, streak, opts = {}) {
     category = state.outcomes.categories.find((item) => item.id === "common") || category;
   }
 
-  const usedTitles = new Set(
-    readHistory()
-      .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
-      .map((e) => e.title)
-  );
-  const unseen = category.outcomes.filter((o) => !usedTitles.has(o.title));
-  // Nothing comes back until the whole category is used up.
-  let outcomePool = unseen.length ? unseen : category.outcomes;
+  // Nothing comes back until the whole category is used up — and then a new
+  // round starts. Counting all of history made "used up" permanent, so after
+  // the first pass every draw came from the full list again.
+  const pastTitles = readHistory()
+    .filter((e) => e.token === token && e.day < day && e.categoryId === category.id)
+    .sort((a, b) => a.day.localeCompare(b.day))
+    .map((e) => e.title);
+  const titleRound = currentRound(pastTitles, category.outcomes.map((o) => o.title));
+  let outcomePool = category.outcomes.filter((o) => !titleRound.has(o.title));
+  if (!outcomePool.length) outcomePool = category.outcomes;
 
   // Vouchers pile up: a Gutschein is only worth something once it is used,
   // and a stack of open ones turns each new one into noise. With OPEN_VOUCHER_CAP
@@ -220,13 +223,17 @@ export function buildPullForDay(day, streak, opts = {}) {
 
   const imgs = imagePhotos();
   let photo = null;
-  if (category.id === "photo" && imgs.length) {
-    const seenUrls = new Set(
-      readHistory()
-        .filter((e) => e.token === token && e.day < day && e.photo)
-        .map((e) => e.photo.url)
-    );
-    const unseenImgs = imgs.filter((p) => !seenUrls.has(p.url));
+  if (category.id === "photo" && drawn && drawn.categoryId === category.id && drawn.photo && drawn.photo.url) {
+    // The photo that was opened stays the photo: an album sync that adds
+    // pictures shifts the seeded index and used to swap it on a replay.
+    photo = drawn.photo;
+  } else if (category.id === "photo" && imgs.length) {
+    const pastUrls = readHistory()
+      .filter((e) => e.token === token && e.day < day && e.photo)
+      .sort((a, b) => a.day.localeCompare(b.day))
+      .map((e) => e.photo.url);
+    const urlRound = currentRound(pastUrls, imgs.map((p) => p.url));
+    const unseenImgs = imgs.filter((p) => !urlRound.has(p.url));
     const pool = unseenImgs.length > 0 ? unseenImgs : imgs;
     photo = pool[seededIndex(`${baseSeed}|photo`, pool.length)];
   }
@@ -237,6 +244,21 @@ export function buildPullForDay(day, streak, opts = {}) {
     voucher: outcome.voucher || false,
     freikarte: outcome.freikarte === true
   };
+}
+
+// What has come out since the list was last used up. `past` is oldest first;
+// each time it covers every value in `all`, the round starts over. The value
+// that closed a round counts into the next one, so the first draw of a new
+// round cannot repeat the last draw of the old.
+export function currentRound(past, all) {
+  const want = new Set(all);
+  let round = new Set();
+  for (const v of past) {
+    if (!want.has(v)) continue;
+    round.add(v);
+    if (round.size >= want.size) round = want.size > 1 ? new Set([v]) : new Set();
+  }
+  return round;
 }
 
 export function buildPull() {

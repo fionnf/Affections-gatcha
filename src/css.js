@@ -951,7 +951,7 @@ export const css = `
       @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
       .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
-      .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+      .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;min-width:0;white-space:nowrap}
       .ag-history-meta{display:block;font-size:.72rem;letter-spacing:.03em;text-transform:none;font-weight:400;opacity:.85;margin-top:1px}
       .ag-history-badge{
         display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:999px;
@@ -2345,7 +2345,9 @@ body{
 }
 /* Bottom nav: a little clearer, a little more lit. */
 .ag-widget .ag-bottomnav{
-  background:rgba(14,28,17,.55);
+  /* Opaque enough that a card's text passing under it reads as texture, not
+     as a second line of words fighting the labels. */
+  background:rgba(12,24,15,.74);
   backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);
   border-color:rgba(255,255,255,.20);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 14px 48px rgba(0,0,0,.55);
@@ -2651,9 +2653,20 @@ body{
 .ag-widget .ag-licht-power:disabled{opacity:.45;cursor:default}
 .ag-widget .ag-licht-slider{flex:1;display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:var(--ag-muted)}
 .ag-widget .ag-licht-slider input{width:100%;accent-color:var(--ag-gold);margin:0}
+/* Sliders: a finger-sized thumb on a slim track. pan-y keeps the page
+   scrollable over them while a sideways drag stays with the slider. */
+.ag-widget .ag-licht-slider input[type=range]{-webkit-appearance:none;appearance:none;height:30px;background:transparent;touch-action:pan-y;cursor:pointer}
+.ag-widget .ag-licht-slider input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(to right,var(--ag-gold) var(--ag-fill,50%),rgba(255,255,255,.16) var(--ag-fill,50%))}
+.ag-widget .ag-licht-slider input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:rgba(255,255,255,.16)}
+.ag-widget .ag-licht-slider input[type=range]::-moz-range-progress{height:6px;border-radius:999px;background:var(--ag-gold)}
+.ag-widget .ag-licht-slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:#fbf4e2;border:0;box-shadow:0 2px 8px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.06);transition:transform 140ms ease}
+.ag-widget .ag-licht-slider input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fbf4e2;border:0;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.ag-widget .ag-licht-slider input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
+.ag-widget .ag-licht-slider input[type=range]:disabled{opacity:.45;cursor:default}
 /* The palette bar: the firmware's 30 tints, tap to set. */
 .ag-widget .ag-licht-palette{
-  position:relative;height:30px;border-radius:999px;cursor:pointer;outline:none;
+  position:relative;height:34px;border-radius:999px;cursor:pointer;outline:none;
+  touch-action:none;-webkit-user-select:none;user-select:none;
   background:linear-gradient(to right,rgb(255,200,80) 0%,rgb(255,60,0) 10%,rgb(255,0,140) 20%,rgb(80,0,255) 31%,rgb(0,140,255) 41%,rgb(0,255,160) 52%,rgb(80,255,0) 62%,rgb(255,240,0) 72%,rgb(255,80,160) 83%,rgb(0,180,180) 93%,rgb(255,220,120) 100%);
   border:1px solid rgba(255,255,255,.12);
 }
@@ -3040,6 +3053,9 @@ body{
 /* ── Einstellungen at the foot of the page ── */
 .ag-widget .ag-settings{margin:18px 0 6px;padding:12px 14px;border-radius:var(--ag-radius-md);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
 .ag-widget .ag-setting-row{display:flex;align-items:center;gap:12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ag-widget .ag-setting-backup{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:10px}
+.ag-widget .ag-setting-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ag-widget .ag-setting-actions .ag-secondary{flex:1 1 auto}
 .ag-widget .ag-switch-input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
 .ag-widget .ag-switch{position:relative;flex:none;width:44px;height:26px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.14);transition:background 180ms ease,border-color 180ms ease}
 .ag-widget .ag-switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#f1e9d2;box-shadow:0 2px 4px rgba(0,0,0,.4);transition:transform 180ms cubic-bezier(.3,1.4,.4,1)}

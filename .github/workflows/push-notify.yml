@@ -15,6 +15,11 @@ on:
     # so this stays correct across DST without touching the cron.
     - cron: "7 * * * *"
 
+# The jobs only read the repo; the token needs nothing more, and the step that
+# holds VAPID_PRIVATE runs a third-party package.
+permissions:
+  contents: read
+
 concurrency:
   group: push-notify
   cancel-in-progress: false
@@ -28,13 +33,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install web-push --no-save
+      - run: npm install web-push@3.6.7 --no-save
       - name: Send pending pushes
         env:
           VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
+          BACKUP_ADMIN_KEY: ${{ secrets.BACKUP_ADMIN_KEY }}
         run: node scripts/push-poll.cjs
 
   # Daily reminder + evening streak warning. Separate job on its own hourly
@@ -48,11 +54,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install web-push --no-save
+      - run: npm install web-push@3.6.7 --no-save
       - name: Send due reminders
         env:
           VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
           VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
+          BACKUP_ADMIN_KEY: ${{ secrets.BACKUP_ADMIN_KEY }}
         run: node scripts/push-due.cjs

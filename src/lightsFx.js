@@ -77,16 +77,25 @@ const ECHO_WAIT_MS = 2500;
 const BOARD_IDS = ["board_a", "board_b"];
 
 let _busy = false;
+// A show (pull flash, hug, candle) is tinting the lamps. Their echoes are not
+// a colour anyone chose, so the Licht tab must not remember them.
+export function isFxBusy() { return _busy; }
 
+// Pinned: an unversioned URL follows every new major release of the library
+// that drives the lamps. One load in flight at a time — two callers used to
+// add two script tags.
+let _mqttLoading = null;
 export function loadMqtt() {
   if (window.mqtt) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (_mqttLoading) return _mqttLoading;
+  _mqttLoading = new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = "https://unpkg.com/mqtt/dist/mqtt.min.js";
+    s.src = "https://unpkg.com/mqtt@5.16.0/dist/mqtt.min.js";
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error("mqtt load failed"));
+    s.onerror = () => { _mqttLoading = null; s.remove(); reject(new Error("mqtt load failed")); };
     document.head.appendChild(s);
   });
+  return _mqttLoading;
 }
 
 function _restorePayload(state) {
@@ -238,9 +247,11 @@ export function startCandleLights() {
 
 // Like runFlash, but open-ended: the cycle repeats every `periodMs` until
 // the stop handed to `onReady` is called, which restores and disconnects.
+let _looping = false;
 async function runLoop(cycleFn, periodMs, onReady) {
   if (_busy) { onReady(() => {}); return; }
   _busy = true;
+  _looping = true;
   try {
     await loadMqtt();
     await new Promise((resolve) => {
@@ -313,6 +324,7 @@ async function runLoop(cycleFn, periodMs, onReady) {
     onReady(() => {});
   } finally {
     _busy = false;
+    _looping = false;
   }
 }
 
@@ -326,6 +338,13 @@ async function runFlash(steps, totalMs, target) {
   if (_busy && target) {
     const until = Date.now() + 25000;
     while (_busy && Date.now() < until) await sleep(500);
+  }
+  // The colour check on opening the app holds the lamps for a few seconds;
+  // a pull made right then used to get no flash at all. Wait it out — but
+  // not a lit candle, which holds them for as long as it burns.
+  if (_busy && !target && !_looping) {
+    const until = Date.now() + 12000;
+    while (_busy && !_looping && Date.now() < until) await sleep(400);
   }
   if (_busy) return;
   _busy = true;

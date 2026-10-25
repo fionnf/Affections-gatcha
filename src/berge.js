@@ -5,7 +5,7 @@ import { armConfirm } from "./confirm.js";
 import { showToast } from "./toast.js";
 import { readGipfelbuch, writeGipfelbuch } from "./storage.js";
 import { haptic } from "./haptic.js";
-import { markRecentWrite } from "./sheetSync.js";
+import { markRecentWrite, queueSheetOp, flushSheetOps } from "./sheetSync.js";
 
 export function elevationAnalogy(m) {
   if (!m || m <= 0) return null;
@@ -111,12 +111,22 @@ export function extractAllTrailsEmbed(url) {
   return slug ? cleanParams(`https://www.alltrails.com/widget/${slug}?scrollZoom=false&u=m`) : null;
 }
 
+// Same queue as the Glossar (see sheetSync.js): the write is recorded as a
+// pending op before it is sent, and stays queued until Apps Script answers
+// {ok:true}. A fire-and-forget POST meant a summit logged without signal was
+// deleted by the next sync, and a delete that failed brought the entry back.
+// syncFromSheets lays the queue over the sheet's copy and re-sends it.
 export function postGipfelToSheet(type, payload) {
+  const isDelete = type === "gipfel-delete";
+  queueSheetOp("gipfelbuch", {
+    kind: isDelete ? "delete" : "upsert",
+    id: payload && payload.id,
+    entry: isDelete ? null : payload,
+    body: { type, ...payload }
+  });
   const cfg = state.backup;
-  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return;
-  const body = JSON.stringify({ type, ...payload });
-  const opts = { method: "POST", mode: "cors", credentials: "omit", cache: "no-store", headers: { "Content-Type": "text/plain;charset=utf-8" }, body };
-  fetch(cfg.endpointUrl, opts).catch(() => fetch(cfg.endpointUrl, { ...opts, mode: "no-cors" }).catch(() => {}));
+  if (!cfg || !cfg.enabled || !cfg.endpointUrl) return Promise.resolve(0);
+  return flushSheetOps("gipfelbuch", cfg.endpointUrl).catch(() => 0);
 }
 
 export function addGipfelEntry(entry) {
@@ -156,13 +166,15 @@ export function renderGipfelCard(entry) {
 
   // Every entry field below comes from the shared sheet (typed by either
   // player on any device) — escape all of it before it touches innerHTML.
-  const coverHtml = entry.cover
+  // Escaping does not stop a javascript: URL, so links must also be http(s).
+  const isWebUrl = (u) => typeof u === "string" && /^https?:\/\//i.test(u.trim());
+  const coverHtml = isWebUrl(entry.cover)
     ? `<div class="ag-gipfel-cover"><img src="${escapeHtml(entry.cover)}" alt="${escapeHtml(entry.name || "")}" loading="lazy" decoding="async"></div>`
     : "";
 
   const elevDisplay = entry.elevGain || entry.elevation;
   const distStr = entry.distance ? `${escapeHtml(entry.distance)} km` : "";
-  const trailLink = entry.activityUrl
+  const trailLink = isWebUrl(entry.activityUrl)
     ? `<a class="ag-gipfel-trail-arrow" href="${escapeHtml(entry.activityUrl)}" target="_blank" rel="noopener noreferrer">↗</a>`
     : "";
   const statsHtml = (distStr || trailLink)
@@ -173,7 +185,7 @@ export function renderGipfelCard(entry) {
     ${coverHtml}
     <div class="ag-gipfel-head">
       <div class="ag-gipfel-head-info">
-        <div class="ag-gipfel-date">${formatBergeDate(entry.date)}</div>
+        <div class="ag-gipfel-date">${escapeHtml(formatBergeDate(entry.date))}</div>
         <div class="ag-gipfel-name">${escapeHtml(entry.name || "—")}</div>
       </div>
       ${elevDisplay ? `<div class="ag-gipfel-elev">↑ ${formatElev(elevDisplay)}</div>` : ""}
@@ -491,7 +503,7 @@ export async function initGipfelMap(entries) {
     goBtn.style.cssText = "background:rgba(47,122,79,.3);border:1px solid rgba(126,207,163,.4);color:#7ecfa3;border-radius:6px;padding:4px 10px;font-size:.78rem;cursor:pointer;font-family:inherit;width:100%";
     goBtn.addEventListener("click", () => {
       marker.closePopup();
-      const card = mount.querySelector(`[data-ag-gipfel-id="${entry.id}"]`);
+      const card = mount.querySelector(`[data-ag-gipfel-id="${window.CSS.escape(String(entry.id))}"]`);
       if (card) {
         card.scrollIntoView({ behavior: "smooth", block: "center" });
         card.classList.add("ag-gipfel-highlight");

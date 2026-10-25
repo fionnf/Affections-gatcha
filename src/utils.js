@@ -11,16 +11,24 @@ export function setDayStartHour(h) {
 }
 export function dayStartHour() { return _dayStartHour; }
 
+// The shift is on the wall clock, not on the instant: taking four hours off
+// UTC moved the day boundary to 03:00 or 05:00 on the two DST Sundays.
 export function dateKeyInTimezone(timezone, date) {
-  const instant = (date || new Date()).getTime() - _dayStartHour * 3600000;
-  const parts = new Intl.DateTimeFormat("de-CH", {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
-  }).formatToParts(new Date(instant));
-  const get = (type) => parts.find((part) => part.type === type).value;
-  return `${get("year")}-${get("month")}-${get("day")}`;
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date || new Date());
+  const get = (type) => Number(parts.find((part) => part.type === type).value);
+  let y = get("year"), mo = get("month"), d = get("day");
+  if (get("hour") % 24 < _dayStartHour) {
+    const prev = new Date(Date.UTC(y, mo - 1, d - 1));
+    y = prev.getUTCFullYear(); mo = prev.getUTCMonth() + 1; d = prev.getUTCDate();
+  }
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 export function hmInTimezone(timezone) {
@@ -32,6 +40,19 @@ export function hmInTimezone(timezone) {
   }).formatToParts(new Date());
   const get = (type) => Number(parts.find((p) => p.type === type).value);
   return { h: get("hour"), m: get("minute") };
+}
+
+// Has the wall clock in `timezone` reached "HH:MM" on the machine's day?
+// The machine's day runs on past midnight until dayStartHour, so 01:00 is
+// after an 11:00 unlock, not before it — a plain h:m compare relocked every
+// time-locked link for the small hours of its own day.
+export function clockReached(hhmm, timezone) {
+  const [h, m] = String(hhmm).split(":").map(Number);
+  if (!Number.isFinite(h)) return true;
+  const now = hmInTimezone(timezone);
+  const shift = (x) => (x < _dayStartHour ? x + 24 : x);
+  const nowH = shift(now.h), atH = shift(h);
+  return nowH > atH || (nowH === atH && now.m >= (m || 0));
 }
 
 // One formatter, not one per history row: Intl.DateTimeFormat construction
@@ -165,9 +186,17 @@ export function getPreviewCategory() {
   return raw;
 }
 
-export function currentWeekKey() {
-  const d = new Date();
-  const utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+// The week turns over with the machine's day in the app's timezone, not at
+// midnight UTC — a wish sent Monday 00:30 in Zurich belongs to the new week.
+export function currentWeekKey(timezone) {
+  let utc;
+  if (timezone) {
+    const [y, m, d] = dateKeyInTimezone(timezone).split("-").map(Number);
+    utc = new Date(Date.UTC(y, m - 1, d));
+  } else {
+    const d = new Date();
+    utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  }
   utc.setUTCDate(utc.getUTCDate() + 4 - (utc.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
   const week = Math.ceil(((utc - yearStart) / 86400000 + 1) / 7);

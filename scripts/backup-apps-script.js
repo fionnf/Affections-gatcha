@@ -27,6 +27,14 @@
  * app, which was removed.
  *
  * Google Drive folder: "Glossar-Audio" — audio recordings for glossary words
+ *
+ * Admin key (optional, recommended): Project Settings → Script Properties →
+ * ADMIN_KEY = a long random passphrase. Once set, everything only Fionn or
+ * the push jobs use — the activity feed, wish replies, Stups, the push feeds —
+ * needs that key, as ?key= on a GET or "key" in a POST body. Without the
+ * property the script behaves as before, so it can be deployed first and
+ * locked afterwards. The same value goes into the GitHub secret
+ * BACKUP_ADMIN_KEY and is typed once into the Eingänge.
  */
 
 const BACKUP_SPREADSHEET_ID = "1j21UmMS7g_uahk_y2BmWnStPkj6gcWUFfKWuFQBsEy4";
@@ -57,6 +65,7 @@ function wishRow_(row) {
   else if (key === "wunschkapsel" || key === "wish") { type = "wish"; text = row[3] || ""; }
   else if (key === "voucher") { type = "voucher"; text = row[3] || ""; }
   else if (c.indexOf("[hug]") === 0) { type = "hug"; text = c.replace(/^\[hug\]\s*/, ""); }
+  else if (c.indexOf("[voucher]") === 0) { type = "voucher"; text = c.replace(/^\[voucher\]\s*/, ""); }
   else { type = "wish"; text = c; }
   return {
     timestamp: tsStr_(row[0]),
@@ -70,8 +79,57 @@ function wishRow_(row) {
 
 // ── GET: return full backup for a token ─────────────────────────────────────
 
+// ── Admin key ────────────────────────────────────────────────────────────────
+function adminKey_() {
+  return PropertiesService.getScriptProperties().getProperty("ADMIN_KEY") || "";
+}
+// True when no key is configured (the open, pre-key behaviour) or when the
+// caller sent the right one. Compared in full every time, not short-circuited.
+function isAdmin_(provided) {
+  const want = adminKey_();
+  if (!want) return true;
+  const got = String(provided || "");
+  if (got.length !== want.length) return false;
+  let diff = 0;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ got.charCodeAt(i);
+  return diff === 0;
+}
+function denied_() {
+  return jsonOut_({ ok: false, error: "unauthorised" });
+}
+
+// The machine's day in Zurich: the date on the wall clock, one back before
+// DAY_START_HOUR. Subtracting the hours from the instant instead moved the
+// boundary by an hour on both DST Sundays.
+function zurichDay_(date) {
+  const d = date || new Date();
+  const hour = Number(Utilities.formatDate(d, "Europe/Zurich", "H"));
+  const day = Utilities.formatDate(d, "Europe/Zurich", "yyyy-MM-dd");
+  if (hour >= DAY_START_HOUR) return day;
+  const p = day.split("-").map(Number);
+  return Utilities.formatDate(new Date(Date.UTC(p[0], p[1] - 1, p[2] - 1, 12)), "UTC", "yyyy-MM-dd");
+}
+
+// Where push-pending's pointer reads a Wünsche row: the server's receive time
+// (column I) when the row has one, else the client's timestamp. The client's
+// stamp alone let a wish retried hours later land behind the pointer and
+// never be pushed.
+function pushTs_(row) {
+  return tsStr_(row[8]) || tsStr_(row[0]);
+}
+
 function doGet(e) {
   try {
+    const feed = e.parameter && e.parameter.feed;
+    // Whether this deployment wants a key, and whether the caller has it —
+    // the Eingänge asks before it shows anything.
+    if (feed === "whoami") {
+      return jsonOut_({ ok: true, keyConfigured: !!adminKey_(), admin: isAdmin_(e.parameter.key) });
+    }
+    if ((feed === "push-subs" || feed === "push-pending" || feed === "push-due" || feed === "activity")
+        && !isAdmin_(e.parameter.key)) {
+      return denied_();
+    }
     const token = ((e.parameter && e.parameter.token) || "Lennart").toLowerCase();
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
 
@@ -80,7 +138,7 @@ function doGet(e) {
     const backupValues = backupSheet.getDataRange().getValues();
     let meta = null;
     for (let i = 1; i < backupValues.length; i++) {
-      if ((backupValues[i][0] || "").toLowerCase() === token) {
+      if (String(backupValues[i][0] || "").toLowerCase() === token) {
         meta = {
           favourites: JSON.parse(backupValues[i][1] || "[]"),
           streak:     backupValues[i][2] || 0,
@@ -105,7 +163,7 @@ function doGet(e) {
     }
     for (let i = 1; i < histValues.length; i++) {
       const row = histValues[i];
-      if ((row[0] || "").toLowerCase() !== token) continue;
+      if (String(row[0] || "").toLowerCase() !== token) continue;
       history.push({
         token:         token,
         day:           normDay(row[1]),
@@ -260,15 +318,20 @@ function doGet(e) {
         const row = wVals[i];
         if (!row[0]) continue;
         const w = wishRow_(row);
-        const ts = w.timestamp;
+        const ts = pushTs_(row);
         if (since && ts <= since) continue;
-        pending.push({ timestamp: ts, from: w.token, type: w.type, text: w.text });
+        pending.push({ timestamp: w.timestamp, at: ts, from: w.token, type: w.type, text: w.text });
         if (ts > maxTs) maxTs = ts;
       }
-      if (maxTs && maxTs !== since && !(e.parameter.peek === "1")) {
+      pending.sort(function (a, b) { return a.at < b.at ? -1 : a.at > b.at ? 1 : 0; });
+      // mode=ack: the sender acknowledges with push-ack once the pushes are
+      // out. Advancing on the read itself lost every item after a send that
+      // failed halfway. Older senders (no mode) keep the old behaviour.
+      const ackMode = e.parameter.mode === "ack";
+      if (maxTs && maxTs !== since && !ackMode && !(e.parameter.peek === "1")) {
         props.setProperty("lastPushTs", maxTs);
       }
-      return jsonOut_({ ok: true, pending: pending });
+      return jsonOut_({ ok: true, pending: pending, upTo: ackMode ? maxTs : undefined });
     }
 
     // ── Daily reminder / streak warning, server-side ─────────────────────────
@@ -288,7 +351,7 @@ function doGet(e) {
       // dayStartHour) — a 01:00 pull is filed under the evening before. The
       // "pulled today?" check has to use the same day, or a late pull would
       // earn a morning reminder for a capsule already opened.
-      const zDay = Utilities.formatDate(new Date(zNow.getTime() - DAY_START_HOUR * 3600000), "Europe/Zurich", "yyyy-MM-dd");
+      const zDay = zurichDay_(zNow);
 
       // Two windows an hour wide on either side, so an hourly cron that
       // GitHub delays by 10-15 minutes still lands inside one.
@@ -314,7 +377,8 @@ function doGet(e) {
         const key = "pushDue:" + who + ":" + kind;
         if (props.getProperty(key) === zDay) return;
         due.push({ token: who, kind: kind, day: zDay });
-        if (!(e.parameter.peek === "1")) props.setProperty(key, zDay);
+        // With mode=ack the sender confirms via push-due-ack after sending.
+        if (!(e.parameter.peek === "1") && e.parameter.mode !== "ack") props.setProperty(key, zDay);
       });
       return jsonOut_({ ok: true, due: due });
     }
@@ -408,7 +472,9 @@ function doGet(e) {
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+  // waitLock throws when busy, and outside the try that reached the client as
+  // Google's HTML error page instead of JSON.
+  if (!lock.tryLock(30000)) return jsonOut_({ ok: false, error: "busy" });
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.openById(BACKUP_SPREADSHEET_ID);
@@ -419,7 +485,7 @@ function doPost(e) {
     // the googleusercontent URL — the same form config/photos.json uses — is
     // written onto the day's History row and returned to the app.
     if (data.type === "beweis-upload") {
-      const token = (data.token || "").toLowerCase();
+      const token = String(data.token || "").toLowerCase();
       const day = String(data.day || "").slice(0, 10);
       if (!token || !day || !data.image) return jsonOut_({ ok: false, error: "missing fields" });
 
@@ -437,7 +503,7 @@ function doPost(e) {
       const histSheet = getOrCreateHistorySheet_(ss);
       const values = histSheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
-        if ((values[i][0] || "").toLowerCase() !== token) continue;
+        if (String(values[i][0] || "").toLowerCase() !== token) continue;
         const d = values[i][1] instanceof Date
           ? Utilities.formatDate(values[i][1], "UTC", "yyyy-MM-dd")
           : String(values[i][1]).slice(0, 10);
@@ -453,13 +519,13 @@ function doPost(e) {
       const sheet = getOrCreatePromptAnswersSheet_(ss);
       const ts = new Date();
       const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
-      sheet.appendRow([
+      sheet.appendRow(safeRow_([
         ts.toISOString(),
         data.token || "",
         data.day   || "",
         data.prompt || "",
         data.answer || ""
-      ]);
+      ]));
       try {
         MailApp.sendEmail({
           to: FIONN_EMAIL,
@@ -483,9 +549,9 @@ function doPost(e) {
       }
       if (level > existing) {
         if (rowIdx === -1) {
-          sheet.appendRow([player, level, new Date().toISOString()]);
+          sheet.appendRow(safeRow_([player, level, new Date().toISOString()]));
         } else {
-          sheet.getRange(rowIdx, 1, 1, 3).setValues([[player, level, new Date().toISOString()]]);
+          sheet.getRange(rowIdx, 1, 1, 3).setValues(safeRows_([[player, level, new Date().toISOString()]]));
         }
       }
       return jsonOut_({ ok: true });
@@ -502,8 +568,8 @@ function doPost(e) {
         if (values[i][0] === id) { rowIdx = i + 1; break; }
       }
       const row = [id, data.name || "", data.elevation || "", data.date || "", data.activityUrl || "", data.notes || "", data.token || "", data.createdAt || new Date().toISOString(), data.distance || "", data.elevGain || "", data.lat || "", data.lng || "", data.locLabel || "", data.cover || ""];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -520,8 +586,8 @@ function doPost(e) {
       // Client sends the author as `token` (matching the Gipfelbuch payload
       // convention); accept `createdBy` too in case that ever changes.
       const row = [id, data.word || "", data.meaning || "", data.lang || "swabian", data.audioUrl || "", data.createdBy || data.token || "", data.createdAt || new Date().toISOString()];
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -577,8 +643,8 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (String(values[i][0]).slice(0, 10) === data.day) { rowIdx = i + 1; break; }
       }
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
       return jsonOut_({ ok: true });
     }
 
@@ -596,8 +662,42 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         if (values[i][1] === endpoint) { rowIdx = i + 1; break; }
       }
-      if (rowIdx === -1) { sheet.appendRow(row); }
-      else { sheet.getRange(rowIdx, 1, 1, row.length).setValues([row]); }
+      if (rowIdx === -1) { sheet.appendRow(safeRow_(row)); }
+      else if (isAdmin_(data.key) && adminKey_()) { sheet.getRange(rowIdx, 1, 1, row.length).setValues(safeRows_([row])); }
+      else {
+        // The endpoint is already known. A browser re-subscribing gets the
+        // same keys back, so only the time moves; anyone else re-posting a
+        // known endpoint with other keys or another name would otherwise
+        // silently break or redirect those pushes.
+        sheet.getRange(rowIdx, 4).setValue(new Date().toISOString());
+      }
+      return jsonOut_({ ok: true });
+    }
+
+    // ── Push bookkeeping from the sender jobs ────────────────────────────────
+    if (data.type === "push-ack" || data.type === "push-due-ack" || data.type === "push-unsubscribe") {
+      if (!isAdmin_(data.key)) return denied_();
+      const props = PropertiesService.getScriptProperties();
+      if (data.type === "push-ack") {
+        const upTo = String(data.upTo || "");
+        const cur = props.getProperty("lastPushTs") || "";
+        // Never ahead of the clock, never backwards.
+        if (upTo && upTo > cur && Date.parse(upTo) <= Date.now() + 5 * 60000) props.setProperty("lastPushTs", upTo);
+        return jsonOut_({ ok: true });
+      }
+      if (data.type === "push-due-ack") {
+        const who = String(data.token || "").toLowerCase();
+        const kind = data.kind === "evening" ? "evening" : "morning";
+        if (who && /^\d{4}-\d{2}-\d{2}$/.test(String(data.day || ""))) props.setProperty("pushDue:" + who + ":" + kind, String(data.day));
+        return jsonOut_({ ok: true });
+      }
+      // push-unsubscribe: the push service said 404/410 — the subscription is
+      // gone for good and every later run would only send into the void.
+      const sheet = getOrCreatePushSheet_(ss);
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        if (values[i][1] === data.endpoint) sheet.deleteRow(i + 1);
+      }
       return jsonOut_({ ok: true });
     }
 
@@ -605,6 +705,7 @@ function doPost(e) {
     // Finds the wish by its timestamp (column A, as the feed reported it) and
     // writes Status/StatusAt into G/H. An empty status clears the reply.
     if (data.type === "wish-status") {
+      if (!isAdmin_(data.key)) return denied_();
       const status = (data.status || "").toString();
       if (status && WISH_STATUSES.indexOf(status) === -1) return jsonOut_({ ok: false, error: "unknown status" });
       const want = (data.timestamp || "").toString();
@@ -615,7 +716,7 @@ function doPost(e) {
       for (let i = values.length - 1; i >= 1; i--) {
         const ts = tsStr_(values[i][0]);
         if (ts === want || (wantMs && Date.parse(ts) === wantMs)) {
-          sheet.getRange(i + 1, 7, 1, 2).setValues([[status, status ? new Date().toISOString() : ""]]);
+          sheet.getRange(i + 1, 7, 1, 2).setValues(safeRows_([[status, status ? new Date().toISOString() : ""]]));
           return jsonOut_({ ok: true, status: status });
         }
       }
@@ -626,6 +727,7 @@ function doPost(e) {
     // Nothing but a timestamp: the app compares it with the last one it saw
     // and shows a banner. Deliberately no row, no email.
     if (data.type === "ping") {
+      if (!isAdmin_(data.key)) return denied_();
       PropertiesService.getScriptProperties().setProperty("latestPing", new Date().toISOString());
       return jsonOut_({ ok: true });
     }
@@ -633,29 +735,34 @@ function doPost(e) {
     // ── Notfall-Umarmung & Wunschkapsel ──────────────────────────────────────
     if (data.type === "hug" || data.wish) {
       const isHug = data.type === "hug";
+      const isVoucher = data.type === "voucher";
       const wishText = data.wish || data.message || "";
       const sender  = (data.token || "lennart");
       // The row keeps the client's own timestamp when it sends one: the app
       // logs a hug locally under that stamp, and the sync unions the sheet's
       // copy back — a server-side clock here made every hug count twice.
+      // A clock running ahead (or a made-up 2099) would push the push-pending
+      // pointer past every later row and silence all pushes after it.
       const sentMs  = Date.parse(data.timestamp || "");
-      const ts      = isNaN(sentMs) ? new Date() : new Date(sentMs);
+      const ts      = isNaN(sentMs) || sentMs > Date.now() + 5 * 60000 ? new Date() : new Date(sentMs);
       const tsLocal = ts.toLocaleString("de-CH", { timeZone: "Europe/Zurich" });
 
       const wishSheet = getOrCreateWuenscheSheet_(ss);
-      wishSheet.appendRow([
+      wishSheet.appendRow(safeRow_([
         ts.toISOString(),
         sender,
-        isHug ? "Notfall-Umarmung" : "Wunschkapsel",
+        isHug ? "Notfall-Umarmung" : isVoucher ? "voucher" : "Wunschkapsel",
         wishText,
         data.pageUrl || "",
-        data.userAgent || ""
-      ]);
+        data.userAgent || "",
+        "", "",
+        new Date().toISOString()   // I: ReceivedAt, the push pointer's clock
+      ]));
 
       // A hug is not an email: the notifier job (push-poll.cjs) reads it off
       // the push-pending feed and pushes it to every subscribed device. A
       // wish still mails Fionn as well, since it carries text worth keeping.
-      if (!isHug) {
+      if (!isHug && !isVoucher) {
         try {
           MailApp.sendEmail(
             FIONN_EMAIL,
@@ -670,7 +777,7 @@ function doPost(e) {
 
     if (data.type !== "gacha-backup") return jsonOut_({ ok: false, error: "unknown type" });
 
-    const token      = (data.token || "lennart").toLowerCase();
+    const token      = String(data.token || "lennart").toLowerCase();
     const timestamp  = new Date().toISOString();
 
     // ── Write metadata to Backup sheet ──────────────────────────────────────
@@ -686,7 +793,7 @@ function doPost(e) {
     let existingPost = "[]";
     let existingPfand = 0;
     for (let i = 1; i < backupValues.length; i++) {
-      if ((backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; existingPost = backupValues[i][6] || "[]"; existingPfand = Number(backupValues[i][7]) || 0; break; }
+      if (String(backupValues[i][0] || "").toLowerCase() === token) { metaRow = i + 1; existingStreak = backupValues[i][2] || 0; existingPost = backupValues[i][6] || "[]"; existingPfand = Number(backupValues[i][7]) || 0; break; }
     }
     // The Pfand count only ever grows; a client that does not send it keeps
     // the sheet's number.
@@ -701,9 +808,9 @@ function doPost(e) {
     const streak = incomingStreak;
     const metaRowData = [token, favourites, streak, tokensJson, questPoints, timestamp, postJson, pfandCount];
     if (metaRow === -1) {
-      backupSheet.appendRow(metaRowData);
+      backupSheet.appendRow(safeRow_(metaRowData));
     } else {
-      backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues([metaRowData]);
+      backupSheet.getRange(metaRow, 1, 1, metaRowData.length).setValues(safeRows_([metaRowData]));
     }
 
     // ── Write history entries — upsert by day, never delete absent days ────────
@@ -720,7 +827,7 @@ function doPost(e) {
       const existingByDay = {};
       const dupeRows = [];
       for (let i = histValues.length - 1; i >= 1; i--) {
-        if ((histValues[i][0] || "").toLowerCase() !== token) continue;
+        if (String(histValues[i][0] || "").toLowerCase() !== token) continue;
         const day = normDay(histValues[i][1]);
         if (!day) continue;
         if (existingByDay[day] !== undefined) {
@@ -765,9 +872,9 @@ function doPost(e) {
           pfand ? "yes" : ""
         ];
         if (existingByDay[day]) {
-          histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues([row]);
+          histSheet.getRange(existingByDay[day], 1, 1, row.length).setValues(safeRows_([row]));
         } else {
-          histSheet.appendRow(row);
+          histSheet.appendRow(safeRow_(row));
           existingByDay[day] = histSheet.getLastRow();
         }
       }
@@ -781,7 +888,7 @@ function doPost(e) {
     // ── Log quest solves ────────────────────────────────────────────────────
     if (data.questLog) {
       const questSheet = getOrCreateQuestSheet_(ss);
-      questSheet.appendRow([timestamp, token, data.questLog.challenge, data.questLog.attempts, data.questLog.points, data.questLog.period]);
+      questSheet.appendRow(safeRow_([timestamp, token, data.questLog.challenge, data.questLog.attempts, data.questLog.points, data.questLog.period]));
     }
 
     return jsonOut_({ ok: true });
@@ -816,7 +923,7 @@ function getOrCreateHistorySheet_(ss) {
   // Sheets created before the Bestanden columns existed get the two headers
   // filled in, so the columns are labelled rather than mystery cells.
   if (sheet.getRange(1, 15).getValue() === "") {
-    sheet.getRange(1, 15, 1, 2).setValues([["Bestanden", "BestandenAt"]]);
+    sheet.getRange(1, 15, 1, 2).setValues(safeRows_([["Bestanden", "BestandenAt"]]));
   }
   if (sheet.getRange(1, 17).getValue() === "") {
     sheet.getRange(1, 17).setValue("BeweisUrl");
@@ -854,7 +961,7 @@ function getOrCreateWuenscheSheet_(ss) {
   let sheet = ss.getSheetByName(WISH_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(WISH_SHEET_NAME);
-    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent", "Status", "StatusAt"]);
+    sheet.appendRow(["Timestamp", "Token", "Type", "Wish", "Page URL", "User Agent", "Status", "StatusAt", "ReceivedAt"]);
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(4, 400);
   }
@@ -926,6 +1033,49 @@ function getOrCreatePushSheet_(ss) {
   }
   return sheet;
 }
+
+// ── Weekly snapshot ──────────────────────────────────────────────────────────
+// Every message, answer and capsule of the two of them lives in this one
+// spreadsheet. A bad edit, a script bug or an accidental delete would take it
+// with it, and Sheets' version history is easy to lose track of. Once a week
+// this copies the whole file into a "Gacha-Sicherungen" folder on Drive and
+// keeps the last SNAPSHOT_KEEP copies.
+//
+// Install once: in the Apps Script editor, pick installSnapshotTrigger in
+// the function list and press Run (it asks for Drive permission). Running
+// snapshotSpreadsheet by hand takes a copy right away.
+const SNAPSHOT_FOLDER = "Gacha-Sicherungen";
+const SNAPSHOT_KEEP = 26;   // half a year of Sundays
+
+function snapshotSpreadsheet() {
+  const folders = DriveApp.getFoldersByName(SNAPSHOT_FOLDER);
+  const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(SNAPSHOT_FOLDER);
+  const stamp = Utilities.formatDate(new Date(), "Europe/Zurich", "yyyy-MM-dd");
+  DriveApp.getFileById(BACKUP_SPREADSHEET_ID).makeCopy("Affektions-Gacha " + stamp, folder);
+  const copies = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) copies.push(it.next());
+  copies.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); });
+  copies.slice(SNAPSHOT_KEEP).forEach(function (f) { f.setTrashed(true); });
+}
+
+function installSnapshotTrigger() {
+  ScriptApp.getProjectTriggers()
+    .filter(function (t) { return t.getHandlerFunction() === "snapshotSpreadsheet"; })
+    .forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger("snapshotSpreadsheet").timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(3).create();
+}
+
+// Sheets reads a string that starts with = + - or @ as a formula. Every value
+// written here comes from a client, so one wish or token of "=1+1" turned into
+// a number — and the readers' .toLowerCase() then threw on every GET until
+// the row was deleted by hand. The leading apostrophe forces plain text and
+// is not part of the value getValues() returns.
+function safe_(v) {
+  return typeof v === "string" && /^[=+\-@]/.test(v) ? "'" + v : v;
+}
+function safeRow_(row) { return row.map(safe_); }
+function safeRows_(rows) { return rows.map(safeRow_); }
 
 function jsonOut_(data) {
   return ContentService

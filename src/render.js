@@ -1,6 +1,6 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, hmInTimezone, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
+import { getToken, dateKeyInTimezone, clockReached, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
 import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, setWeather, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, streakRestoresLeft, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
@@ -581,11 +581,11 @@ export function renderMemory(pull) {
 }
 
 // Redeeming is the same act whether it happens on today's result card or in
-// the Verlauf token bank: zero the count, back it up, tell Fionn.
+// the Verlauf token bank: spend one goal's worth, back it up, tell Fionn.
 export function redeemToken(emoji) {
   const goal = tokenGoal(emoji);
   const reward = tokenReward(emoji);
-  resetToken(emoji);
+  resetToken(emoji, goal);
   backupToSheets();
   if (state.wishInbox && state.wishInbox.enabled) {
     const body = JSON.stringify({
@@ -931,11 +931,8 @@ export function messageText(pull) {
     `${emoji} ${displayNameFromToken()}s ${state.theme.brand.machineName}: ${pull.category.label}`,
     pull.outcome.title,
     pull.outcome.message,
-    (pull.outcome.link && (!pull.unlockTime || (() => {
-      const [h, m] = pull.unlockTime.split(":").map(Number);
-      const now = hmInTimezone(pull.unlockTimezone || state.theme?.timezone || "UTC");
-      return now.h > h || (now.h === h && now.m >= m);
-    })()))
+    (pull.outcome.link && (!pull.unlockTime
+      || clockReached(pull.unlockTime, pull.unlockTimezone || state.theme?.timezone || "UTC")))
       ? `🔗 ${pull.outcome.link}` : "",
     pull.photo ? `📸 ${pull.photo.caption || pull.photo.alt || "Foto-Drop"}` : "",
     `Tag: ${pull.day}`
@@ -1183,21 +1180,16 @@ export function renderPull(pull) {
   const photoCaption = $("[data-ag-photo-caption]");
 
   if (pull.outcome.link && pull.unlockTime) {
-    const [h, m] = pull.unlockTime.split(":").map(Number);
     // The entry's own timezone wins: "11:00" on a Sifnos capsule means 11:00
     // on Sifnos, not 11:00 in Zurich — the lock line shows the raw string,
     // so the clock it is checked against must be the clock they are reading.
-    const now = hmInTimezone(pull.unlockTimezone || state.theme?.timezone || "UTC");
+    const lockTz = pull.unlockTimezone || state.theme?.timezone || "UTC";
     const lpin = pull.outcome.linkPin;
     if (lpin) {
       if (isPinUnlocked("link-" + lpin)) {
         renderLinkInto(linkWrap, pull.outcome.link);
       } else {
-        const pinAvailable = (() => {
-          if (!pull.outcome.linkPinFrom) return true;
-          const [ph, pm] = pull.outcome.linkPinFrom.split(":").map(Number);
-          return now.h > ph || (now.h === ph && now.m >= pm);
-        })();
+        const pinAvailable = !pull.outcome.linkPinFrom || clockReached(pull.outcome.linkPinFrom, lockTz);
         if (pinAvailable) {
           const gate = buildLinkPinGate(lpin, linkWrap, pull);
           linkWrap.innerHTML = "";
@@ -1213,7 +1205,7 @@ export function renderPull(pull) {
         }
       }
     } else {
-      const unlockedByTime = now.h > h || (now.h === h && now.m >= m);
+      const unlockedByTime = clockReached(pull.unlockTime, lockTz);
       if (unlockedByTime) {
         renderLinkInto(linkWrap, pull.outcome.link);
       } else {
@@ -1412,6 +1404,7 @@ export function recordHistoryEntry(pull) {
     message: pull.outcome.message,
     link: pull.outcome.link || null,
     unlockTime: pull.unlockTime || null,
+    unlockTimezone: pull.unlockTimezone || null,
     promptAnswer: pull.promptAnswer || null,
     photo: pull.photo
       ? {
@@ -1427,8 +1420,23 @@ export function recordHistoryEntry(pull) {
     revealedAt: Date.now()
   };
   const existing = readHistory();
+  // "Heute nochmal anzeigen" reveals the same day again. The record it finds
+  // already carries what happened since — reaction, redeemed voucher, quest
+  // trophy, Pfand, the first-opened time — so this lays the pull over it
+  // instead of replacing it, which used to wipe all of that (and let a Niete
+  // go to Pfand once per replay).
+  const prev = existing.find((e) => e && e.day === entry.day && e.token === entry.token);
+  const record = prev
+    ? {
+        ...prev,
+        ...entry,
+        promptAnswer: entry.promptAnswer || prev.promptAnswer || null,
+        weather: entry.weather || prev.weather || null,
+        revealedAt: prev.revealedAt || entry.revealedAt
+      }
+    : entry;
   const seen = new Set();
-  const merged = [entry, ...existing].filter((item) => {
+  const merged = [record, ...existing].filter((item) => {
     if (!item || typeof item.day !== "string" || typeof item.token !== "string") return false;
     const key = `${item.day}|${item.token}`;
     if (seen.has(key)) return false;
@@ -1444,6 +1452,9 @@ export function recordHistoryEntry(pull) {
 // Mark a voucher history entry as redeemed (single-use, one-way).
 export function redeemVoucher(entry, btnEl) {
   if (!entry || entry.used) return;
+  // A Lieblinge copy carries no used state of its own; the history record does.
+  const stored = readHistory().find((e) => e.day === entry.day && e.token === entry.token);
+  if (stored && stored.used) { renderHistory(); if (state.activeTab === "lieblinge") renderLieblinge(); return; }
   if (!armConfirm(btnEl, "Einlösen? Nochmal tippen")) return;
 
   const usedAt = dateKeyInTimezone(state.theme?.timezone || "UTC");
@@ -1474,13 +1485,13 @@ export function redeemVoucher(entry, btnEl) {
 
 function buildHistoryLink(entry) {
   if (!entry.link) return null;
-  if (entry.unlockTime) {
+  // The lock is for the day itself. A later morning reads the wall clock
+  // again and used to lock a link that had long been open.
+  const lockedToday = entry.unlockTime && entry.day === dateKeyInTimezone(state.theme?.timezone || "UTC");
+  if (lockedToday) {
     // Same clock as the live capsule: the entry's own timezone if it has
     // one, else the app's — not the device's, which the old getHours() read.
-    const now = hmInTimezone(entry.unlockTimezone || state.theme?.timezone || "UTC");
-    const [h, m] = entry.unlockTime.split(":").map(Number);
-    const unlocked = now.h > h || (now.h === h && now.m >= m);
-    if (!unlocked) {
+    if (!clockReached(entry.unlockTime, entry.unlockTimezone || state.theme?.timezone || "UTC")) {
       const span = document.createElement("span");
       span.className = "ag-outcome-link-locked";
       span.textContent = `🔒 Ab ${entry.unlockTime} verfügbar`;
@@ -1658,6 +1669,11 @@ export function renderHistoryItemEl(entry) {
   if (isVoucherEntry(entry)) {
     const actions = document.createElement("div");
     actions.className = "ag-voucher-actions";
+    // Favourites are copies without used/usedAt — read the history record.
+    if (!entry.used) {
+      const stored = readHistory().find((e) => e.day === entry.day && e.token === entry.token);
+      if (stored && stored.used) entry = { ...entry, used: true, usedAt: stored.usedAt };
+    }
     if (entry.used) {
       const used = document.createElement("span");
       used.className = "ag-voucher-used";
@@ -2125,7 +2141,7 @@ export function renderWunschkapsel() {
   const done = $("[data-ag-wish-done]");
   if (!idle || !form || !done) return;
   const wish = readWish();
-  const wishThisWeek = wish && wish.week === currentWeekKey();
+  const wishThisWeek = wish && wish.week === currentWeekKey(state.theme?.timezone);
   if (wishThisWeek) {
     idle.hidden = true;
     form.hidden = true;

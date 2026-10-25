@@ -35,6 +35,10 @@ In the GitHub repo → Settings → Secrets and variables → Actions:
 - `VAPID_PUBLIC` — must match `config/push.json`'s `vapidPublicKey`.
 - `VAPID_SUBJECT` — `mailto:your-email`.
 - `BACKUP_ENDPOINT` — the Apps Script `…/exec` URL.
+- `BACKUP_ADMIN_KEY` — the same passphrase as the Script Property
+  `ADMIN_KEY` (see the README, *Fionn's Eingänge*). Optional until that
+  property is set; once it is, the push feeds refuse requests without it and
+  the jobs fail loudly saying so.
 
 **Variable** (not a secret): `PUSH_ENABLED` = `true` — this gates the workflow.
 
@@ -57,8 +61,15 @@ existing install nudge covers this) — Safari tabs can't receive push.
   instant. For instant delivery, point Apps Script's hug handler at a tiny
   always-on signer (Cloudflare Worker running `web-push`) instead of polling —
   everything server-side is already in place for that.
-- Expired subscriptions (410/404) are logged and self-heal: the device
-  re-subscribes next time the app opens.
+- Expired subscriptions (410/404) are removed from the sheet by the job that
+  hit them; the device re-subscribes next time the app opens.
+- **Nothing is marked sent until it was sent.** The jobs read the pending
+  hugs/wishes and due reminders with `mode=ack` and confirm afterwards
+  (`push-ack`, `push-due-ack`). A run that dies halfway resends the rest on
+  the next run instead of dropping it. The pointer follows the server's own
+  receive time (column I of `Wünsche`), so a wish retried hours after it was
+  written is still pushed, and a phone with its clock set ahead cannot push
+  the pointer into the future.
 - **A failing run does not always mean something is wrong.** Apps Script
   intermittently answers a GET with an HTML error page; the jobs retry three
   times, then warn and finish green rather than mailing you about a blip they
@@ -76,3 +87,30 @@ existing install nudge covers this) — Safari tabs can't receive push.
   attention: **07:00–10:00** for the morning nudge, **20:00–23:00** for the
   streak warning. Each fires at most once per player per day, so a cron that
   GitHub delays — or runs twice — can't double-send.
+
+## Deploying the Apps Script from GitHub
+
+`.github/workflows/deploy-apps-script.yml` pushes `scripts/backup-apps-script.js`
+(and the wish-inbox script) to their Google projects whenever they change on
+`master`, and moves the existing web-app deployment onto the new code — the
+`/exec` URL stays the same. One-time setup:
+
+1. Turn on the Apps Script API for your Google account:
+   <https://script.google.com/home/usersettings> → *Google Apps Script API* → On.
+2. On your computer: `npx @google/clasp@3.4.1 login`. It opens the browser,
+   then writes `~/.clasprc.json`. Paste that file's whole content into the
+   GitHub secret `CLASPRC_JSON`. It is a login to your Google account — keep
+   it in the secret only, never in the repo.
+3. In the Apps Script editor: *Project Settings* → copy the **Script ID** into
+   `GAS_BACKUP_SCRIPT_ID`; *Deploy → Manage deployments* → copy the active web
+   app's **Deployment ID** into `GAS_BACKUP_DEPLOYMENT_ID`. Same for the
+   wish-inbox project (`GAS_WISH_SCRIPT_ID`, `GAS_WISH_DEPLOYMENT_ID`) if it is
+   still deployed separately.
+4. *Actions → Deploy Apps Script → Run workflow* once to check it.
+
+The project ends up holding exactly the repo file; its manifest is read back
+and kept. Script Properties (`ADMIN_KEY`, the push pointer) live outside the
+code and are untouched. A new scope (the first time the weekly snapshot needs
+Drive) still needs one manual run of `installSnapshotTrigger` in the editor to
+grant it.
+
