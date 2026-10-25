@@ -956,7 +956,7 @@
       @media (prefers-color-scheme:dark){.ag-history-item{background:rgba(23,32,23,.7)}}
       .ag-history-item:hover{transform:translateY(-1px);border-color:rgba(47,122,79,.4)}
       .ag-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
-      .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+      .ag-history-date{color:var(--ag-muted);font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;min-width:0;white-space:nowrap}
       .ag-history-meta{display:block;font-size:.72rem;letter-spacing:.03em;text-transform:none;font-weight:400;opacity:.85;margin-top:1px}
       .ag-history-badge{
         display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:999px;
@@ -2350,7 +2350,9 @@ body{
 }
 /* Bottom nav: a little clearer, a little more lit. */
 .ag-widget .ag-bottomnav{
-  background:rgba(14,28,17,.55);
+  /* Opaque enough that a card's text passing under it reads as texture, not
+     as a second line of words fighting the labels. */
+  background:rgba(12,24,15,.74);
   backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);
   border-color:rgba(255,255,255,.20);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 14px 48px rgba(0,0,0,.55);
@@ -3759,7 +3761,7 @@ body{
               </div>
               <div class="ag-licht-moods" data-ag-licht-moods></div>
               <div class="ag-licht-save" data-ag-licht-save>
-                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="So wie jetzt — als Szene sichern…" maxlength="32" autocomplete="off" disabled>
+                <input class="ag-berge-input" type="text" data-ag-licht-scene-name placeholder="Name der Szene" maxlength="32" autocomplete="off" disabled>
                 <button class="ag-secondary" type="button" data-ag-licht-scene-save disabled>Sichern</button>
               </div>
               <div class="ag-licht-scenes" data-ag-licht-scenes hidden>
