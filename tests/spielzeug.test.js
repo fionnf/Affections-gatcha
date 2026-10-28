@@ -11,7 +11,7 @@ const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
 const { clampStep, validSteps, readKursIndex, writeKursIndex, rememberKurs, readLastKurs, kursAsPull, configKurse } = await import("../src/kurs.js");
-const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace, MEMORY_MAX_AGE_MS, WHITE_POS } = await import("../src/farbe.js");
+const { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, MEMORY_MAX_AGE_MS, WHITE_POS } = await import("../src/farbe.js");
 const { lightReactionsEnabled, setLightReactions } = await import("../src/einstellungen.js");
 const { formatHistoryTime } = await import("../src/utils.js");
 const { setWeather, writeHistory: writeHist, readHistory: readHist } = await import("../src/storage.js");
@@ -272,17 +272,6 @@ test("the light-reactions switch: on by default, off is kept, on clears the key"
   assert.equal(env.localStorage.getItem("affektions-gacha:einstellung:lichtreaktionen"), "aus");
   assert.equal(setLightReactions(true), true);
   assert.equal(env.localStorage.getItem("affektions-gacha:einstellung:lichtreaktionen"), null);
-});
-
-test("the colour memory leaves a fresh sunrise alone", () => {
-  const alarm = { enabled: true, lh: 7, lm: 0, duration_min: 20 };
-  const at = (h, m) => { const d = new Date(2026, 9, 4); d.setHours(h, m, 0, 0); return d; };
-  assert.equal(inSunriseGrace(alarm, at(7, 30)), true, "ten minutes after it ended");
-  assert.equal(inSunriseGrace(alarm, at(9, 50)), true, "still inside three hours");
-  assert.equal(inSunriseGrace(alarm, at(10, 30)), false);
-  assert.equal(inSunriseGrace(alarm, at(6, 50)), false, "before it ended");
-  assert.equal(inSunriseGrace({ ...alarm, enabled: false }, at(7, 30)), false);
-  assert.equal(inSunriseGrace(null, at(7, 30)), false);
 });
 
 test("the hug strobe: red and orange chasing along the strip, every other step dim", () => {

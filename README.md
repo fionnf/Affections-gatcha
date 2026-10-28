@@ -222,9 +222,7 @@ tint at all, whatever its white level (`w` only scales the white LED on top),
 so a tapped lamp — taps land with `w` between 0.6 and 1 — is a colour and is
 remembered, and a dim warm white is still white (`WHITE_POS`).
 White chosen on purpose, the Weiß mood or the Weissanteil slider, forgets the
-memory for those lamps so it is not undone; a lamp that is off is left off;
-and for three hours after an enabled sunrise alarm ends, the Licht tab leaves
-warm white alone, since that is what the morning asked for.
+memory for those lamps so it is not undone; and a lamp that is off is left off.
 
 **Kerzenflackern.** A mode for the lamps themselves, under the strip: warm
 amber, low, the brightness wandering the way a flame does — small steps at
@@ -254,14 +252,13 @@ taps); after a pause of 1.6 s it plays on every targeted lamp (both by default)
 as brightness pulses in each lamp's own colour, then each goes back to what it
 was (`morseSteps`, `targetLamps`).
 
-**🌅 Sonnenaufgang.** A friendlier front for the firmware's alarms: a time, a
-day preset (Mo–Fr, täglich, Sa+So) and an on/off, scoped to the lamps the
-Beide / Fionn / Lennart switch names. It manages exactly one entry in the
-retained alarm list, tagged `gacha: "sunrise"`, and leaves every alarm set on
-the lights page alone; twenty minutes from deep red to warm white, as the
-firmware's sunrise type does it (`sunriseAlarm`, `setSunrise`).
+**No wake-ups.** The lamps don't wake anyone. The app's old Sonnenaufgang is
+gone, and whenever the Licht tab sees a wake-up on the retained alarm list —
+the old app entry or a 🌅 Rise set on the lights page (`type: "sunrise"`, the
+firmware's default) — it takes it off and tells the boards. 🌙 Sleep fades
+are left alone (`isWakeUp`, `withoutWakeUps`).
 
-**Alle Einstellungen ›** opens `lichter.html` for the rest — alarms in full,
+**Alle Einstellungen ›** opens `lichter.html` for the rest — bedtime fades,
 groups, Wi-Fi, reboot. That page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)
 (branch `master`) by `scripts/vendor-lights-ui.py`, which re-applies the local

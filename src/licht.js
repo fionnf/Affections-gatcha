@@ -14,7 +14,7 @@
 // Everything here is best-effort: no broker, no lamps, no problem — the tab
 // says so and nothing else in the app notices.
 import { mount, $ } from "./state.js";
-import { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace } from "./farbe.js";
+import { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload } from "./farbe.js";
 import { showToast } from "./toast.js";
 import { haptic } from "./haptic.js";
 import { loadMqtt, isFxBusy } from "./lightsFx.js";
@@ -364,21 +364,12 @@ function onMessage(topic, msg) {
   if (t === topicAlarms()) {
     if (Array.isArray(d)) {
       alarms = d.filter((a) => a && typeof a === "object");
-      // Our alarm keeps its local time across the DST switch: the UTC
-      // fields are re-derived from lh/lm, as the lights page does for all
-      // of them, and republished only when they actually changed.
-      const mine = findSunrise(alarms);
-      if (mine && Number.isInteger(mine.lh)) {
-        const [uh, um] = localToUtc(mine.lh, mine.lm || 0);
-        if (mine.hour !== uh || mine.minute !== um) {
-          mine.hour = uh; mine.minute = um;
-          if (client && client.connected) {
-            try { client.publish(topicAlarms(), JSON.stringify(alarms), { retain: true, qos: 1 }); publishRaw({ set_alarms: alarms }); } catch (_e) {}
-          }
-        }
-      }
+      // No wake-ups on the lamps: a sunrise alarm still on the retained list
+      // (the app's old Sonnenaufgang, or a 🌅 Rise set on the lights page) is
+      // taken off once, here, and the boards are told. Bedtime fades stay.
+      const kept = withoutWakeUps(alarms);
+      if (kept.length !== alarms.length) publishAlarms(kept, { quiet: true });
     }
-    renderLichtPanel();
     return;
   }
   if (t === topicScenes()) {
@@ -407,13 +398,11 @@ function onMessage(topic, msg) {
 // ── Farbgedächtnis ───────────────────────────────────────────────────────────
 // A lamp that answers white when it was not asked to be white (first echo
 // after connecting, or right after it came back online) gets its last
-// colour back, unless a sunrise just ended, or it was off, or nothing is
-// remembered.
+// colour back, unless it was off or nothing is remembered.
 const comeback = {};   // id → true while the next echo should be checked
 export function restoreColour(id) {
   const m = recallColour(id);
   if (!m) return false;
-  if (inSunriseGrace(findSunrise(alarms))) return false;
   const p = restorePayload(id, m);
   lamps[id] = { ...(lamps[id] || {}), on: true, groups: p.groups, brightness: p.brightness ?? lamps[id]?.brightness, fade_steps: p.fade_steps };
   holdUntil = Date.now() + HOLD_MS;
@@ -818,62 +807,24 @@ export function stopRainbow({ restore = true } = {}) {
 }
 export function toggleRainbow() { if (rainbow) stopRainbow(); else startRainbow(); }
 
-// ── Sonnenaufgang ────────────────────────────────────────────────────────────
-// The firmware has alarms: a "sunrise" fades from deep red to warm white over
-// duration_min, on the boards listed, on the days listed (Monday = 0). The
-// lights page keeps the list on a retained topic; this manages exactly one
-// entry in it, tagged gacha:"sunrise", and leaves every other alarm alone.
-export const SUNRISE_DAYS = { werktags: [0, 1, 2, 3, 4], taeglich: [0, 1, 2, 3, 4, 5, 6], wochenende: [5, 6] };
-export function localToUtc(lh, lm, now = new Date()) {
-  const d = new Date(now); d.setHours(lh, lm, 0, 0);
-  return [d.getUTCHours(), d.getUTCMinutes()];
+// ── Alarms ───────────────────────────────────────────────────────────────────
+// The firmware runs alarms from a retained list the lights page keeps. The
+// app used to manage a "Sonnenaufgang" wake-up in it; that is gone, and any
+// wake-up (type "sunrise", the firmware's default type) is removed from the
+// list whenever the Licht tab sees it. Other alarm types are left alone.
+export function isWakeUp(a) {
+  return !!a && typeof a === "object" && (a.gacha === "sunrise" || (a.type || "sunrise") === "sunrise");
 }
-export function sunriseAlarm(list, { time = "07:00", days = "werktags", boards, enabled = true, durationMin = 20 } = {}) {
-  const [lh, lm] = String(time).split(":").map((x) => parseInt(x, 10));
-  const [uh, um] = localToUtc(Number.isInteger(lh) ? lh : 7, Number.isInteger(lm) ? lm : 0);
-  const others = (Array.isArray(list) ? list : []).filter((a) => !(a && a.gacha === "sunrise"));
-  const mine = {
-    gacha: "sunrise", enabled: !!enabled, type: "sunrise",
-    hour: uh, minute: um, lh: Number.isInteger(lh) ? lh : 7, lm: Number.isInteger(lm) ? lm : 0,
-    duration_min: durationMin, brightness: 0.9,
-    days: SUNRISE_DAYS[days] || SUNRISE_DAYS.werktags,
-    boards: Array.isArray(boards) && boards.length ? boards : BOARDS.map((b) => b.id)
-  };
-  return [...others, mine];
+export function withoutWakeUps(list) {
+  return (Array.isArray(list) ? list : []).filter((a) => !isWakeUp(a));
 }
-export function findSunrise(list) {
-  return (Array.isArray(list) ? list : []).find((a) => a && a.gacha === "sunrise") || null;
-}
-export function daysPreset(days) {
-  const key = JSON.stringify((days || []).slice().sort());
-  for (const [name, list] of Object.entries(SUNRISE_DAYS)) if (JSON.stringify(list) === key) return name;
-  return "werktags";
-}
-function publishAlarms(list) {
-  if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
+function publishAlarms(list, { quiet = false } = {}) {
+  if (!client || !client.connected) { if (!quiet) showToast("Keine Verbindung zu den Lampen"); return false; }
   try {
     client.publish(topicAlarms(), JSON.stringify(list), { retain: true, qos: 1 });
     publishRaw({ set_alarms: list });
-  } catch (_e) { showToast("Wecker konnte nicht gestellt werden"); return false; }
+  } catch (_e) { return false; }
   alarms = list;
-  return true;
-}
-// `retarget` (switching the alarm on) takes the lamps from the Beide /
-// Fionn / Lennart switch; a change of time or days keeps the alarm's own.
-export function setSunrise({ enabled, time, days, retarget = false } = {}) {
-  const cur = findSunrise(alarms) || {};
-  const fromSwitch = sendTarget ? [sendTarget] : BOARDS.map((b) => b.id);
-  const next = sunriseAlarm(alarms, {
-    time: time || (Number.isInteger(cur.lh) ? `${String(cur.lh).padStart(2, "0")}:${String(cur.lm || 0).padStart(2, "0")}` : "07:00"),
-    days: days || daysPreset(cur.days),
-    boards: retarget || !Array.isArray(cur.boards) || !cur.boards.length ? fromSwitch : cur.boards,
-    enabled: enabled === undefined ? cur.enabled !== false : enabled
-  });
-  if (!publishAlarms(next)) return false;
-  const mine = findSunrise(next);
-  haptic([8, 20, 8]);
-  showToast(mine.enabled ? `🌅 Sonnenaufgang um ${String(mine.lh).padStart(2, "0")}:${String(mine.lm).padStart(2, "0")} gestellt` : "🌅 Sonnenaufgang aus");
-  renderLichtPanel();
   return true;
 }
 
@@ -1064,17 +1015,6 @@ function bindLichtPanel() {
       if (sent && morse) morse.hidden = true;
     }, 1600);
   });
-  // Sonnenaufgang.
-  const srTime = $("[data-ag-sunrise-time]");
-  const srDays = $("[data-ag-sunrise-days]");
-  const srToggle = $("[data-ag-sunrise-toggle]");
-  if (srToggle) srToggle.addEventListener("click", () => {
-    const cur = findSunrise(alarms);
-    const turningOn = !(cur && cur.enabled !== false);
-    setSunrise({ enabled: turningOn, retarget: turningOn, time: srTime && srTime.value, days: srDays && srDays.value });
-  });
-  if (srTime) srTime.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime.value, days: srDays && srDays.value }); });
-  if (srDays) srDays.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime && srTime.value, days: srDays.value }); });
   const saveBtn = $("[data-ag-licht-scene-save]");
   const nameIn = $("[data-ag-licht-scene-name]");
   if (saveBtn && nameIn) {
@@ -1199,28 +1139,7 @@ export function renderLichtPanel() {
     rainbowBtn.classList.toggle("is-active", !!rainbow);
     rainbowBtn.textContent = rainbow ? "🌈 Regenbogen aus" : "🌈 Regenbogen";
   }
-  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-rainbow], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = !live();
-  const sr = findSunrise(alarms);
-  const srTime = $("[data-ag-sunrise-time]");
-  const srDays = $("[data-ag-sunrise-days]");
-  const srToggle = $("[data-ag-sunrise-toggle]");
-  const srNote = $("[data-ag-sunrise-note]");
-  if (sr && srTime && document.activeElement !== srTime) srTime.value = `${String(sr.lh ?? 7).padStart(2, "0")}:${String(sr.lm ?? 0).padStart(2, "0")}`;
-  if (sr && srDays && document.activeElement !== srDays) srDays.value = daysPreset(sr.days);
-  if (srToggle) {
-    const on = !!(sr && sr.enabled !== false);
-    srToggle.textContent = on ? "an" : "aus";
-    srToggle.classList.toggle("is-on", on);
-    srToggle.setAttribute("aria-pressed", on ? "true" : "false");
-  }
-  if (srNote) {
-    const who = (sr && Array.isArray(sr.boards) ? sr.boards : BOARDS.map((b) => b.id)).map((id) => (BOARDS.find((b) => b.id === id) || {}).owner || id).join(" + ");
-    const label = { werktags: "Mo–Fr", taeglich: "täglich", wochenende: "Sa+So" }[daysPreset(sr && sr.days)];
-    srNote.textContent = sr && sr.enabled !== false
-      ? `Aktiv ${label} um ${String(sr.lh ?? 7).padStart(2, "0")}:${String(sr.lm ?? 0).padStart(2, "0")}: ${sr.duration_min || 20} Minuten von tiefem Rot zu Warmweiss · ${who}`
-      : sr ? "Gestellt, aber aus. Tippen auf „aus“ schaltet ihn ein."
-      : "Zwanzig Minuten von tiefem Rot zu Warmweiss, auf den Lampen, die oben gewählt sind.";
-  }
+  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-rainbow], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save]")) b.disabled = !live();
   for (const b of panel.querySelectorAll("[data-ag-licht-target] [data-target]")) {
     const active = (b.dataset.target || "") === sendTarget;
     b.classList.toggle("is-active", active);

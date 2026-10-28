@@ -2808,21 +2808,6 @@ body{
 .ag-widget .ag-morse-dots{display:flex;gap:6px;min-height:10px;justify-content:center}
 .ag-widget .ag-morse-dots i{width:8px;height:8px;border-radius:50%;background:#ffe9a0;box-shadow:0 0 8px rgba(255,220,120,.6);animation:ag-pop-in 220ms var(--ag-ease) both}
 
-/* ── Sonnenaufgang ─────────────────────────────────────────────────────── */
-.ag-widget .ag-sunrise{padding:12px;border-radius:var(--ag-radius-md);background:linear-gradient(135deg,rgba(255,120,60,.10),rgba(255,210,140,.06));border:1px solid rgba(255,170,100,.22)}
-.ag-widget .ag-sunrise-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ag-widget .ag-sunrise-title{font-size:.9rem;margin-right:auto}
-.ag-widget .ag-sunrise-time,.ag-widget .ag-sunrise-days{
-  font-family:inherit;font-size:.86rem;color:var(--ag-text);background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:6px 8px;
-}
-.ag-widget .ag-sunrise-time{color-scheme:dark}
-.ag-widget .ag-sunrise-toggle{
-  appearance:none;font-family:inherit;cursor:pointer;width:52px;height:34px;border-radius:999px;font-size:.78rem;
-  color:var(--ag-muted);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
-}
-.ag-widget .ag-sunrise-toggle.is-on{color:#2a1500;background:#ffb26b;border-color:#ffb26b;box-shadow:0 0 16px rgba(255,178,107,.35)}
-.ag-widget .ag-sunrise-toggle:disabled,.ag-widget .ag-sunrise-time:disabled,.ag-widget .ag-sunrise-days:disabled{opacity:.45;cursor:default}
-.ag-widget .ag-sunrise-note{margin:8px 0 0;font-size:.74rem;line-height:1.45;color:var(--ag-muted)}
 .ag-widget .ag-licht-foot-single{grid-template-columns:1fr}
 
 /* ── Flaschenpost ──────────────────────────────────────────────────────── */
