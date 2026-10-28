@@ -396,7 +396,6 @@ export const html = `
                 <span class="ag-badge" data-ag-rarity></span>
                 <span class="ag-date" data-ag-date></span>
               </div>
-              <p class="ag-moon-line" data-ag-moon-line hidden></p>
               <h2 data-ag-title></h2>
               <div class="ag-message" data-ag-message hidden></div>
               <section class="ag-kurs" data-ag-kurs hidden aria-label="Kurs">

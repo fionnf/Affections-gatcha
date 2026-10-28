@@ -36,7 +36,6 @@ import { renderAufkleber } from "./aufkleber.js";
 import { renderWanderweg, bindWanderwegScroll, placeHiker, climbProgress } from "./wanderweg.js";
 import { renderKurs, ensureKursChip } from "./kurs.js";
 import { renderListe } from "./liste.js";
-import { fullMoonLine } from "./mond.js";
 import { addGlossaryWord } from "./glossary.js";
 import { readHugLog, readPfand, addPfand, markPfand, pfandProgress, addToken, readFlaschenpost, markFlaschenpostDelivered } from "./storage.js";
 import { PFAND_TOKEN, PFAND_EVERY } from "./constants.js";
@@ -1292,14 +1291,6 @@ export function renderPull(pull) {
     }
     // The sticker he stuck earlier, where he left it.
     renderAufkleber($("[data-ag-aufkleber]"), pull.day, chosen || "");
-  }
-
-  // A full-moon night gets its line.
-  const moonLine = $("[data-ag-moon-line]");
-  if (moonLine) {
-    const line = fullMoonLine(pull.day);
-    moonLine.hidden = !line;
-    moonLine.textContent = line;
   }
 
   renderWishReply(pull);

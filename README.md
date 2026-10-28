@@ -967,10 +967,8 @@ mechanics, none of it load-bearing.
   machine box (88–121px on a phone, re-laid out on resize), so the
   constellation circles the whole window rather than hugging the capsule.
 - **Mondfenster** (`src/mond.js`). After 22:00 the real moon hangs in the
-  window, upper left of the capsule, computed, not fetched: the mean
-  lunation for the shape, Meeus' full-moon instants for the exact day. A
-  full-moon day gets one extra line on the card above the title
-  (`fullMoonLine`).
+  window, upper left of the capsule, computed from the mean lunation, not
+  fetched.
 - **Aufkleber** (`src/aufkleber.js`). The reaction is a sticker: tap 🥹 😂 🙃
   under the card and it peels off the row onto the card, top right, at a
   tilt; drag it anywhere and it stays there (per day, local,

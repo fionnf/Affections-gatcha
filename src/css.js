@@ -2901,7 +2901,6 @@ body{
 .ag-widget .ag-moon-lit{fill:#fff6d6}
 .ag-widget.is-evening .ag-moon{opacity:.95}
 .ag-widget .ag-moon.is-full svg{filter:drop-shadow(0 0 12px rgba(255,246,214,.9))}
-.ag-widget .ag-moon-line{margin:-4px 0 10px;font-size:.86rem;color:var(--ag-muted);font-style:italic}
 
 /* ── Aufkleber: the reaction stuck on the card ── */
 .ag-widget .ag-result{position:relative}

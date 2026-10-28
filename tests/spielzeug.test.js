@@ -6,7 +6,7 @@ import { setupBrowserEnv } from "./helpers.js";
 
 const env = setupBrowserEnv("?player=lennart");
 const { KnobTurn, TURN_DEG, DETENT_DEG, LOCKED_GIVE_DEG } = await import("../src/knopf.js");
-const { moonPhase, isFullMoonDay, moonPath, moonEmoji, fullMoonLine, moonOctant, fullMoonInstant } = await import("../src/mond.js");
+const { moonPhase, moonPath, moonEmoji, moonOctant } = await import("../src/mond.js");
 const { placeAufkleber, aufkleberFor, defaultSpot, clamp01 } = await import("../src/aufkleber.js");
 const { pinched, PINCH_RATIO } = await import("../src/kneifen.js");
 const { isCandleHour, isBlow } = await import("../src/kerze.js");
@@ -55,25 +55,13 @@ test("a locked knob gives a little and never fires", () => {
 });
 
 test("the moon: a known full moon and a known new moon", () => {
-  // Full moons 2024-01-25 17:54, 2024-02-24 12:30, 2024-03-25 07:00 UTC;
-  // new moon 2024-01-11 11:57 UTC. The mean phase drifts up to half a day
-  // from the true one; the exact instants come from Meeus.
+  // Full moon 2024-01-25 17:54 UTC, new moon 2024-01-11 11:57 UTC. The mean
+  // phase drifts up to half a day from the true one.
   assert.ok(Math.abs(moonPhase(new Date(Date.UTC(2024, 0, 25, 17, 54))).phase - 0.5) < 0.03);
   const nm = moonPhase(new Date(Date.UTC(2024, 0, 11, 11, 57))).phase;
   assert.ok(nm < 0.03 || nm > 0.97);
-  for (const [k, iso] of [[297, "2024-01-25T17:54Z"], [298, "2024-02-24T12:30Z"], [299, "2024-03-25T07:00Z"]]) {
-    const err = Math.abs(fullMoonInstant(k) - Date.parse(iso)) / 60000;
-    assert.ok(err < 20, `lunation ${k}: ${err.toFixed(0)} min off`);
-  }
-  assert.equal(isFullMoonDay("2024-01-25"), true);
-  assert.equal(isFullMoonDay("2024-01-26"), false);
-  assert.equal(isFullMoonDay("2024-01-28"), false);
-  assert.equal(isFullMoonDay("2024-02-24"), true);
-  assert.equal(isFullMoonDay("not-a-day"), false);
   assert.equal(moonEmoji(new Date(Date.UTC(2024, 0, 25, 17, 54))), "🌕");
   assert.equal(moonOctant(0.26), 2);
-  assert.ok(fullMoonLine("2024-01-25").startsWith("🌕"));
-  assert.equal(fullMoonLine("2024-01-28"), "");
 });
 
 test("the moon's lit shape: nothing at new, the whole disc at full, the right half waxing", () => {
