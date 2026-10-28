@@ -1,6 +1,7 @@
 // ── Lights pull-flash ─────────────────────────────────────────────────────────
-// When a capsule is revealed, both linked_friend_lights lamps glow green for
-// ~10 s and then return to exactly the state they were in before.
+// When a capsule is revealed, both linked_friend_lights lamps play a short
+// show in the capsule's colour (~18 s) and then return to exactly the state
+// they were in before.
 //
 // Protocol (see /lichter.html and the linked_friend_lights firmware): boards
 // listen on <prefix>/events via MQTT-over-WebSocket and — key to this file —
@@ -15,7 +16,6 @@
 // pull happens, and any failure (no network, CDN blocked, boards offline)
 // silently skips the effect without touching the reveal UX.
 
-import { isWhite, isColoured, rememberColour, recallColour, restorePayload } from "./farbe.js";
 import { lightReactionsEnabled } from "./einstellungen.js";
 
 const BROKER = "wss://broker.hivemq.com:8884/mqtt";
@@ -138,57 +138,6 @@ export function flashReactionOnLamp(emoji, boardId = "board_a") {
   return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
 }
 
-// ── Farbgedächtnis beim Start ────────────────────────────────────────────────
-// Once in a while when the app opens: ask the lamps how they look, and put
-// the remembered colour back on any that answers white while a colour is on
-// record. A short connection, nothing else sent. Throttled, because the app
-// opens often and the lamps rarely reboot.
-const CHECK_KEY = "affektions-gacha:licht:farbe:checked";
-export const CHECK_EVERY_MS = 20 * 60000;
-export function checkColourOnStart({ force = false } = {}) {
-  try {
-    const last = Number(window.localStorage.getItem(CHECK_KEY) || 0);
-    if (!force && Date.now() - last < CHECK_EVERY_MS) return Promise.resolve(false);
-    window.localStorage.setItem(CHECK_KEY, String(Date.now()));
-  } catch (_e) {}
-  if (!BOARD_IDS.some((id) => recallColour(id))) return Promise.resolve(false);
-  return colourCheck().catch(() => false);
-}
-async function colourCheck() {
-  if (_busy) return false;
-  _busy = true;
-  try {
-    await loadMqtt();
-    return await new Promise((resolve) => {
-      const client = window.mqtt.connect(BROKER, { clientId: "gachafx_" + Math.random().toString(16).slice(2), clean: true, connectTimeout: 8000 });
-      let done = false, restored = 0;
-      const finish = () => { if (done) return; done = true; try { client.end(true); } catch (_e) {} resolve(restored > 0); };
-      const publish = (payload) => { payload.from = FROM_ID; try { client.publish(TOPIC, JSON.stringify(payload)); } catch (_e) {} };
-      client.on("connect", () => {
-        client.subscribe(TOPIC, (err) => {
-          if (err) { finish(); return; }
-          publish({ nudge: true });
-          setTimeout(() => setTimeout(finish, restored ? 2000 : 0), ECHO_WAIT_MS);
-        });
-      });
-      client.on("message", (t, msg) => {
-        try {
-          const d = JSON.parse(msg.toString());
-          if (!d.from || !BOARD_IDS.includes(d.from) || !Array.isArray(d.groups)) return;
-          if (isColoured(d)) { rememberColour(d.from, d); return; }
-          const m = d.on !== false && isWhite(d) ? recallColour(d.from) : null;
-          if (m) { publish(restorePayload(d.from, m)); restored++; }
-        } catch (_e) {}
-      });
-      client.on("error", finish);
-      client.on("close", finish);
-      setTimeout(finish, ECHO_WAIT_MS + 8000);
-    });
-  } finally {
-    _busy = false;
-  }
-}
-
 // ── Notfall-Umarmung ─────────────────────────────────────────────────────────
 // A hug that went out is seen on both lamps: red and orange in short
 // segments chasing along the strip, strobing, for eight seconds. The
@@ -245,80 +194,139 @@ export function startCandleLights() {
   return () => { stopped = true; if (stopFn) stopFn(); };
 }
 
+// ── Shared show plumbing ─────────────────────────────────────────────────────
+// Every show connects, nudges, captures each lamp's state from its echo, plays
+// its steps and puts the captured state back. Three rules keep it from
+// fighting anyone:
+//  - It plays only on lamps that answered. A lamp whose echo was lost used to
+//    get the show anyway and was then "restored" from the other lamp's state —
+//    switched on, in the other lamp's colour.
+//  - Its own messages carry `fx` (boards ignore unknown fields). Any other
+//    command on the topic while it runs — the Licht tab, the lights page,
+//    Fionn tapping Off — is a takeover: the show stops at once and leaves
+//    that lamp as the person set it, instead of reverting it at the end.
+//  - It restores what it captured, never an older colour from memory: white
+//    that someone chose is white.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const COMMAND_FIELDS = ["on", "brightness", "groups", "fade_steps", "drift_enabled"];
+const BUSY_WAIT_MS = 25000;
+
+// Wait for another show to end — but never for a lit candle, which holds the
+// lamps for as long as it burns. Returns false when they are still taken.
+async function waitTurn() {
+  const until = Date.now() + BUSY_WAIT_MS;
+  while (_busy && !_looping && Date.now() < until) await sleep(400);
+  return !_busy;
+}
+
+function openShow({ target = null, onCaptured, onTakeover }) {
+  const fx = "gachafx_" + Math.random().toString(16).slice(2);
+  const client = window.mqtt.connect(BROKER, { clientId: fx, clean: true, connectTimeout: 8000 });
+  const captured = {};
+  const skip = new Set();
+  let capturing = true;
+  const show = {
+    client, captured, skip,
+    // The lamps this show plays on: answered, and not taken over.
+    boards() { return (target ? [target] : BOARD_IDS).filter((id) => captured[id] && !skip.has(id)); },
+    publish(payload) {
+      try { client.publish(TOPIC, JSON.stringify({ ...payload, from: FROM_ID, fx })); } catch (_e) {}
+    },
+    // Untargeted to both when both play; per lamp otherwise.
+    send(payload) {
+      const ids = show.boards();
+      if (!ids.length) return;
+      if (!target && ids.length === BOARD_IDS.length) show.publish(payload);
+      else for (const id of ids) show.publish({ ...payload, target: id });
+    },
+    restore(ids) {
+      for (const id of ids) {
+        const state = captured[id];
+        if (!state || skip.has(id)) continue;
+        const base = { target: id, ..._restorePayload(state) };
+        show.publish({ ...base, on: true });
+        // Firmware ignores colour while off: colour on, then power back down
+        // once the fade has landed.
+        if (state.on === false) setTimeout(() => show.publish({ target: id, on: false }), 1500);
+      }
+    },
+    stopCapturing() { capturing = false; }
+  };
+  client.on("message", (_t, msg) => {
+    let d;
+    try { d = JSON.parse(msg.toString()); } catch (_e) { return; }
+    if (!d || typeof d !== "object") return;
+    if (d.from && BOARD_IDS.includes(d.from) && Array.isArray(d.groups)) {
+      if (capturing) { captured[d.from] = d; if (onCaptured) onCaptured(d.from); }
+      return;
+    }
+    if (capturing || d.fx === fx || d.from === undefined || BOARD_IDS.includes(d.from)) return;
+    if (!COMMAND_FIELDS.some((k) => d[k] !== undefined)) return;   // a ping or nudge
+    const hit = d.target ? [d.target] : BOARD_IDS;
+    let changed = false;
+    for (const id of hit) if (BOARD_IDS.includes(id) && !skip.has(id)) { skip.add(id); changed = true; }
+    if (changed && onTakeover) onTakeover();
+  });
+  return show;
+}
+
 // Like runFlash, but open-ended: the cycle repeats every `periodMs` until
 // the stop handed to `onReady` is called, which restores and disconnects.
 let _looping = false;
 async function runLoop(cycleFn, periodMs, onReady) {
-  if (_busy) { onReady(() => {}); return; }
+  // The candle used to give up silently when a pull flash or a hug was still
+  // playing — the veil on screen, nothing on the lamps.
+  if (!(await waitTurn())) { onReady(() => {}); return; }
   _busy = true;
   _looping = true;
   try {
     await loadMqtt();
     await new Promise((resolve) => {
-      const client = window.mqtt.connect(BROKER, {
-        clientId: "gachafx_" + Math.random().toString(16).slice(2),
-        clean: true,
-        connectTimeout: 8000,
-      });
-      const captured = {};
       let running = false, done = false;
       let stepTimers = [], loopTimer = null;
       const finish = () => {
         if (done) return;
         done = true;
-        try { client.end(true); } catch (_e) {}
+        try { show.client.end(); } catch (_e) {}
         resolve();
       };
-      const publish = (payload) => {
-        payload.from = FROM_ID;
-        try { client.publish(TOPIC, JSON.stringify(payload)); } catch (_e) {}
-      };
-      const playCycle = () => {
-        for (const t of stepTimers) clearTimeout(t);
-        stepTimers = [];
-        for (const step of cycleFn()) stepTimers.push(setTimeout(() => publish({ ...step.payload }), step.at));
-        loopTimer = setTimeout(playCycle, periodMs);
-      };
-      const stop = () => {
+      const halt = () => {
         clearTimeout(loopTimer);
         for (const t of stepTimers) clearTimeout(t);
         stepTimers = [];
+      };
+      const show = openShow({
+        onTakeover: () => { if (running && !show.boards().length) { halt(); running = false; setTimeout(finish, 500); } }
+      });
+      const playCycle = () => {
+        halt();
+        if (!show.boards().length) return;
+        for (const step of cycleFn()) stepTimers.push(setTimeout(() => show.send({ ...step.payload }), step.at));
+        loopTimer = setTimeout(playCycle, periodMs);
+      };
+      const stop = () => {
+        halt();
         if (!running) { finish(); return; }
         running = false;
-        for (const id of BOARD_IDS) {
-          const state = captured[id] || captured[BOARD_IDS.find((b) => b !== id)];
-          if (!state) continue;
-          const base = { target: id, ..._restorePayload(state) };
-          if (state.on === false) {
-            publish({ ...base, on: true });
-            setTimeout(() => publish({ target: id, on: false }), 1500);
-          } else {
-            publish({ ...base, on: true });
-          }
-        }
+        show.restore(BOARD_IDS);
         setTimeout(finish, 2500);
       };
-      client.on("connect", () => {
-        client.subscribe(TOPIC, (err) => {
+      show.client.on("connect", () => {
+        show.client.subscribe(TOPIC, (err) => {
           if (err) { finish(); onReady(() => {}); return; }
-          publish({ nudge: true });
+          show.publish({ nudge: true });
           setTimeout(() => {
             if (done) return;
-            if (!Object.keys(captured).length) { finish(); onReady(() => {}); return; }
+            show.stopCapturing();
+            if (!show.boards().length) { finish(); onReady(() => {}); return; }
             running = true;
             playCycle();
             onReady(stop);
           }, ECHO_WAIT_MS);
         });
       });
-      client.on("message", (t, msg) => {
-        try {
-          const d = JSON.parse(msg.toString());
-          if (d.from && BOARD_IDS.includes(d.from) && Array.isArray(d.groups) && !running) captured[d.from] = d;
-        } catch (_e) {}
-      });
-      client.on("error", () => { if (!running) { finish(); onReady(() => {}); } });
-      client.on("close", () => { if (!running) { finish(); onReady(() => {}); } });
+      show.client.on("error", () => { if (!running) { finish(); onReady(() => {}); } });
+      show.client.on("close", () => { if (!running) { finish(); onReady(() => {}); } });
     });
   } catch (_e) {
     onReady(() => {});
@@ -330,119 +338,68 @@ async function runLoop(cycleFn, periodMs, onReady) {
 
 // Connect, capture the lamps' state from their echoes, play the steps, put
 // everything back. `target` limits the show (and the restore) to one lamp.
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function runFlash(steps, totalMs, target) {
-  // A targeted show (a reaction) right after a pull would find the pull's
-  // show still running — wait for it rather than drop the reaction. The
-  // pull show itself never waits: two pulls in a row is a replay.
-  if (_busy && target) {
-    const until = Date.now() + 25000;
-    while (_busy && Date.now() < until) await sleep(500);
-  }
-  // The colour check on opening the app holds the lamps for a few seconds;
-  // a pull made right then used to get no flash at all. Wait it out — but
-  // not a lit candle, which holds them for as long as it burns.
-  if (_busy && !target && !_looping) {
-    const until = Date.now() + 12000;
-    while (_busy && !_looping && Date.now() < until) await sleep(400);
-  }
-  if (_busy) return;
+  // Another show still playing (a pull right after a hug, a reaction right
+  // after a pull): wait for it rather than drop this one.
+  if (!(await waitTurn())) return;
   _busy = true;
   try {
     await loadMqtt();
     await new Promise((resolve, reject) => {
-      const client = window.mqtt.connect(BROKER, {
-        clientId: "gachafx_" + Math.random().toString(16).slice(2),
-        clean: true,
-        connectTimeout: 8000,
-      });
-      const captured = {};
-      let flashed = false;
-      let restoreTimer = null;
-      let stepTimers = [];
-      let done = false;
-
+      let flashed = false, done = false;
+      let restoreTimer = null, stepTimers = [];
       const finish = () => {
         if (done) return;
         done = true;
         document.removeEventListener("visibilitychange", onHide);
-        try { client.end(true); } catch (_e) {}
+        try { show.client.end(); } catch (_e) {}
         resolve();
       };
-
-      const publish = (payload) => {
-        payload.from = FROM_ID;
-        try { client.publish(TOPIC, JSON.stringify(payload)); } catch (_e) {}
-      };
-
-      const restore = () => {
+      const halt = () => {
         clearTimeout(restoreTimer);
-        // A restore mid-show (page hidden) must also cancel the steps still
-        // queued, or a spark would land on top of the restored state.
         for (const t of stepTimers) clearTimeout(t);
         stepTimers = [];
+      };
+      const restore = () => {
+        // A restore mid-show (page hidden, takeover) also cancels the steps
+        // still queued, or a spark would land on top of the restored state.
+        halt();
         if (!flashed) { finish(); return; }
         flashed = false;
-        for (const id of (target ? [target] : BOARD_IDS)) {
-          // A board whose echo got lost is restored from its partner's
-          // snapshot — the two are normally in sync anyway, and the boss
-          // re-syncs the follower within a minute regardless.
-          const state = captured[id] || captured[BOARD_IDS.find((b) => b !== id)];
-          if (!state) continue;
-          // A lamp that was white when the show began, with a colour on
-          // record, gets the colour back rather than the white: it had come
-          // back from a reboot, not been asked for white.
-          const memory = state.on !== false && isWhite(state) ? recallColour(id) : null;
-          const base = memory ? restorePayload(id, memory) : { target: id, ..._restorePayload(state) };
-          if (state.on === false) {
-            // Firmware ignores colour while off: restore colour on, then
-            // power back down once the fade has landed.
-            publish({ ...base, on: true });
-            setTimeout(() => publish({ target: id, on: false }), 1500);
-          } else {
-            publish({ ...base, on: true });
-          }
-        }
+        show.restore(target ? [target] : BOARD_IDS);
         // Give the trailing power-off publishes time to leave, then close.
         setTimeout(finish, 2500);
       };
-
+      const show = openShow({
+        target,
+        // Someone took a lamp over: put back the ones still playing, now.
+        onTakeover: () => { if (flashed) restore(); }
+      });
       // If the page is backgrounded mid-flash, restore immediately — an
-      // interrupted timer must never strand the lamps in green.
+      // interrupted timer must never strand the lamps in the show colour.
       const onHide = () => {
         if (document.visibilityState === "hidden" && flashed) restore();
       };
       document.addEventListener("visibilitychange", onHide);
 
-      client.on("connect", () => {
-        client.subscribe(TOPIC, (err) => {
+      show.client.on("connect", () => {
+        show.client.subscribe(TOPIC, (err) => {
           if (err) { finish(); return; }
           // No recognised fields — boards change nothing but echo their
           // full current state back.
-          publish({ nudge: true });
+          show.publish({ nudge: true });
           setTimeout(() => {
-            if (!Object.keys(captured).length) { finish(); return; }
+            if (done) return;
+            show.stopCapturing();
+            if (!show.boards().length) { finish(); return; }
             flashed = true;
-            for (const step of steps) {
-              stepTimers.push(setTimeout(() => publish(target ? { ...step.payload, target } : step.payload), step.at));
-            }
+            for (const step of steps) stepTimers.push(setTimeout(() => show.send({ ...step.payload }), step.at));
             restoreTimer = setTimeout(restore, totalMs);
           }, ECHO_WAIT_MS);
         });
       });
-
-      client.on("message", (t, msg) => {
-        try {
-          const d = JSON.parse(msg.toString());
-          if (d.from && BOARD_IDS.includes(d.from) && Array.isArray(d.groups) && !flashed) {
-            captured[d.from] = d;
-            if (isColoured(d)) rememberColour(d.from, d);
-          }
-        } catch (_e) {}
-      });
-
-      client.on("error", () => { if (!flashed) finish(); });
-      client.on("close", () => { if (!flashed) finish(); });
+      show.client.on("error", () => { if (!flashed) finish(); });
+      show.client.on("close", () => { if (!flashed) finish(); });
       setTimeout(() => reject(new Error("lights flash timed out")), totalMs + 20000);
     });
   } catch (_e) {
