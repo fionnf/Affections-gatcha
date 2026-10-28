@@ -7,9 +7,7 @@
 // white without anyone having asked for white.
 //
 // White chosen on purpose (the Weiß mood, the Weissanteil slider) forgets
-// the memory for those lamps, so it is not undone. A sunrise alarm ends in
-// warm white by design; for three hours after it the Licht tab leaves white
-// alone.
+// the memory for those lamps, so it is not undone.
 //
 // What "white" is, in the firmware's terms: a group's hue comes from `pos`
 // alone (0 = no tint at all, the warm-white LED only; higher = more of the
@@ -23,7 +21,6 @@
 const KEY = "affektions-gacha:licht:farbe:v1";
 export const MEMORY_MAX_AGE_MS = 7 * 86400000;
 export const WHITE_POS = 0.02;   // below this a group shows no tint at all
-export const SUNRISE_GRACE_MS = 3 * 3600000;
 
 function tinted(g) { return (Number(g.pos) || 0) > WHITE_POS; }
 export function isWhite(state) {
@@ -79,15 +76,4 @@ export function restorePayload(id, m) {
   const p = { target: id, on: true, groups: m.groups, fade_steps: typeof m.fade_steps === "number" ? m.fade_steps : 40 };
   if (typeof m.brightness === "number") p.brightness = m.brightness;
   return p;
-}
-
-// Within the grace window after a sunrise alarm (local hour and minute,
-// enabled), white is what the morning asked for.
-export function inSunriseGrace(alarm, now = new Date()) {
-  if (!alarm || !alarm.enabled || !Number.isInteger(alarm.lh)) return false;
-  const end = new Date(now);
-  end.setHours(alarm.lh, alarm.lm || 0, 0, 0);
-  end.setMinutes(end.getMinutes() + (Number(alarm.duration_min) || 20));
-  const since = now - end;
-  return since >= 0 && since <= SUNRISE_GRACE_MS;
 }

@@ -1,4 +1,4 @@
-// Pfand counting, the Morse timeline, and the sunrise alarm entry.
+// Pfand counting, the Morse timeline, and the wake-up clean-up.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { setupBrowserEnv } from "./helpers.js";
@@ -7,7 +7,7 @@ const env = setupBrowserEnv("?player=lennart");
 const { state } = await import("../src/state.js");
 const { readPfand, addPfand, markPfand, pfandProgress, writeHistory, readHistory } = await import("../src/storage.js");
 const { PFAND_EVERY } = await import("../src/constants.js");
-const { morseSteps, MORSE_PULSE_MS, MORSE_MAX_TAPS, sunriseAlarm, findSunrise, daysPreset, SUNRISE_DAYS, NUM_LEDS } = await import("../src/licht.js");
+const { morseSteps, MORSE_PULSE_MS, MORSE_MAX_TAPS, isWakeUp, withoutWakeUps, NUM_LEDS } = await import("../src/licht.js");
 
 state.theme = { timezone: "Europe/Zurich" };
 test.beforeEach(() => { env.localStorage.clear(); state.syncedHistory = null; });
@@ -51,26 +51,15 @@ test("the Morse timeline pulses once per tap and puts the lamp back", () => {
   assert.equal(morseSteps([], null)[0].payload.brightness, 0.6, "no snapshot: settle, never switch off a lamp that was on");
 });
 
-test("sunriseAlarm manages one tagged entry and leaves the others alone", () => {
-  const theirs = { enabled: true, type: "sunset", hour: 21, minute: 0, lh: 23, lm: 0, duration_min: 30, days: [0, 1], boards: ["board_b"] };
-  const list = sunriseAlarm([theirs], { time: "06:45", days: "taeglich", boards: ["board_a"], enabled: true });
-  assert.equal(list.length, 2);
-  assert.equal(list[0], theirs);
-  const mine = findSunrise(list);
-  assert.equal(mine.type, "sunrise");
-  assert.equal(mine.gacha, "sunrise");
-  assert.equal(mine.lh, 6); assert.equal(mine.lm, 45);
-  assert.ok(Number.isInteger(mine.hour) && Number.isInteger(mine.minute), "UTC fields derived");
-  assert.deepEqual(mine.days, SUNRISE_DAYS.taeglich);
-  assert.deepEqual(mine.boards, ["board_a"]);
-  assert.equal(mine.duration_min, 20);
-  // A second call replaces, never duplicates.
-  const again = sunriseAlarm(list, { time: "07:10", days: "wochenende", enabled: false });
-  assert.equal(again.length, 2);
-  assert.equal(findSunrise(again).enabled, false);
-  assert.deepEqual(findSunrise(again).days, SUNRISE_DAYS.wochenende);
-  assert.deepEqual(findSunrise(again).boards.sort(), ["board_a", "board_b"], "no boards given: both");
-  assert.equal(daysPreset([4, 3, 2, 1, 0]), "werktags");
-  assert.equal(daysPreset([5, 6]), "wochenende");
-  assert.equal(daysPreset([2]), "werktags", "anything else reads as the default");
+test("wake-ups come off the alarm list, bedtime fades stay", () => {
+  const app = { gacha: "sunrise", enabled: true, type: "sunrise", lh: 7, lm: 0 };
+  const rise = { enabled: true, type: "sunrise", lh: 6, lm: 30 };
+  const untyped = { enabled: true, lh: 6, lm: 0 };          // the firmware's default type is sunrise
+  const sleep = { enabled: true, type: "sunset", lh: 23, lm: 0 };
+  assert.equal(isWakeUp(app), true);
+  assert.equal(isWakeUp(rise), true);
+  assert.equal(isWakeUp(untyped), true);
+  assert.equal(isWakeUp(sleep), false);
+  assert.deepEqual(withoutWakeUps([app, sleep, rise, untyped]), [sleep]);
+  assert.deepEqual(withoutWakeUps(null), []);
 });

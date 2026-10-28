@@ -710,23 +710,10 @@ export const html = `
                 <button class="ag-morse-pad" type="button" data-ag-morse-pad><span>Tipp einen Rhythmus</span><small>Die Lampen blinken ihn nach · nach einer Pause geht er los</small></button>
                 <div class="ag-morse-dots" data-ag-morse-dots aria-hidden="true"></div>
               </div>
-              <div class="ag-sunrise" data-ag-sunrise>
-                <div class="ag-sunrise-row">
-                  <span class="ag-sunrise-title">🌅 Sonnenaufgang</span>
-                  <input class="ag-sunrise-time" type="time" value="07:00" data-ag-sunrise-time aria-label="Uhrzeit" disabled>
-                  <select class="ag-sunrise-days" data-ag-sunrise-days aria-label="Tage" disabled>
-                    <option value="werktags">Mo–Fr</option>
-                    <option value="taeglich">täglich</option>
-                    <option value="wochenende">Sa+So</option>
-                  </select>
-                  <button class="ag-sunrise-toggle" type="button" data-ag-sunrise-toggle aria-pressed="false" disabled>aus</button>
-                </div>
-                <p class="ag-sunrise-note" data-ag-sunrise-note>Zwanzig Minuten von tiefem Rot zu Warmweiss, auf den Lampen, die oben gewählt sind.</p>
-              </div>
               <div class="ag-licht-foot ag-licht-foot-single">
                 <a class="ag-secondary ag-link" href="./lichter.html">Alle Einstellungen ›</a>
               </div>
-              <p class="ag-licht-note">Beide Lampen hängen am selben Draht: was du hier stellst, sieht Fionn bei sich. Alarme, Gruppen, WLAN und Neustart wohnen auf der grossen Seite.</p>
+              <p class="ag-licht-note">Beide Lampen hängen am selben Draht: was du hier stellst, sieht Fionn bei sich. Gruppen, WLAN und Neustart wohnen auf der grossen Seite.</p>
             </div>
           </section>
           <div class="ag-settings" data-ag-settings>

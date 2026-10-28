@@ -14,7 +14,7 @@
 // Everything here is best-effort: no broker, no lamps, no problem — the tab
 // says so and nothing else in the app notices.
 import { mount, $ } from "./state.js";
-import { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload, inSunriseGrace } from "./farbe.js";
+import { isWhite, isColoured, rememberColour, recallColour, forgetColour, restorePayload } from "./farbe.js";
 import { showToast } from "./toast.js";
 import { haptic } from "./haptic.js";
 import { loadMqtt, isFxBusy } from "./lightsFx.js";
@@ -52,11 +52,38 @@ export function paletteRgb(pos) {
   const c1 = PALETTE[idx], c2 = PALETTE[Math.min(idx + 1, PALETTE.length - 1)];
   return [0, 1, 2].map((i) => Math.round(lerp(c1[i], c2[i], frac)));
 }
-// What a group looks like with its white level mixed in.
+// What the lamp actually shows for a palette position, as the lights page
+// draws it: `pos` is also how much tint there is over the warm-white LED, so
+// the left end of the bar is nearly white, not the vivid gold paletteRgb
+// gives. The previews used to draw the vivid hue, and a tap on the left
+// quarter of the bar looked like orange or red while the lamp stayed white.
+const BASE_W = 200;
+export function lampRgb(pos) {
+  const p = Math.min(Math.max(Number(pos) || 0, 0), 0.9999);
+  const tint = paletteRgb(p);
+  const w = BASE_W * (1 - p);
+  return [
+    Math.min(255, Math.round(tint[0] * p + w)),
+    Math.min(255, Math.round(tint[1] * p + w * 0.8)),
+    Math.min(255, Math.round(tint[2] * p + w * 0.6))
+  ];
+}
+// A group on the strip: what the lamp shows, lifted by its white level (the
+// white LED on top of the tint).
 export function groupRgb(g) {
-  const [r, gg, b] = paletteRgb(g.pos);
-  const w = Math.min(Math.max(Number(g.w) || 0, 0), 1);
+  const [r, gg, b] = lampRgb(g.pos);
+  const w = Math.min(Math.max(Number(g.w) || 0, 0), 1) * 0.45;
   return [Math.round(lerp(r, 255, w)), Math.round(lerp(gg, 244, w)), Math.round(lerp(b, 225, w))];
+}
+// The colour bar, drawn from the same model, so a spot on it is the colour
+// the lamp turns.
+export function paletteGradient(steps = 24) {
+  const stops = [];
+  for (let i = 0; i <= steps; i++) {
+    const [r, g, b] = lampRgb(i / steps);
+    stops.push(`rgb(${r},${g},${b}) ${Math.round((i / steps) * 100)}%`);
+  }
+  return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
 // ── Payloads ─────────────────────────────────────────────────────────────────
@@ -205,6 +232,8 @@ let nudgeTimer = null;
 let holdUntil = 0;
 const lamps = {};          // id → { online, on, brightness, fade_steps, groups, seenAt }
 let scenes = [];
+let scenesLoaded = false;
+let scenesAll = [];        // the library as received, nameless entries included  // the retained library has arrived (or the wait for it is over)
 let alarms = [];           // the lamps' alarm list, as the lights page keeps it (retained)
 let deletedScenes = [];    // tombstones the lights page sent; republished with ours
 let sendTarget = "";       // "" = both, else a board id
@@ -219,6 +248,8 @@ function topicAlarms() { return `${PREFIX}/alarms`; }
 export function lampOnline(id, now = Date.now()) {
   const l = lamps[id];
   if (!l) return false;
+  // A retained "online" says nothing while this socket is down.
+  if (conn !== "connected") return false;
   if (l.online === false) return false;
   if (l.online === true) return true;
   return !!(l.seenAt && now - l.seenAt < STALE_MS);
@@ -244,20 +275,26 @@ function live() {
 
 // Changes made while the socket is not up, newest last. A slider dragged
 // offline would queue dozens of steps; only the latest of each shape counts.
+// Keyed by shape and lamp, so a change for Fionn's lamp and one for Lennart's
+// both survive. Older than OUTBOX_MAX_AGE_MS and it is dropped: by then the
+// other person may have changed the lamp, and a stale tap would undo it.
 let outbox = [];
 const OUTBOX_MAX = 8;
+const OUTBOX_MAX_AGE_MS = 30000;
+const outboxKey = (p) => Object.keys(p).filter((k) => k !== "target").sort().join(",") + "|" + (p.target || "");
 function enqueue(payload) {
-  const shape = Object.keys(payload).sort().join(",");
-  outbox = outbox.filter((p) => Object.keys(p).sort().join(",") !== shape);
-  outbox.push(payload);
+  const key = outboxKey(payload);
+  outbox = outbox.filter((e) => outboxKey(e.payload) !== key);
+  outbox.push({ payload, at: Date.now() });
   if (outbox.length > OUTBOX_MAX) outbox = outbox.slice(-OUTBOX_MAX);
 }
 function flushOutbox() {
   if (!client || !client.connected || !outbox.length) return;
-  const queued = outbox;
+  const fresh = outbox.filter((e) => Date.now() - e.at < OUTBOX_MAX_AGE_MS);
   outbox = [];
+  if (!fresh.length) return;
   holdUntil = Date.now() + HOLD_MS;
-  for (const p of queued) publishRaw(p);
+  for (const e of fresh) publishRaw(e.payload);
 }
 
 // One client at a time. A generation counter guards every handler: after a
@@ -270,6 +307,9 @@ function flushOutbox() {
 function connect() {
   if (client && client.connected) { setConn("connected"); return Promise.resolve(client); }
   if (connecting) return connecting;
+  // A client from an attempt that already gave up keeps retrying on its own;
+  // end it, or every tab switch during a broker outage added another socket.
+  if (client) { try { client.end(true); } catch (_e) {} client = null; }
   const gen = ++generation;
   setConn("connecting");
   connecting = loadMqtt().then(() => new Promise((resolve, reject) => {
@@ -292,11 +332,15 @@ function connect() {
       if (!mine()) return;
       connectedAt = Date.now();
       lastError = "";
-      c.subscribe([topicEvents(), topicStatus(), topicScenes(), topicAlarms()], () => {});
+      c.subscribe([topicEvents(), topicStatus(), topicScenes(), topicAlarms()], () => {
+        // No retained library at all is also an answer.
+        setTimeout(() => { if (mine()) scenesLoaded = true; }, 3000);
+      });
       // Boards change nothing on an unknown field, but echo their whole
       // state back — the fastest way to know what the room looks like.
-      // The first echo of each lamp is checked for a white comeback.
-      for (const b of BOARDS) comeback[b.id] = true;
+      // (No colour check here: a lamp that is white when the tab opens may
+      // well have been set white on purpose, on the lights page. Only a lamp
+      // seen going offline and coming back is treated as a reboot.)
       publishRaw({ nudge: true });
       setConn("connected");
       flushOutbox();
@@ -322,7 +366,17 @@ export function disconnectLicht() {
   // frozen on the last rainbow or flicker frame — and the client then ends
   // gracefully, so the queued restore still goes out.
   const live = !!(client && client.connected);
-  const restoring = live && !!(flicker || rainbow);
+  // A wink or rhythm still playing, or a held pulse, is cut short and the
+  // lamps put back — its own restore step would have gone to a dead socket.
+  const midShow = winkTimers.length + morseTimers.length > 0;
+  for (const t of [...winkTimers, ...morseTimers]) clearTimeout(t);
+  winkTimers = []; morseTimers = [];
+  if (live && midShow) restoreLamps(showSnap, Object.keys(showSnap));
+  showSnap = {};
+  const pulsing = !!pulseInterval;
+  if (live) stopPulse();
+  else if (pulseInterval) { clearInterval(pulseInterval); pulseInterval = null; for (const t of pulseTimers) clearTimeout(t); pulseTimers = []; pulseSnap = null; if (mount) mount.classList.remove("is-pulsing"); }
+  const restoring = live && !!(flicker || rainbow || midShow || pulsing);
   stopFlicker({ restore: live });
   stopRainbow({ restore: live });
   generation++;
@@ -342,6 +396,19 @@ function startNudging() {
     if (client && client.connected) publishRaw({ ping: true });
     renderLichtPanel();
   }, 60000);
+}
+
+const deferredEcho = {};   // board id → the latest echo that arrived during a hold
+let deferTimer = null;
+function deferEcho(id, topic, msg) {
+  deferredEcho[id] = { topic, msg };
+  clearTimeout(deferTimer);
+  deferTimer = setTimeout(() => {
+    deferTimer = null;
+    const queued = Object.values(deferredEcho);
+    for (const k of Object.keys(deferredEcho)) delete deferredEcho[k];
+    for (const e of queued) onMessage(e.topic, e.msg);
+  }, Math.max(60, holdUntil - Date.now() + 60));
 }
 
 function onMessage(topic, msg) {
@@ -364,34 +431,39 @@ function onMessage(topic, msg) {
   if (t === topicAlarms()) {
     if (Array.isArray(d)) {
       alarms = d.filter((a) => a && typeof a === "object");
-      // Our alarm keeps its local time across the DST switch: the UTC
-      // fields are re-derived from lh/lm, as the lights page does for all
-      // of them, and republished only when they actually changed.
-      const mine = findSunrise(alarms);
-      if (mine && Number.isInteger(mine.lh)) {
-        const [uh, um] = localToUtc(mine.lh, mine.lm || 0);
-        if (mine.hour !== uh || mine.minute !== um) {
-          mine.hour = uh; mine.minute = um;
-          if (client && client.connected) {
-            try { client.publish(topicAlarms(), JSON.stringify(alarms), { retain: true, qos: 1 }); publishRaw({ set_alarms: alarms }); } catch (_e) {}
-          }
-        }
-      }
+      // No wake-ups on the lamps: a sunrise alarm still on the retained list
+      // (the app's old Sonnenaufgang, or a 🌅 Rise set on the lights page) is
+      // taken off once, here, and the boards are told. Bedtime fades stay.
+      // Every wake-up goes once (the clean-up after the feature was removed);
+      // after that only the app's own old entry is ever taken off, so an
+      // alarm being set up on the lights page — which starts every new one
+      // as a 🌅 Rise — is not deleted from under the person setting it.
+      let cleared = false;
+      try { cleared = window.localStorage.getItem(WAKEUPS_CLEARED_KEY) === "1"; } catch (_e) {}
+      const kept = cleared ? alarms.filter((a) => a.gacha !== "sunrise") : withoutWakeUps(alarms);
+      const ok = kept.length === alarms.length || publishAlarms(kept, { quiet: true });
+      if (ok && !cleared) { try { window.localStorage.setItem(WAKEUPS_CLEARED_KEY, "1"); } catch (_e) {} }
     }
-    renderLichtPanel();
     return;
   }
   if (t === topicScenes()) {
     const list = Array.isArray(d.scenes) ? d.scenes : [];
     deletedScenes = (Array.isArray(d.deleted) ? d.deleted : []).filter((x) => typeof x === "string").slice(-50);
     const dead = new Set(deletedScenes);
-    scenes = list.filter((s) => s && typeof s === "object" && s.name && !dead.has(s.id));
+    // Kept whole for republishing; only named ones are shown.
+    scenesAll = list.filter((s) => s && typeof s === "object" && !dead.has(s.id));
+    scenes = scenesAll.filter((s) => s.name);
+    scenesLoaded = true;
     renderLichtPanel();
     return;
   }
   if (!d.from || !BOARDS.some((b) => b.id === d.from)) return;
   const l = lamps[d.from] = { ...(lamps[d.from] || {}), seenAt: Date.now() };
-  if (Date.now() < holdUntil) { renderLichtPanel(); return; }
+  // Right after a local change the lamp's echoes would drag the controls
+  // back mid-gesture, so they wait — but are not thrown away. Dropping them
+  // meant the connect-time echo (and the other lamp's) was often lost, and
+  // the tab never learned whether a lamp was even on.
+  if (Date.now() < holdUntil) { deferEcho(d.from, topic, msg); renderLichtPanel(); return; }
   if (d.on !== undefined) l.on = !!d.on;
   if (typeof d.brightness === "number") l.brightness = d.brightness;
   if (typeof d.fade_steps === "number") l.fade_steps = d.fade_steps;
@@ -407,13 +479,11 @@ function onMessage(topic, msg) {
 // ── Farbgedächtnis ───────────────────────────────────────────────────────────
 // A lamp that answers white when it was not asked to be white (first echo
 // after connecting, or right after it came back online) gets its last
-// colour back, unless a sunrise just ended, or it was off, or nothing is
-// remembered.
+// colour back, unless it was off or nothing is remembered.
 const comeback = {};   // id → true while the next echo should be checked
 export function restoreColour(id) {
   const m = recallColour(id);
   if (!m) return false;
-  if (inSunriseGrace(findSunrise(alarms))) return false;
   const p = restorePayload(id, m);
   lamps[id] = { ...(lamps[id] || {}), on: true, groups: p.groups, brightness: p.brightness ?? lamps[id]?.brightness, fade_steps: p.fade_steps };
   holdUntil = Date.now() + HOLD_MS;
@@ -462,6 +532,11 @@ let queuedToastAt = 0;
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 function anyOn() { return BOARDS.some((b) => lamps[b.id] && lamps[b.id].on); }
+// What the controls show: the lamp the switch names, or with "Beide" the
+// pair. The power button showed "An" when either lamp was on and then sent
+// "aus" to the named lamp, which might already be off — a tap that did nothing.
+function shownOn() { return sendTarget ? !!(lamps[sendTarget] && lamps[sendTarget].on) : anyOn(); }
+function shownLamp() { return (sendTarget && lamps[sendTarget] && lamps[sendTarget].groups) ? lamps[sendTarget] : anyLamp(); }
 
 export function setPower(on) { send({ on: !!on }); haptic(8); }
 export function setBrightness(v) { send({ brightness: Math.min(1, Math.max(0.02, v)) }); }
@@ -558,14 +633,18 @@ export function saveScene(name) {
   const clean = String(name || "").trim().slice(0, 32);
   if (!clean) { showToast("Der Szene fehlt ein Name"); return false; }
   if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
-  const scene = sceneFromLamp(clean, anyLamp());
+  // The shared library arrives retained a moment after connecting. Saving
+  // before it landed published a library of one, wiping everyone's scenes.
+  if (!scenesLoaded) { showToast("Szenen werden noch geladen — gleich nochmal"); return false; }
+  const scene = sceneFromLamp(clean, { ...(shownLamp() || {}), groups: currentGroups() });
   // Same name replaces: the old ids go to the tombstones, or the lights
   // page (which merges by id) would keep them and the name would double.
   const replaced = scenes.filter((s) => s.name === clean && s.id).map((s) => s.id);
   deletedScenes = [...deletedScenes, ...replaced].slice(-50);
-  scenes = [...scenes.filter((s) => s.name !== clean), scene];
+  scenesAll = [...scenesAll.filter((s) => s.name !== clean), scene];
+  scenes = scenesAll.filter((s) => s.name);
   try {
-    client.publish(topicScenes(), JSON.stringify({ v: 1, from: "gacha_app", scenes, deleted: deletedScenes }), { retain: true, qos: 1 });
+    client.publish(topicScenes(), JSON.stringify({ v: 1, from: "gacha_app", scenes: scenesAll, deleted: deletedScenes }), { retain: true, qos: 1 });
   } catch (_e) { showToast("Szene konnte nicht gesichert werden"); return false; }
   haptic([8, 20, 8]);
   showToast(`✓ „${clean}“ gesichert — auch auf der grossen Seite`);
@@ -574,6 +653,7 @@ export function saveScene(name) {
 }
 
 let winkTimers = [];
+let showSnap = {};    // what the lamps looked like before the last wink or rhythm
 // The lamps a show goes to: the one the switch names, else both — and only
 // those that are actually reachable. Each lamp gets its own timeline so each
 // is put back to its own state afterwards.
@@ -585,17 +665,25 @@ function namesOf(ids) {
   return ids.map((id) => (BOARDS.find((b) => b.id === id) || {}).owner || id).join(" + ");
 }
 export function wink(boardIds = targetLamps()) {
-  const ids = Array.isArray(boardIds) ? boardIds : [boardIds];
-  if (!ids.length) { showToast("Gerade ist keine Lampe erreichbar"); return false; }
+  const reachable = Array.isArray(boardIds) ? boardIds : [boardIds];
+  if (!reachable.length) { showToast("Gerade ist keine Lampe erreichbar"); return false; }
+  // Only lamps whose state is known: without it the wink cannot put a lamp
+  // back, and ending dark switched off lamps that had been on.
+  const ids = reachable.filter((id) => lamps[id] && lamps[id].groups);
+  if (!ids.length) { publishRaw({ nudge: true }); showToast("Die Lampen melden sich noch — gleich nochmal"); return false; }
   for (const t of winkTimers) clearTimeout(t);
   winkTimers = [];
   holdUntil = Date.now() + 5000;
+  showSnap = {};
   for (const id of ids) {
     const snap = lamps[id] && lamps[id].groups ? { ...lamps[id] } : null;
+    if (snap) showSnap[id] = snap;
     for (const step of winkSteps(snap)) {
       winkTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: id }), step.at));
     }
   }
+  // Played out: nothing left for a disconnect to put back.
+  winkTimers.push(setTimeout(() => { winkTimers = []; showSnap = {}; }, 4400));
   haptic([12, 40, 12, 40, 12]);
   showToast(ids.length > 1 ? "👋 Beide Lampen winken" : `👋 ${namesOf(ids)}s Lampe winkt`);
   return true;
@@ -635,12 +723,15 @@ export function sendMorse(taps, boardIds = targetLamps()) {
   for (const t of morseTimers) clearTimeout(t);
   morseTimers = [];
   let endAt = 0;
+  showSnap = {};
   for (const id of ids) {
     const snap = lamps[id] && lamps[id].groups ? { ...lamps[id] } : null;
+    if (snap) showSnap[id] = snap;
     const steps = morseSteps(taps, snap);
     endAt = Math.max(endAt, steps[steps.length - 1].at);
     for (const step of steps) morseTimers.push(setTimeout(() => publishRaw({ ...step.payload, target: id }), step.at));
   }
+  morseTimers.push(setTimeout(() => { morseTimers = []; showSnap = {}; }, endAt + 100));
   holdUntil = Date.now() + endAt + 500;
   haptic(taps.map(() => 18));
   showToast(`🥁 ${taps.length} ${taps.length === 1 ? "Schlag" : "Schläge"} unterwegs — ${ids.length > 1 ? "beide Lampen" : namesOf(ids) + "s Lampe"}`);
@@ -818,62 +909,25 @@ export function stopRainbow({ restore = true } = {}) {
 }
 export function toggleRainbow() { if (rainbow) stopRainbow(); else startRainbow(); }
 
-// ── Sonnenaufgang ────────────────────────────────────────────────────────────
-// The firmware has alarms: a "sunrise" fades from deep red to warm white over
-// duration_min, on the boards listed, on the days listed (Monday = 0). The
-// lights page keeps the list on a retained topic; this manages exactly one
-// entry in it, tagged gacha:"sunrise", and leaves every other alarm alone.
-export const SUNRISE_DAYS = { werktags: [0, 1, 2, 3, 4], taeglich: [0, 1, 2, 3, 4, 5, 6], wochenende: [5, 6] };
-export function localToUtc(lh, lm, now = new Date()) {
-  const d = new Date(now); d.setHours(lh, lm, 0, 0);
-  return [d.getUTCHours(), d.getUTCMinutes()];
+// ── Alarms ───────────────────────────────────────────────────────────────────
+// The firmware runs alarms from a retained list the lights page keeps. The
+// app used to manage a "Sonnenaufgang" wake-up in it; that is gone, and any
+// wake-up (type "sunrise", the firmware's default type) is removed from the
+// list whenever the Licht tab sees it. Other alarm types are left alone.
+const WAKEUPS_CLEARED_KEY = "affektions-gacha:licht:wakeups-cleared:v1";
+export function isWakeUp(a) {
+  return !!a && typeof a === "object" && (a.gacha === "sunrise" || (a.type || "sunrise") === "sunrise");
 }
-export function sunriseAlarm(list, { time = "07:00", days = "werktags", boards, enabled = true, durationMin = 20 } = {}) {
-  const [lh, lm] = String(time).split(":").map((x) => parseInt(x, 10));
-  const [uh, um] = localToUtc(Number.isInteger(lh) ? lh : 7, Number.isInteger(lm) ? lm : 0);
-  const others = (Array.isArray(list) ? list : []).filter((a) => !(a && a.gacha === "sunrise"));
-  const mine = {
-    gacha: "sunrise", enabled: !!enabled, type: "sunrise",
-    hour: uh, minute: um, lh: Number.isInteger(lh) ? lh : 7, lm: Number.isInteger(lm) ? lm : 0,
-    duration_min: durationMin, brightness: 0.9,
-    days: SUNRISE_DAYS[days] || SUNRISE_DAYS.werktags,
-    boards: Array.isArray(boards) && boards.length ? boards : BOARDS.map((b) => b.id)
-  };
-  return [...others, mine];
+export function withoutWakeUps(list) {
+  return (Array.isArray(list) ? list : []).filter((a) => !isWakeUp(a));
 }
-export function findSunrise(list) {
-  return (Array.isArray(list) ? list : []).find((a) => a && a.gacha === "sunrise") || null;
-}
-export function daysPreset(days) {
-  const key = JSON.stringify((days || []).slice().sort());
-  for (const [name, list] of Object.entries(SUNRISE_DAYS)) if (JSON.stringify(list) === key) return name;
-  return "werktags";
-}
-function publishAlarms(list) {
-  if (!client || !client.connected) { showToast("Keine Verbindung zu den Lampen"); return false; }
+function publishAlarms(list, { quiet = false } = {}) {
+  if (!client || !client.connected) { if (!quiet) showToast("Keine Verbindung zu den Lampen"); return false; }
   try {
     client.publish(topicAlarms(), JSON.stringify(list), { retain: true, qos: 1 });
     publishRaw({ set_alarms: list });
-  } catch (_e) { showToast("Wecker konnte nicht gestellt werden"); return false; }
+  } catch (_e) { return false; }
   alarms = list;
-  return true;
-}
-// `retarget` (switching the alarm on) takes the lamps from the Beide /
-// Fionn / Lennart switch; a change of time or days keeps the alarm's own.
-export function setSunrise({ enabled, time, days, retarget = false } = {}) {
-  const cur = findSunrise(alarms) || {};
-  const fromSwitch = sendTarget ? [sendTarget] : BOARDS.map((b) => b.id);
-  const next = sunriseAlarm(alarms, {
-    time: time || (Number.isInteger(cur.lh) ? `${String(cur.lh).padStart(2, "0")}:${String(cur.lm || 0).padStart(2, "0")}` : "07:00"),
-    days: days || daysPreset(cur.days),
-    boards: retarget || !Array.isArray(cur.boards) || !cur.boards.length ? fromSwitch : cur.boards,
-    enabled: enabled === undefined ? cur.enabled !== false : enabled
-  });
-  if (!publishAlarms(next)) return false;
-  const mine = findSunrise(next);
-  haptic([8, 20, 8]);
-  showToast(mine.enabled ? `🌅 Sonnenaufgang um ${String(mine.lh).padStart(2, "0")}:${String(mine.lm).padStart(2, "0")} gestellt` : "🌅 Sonnenaufgang aus");
-  renderLichtPanel();
   return true;
 }
 
@@ -926,6 +980,7 @@ function bindLichtPanel() {
   }
   const palette = $("[data-ag-licht-palette]");
   if (palette) {
+    palette.style.background = paletteGradient();
     const pick = (e) => {
       const r = palette.getBoundingClientRect();
       if (!r.width) return;
@@ -942,7 +997,9 @@ function bindLichtPanel() {
       if (!dragging || Date.now() - lastPick < 110) return;
       lastPick = Date.now(); pick(e);
     });
-    const stop = () => { dragging = false; };
+    // The last position of a drag always goes out: the 110 ms throttle used
+    // to drop it, and the lamp settled on an earlier colour.
+    const stop = (e) => { if (dragging && e && e.type === "pointerup") pick(e); dragging = false; };
     palette.addEventListener("pointerup", stop);
     palette.addEventListener("pointercancel", stop);
     palette.addEventListener("keydown", (e) => {
@@ -1064,17 +1121,6 @@ function bindLichtPanel() {
       if (sent && morse) morse.hidden = true;
     }, 1600);
   });
-  // Sonnenaufgang.
-  const srTime = $("[data-ag-sunrise-time]");
-  const srDays = $("[data-ag-sunrise-days]");
-  const srToggle = $("[data-ag-sunrise-toggle]");
-  if (srToggle) srToggle.addEventListener("click", () => {
-    const cur = findSunrise(alarms);
-    const turningOn = !(cur && cur.enabled !== false);
-    setSunrise({ enabled: turningOn, retarget: turningOn, time: srTime && srTime.value, days: srDays && srDays.value });
-  });
-  if (srTime) srTime.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime.value, days: srDays && srDays.value }); });
-  if (srDays) srDays.addEventListener("change", () => { if (findSunrise(alarms)) setSunrise({ time: srTime && srTime.value, days: srDays.value }); });
   const saveBtn = $("[data-ag-licht-scene-save]");
   const nameIn = $("[data-ag-licht-scene-name]");
   if (saveBtn && nameIn) {
@@ -1126,8 +1172,8 @@ export function renderLichtPanel() {
     if (lampsEl.dataset.html !== html) { lampsEl.innerHTML = html; lampsEl.dataset.html = html; }
   }
 
-  const ref = anyLamp();
-  const on = anyOn();
+  const ref = shownLamp();
+  const on = shownOn();
   const strip = $("[data-ag-licht-strip]");
   const groups = currentGroups();
   if (selectedGroup !== null && selectedGroup >= groups.length) selectedGroup = null;
@@ -1159,7 +1205,9 @@ export function renderLichtPanel() {
     chips.push(`<button type="button" data-merge class="ag-licht-group ag-licht-group-op" title="Gruppen verbinden" ${groups.length < 2 ? "disabled" : ""}>−</button>`);
     const html = chips.join("");
     if (groupsEl.dataset.html !== html) { groupsEl.innerHTML = html; groupsEl.dataset.html = html; }
-    for (const b of groupsEl.querySelectorAll("button")) if (!b.hasAttribute("disabled") || b.dataset.group !== undefined) b.disabled = !live() || (b.dataset.split !== undefined && groups.length >= MAX_GROUPS) || (b.dataset.merge !== undefined && groups.length < 2);
+    // Every button, every time: testing the attribute first left + and −
+    // disabled for good once a reconnect had greyed them out.
+    for (const b of groupsEl.querySelectorAll("button")) b.disabled = !live() || (b.dataset.split !== undefined && groups.length >= MAX_GROUPS) || (b.dataset.merge !== undefined && groups.length < 2);
   }
 
   const power = $("[data-ag-licht-power]");
@@ -1199,28 +1247,7 @@ export function renderLichtPanel() {
     rainbowBtn.classList.toggle("is-active", !!rainbow);
     rainbowBtn.textContent = rainbow ? "🌈 Regenbogen aus" : "🌈 Regenbogen";
   }
-  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-rainbow], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save], [data-ag-sunrise-time], [data-ag-sunrise-days], [data-ag-sunrise-toggle]")) b.disabled = !live();
-  const sr = findSunrise(alarms);
-  const srTime = $("[data-ag-sunrise-time]");
-  const srDays = $("[data-ag-sunrise-days]");
-  const srToggle = $("[data-ag-sunrise-toggle]");
-  const srNote = $("[data-ag-sunrise-note]");
-  if (sr && srTime && document.activeElement !== srTime) srTime.value = `${String(sr.lh ?? 7).padStart(2, "0")}:${String(sr.lm ?? 0).padStart(2, "0")}`;
-  if (sr && srDays && document.activeElement !== srDays) srDays.value = daysPreset(sr.days);
-  if (srToggle) {
-    const on = !!(sr && sr.enabled !== false);
-    srToggle.textContent = on ? "an" : "aus";
-    srToggle.classList.toggle("is-on", on);
-    srToggle.setAttribute("aria-pressed", on ? "true" : "false");
-  }
-  if (srNote) {
-    const who = (sr && Array.isArray(sr.boards) ? sr.boards : BOARDS.map((b) => b.id)).map((id) => (BOARDS.find((b) => b.id === id) || {}).owner || id).join(" + ");
-    const label = { werktags: "Mo–Fr", taeglich: "täglich", wochenende: "Sa+So" }[daysPreset(sr && sr.days)];
-    srNote.textContent = sr && sr.enabled !== false
-      ? `Aktiv ${label} um ${String(sr.lh ?? 7).padStart(2, "0")}:${String(sr.lm ?? 0).padStart(2, "0")}: ${sr.duration_min || 20} Minuten von tiefem Rot zu Warmweiss · ${who}`
-      : sr ? "Gestellt, aber aus. Tippen auf „aus“ schaltet ihn ein."
-      : "Zwanzig Minuten von tiefem Rot zu Warmweiss, auf den Lampen, die oben gewählt sind.";
-  }
+  for (const b of panel.querySelectorAll(".ag-licht-mood, [data-ag-licht-wink], [data-ag-licht-flicker], [data-ag-licht-rainbow], [data-ag-licht-morse-open], [data-ag-licht-random], [data-ag-licht-fade], [data-ag-licht-scene-name], [data-ag-licht-scene-save]")) b.disabled = !live();
   for (const b of panel.querySelectorAll("[data-ag-licht-target] [data-target]")) {
     const active = (b.dataset.target || "") === sendTarget;
     b.classList.toggle("is-active", active);

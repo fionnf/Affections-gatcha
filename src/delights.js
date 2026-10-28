@@ -90,7 +90,12 @@ export function bindFirefly(span) {
 export function dropCoin(emoji, fromEl) {
   if (!mount) return;
   const icon = mount.querySelector('.ag-bottomnav-btn[data-ag-tab="today"] .ag-bottomnav-btn-icon');
-  if (!fromEl || !icon || reducedMotion()) { playClink(); return; }
+  // Reduced motion skips the coin's flight, not the lamps' answer to it.
+  if (!fromEl || !icon || reducedMotion()) {
+    playClink();
+    import("./lightsFx.js").then((m) => m.flashLightsForPull("uncommon")).catch(() => {});
+    return;
+  }
   const a = fromEl.getBoundingClientRect();
   const b = icon.getBoundingClientRect();
   const coin = document.createElement("div");

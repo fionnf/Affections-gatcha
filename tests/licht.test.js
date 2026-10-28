@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { setupBrowserEnv } from "./helpers.js";
 
 setupBrowserEnv("?player=lennart");
-const { paletteRgb, groupRgb, MOODS, moodPayload, scenePayload, stripGroups, winkSteps, NUM_LEDS, DEFAULT_W, randomGroups } = await import("../src/licht.js");
+const { paletteRgb, groupRgb, lampRgb, paletteGradient, MOODS, moodPayload, scenePayload, stripGroups, winkSteps, NUM_LEDS, DEFAULT_W, randomGroups } = await import("../src/licht.js");
 
 test("paletteRgb stays inside 0–255 across the whole bar and clamps outside it", () => {
   for (let i = 0; i <= 40; i++) {
@@ -19,10 +19,16 @@ test("paletteRgb stays inside 0–255 across the whole bar and clamps outside it
   assert.deepEqual(paletteRgb(0), [255, 200, 80], "pos 0 is the golden yellow");
 });
 
-test("white level pulls a group towards white", () => {
-  const [r, g, b] = groupRgb({ pos: 10 / 29, w: 1 });
-  assert.ok(r > 240 && g > 230 && b > 200);
-  assert.deepEqual(groupRgb({ pos: 0, w: 0 }), paletteRgb(0));
+test("the strip preview shows what the lamp shows: low positions are near white, w lifts towards white", () => {
+  const [r0, g0, b0] = lampRgb(0);
+  assert.ok(r0 >= g0 && g0 >= b0 && b0 >= 110, `pos 0 is warm white: ${[r0, g0, b0]}`);
+  // pos is also saturation: the far end is the vivid tint, the near end is not.
+  const sat = (c) => Math.max(...c) - Math.min(...c);
+  assert.ok(sat(lampRgb(0.9)) > sat(lampRgb(0.1)));
+  const dim = groupRgb({ pos: 0.5, w: 0 }), lit = groupRgb({ pos: 0.5, w: 1 });
+  assert.ok(lit.reduce((a, b) => a + b) > dim.reduce((a, b) => a + b), "the white LED adds light");
+  assert.deepEqual(groupRgb({ pos: 0.3, w: 0 }), lampRgb(0.3));
+  assert.match(paletteGradient(4), /^linear-gradient\(to right, rgb\(\d+,\d+,\d+\) 0%,.* 100%\)$/);
 });
 
 test("every mood is a full strip the firmware will take", () => {
