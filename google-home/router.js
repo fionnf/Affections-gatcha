@@ -21,8 +21,8 @@ function redirectOk(uri, env) {
 }
 
 const form = (params, error = "") => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lampen verbinden</title><body style="font-family:system-ui;max-width:22rem;margin:3rem auto;padding:0 1rem">
-<h1>💡 Lampen verbinden</h1><p>Passwort eingeben, um Google Home mit den Lampen zu verbinden.</p>
+<title>Ember Lights verbinden</title><body style="font-family:system-ui;max-width:22rem;margin:3rem auto;padding:0 1rem">
+<h1>🔥 Ember Lights verbinden</h1><p>Passwort eingeben, um Google Home mit Ember Lights zu verbinden.</p>
 ${error ? `<p style="color:#b00">${esc(error)}</p>` : ""}
 <form method="post">${["client_id", "redirect_uri", "state", "response_type"].map((k) => `<input type="hidden" name="${k}" value="${esc(params[k] || "")}">`).join("")}
 <input type="password" name="passphrase" autofocus autocomplete="current-password" style="width:100%;padding:.6rem;font-size:1rem"><br><br>
@@ -80,6 +80,6 @@ export async function route(request, env, bridge) {
   if (pathname === "/auth" && (request.method === "GET" || request.method === "POST")) return authorize(request, env);
   if (pathname === "/token" && request.method === "POST") return token(request, env);
   if (pathname === "/fulfillment" && request.method === "POST") return fulfillment(request, env, bridge);
-  if (pathname === "/") return new Response("Lampen-Brücke läuft.", { status: 200 });
+  if (pathname === "/") return new Response("Ember Lights läuft.", { status: 200 });
   return new Response("Not found", { status: 404 });
 }

@@ -92,7 +92,7 @@ const fakeBridge = (state, calls = []) => ({ readState: async () => state, setOn
 test("SYNC lists one on/off light for both lamps", async () => {
   const r = sync("r1");
   assert.deepEqual(r.payload.devices.map((d) => d.id), ["both"]);
-  assert.equal(r.payload.devices[0].name.name, "Lampen");
+  assert.equal(r.payload.devices[0].name.name, "Ember Lights");
   for (const d of r.payload.devices) {
     assert.equal(d.type, "action.devices.types.LIGHT");
     assert.deepEqual(d.traits, ["action.devices.traits.OnOff"]);

@@ -5,12 +5,12 @@
 // One light in Google Home that stands for both lamps: they hang on the same
 // wire and are meant to be switched together.
 export const LAMPS = [
-  { id: "both", name: "Lampen" }
+  { id: "both", name: "Ember Lights" }
 ];
 export const BOARD_IDS = ["board_a", "board_b"];
 const ON_OFF = "action.devices.traits.OnOff";
 
-export function sync(requestId, agentUserId = "gacha-lamps") {
+export function sync(requestId, agentUserId = "ember-lights") {
   return {
     requestId,
     payload: {
