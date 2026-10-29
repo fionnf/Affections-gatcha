@@ -252,11 +252,13 @@ taps); after a pause of 1.6 s it plays on every targeted lamp (both by default)
 as brightness pulses in each lamp's own colour, then each goes back to what it
 was (`morseSteps`, `targetLamps`).
 
-**No wake-ups.** The lamps don't wake anyone. The app's old Sonnenaufgang is
-gone, and whenever the Licht tab sees a wake-up on the retained alarm list —
-the old app entry or a 🌅 Rise set on the lights page (`type: "sunrise"`, the
-firmware's default) — it takes it off and tells the boards. 🌙 Sleep fades
-are left alone (`isWakeUp`, `withoutWakeUps`).
+**No wake-ups.** The lamps don't wake anyone. Their alarm schedule is a
+retained list on the broker that each board re-reads on every connect and
+keeps in flash, so a wake-up left on it lights the lamp every morning. On
+every app open (at most every 30 minutes, `clearWakeUpAlarms` in
+`src/lightsFx.js`) and whenever the Licht tab sees the list, the app removes
+every wake-up and tells the boards. A wake-up is anything not typed
+`"sunset"` — the firmware's own rule. 🌙 Sleep fades stay.
 
 **Alle Einstellungen ›** opens `lichter.html` for the rest — bedtime fades,
 groups, Wi-Fi, reboot. That page is **vendored** from

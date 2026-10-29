@@ -431,18 +431,12 @@ function onMessage(topic, msg) {
   if (t === topicAlarms()) {
     if (Array.isArray(d)) {
       alarms = d.filter((a) => a && typeof a === "object");
-      // No wake-ups on the lamps: a sunrise alarm still on the retained list
-      // (the app's old Sonnenaufgang, or a 🌅 Rise set on the lights page) is
-      // taken off once, here, and the boards are told. Bedtime fades stay.
-      // Every wake-up goes once (the clean-up after the feature was removed);
-      // after that only the app's own old entry is ever taken off, so an
-      // alarm being set up on the lights page — which starts every new one
-      // as a 🌅 Rise — is not deleted from under the person setting it.
-      let cleared = false;
-      try { cleared = window.localStorage.getItem(WAKEUPS_CLEARED_KEY) === "1"; } catch (_e) {}
-      const kept = cleared ? alarms.filter((a) => a.gacha !== "sunrise") : withoutWakeUps(alarms);
-      const ok = kept.length === alarms.length || publishAlarms(kept, { quiet: true });
-      if (ok && !cleared) { try { window.localStorage.setItem(WAKEUPS_CLEARED_KEY, "1"); } catch (_e) {} }
+      // No wake-ups on the lamps, ever: any sunrise alarm on the retained
+      // list is taken off whenever the app sees it, and the boards are told.
+      // (A one-time clean-up let a wake-up set later on the lights page
+      // through, and it lit the lamp at 6:15.) Bedtime fades stay.
+      const kept = withoutWakeUps(alarms);
+      if (kept.length !== alarms.length) publishAlarms(kept, { quiet: true });
     }
     return;
   }
@@ -911,12 +905,13 @@ export function toggleRainbow() { if (rainbow) stopRainbow(); else startRainbow(
 
 // ── Alarms ───────────────────────────────────────────────────────────────────
 // The firmware runs alarms from a retained list the lights page keeps. The
-// app used to manage a "Sonnenaufgang" wake-up in it; that is gone, and any
-// wake-up (type "sunrise", the firmware's default type) is removed from the
-// list whenever the Licht tab sees it. Other alarm types are left alone.
-const WAKEUPS_CLEARED_KEY = "affektions-gacha:licht:wakeups-cleared:v1";
+// lamps don't wake anyone: every wake-up is removed from the list whenever
+// the app sees it (here in the Licht tab, and on every app open in
+// lightsFx.js). Bedtime fades are left alone.
+// The firmware runs anything that is not exactly "sunset" as a sunrise
+// (_sanitise_alarms in linked_friend_lights/main.py), so that is the test.
 export function isWakeUp(a) {
-  return !!a && typeof a === "object" && (a.gacha === "sunrise" || (a.type || "sunrise") === "sunrise");
+  return !!a && typeof a === "object" && a.type !== "sunset";
 }
 export function withoutWakeUps(list) {
   return (Array.isArray(list) ? list : []).filter((a) => !isWakeUp(a));

@@ -138,6 +138,64 @@ export function flashReactionOnLamp(emoji, boardId = "board_a") {
   return runFlash(reactionChoreography(emoji), REACTION_MS, boardId);
 }
 
+// ── Keine Wecker ─────────────────────────────────────────────────────────────
+// The lamps don't wake anyone. Their alarm schedule is a retained list on the
+// broker that every board re-reads on each connect and keeps in flash; a
+// wake-up left on it (a 🌅 Rise set on the lights page, the app's old
+// Sonnenaufgang) lights the lamp every morning. So on every app open — not
+// only when the Licht tab happens to be opened — this reads the list and,
+// if a wake-up is on it, publishes it without, both retained (for boards
+// that are offline now) and as set_alarms (for those online). Bedtime fades
+// stay. Touches nothing else; throttled, since the app opens often.
+const ALARM_TOPIC = "picolight_lf26/alarms";
+const WAKEUP_CHECK_KEY = "affektions-gacha:licht:wakeup-check";
+export const WAKEUP_CHECK_EVERY_MS = 30 * 60000;
+export function isWakeUpAlarm(a) {
+  return !!a && typeof a === "object" && a.type !== "sunset";   // the firmware's own rule
+}
+export function clearWakeUpAlarms({ force = false } = {}) {
+  try {
+    const last = Number(window.localStorage.getItem(WAKEUP_CHECK_KEY) || 0);
+    if (!force && Date.now() - last < WAKEUP_CHECK_EVERY_MS) return Promise.resolve(false);
+  } catch (_e) {}
+  return loadMqtt().then(() => new Promise((resolve) => {
+    const client = window.mqtt.connect(BROKER, { clientId: "gachafx_" + Math.random().toString(16).slice(2), clean: true, connectTimeout: 8000, reconnectPeriod: 0 });
+    let done = false, removed = 0;
+    const finish = (checked) => {
+      if (done) return;
+      done = true;
+      if (checked) { try { window.localStorage.setItem(WAKEUP_CHECK_KEY, String(Date.now())); } catch (_e) {} }
+      try { client.end(); } catch (_e) {}
+      resolve(removed > 0);
+    };
+    client.on("connect", () => {
+      client.subscribe(ALARM_TOPIC, (err) => {
+        if (err) { finish(false); return; }
+        // Retained: it arrives at once. No list at all is also an answer.
+        setTimeout(() => finish(true), 4000);
+      });
+    });
+    client.on("message", (t, msg) => {
+      if (String(t) !== ALARM_TOPIC) return;
+      let list;
+      try { list = JSON.parse(msg.toString()); } catch (_e) { finish(true); return; }
+      if (!Array.isArray(list)) { finish(true); return; }
+      const kept = list.filter((a) => a && typeof a === "object" && !isWakeUpAlarm(a));
+      removed = list.length - kept.length;
+      if (!removed) { finish(true); return; }
+      try {
+        client.publish(ALARM_TOPIC, JSON.stringify(kept), { retain: true, qos: 1 });
+        client.publish(TOPIC, JSON.stringify({ set_alarms: kept, from: FROM_ID }), { qos: 1 });
+      } catch (_e) { finish(false); return; }
+      // qos 1 publishes go out before end() closes the socket gracefully.
+      setTimeout(() => finish(true), 1500);
+    });
+    client.on("error", () => finish(false));
+    client.on("close", () => finish(false));
+    setTimeout(() => finish(false), 15000);
+  })).catch(() => false);
+}
+
 // ── Notfall-Umarmung ─────────────────────────────────────────────────────────
 // A hug that went out is seen on both lamps: red and orange in short
 // segments chasing along the strip, strobing, for eight seconds. The

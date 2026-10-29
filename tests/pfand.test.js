@@ -55,11 +55,13 @@ test("wake-ups come off the alarm list, bedtime fades stay", () => {
   const app = { gacha: "sunrise", enabled: true, type: "sunrise", lh: 7, lm: 0 };
   const rise = { enabled: true, type: "sunrise", lh: 6, lm: 30 };
   const untyped = { enabled: true, lh: 6, lm: 0 };          // the firmware's default type is sunrise
+  const odd = { enabled: true, type: "Sunrise" };            // anything but "sunset" runs as a sunrise
   const sleep = { enabled: true, type: "sunset", lh: 23, lm: 0 };
   assert.equal(isWakeUp(app), true);
   assert.equal(isWakeUp(rise), true);
   assert.equal(isWakeUp(untyped), true);
+  assert.equal(isWakeUp(odd), true);
   assert.equal(isWakeUp(sleep), false);
-  assert.deepEqual(withoutWakeUps([app, sleep, rise, untyped]), [sleep]);
+  assert.deepEqual(withoutWakeUps([app, sleep, rise, untyped, odd]), [sleep]);
   assert.deepEqual(withoutWakeUps(null), []);
 });
