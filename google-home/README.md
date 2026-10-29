@@ -49,6 +49,8 @@ npx wrangler@4 deploy
 `https://ember-lights.YOURNAME.workers.dev`.
 
 ### 4. Back in the Google Home Console
+- **App icon:** upload `google-home/icon/ember-lights-144.png` (Google asks
+  for exactly 144×144 px). A 512×512 version and the editable SVG sit beside it.
 - **Cloud fulfillment URL:** `https://…workers.dev/fulfillment`
 - **Account linking** → *Client ID* / *Client secret*: the values from step 1
 - **Authorization URL:** `https://…workers.dev/auth`

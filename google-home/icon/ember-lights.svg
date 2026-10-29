@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="58%" r="75%">
+      <stop offset="0" stop-color="#1d3a28"/>
+      <stop offset="1" stop-color="#0a1410"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="60%" r="50%">
+      <stop offset="0" stop-color="#ff9a3c" stop-opacity=".55"/>
+      <stop offset=".55" stop-color="#ff6a1f" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#ff6a1f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff5a1f"/>
+      <stop offset=".55" stop-color="#ff9a3c"/>
+      <stop offset="1" stop-color="#ffe08a"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffb347"/>
+      <stop offset="1" stop-color="#fff3c4"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="300" r="250" fill="url(#halo)"/>
+  <!-- the lamp: a rounded base the flame rises from -->
+  <rect x="176" y="372" width="160" height="38" rx="19" fill="#2a4a35"/>
+  <rect x="196" y="352" width="120" height="34" rx="17" fill="#3a6a48"/>
+  <!-- flame -->
+  <path d="M256 92 C 300 160 352 210 352 282 C 352 342 310 378 256 378 C 202 378 160 342 160 282 C 160 226 198 190 222 142 C 232 176 248 190 256 92 Z" fill="url(#flame)"/>
+  <path d="M256 196 C 284 238 310 262 310 304 C 310 338 286 360 256 360 C 226 360 202 338 202 304 C 202 268 232 240 256 196 Z" fill="url(#core)"/>
+  <circle cx="256" cy="330" r="14" fill="#fff8de" opacity=".9"/>
+  <!-- tiny sparks -->
+  <circle cx="338" cy="168" r="6" fill="#ffd27a"/>
+  <circle cx="176" cy="196" r="4.5" fill="#ffb347"/>
+  <circle cx="364" cy="236" r="3.5" fill="#ffe08a"/>
+</svg>
