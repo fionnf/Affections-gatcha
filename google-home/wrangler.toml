@@ -1,0 +1,10 @@
+name = "gacha-lamps-google-home"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# Secrets (wrangler secret put NAME) — never put these in this file:
+#   CLIENT_ID, CLIENT_SECRET   made up by you, pasted into the Google Home
+#                              Console's account-linking page
+#   SIGNING_KEY                a long random string that signs the tokens
+#   LINK_PASSPHRASE            what you type once on the linking page
+#   GOOGLE_PROJECT_ID          the Google Home developer project's id
