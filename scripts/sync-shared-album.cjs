@@ -133,21 +133,52 @@ function icloudPartition(token) {
   return map[first] || "01";
 }
 
+// iCloud answers a shared-album request with a 5xx now and then (a 503 at
+// 22:34 UTC on 2026-10-28), and the next try a minute later works. The sync
+// used to fail on the first one — a red run and an email saying the album
+// "may be private or the link expired", which it wasn't. Server errors and
+// network blips are retried with backoff; a 4xx is an answer and returns at
+// once.
+const ICLOUD_ATTEMPTS = 4;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function icloudPost(host, token, endpoint, body) {
   const url = `https://${host}/${token}/sharedstreams/${endpoint}`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Origin: "https://www.icloud.com",
-      Referer: "https://www.icloud.com/"
-    },
-    body: JSON.stringify(body)
-  });
+  let lastError = null;
+  for (let attempt = 1; attempt <= ICLOUD_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Origin: "https://www.icloud.com",
+          Referer: "https://www.icloud.com/"
+        },
+        body: JSON.stringify(body)
+      });
+      const redirectHost = response.headers.get("x-apple-mme-host");
+      if (response.status < 500 || attempt === ICLOUD_ATTEMPTS) return { response, redirectHost };
+      console.log(`iCloud ${endpoint}: HTTP ${response.status}, retrying (${attempt}/${ICLOUD_ATTEMPTS - 1})…`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === ICLOUD_ATTEMPTS) throw new TransientError(`iCloud ${endpoint}: ${error.message}`);
+      console.log(`iCloud ${endpoint}: ${error.message}, retrying (${attempt}/${ICLOUD_ATTEMPTS - 1})…`);
+    }
+    await sleep(attempt * 5000);
+  }
+  throw new TransientError(`iCloud ${endpoint}: ${lastError ? lastError.message : "no answer"}`);
+}
 
-  const redirectHost = response.headers.get("x-apple-mme-host");
-  return { response, redirectHost };
+// iCloud still down after the retries: nothing is wrong on our side, and the
+// next scheduled run (two hours on) will try again. Say so as a warning and
+// finish green — photos.json is left exactly as it was.
+class TransientError extends Error {}
+function icloudStatusFail(what, status) {
+  if (status >= 500) {
+    console.log(`::warning::iCloud ${what} kept answering HTTP ${status}; photos unchanged, the next run retries.`);
+    process.exit(0);
+  }
+  fail(`iCloud ${what} request failed: HTTP ${status}. Album may be private or the link expired.`);
 }
 
 async function syncICloud(url, options = {}) {
@@ -160,9 +191,7 @@ async function syncICloud(url, options = {}) {
     host = result.redirectHost;
     result = await icloudPost(host, token, "webstream", { streamCtag: null });
   }
-  if (!result.response.ok) {
-    fail(`iCloud webstream request failed: HTTP ${result.response.status}. Album may be private or the link expired.`);
-  }
+  if (!result.response.ok) icloudStatusFail("webstream", result.response.status);
   const stream = await result.response.json();
   const photoGuids = (stream.photos || []).map((p) => p.photoGuid).filter(Boolean);
   if (!photoGuids.length) {
@@ -170,9 +199,7 @@ async function syncICloud(url, options = {}) {
   }
 
   const assetResult = await icloudPost(host, token, "webasseturls", { photoGuids });
-  if (!assetResult.response.ok) {
-    fail(`iCloud webasseturls request failed: HTTP ${assetResult.response.status}.`);
-  }
+  if (!assetResult.response.ok) icloudStatusFail("webasseturls", assetResult.response.status);
   const assets = await assetResult.response.json();
   const items = assets.items || {};
   const locations = assets.locations || {};
@@ -883,6 +910,10 @@ function fail(message) {
 }
 
 main().catch((error) => {
+  if (error instanceof TransientError) {
+    console.log(`::warning::${error.message}; photos unchanged, the next run retries.`);
+    process.exit(0);
+  }
   console.error(`sync-shared-album: unexpected error: ${error && error.message ? error.message : error}`);
   process.exit(1);
 });
