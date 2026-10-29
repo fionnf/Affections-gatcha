@@ -2,10 +2,10 @@
 
 A tiny Cloudflare Worker that Google Home talks to. It switches the two lamps
 on and off over the same MQTT broker and topics the app uses — the lamps, the
-app and `lichter.html` are untouched. Three lights appear in Google Home:
-**Fionns Lampe**, **Lennarts Lampe** and **Beide Lampen**.
+app and `lichter.html` are untouched. One light appears in Google Home,
+**Lampen**, and it switches both lamps together.
 
-"Hey Google, schalte Lennarts Lampe aus" · "…Beide Lampen an".
+"Hey Google, schalte die Lampen an" · "…aus".
 
 Only on/off. No colour, no brightness (say so if you want them later).
 
@@ -59,18 +59,18 @@ npx wrangler@4 deploy
 1. Google Home app → **+** → **Set up device** → **Works with Google**.
 2. Search for **[test] Gacha Lampen** (the name you gave the project).
 3. A page "💡 Lampen verbinden" opens: type `LINK_PASSPHRASE` → **Verbinden**.
-4. The three lamps appear. Assign them to a room if you like.
+4. The light **Lampen** appears. Assign them to a room if you like.
 
 Projects in testing mode work for the account that created them; to use them
 from another Google account in the household, add it under *Test users* in
 the console (or share the home with the account that linked it).
 
 ## How it behaves
-- **Switching** sends the same `{on, target}` message the app sends. The pair
-  sends one message to both lamps.
+- **Switching** sends one `{on}` message to both lamps, as the app does when
+  "Beide" is chosen.
 - **Status** (Google Home showing a lamp as on or off) asks the lamps for
-  their state when you open the app, and takes about 2–3 seconds. A lamp that
-  does not answer shows as off.
+  their state when you open the app, and takes about 2–3 seconds. "Lampen" is
+  on when either lamp is on. A lamp that does not answer counts as off.
 - **If a lamp is unreachable** Google Home says it can't reach it.
 - The MQTT broker is public and unauthenticated, exactly as for the app: the
   Worker's tokens protect *Google Home's* access to the Worker, not the lamps'

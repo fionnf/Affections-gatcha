@@ -89,34 +89,37 @@ test("the bridge sends target for one lamp, nothing for the pair", async () => {
 
 const fakeBridge = (state, calls = []) => ({ readState: async () => state, setOn: async (ids, on) => { calls.push([ids, on]); } });
 
-test("SYNC lists two lamps and the pair as on/off lights", async () => {
+test("SYNC lists one on/off light for both lamps", async () => {
   const r = sync("r1");
-  assert.deepEqual(r.payload.devices.map((d) => d.id), ["board_a", "board_b", "both"]);
+  assert.deepEqual(r.payload.devices.map((d) => d.id), ["both"]);
+  assert.equal(r.payload.devices[0].name.name, "Lampen");
   for (const d of r.payload.devices) {
     assert.equal(d.type, "action.devices.types.LIGHT");
     assert.deepEqual(d.traits, ["action.devices.traits.OnOff"]);
   }
 });
 
-test("QUERY reports on/off, the pair as on when either is, and unknown ids as errors", async () => {
+test("QUERY reports the light as on when either lamp is, offline when neither answers, and unknown ids as errors", async () => {
   const state = { board_a: { on: true, online: true }, board_b: { on: false, online: true } };
-  const r = await fulfil({ requestId: "q", inputs: [{ intent: "action.devices.QUERY", payload: { devices: [{ id: "board_a" }, { id: "board_b" }, { id: "both" }, { id: "x" }] } }] }, fakeBridge(state));
-  assert.equal(r.payload.devices.board_a.on, true);
-  assert.equal(r.payload.devices.board_b.on, false);
+  const q = (st) => fulfil({ requestId: "q", inputs: [{ intent: "action.devices.QUERY", payload: { devices: [{ id: "both" }, { id: "x" }] } }] }, fakeBridge(st));
+  const r = await q(state);
   assert.equal(r.payload.devices.both.on, true);
+  assert.equal(r.payload.devices.both.online, true);
   assert.equal(r.payload.devices.x.errorCode, "deviceNotFound");
+  assert.equal((await q({ board_a: { on: false, online: true }, board_b: { on: false, online: true } })).payload.devices.both.on, false);
+  assert.equal((await q({})).payload.devices.both.online, false);
 });
 
 test("EXECUTE switches lamps and refuses anything but on/off", async () => {
   const calls = [];
-  const ok = await fulfil({ requestId: "e", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "board_b" }], execution: [{ command: "action.devices.commands.OnOff", params: { on: false } }] }] } }] }, fakeBridge({}, calls));
-  assert.deepEqual(calls, [[["board_b"], false]]);
+  const ok = await fulfil({ requestId: "e", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "both" }], execution: [{ command: "action.devices.commands.OnOff", params: { on: false } }] }] } }] }, fakeBridge({}, calls));
+  assert.deepEqual(calls, [[["both"], false]]);
   assert.equal(ok.payload.commands[0].status, "SUCCESS");
   assert.equal(ok.payload.commands[0].states.on, false);
-  const bad = await fulfil({ requestId: "e", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "board_a" }], execution: [{ command: "action.devices.commands.BrightnessAbsolute", params: { brightness: 50 } }] }] } }] }, fakeBridge({}, calls));
+  const bad = await fulfil({ requestId: "e", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "both" }], execution: [{ command: "action.devices.commands.BrightnessAbsolute", params: { brightness: 50 } }] }] } }] }, fakeBridge({}, calls));
   assert.equal(bad.payload.commands[0].errorCode, "functionNotSupported");
   assert.equal(calls.length, 1, "nothing was sent for the unsupported command");
-  const offline = await fulfil({ requestId: "e", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "board_a" }], execution: [{ command: "action.devices.commands.OnOff", params: { on: true } }] }] } }] }, { setOn: async () => { throw new Error("down"); } });
+  const offline = await fulfil({ requestId: "e", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "both" }], execution: [{ command: "action.devices.commands.OnOff", params: { on: true } }] }] } }] }, { setOn: async () => { throw new Error("down"); } });
   assert.equal(offline.payload.commands[0].errorCode, "deviceOffline");
 });
 
@@ -149,7 +152,7 @@ test("account linking: wrong password, then right password, code → tokens → 
   const body = JSON.stringify({ requestId: "1", inputs: [{ intent: "action.devices.SYNC" }] });
   const res = await route(new Request("https://w.test/fulfillment", { method: "POST", body, headers: { authorization: `Bearer ${tok.access_token}` } }), env, fakeBridge({}));
   assert.equal(res.status, 200);
-  assert.equal((await res.json()).payload.devices.length, 3);
+  assert.equal((await res.json()).payload.devices.length, 1);
   assert.equal((await route(new Request("https://w.test/fulfillment", { method: "POST", body }), env, fakeBridge({}))).status, 401);
   assert.equal((await route(new Request("https://w.test/fulfillment", { method: "POST", body, headers: { authorization: `Bearer ${tok.access_token}x` } }), env, fakeBridge({}))).status, 401);
 });

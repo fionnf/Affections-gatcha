@@ -2,10 +2,10 @@
 // that only switch on and off. The lamps themselves stay as they are: this
 // publishes the same {on, target} messages the app and the lights page do.
 
+// One light in Google Home that stands for both lamps: they hang on the same
+// wire and are meant to be switched together.
 export const LAMPS = [
-  { id: "board_a", name: "Fionns Lampe" },
-  { id: "board_b", name: "Lennarts Lampe" },
-  { id: "both", name: "Beide Lampen" }
+  { id: "both", name: "Lampen" }
 ];
 export const BOARD_IDS = ["board_a", "board_b"];
 const ON_OFF = "action.devices.traits.OnOff";
