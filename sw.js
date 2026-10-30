@@ -77,7 +77,11 @@ self.addEventListener("periodicsync", (event) => {
       }).format(now)
     );
     if (zurichHour >= 7 && zurichHour < 9) {
-      const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+      // Day of year on the Zurich calendar, not the device's: the hour check
+      // above is Zurich time, so the message should rotate on the same clock.
+      const [y, m, d] = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" })
+        .format(now).split("-").map(Number);
+      const doy = Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / 86400000);
       const msg = DAILY_SYNC_POOL[doy % DAILY_SYNC_POOL.length];
       await fireNotification(msg.title, msg.body, "ag-daily");
     }
@@ -166,6 +170,9 @@ const SHELL_CACHE = "ag-shell-v1";
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
+  // Range requests (video/audio seeking) get a 206 that cache.put rejects, and
+  // caching a partial body would be wrong anyway: leave them to the browser.
+  if (req.headers.has("range")) return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
@@ -174,7 +181,9 @@ self.addEventListener("fetch", (event) => {
       .then((res) => {
         if (res && res.ok) {
           const copy = res.clone();
-          caches.open(SHELL_CACHE).then(async (cache) => {
+          // waitUntil keeps the worker alive until the copy is stored; without
+          // it the browser may stop an idle worker mid-write and drop the cache.
+          event.waitUntil(caches.open(SHELL_CACHE).then(async (cache) => {
             // One copy per bundle path: every ?v= used to pile up beside the
             // last, and an offline ignoreSearch match returned the oldest.
             if (url.search && url.pathname.endsWith(".js")) {
@@ -182,7 +191,7 @@ self.addEventListener("fetch", (event) => {
               await Promise.all(olds.filter((o) => o.url !== req.url).map((o) => cache.delete(o.url)));
             }
             await cache.put(req, copy);
-          }).catch(() => {});
+          }).catch(() => {}));
         }
         return res;
       })
