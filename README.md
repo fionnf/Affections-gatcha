@@ -260,6 +260,18 @@ every app open (at most every 30 minutes, `clearWakeUpAlarms` in
 every wake-up and tells the boards. A wake-up is anything not typed
 `"sunset"` — the firmware's own rule. 🌙 Sleep fades stay.
 
+Phones only clean up when somebody opens the app, which is too late for an
+alarm that fires first, so the **Clear lamp wake-ups** workflow
+(`scripts/clear-wakeups.cjs`) looks at the lamps every half hour from GitHub.
+It reads the broker's retained alarm list *and* the alarm count each lamp
+announces in its 30-second heartbeat, because the public broker sometimes
+drops retained messages and the lamps then keep firing whatever is in their own
+memory. It removes wake-ups, clears the list when the broker has none but a
+lamp still holds some (which also clears bedtime fades, since it cannot know
+what the lamp holds — set them again on the lights page), and waits for the
+lamps' next heartbeat to confirm. Run it by hand (Actions → *Clear lamp
+wake-ups* → Run workflow) to see every alarm on the lamps with its time.
+
 **Alle Einstellungen ›** opens `lichter.html` for the rest — bedtime fades,
 groups, Wi-Fi, reboot. That page is **vendored** from
 [`fionnf/linked_friend_lights`](https://github.com/fionnf/linked_friend_lights)

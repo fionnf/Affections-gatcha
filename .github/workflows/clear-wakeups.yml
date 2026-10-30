@@ -1,0 +1,34 @@
+name: Clear lamp wake-ups
+
+# The lamps don't wake anyone. A wake-up alarm lights the lamp every morning,
+# and one can appear at any time: set on the lights page, or still sitting in a
+# lamp's memory after the public broker dropped the shared list. Phones only
+# clean up when somebody opens the app, which is too late for an alarm that
+# fires first. This looks at the lamps every half hour from here instead.
+# See scripts/clear-wakeups.cjs. Run it by hand to see what is on the lamps:
+# the log lists every alarm with its time.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "11,41 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clear-wakeups
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install mqtt@5.16.0 --no-save
+      - name: Check the lamps' alarms
+        run: node scripts/clear-wakeups.cjs
