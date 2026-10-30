@@ -1,0 +1,216 @@
+From 2e2361262c1149c147bfca11ed241d2b30b84331 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 30 Oct 2026 08:00:57 +0000
+Subject: [PATCH] No wake-ups: the lamps drop every alarm that is not a bedtime
+ fade
+
+A wake-up alarm kept lighting the lamp at dawn after the public broker lost
+the shared alarm list: each board's own flash copy went on firing it, and
+nothing on the broker said so. The firmware now drops every alarm whose type
+is not "sunset" when it is received AND when it is loaded back from flash, so
+a wake-up cannot be stored, survive a reboot, or fire, whoever sends it.
+
+- _sanitise_alarms keeps only bedtime fades; the firing loop re-checks
+- test_alarm accepts only "sunset"
+- the lights page shows only bedtime fades, creates new alarms as bedtime
+  fades, removes the Rise/Sleep toggle, and purges wake-ups still on the
+  retained list
+- tests: wake-ups dropped from the retained list, set_alarms, and flash;
+  test_alarm 'sunrise' ignored
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0194hS9Wah8ouvva3tRz5wsm
+---
+ index.html             | 23 ++++++++++-------------
+ main.py                | 24 +++++++++++++++++-------
+ tests/test_firmware.py | 37 +++++++++++++++++++++++++++++++++----
+ 3 files changed, 60 insertions(+), 24 deletions(-)
+
+diff --git a/index.html b/index.html
+index 1c60e9a..7b314ae 100644
+--- a/index.html
++++ b/index.html
+@@ -803,9 +803,12 @@ function connect() {
+ 
+       if (topicStr === topicAlarms()) {
+         if (Array.isArray(d)) {
+-          alarms = d;
++          // The lamps drop every alarm that is not a bedtime fade, so none is
++          // shown, and one still on the retained list is purged right here.
++          alarms = d.filter(a => a && a.type === "sunset");
+           // Self-heal DST shifts / legacy UTC-only alarms, then republish
+-          if (normaliseAlarms()) publishAlarms();
++          const purged = alarms.length !== d.length;
++          if (normaliseAlarms() || purged) publishAlarms();
+           renderAlarms();
+         }
+         return;
+@@ -1290,8 +1293,9 @@ function normaliseAlarms() {
+ }
+ 
+ function defaultAlarm() {
+-  const [uh, um] = localToUtc(7, 0);
+-  return { enabled: true, type: "sunrise", hour: uh, minute: um, lh: 7, lm: 0,
++  const [uh, um] = localToUtc(22, 0);
++  // Bedtime fade only: the lamps drop every other alarm type (no wake-ups).
++  return { enabled: true, type: "sunset", hour: uh, minute: um, lh: 22, lm: 0,
+            duration_min: 30, brightness: 1.0, days: [0,1,2,3,4],
+            boards: [cfg.boardIdA, cfg.boardIdB] };
+ }
+@@ -1331,8 +1335,7 @@ function renderAlarms() {
+         <input class="alarm-time" type="time" value="${hh}:${mm}"
+           title="Your local time — sent to the lamps as ${utcHint}" data-idx="${idx}">
+         <span style="font-size:0.55rem;color:var(--muted);margin-left:0.2rem" title="What the lamps compare against">${utcHint}</span>
+-        <button class="alarm-type-btn ${(alarm.type||'sunrise')==='sunrise'?'sunrise':'sunset'}" data-idx="${idx}"
+-          title="Toggle sunrise / bedtime fade">${(alarm.type||'sunrise')==='sunrise'?'🌅 Rise':'🌙 Sleep'}</button>
++        <span class="alarm-type-btn sunset" style="cursor:default" title="Bedtime fade. The lamps have no wake-up alarm.">🌙 Sleep</span>
+         <button class="alarm-type-btn" data-test="${idx}"
+           title="Run this fade on both lamps now (20 s) to verify it works">▶ Test</button>
+         <button class="alarm-del" data-idx="${idx}">✕</button>
+@@ -1372,12 +1375,6 @@ function renderAlarms() {
+         publishAlarms();
+       });
+     });
+-    el.querySelector(".alarm-type-btn").addEventListener("click", () => {
+-      const current = alarms[idx].type || "sunrise";
+-      alarms[idx].type = current === "sunrise" ? "sunset" : "sunrise";
+-      publishAlarms();
+-      renderAlarms(); // re-render so brightness slider shows/hides correctly
+-    });
+     el.querySelector(".alarm-toggle").addEventListener("click", e => {
+       alarms[idx].enabled = !alarms[idx].enabled;
+       e.currentTarget.classList.toggle("on", alarms[idx].enabled);
+@@ -1394,7 +1391,7 @@ function renderAlarms() {
+       renderAlarms();   // refresh the UTC hint
+     });
+     el.querySelector("[data-test]").addEventListener("click", () => {
+-      publishBroadcast({ test_alarm: alarms[idx].type || "sunrise", test_seconds: 20 });
++      publishBroadcast({ test_alarm: "sunset", test_seconds: 20 });
+       showToast("Testing on both lamps — 20 s fade");
+     });
+     el.querySelector(".alarm-del").addEventListener("click", () => {
+diff --git a/main.py b/main.py
+index 353cf72..aa228de 100644
+--- a/main.py
++++ b/main.py
+@@ -273,17 +273,27 @@ def _sanitise_groups(groups):
+     return clean
+ 
+ def _sanitise_alarms(data):
+-    """Validated copy of an alarm list, or None if not a list."""
++    """Validated copy of an alarm list, or None if not a list.
++
++    The lamps never wake anyone: only bedtime fades ("sunset") are kept.
++    Every other alarm — type "sunrise", or no type at all, which used to
++    default to sunrise — is dropped here, so it cannot be stored, loaded back
++    from flash after a reboot, or fired, whoever sent it and whatever the
++    broker's retained list says. (A wake-up kept lighting the lamp at dawn
++    after the public broker lost the shared list: the boards' own flash copy
++    went on firing it.)"""
+     if not isinstance(data, list):
+         return None
+     clean = []
+     for a in data[:20]:                 # cap alarm count
+         if not isinstance(a, dict):
+             continue
++        if a.get("type") != "sunset":
++            continue                    # no wake-ups
+         try:
+             clean.append({
+                 "enabled":      bool(a.get("enabled", True)),
+-                "type":         "sunset" if a.get("type") == "sunset" else "sunrise",
++                "type":         "sunset",
+                 "hour":         max(0, min(23, int(a.get("hour", 0)))),
+                 "minute":       max(0, min(59, int(a.get("minute", 0)))),
+                 "duration_min": max(1, min(180, int(a.get("duration_min", 30)))),
+@@ -414,13 +424,12 @@ def _handle_message(data):
+         _apply_alarms(data["set_alarms"])
+ 
+     # Run an alarm ramp immediately, so the schedule can be verified
+-    # without waiting for the wall clock. Value: "sunrise" | "sunset".
++    # without waiting for the wall clock. Only "sunset" (the bedtime fade).
+     ta = data.get("test_alarm")
+-    if ta in ("sunrise", "sunset") or ta is True:
++    if ta == "sunset":                  # no wake-up to test
+         global _test_alarm
+         secs = _num(data.get("test_seconds"), 2, 600, 20)
+-        _test_alarm = {"type": "sunset" if ta == "sunset" else "sunrise",
+-                       "dur_ms": int(secs * 1000)}
++        _test_alarm = {"type": "sunset", "dur_ms": int(secs * 1000)}
+         print(f"[alarm] test requested — {_test_alarm['type']} over {secs:.0f}s")
+ 
+     if data.get("reboot"):
+@@ -939,7 +948,8 @@ def main():
+                     key = (alarm.get("hour", 0), alarm.get("minute", 0),
+                            alarm.get("type", "sunrise"))
+                     boards = alarm.get("boards", [])
+-                    if (alarm.get("enabled", True)
++                    if (alarm.get("type") == "sunset"      # never a wake-up
++                            and alarm.get("enabled", True)
+                             and t[3] == key[0] and cur_min == key[1]
+                             and t[6] in alarm.get("days", list(range(7)))
+                             and key not in _alarm_fired
+diff --git a/tests/test_firmware.py b/tests/test_firmware.py
+index e1b4682..1af03a3 100644
+--- a/tests/test_firmware.py
++++ b/tests/test_firmware.py
+@@ -106,12 +106,35 @@ def run():
+ 
+     print("\n=== 3. retained alarm schedule ===")
+     fw.client.inject(b"test_prefix/alarms",
+-                     json.dumps([{"enabled": True, "type": "sunrise", "hour": 5,
++                     json.dumps([{"enabled": True, "type": "sunset", "hour": 21,
+                                   "minute": 0, "days": [0,1,2,3,4],
+                                   "boards": ["board_a","board_b"]}]).encode())
+     fw.client.check_msg()
+     check("retained array installs the schedule", len(fw._alarms) == 1, str(fw._alarms))
+ 
++    print("\n=== 3b. no wake-ups, ever ===")
++    rise = {"enabled": True, "type": "sunrise", "hour": 4, "minute": 30, "days": [0,1,2,3,4,5,6], "boards": []}
++    untyped = {"enabled": True, "hour": 5, "minute": 15, "days": [0,1,2,3,4,5,6]}
++    sleep = {"enabled": True, "type": "sunset", "hour": 21, "minute": 0, "days": [0,1,2,3,4,5,6]}
++    odd = {"enabled": True, "type": "Sunrise", "hour": 6, "minute": 0}
++    fw.client.inject(b"test_prefix/alarms", json.dumps([rise, sleep, untyped, odd]).encode())
++    fw.client.check_msg()
++    check("only the bedtime fade survives the retained list",
++          [a["type"] for a in fw._alarms] == ["sunset"] and fw._alarms[0]["hour"] == 21, str(fw._alarms))
++    fw.client.inject(b"test_prefix/events", json.dumps({"from": "web_app", "set_alarms": [rise, untyped]}).encode())
++    fw.client.check_msg()
++    check("set_alarms with only wake-ups leaves no alarms", fw._alarms == [], str(fw._alarms))
++    check("a list of wake-ups is still an answer, not an error", fw._sanitise_alarms([rise]) == [])
++    check("a type-less alarm is not a wake-up either: it is dropped", fw._sanitise_alarms([untyped]) == [])
++    check("a bedtime fade keeps its fields",
++          fw._sanitise_alarms([sleep])[0]["type"] == "sunset" and fw._sanitise_alarms([sleep])[0]["minute"] == 0)
++    # What is already on flash from before this firmware: loaded, then dropped.
++    with open(os.path.join(work, "alarms.json"), "w") as f:
++        json.dump([rise, untyped, sleep], f)
++    fw.load_alarms()
++    check("a wake-up already on flash is dropped at load", [a["type"] for a in fw._alarms] == ["sunset"], str(fw._alarms))
++    fw.save_alarms([])
++
+     print("\n=== 4. hostile input cannot crash the handler ===")
+     ok = True
+     for bad in [b"not json", b"null", b"[1,2,3]", b'{"groups":"x"}',
+@@ -192,10 +215,16 @@ def run():
+     print("\n=== 8. test_alarm ===")
+     fw._test_alarm = None
+     fw.client.inject(b"test_prefix/events", json.dumps({
+-        "from": "web_app", "test_alarm": "sunrise", "test_seconds": 20}).encode())
++        "from": "web_app", "test_alarm": "sunset", "test_seconds": 20}).encode())
+     fw.client.check_msg()
+-    check("test_alarm queued for the main loop", fw._test_alarm is not None,
+-          str(fw._test_alarm))
++    check("test_alarm (bedtime fade) queued for the main loop",
++          fw._test_alarm is not None and fw._test_alarm["type"] == "sunset", str(fw._test_alarm))
++    for wake in ("sunrise", True, "anything"):
++        fw._test_alarm = None
++        fw.client.inject(b"test_prefix/events", json.dumps({
++            "from": "web_app", "test_alarm": wake, "test_seconds": 20}).encode())
++        fw.client.check_msg()
++        check(f"test_alarm {wake!r} is ignored: there is no wake-up to test", fw._test_alarm is None, str(fw._test_alarm))
+ 
+     print("\n=== 9. colour survives a reboot ===")
+     # Every reboot (nightly OTA, offline watchdog, crash, hang) used to bring
+-- 
+2.43.0
+
