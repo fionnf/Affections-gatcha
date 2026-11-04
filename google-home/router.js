@@ -4,7 +4,7 @@
 //   POST     /token        code → access + refresh token, refresh → access
 //   POST     /fulfillment  the Smart Home intents (needs a valid access token)
 import { sign, verify, safeEqual } from "./auth.js";
-import { fulfil } from "./smarthome.js";
+import { fulfil, nightPolicy } from "./smarthome.js";
 
 const ACCESS_MS = 3600 * 1000;
 const CODE_MS = 10 * 60 * 1000;
@@ -72,7 +72,7 @@ async function fulfillment(request, env, bridge) {
   if (!t || t.t !== "access") return json({ error: "unauthorized" }, 401);
   let body;
   try { body = await request.json(); } catch (_e) { return json({ error: "bad request" }, 400); }
-  return json(await fulfil(body, bridge));
+  return json(await fulfil(body, bridge, { night: nightPolicy(env) }));
 }
 
 export async function route(request, env, bridge) {

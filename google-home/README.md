@@ -67,9 +67,20 @@ Projects in testing mode work for the account that created them; to use them
 from another Google account in the household, add it under *Test users* in
 the console (or share the home with the account that linked it).
 
+## Night rule
+From **22:00 to 08:00 Zurich time**, "turn on Ember Lights" lights only
+**Fionn's lamp** (`board_a`), not both. "Turn off" still switches both, so
+nothing is left on. Google Home is told the light is on either way.
+
+To change it, set Worker variables (in `wrangler.toml` under `[vars]`, then
+`npx wrangler@4 deploy`): `NIGHT_FROM` (default `22`), `NIGHT_TO` (default
+`8`), `NIGHT_TZ` (default `Europe/Zurich`), `NIGHT_BOARD` (default `board_a`;
+`board_b` for Lennart's lamp). Setting `NIGHT_FROM` equal to `NIGHT_TO` turns
+the rule off.
+
 ## How it behaves
 - **Switching** sends one `{on}` message to both lamps, as the app does when
-  "Beide" is chosen.
+  "Beide" is chosen (at night, an "on" goes to one lamp only: see above).
 - **Status** (Google Home showing a lamp as on or off) asks the lamps for
   their state when you open the app, and takes about 2–3 seconds. "Ember Lights" is
   on when either lamp is on. A lamp that does not answer counts as off.

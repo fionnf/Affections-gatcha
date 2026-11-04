@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { connectPacket, subscribePacket, publishPacket, PacketReader, parsePublish, withMqtt } from "../google-home/mqtt.js";
-import { fulfil, sync } from "../google-home/smarthome.js";
+import { fulfil, sync, nightPolicy, isNight } from "../google-home/smarthome.js";
 import { makeBridge } from "../google-home/bridge.js";
 import { route } from "../google-home/router.js";
 import { sign, verify } from "../google-home/auth.js";
@@ -163,4 +163,76 @@ test("tokens expire and reject tampering", async () => {
   assert.equal(await verify("secret", t, 2000), null, "expired");
   assert.equal(await verify("other", t, 500), null, "wrong key");
   assert.equal(await verify("secret", "a.b", 500), null, "garbage");
+});
+
+// ── the night rule: 22:00–08:00 Zurich, "on" lights only Fionn's lamp ────────
+const ZH = nightPolicy({});
+const onCmd = (on) => ({ requestId: "n", inputs: [{ intent: "action.devices.EXECUTE", payload: { commands: [{ devices: [{ id: "both" }], execution: [{ command: "action.devices.commands.OnOff", params: { on } }] }] } }] });
+// Winter (CET, UTC+1): 21:00Z is 22:00 in Zurich. Summer (CEST, UTC+2): 20:00Z is 22:00.
+const winter = (h, m = 0) => new Date(Date.UTC(2026, 10, 4, h, m));
+const summer = (h, m = 0) => new Date(Date.UTC(2026, 6, 4, h, m));
+
+test("the night window is 22:00 to 08:00 in Zurich, winter and summer", () => {
+  assert.equal(isNight(winter(20, 59), ZH), false, "21:59 local");
+  assert.equal(isNight(winter(21, 0), ZH), true, "22:00 local");
+  assert.equal(isNight(winter(23, 30), ZH), true, "00:30 local");
+  assert.equal(isNight(winter(6, 59), ZH), true, "07:59 local");
+  assert.equal(isNight(winter(7, 0), ZH), false, "08:00 local");
+  assert.equal(isNight(winter(12, 0), ZH), false);
+  assert.equal(isNight(summer(19, 59), ZH), false, "21:59 local, summer");
+  assert.equal(isNight(summer(20, 0), ZH), true, "22:00 local, summer");
+  assert.equal(isNight(summer(5, 59), ZH), true, "07:59 local, summer");
+  assert.equal(isNight(summer(6, 0), ZH), false, "08:00 local, summer");
+});
+
+test("at night 'on' lights only Fionn's lamp; by day, and for 'off', both", async () => {
+  const run = async (on, now) => { const calls = []; const r = await fulfil(onCmd(on), fakeBridge({}, calls), { night: ZH, now }); return { calls, r }; };
+  let { calls, r } = await run(true, winter(22, 0));   // 23:00 local
+  assert.deepEqual(calls, [[["board_a"], true]]);
+  assert.equal(r.payload.commands[0].status, "SUCCESS");
+  assert.equal(r.payload.commands[0].states.on, true, "Google is told the light is on");
+  ({ calls } = await run(true, winter(5, 0)));          // 06:00 local
+  assert.deepEqual(calls, [[["board_a"], true]]);
+  ({ calls } = await run(true, winter(7, 0)));          // 08:00 local
+  assert.deepEqual(calls, [[["both"], true]]);
+  ({ calls } = await run(true, winter(12, 0)));
+  assert.deepEqual(calls, [[["both"], true]]);
+  ({ calls } = await run(false, winter(22, 0)));        // off at night still switches both
+  assert.deepEqual(calls, [[["both"], false]]);
+});
+
+test("without a night policy nothing changes", async () => {
+  const calls = [];
+  await fulfil(onCmd(true), fakeBridge({}, calls), {});
+  assert.deepEqual(calls, [[["both"], true]]);
+});
+
+test("the night rule can be changed or switched off with variables, and bad values fall back", () => {
+  assert.deepEqual(nightPolicy({}), { from: 22, to: 8, tz: "Europe/Zurich", board: "board_a" });
+  assert.deepEqual(nightPolicy({ NIGHT_FROM: "23", NIGHT_TO: "6", NIGHT_BOARD: "board_b", NIGHT_TZ: "Europe/London" }), { from: 23, to: 6, tz: "Europe/London", board: "board_b" });
+  assert.deepEqual(nightPolicy({ NIGHT_FROM: "late", NIGHT_TO: "99", NIGHT_BOARD: "board_z", NIGHT_TZ: "Mars/Base" }), { from: 22, to: 8, tz: "Europe/Zurich", board: "board_a" });
+  assert.equal(isNight(winter(22, 0), nightPolicy({ NIGHT_FROM: "8", NIGHT_TO: "8" })), false, "from = to switches it off");
+  assert.equal(isNight(winter(12, 0), nightPolicy({ NIGHT_FROM: "9", NIGHT_TO: "17" })), true, "a daytime window, no wrap");
+});
+
+test("through the HTTP route: an 'on' at 23:00 Zurich lights only Fionn's lamp", async () => {
+  const fixed = Date.UTC(2026, 10, 4, 22, 0);   // 23:00 in Zurich
+  const RealDate = Date;
+  globalThis.Date = class extends RealDate {
+    constructor(...a) { super(...(a.length ? a : [fixed])); }
+    static now() { return fixed; }
+  };
+  try {
+    const t = await sign(env.SIGNING_KEY, { t: "access", exp: fixed + 60000 });
+    const calls = [];
+    const res = await route(new Request("https://w.test/fulfillment", { method: "POST", body: JSON.stringify(onCmd(true)), headers: { authorization: `Bearer ${t}` } }), env, fakeBridge({}, calls));
+    assert.equal(res.status, 200);
+    assert.deepEqual(calls, [[["board_a"], true]]);
+    const off = [];
+    await route(new Request("https://w.test/fulfillment", { method: "POST", body: JSON.stringify(onCmd(false)), headers: { authorization: `Bearer ${t}` } }), env, fakeBridge({}, off));
+    assert.deepEqual(off, [[["both"], false]]);
+    const day = [];
+    await route(new Request("https://w.test/fulfillment", { method: "POST", body: JSON.stringify(onCmd(true)), headers: { authorization: `Bearer ${t}` } }), { ...env, NIGHT_FROM: "0", NIGHT_TO: "0" }, fakeBridge({}, day));
+    assert.deepEqual(day, [[["both"], true]], "switched off by NIGHT_FROM = NIGHT_TO");
+  } finally { globalThis.Date = RealDate; }
 });

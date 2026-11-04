@@ -8,3 +8,8 @@ compatibility_date = "2026-01-01"
 #   SIGNING_KEY                a long random string that signs the tokens
 #   LINK_PASSPHRASE            what you type once on the linking page
 #   GOOGLE_PROJECT_ID          the Google Home developer project's id
+#
+# Optional variables ([vars] below or `wrangler secret put`), all with defaults:
+#   NIGHT_FROM=22  NIGHT_TO=8  NIGHT_TZ=Europe/Zurich  NIGHT_BOARD=board_a
+#   From NIGHT_FROM until NIGHT_TO, "turn on" lights only NIGHT_BOARD, not both.
+#   NIGHT_FROM equal to NIGHT_TO turns the rule off.
