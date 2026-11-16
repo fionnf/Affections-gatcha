@@ -553,6 +553,21 @@ export function persistPinUnlock(_pin) {
   // intentionally not persisted — require unlock every time
 }
 
+// A letter that asks a riddle first (outcome "pinRemember": true) stays open
+// once solved: the number gates above are asked every time, which would mean
+// solving the riddle again after every reload. Keyed by whatever the caller
+// passes (the day plus the code), so tomorrow's riddle starts closed.
+const PIN_OPEN_KEY = "affektions-gacha:pin-open:v1";
+export function isPinRemembered(key) {
+  try { return JSON.parse(window.localStorage.getItem(PIN_OPEN_KEY) || "[]").includes(key); } catch (_e) { return false; }
+}
+export function rememberPinUnlock(key) {
+  try {
+    const all = JSON.parse(window.localStorage.getItem(PIN_OPEN_KEY) || "[]");
+    if (!all.includes(key)) window.localStorage.setItem(PIN_OPEN_KEY, JSON.stringify([...all, key].slice(-50)));
+  } catch (_e) {}
+}
+
 // ── Bärlauch weekly token ────────────────────────────────────────────────────
 // One 🌿 per ISO week for clearing level 5. Stored in the player slot like the
 // wish, keyed by week, so a second clear in the same week earns nothing and a

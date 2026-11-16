@@ -55,6 +55,22 @@ export function clockReached(hhmm, timezone) {
   return nowH > atH || (nowH === atH && now.m >= (m || 0));
 }
 
+// Does `input` open a code gate whose code is `pin`? A pin made of digits
+// must match exactly. Anything else is a word (a riddle's answer): case,
+// accents, spaces and punctuation don't count, "das Fundament" and
+// "fundamente" both pass for "fundament", and `|` lists other accepted
+// answers ("fundament|grundmauer").
+const squash = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]/g, "");
+export function isWordPin(pin) { return !/^\d+$/.test(String(pin)); }
+export function pinMatches(pin, input) {
+  const p = String(pin), i = String(input).trim();
+  if (!i) return false;
+  if (!isWordPin(p)) return i === p;
+  const typed = squash(i);
+  if (!typed) return false;
+  return p.split("|").map(squash).filter(Boolean).some((answer) => typed.includes(answer));
+}
+
 // One formatter, not one per history row: Intl.DateTimeFormat construction
 // is the expensive part, formatting is cheap.
 let _historyDateFmt = null;

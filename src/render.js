@@ -1,7 +1,7 @@
 // ── Render helpers ────────────────────────────────────────────────────────────
 import { state, mount, $ } from "./state.js";
-import { getToken, dateKeyInTimezone, clockReached, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
-import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, setWeather, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
+import { getToken, dateKeyInTimezone, clockReached, pinMatches, isWordPin, safeUrl, seededRandom, getPreviewDay, isVoucherEntry } from "./utils.js";
+import { readHistory, writeHistory, readFavorites, writeFavorites, readTokens, resetToken, readQuestState, isPinUnlocked, persistPinUnlock, isPinRemembered, rememberPinUnlock, isMilestoneSeen, markMilestoneSeen, freikarteCount, markQuestBestanden, setBeweisUrl, setReaction, setWeather, freshWishReply, markWishReplyShown, latestWishReply } from "./storage.js";
 import { uploadBeweis } from "./beweis.js";
 import { computeStreak, streakInfo, boostedCategories, streakRestoreAvailable, streakRestoresLeft, writeStreakCache, readStreakRestore, writeStreakRestore, readVacations, removeVacation } from "./streak.js";
 import { fetchJson } from "./sync.js";
@@ -407,7 +407,10 @@ function _firePromptNotification(pull, answer) {
   } catch (_e) {}
 }
 
-export function buildPinGate(pin, onUnlock, hintText) {
+// opts: { hint2 } a tip shown after two wrong tries, { skip } a gentle way in
+// after four (for a riddle on a morning nobody needs a riddle to fail).
+export function buildPinGate(pin, onUnlock, hintText, opts = {}) {
+  const word = isWordPin(pin);
   const wrap = document.createElement("div");
   wrap.className = "ag-pin-gate";
   const hint = document.createElement("p");
@@ -417,11 +420,19 @@ export function buildPinGate(pin, onUnlock, hintText) {
   row.className = "ag-pin-row";
   const input = document.createElement("input");
   input.type = "text";
-  input.inputMode = "numeric";
-  input.pattern = "[0-9]*";
-  input.maxLength = 4;
-  input.className = "ag-pin-input";
-  input.placeholder = "_ _ _ _";
+  if (word) {
+    input.className = "ag-pin-input ag-pin-input-word";
+    input.maxLength = 60;
+    input.placeholder = "Deine Antwort";
+    input.autocapitalize = "off";
+    input.spellcheck = false;
+  } else {
+    input.inputMode = "numeric";
+    input.pattern = "[0-9]*";
+    input.maxLength = 4;
+    input.className = "ag-pin-input";
+    input.placeholder = "_ _ _ _";
+  }
   input.autocomplete = "off";
   const btn = document.createElement("button");
   btn.type = "button";
@@ -430,16 +441,34 @@ export function buildPinGate(pin, onUnlock, hintText) {
   const err = document.createElement("p");
   err.className = "ag-pin-err";
   err.hidden = true;
-  err.textContent = "Falsche Zahl. Noch einmal.";
+  err.textContent = word ? "Nicht ganz. Noch einmal." : "Falsche Zahl. Noch einmal.";
+  let misses = 0;
+  const extra = document.createElement("div");
   function attempt() {
-    if (input.value.trim() === pin) {
+    if (pinMatches(pin, input.value)) {
       persistPinUnlock(pin);
       onUnlock();
     } else {
+      if (!input.value.trim()) return;
+      misses += 1;
       err.hidden = false;
       input.classList.add("ag-pin-shake");
       input.value = "";
       setTimeout(() => input.classList.remove("ag-pin-shake"), 450);
+      if (misses === 2 && opts.hint2 && !extra.querySelector(".ag-pin-tip")) {
+        const tip = document.createElement("p");
+        tip.className = "ag-pin-hint ag-pin-tip";
+        tip.textContent = opts.hint2;
+        extra.appendChild(tip);
+      }
+      if (misses === 4 && opts.skip && !extra.querySelector(".ag-pin-skip")) {
+        const skip = document.createElement("button");
+        skip.type = "button";
+        skip.className = "ag-secondary ag-pin-skip";
+        skip.textContent = "Zeig's mir einfach 💚";
+        skip.addEventListener("click", () => { persistPinUnlock(pin); onUnlock(); });
+        extra.appendChild(skip);
+      }
     }
   }
   btn.addEventListener("click", attempt);
@@ -449,6 +478,7 @@ export function buildPinGate(pin, onUnlock, hintText) {
   wrap.appendChild(hint);
   wrap.appendChild(row);
   wrap.appendChild(err);
+  wrap.appendChild(extra);
   return wrap;
 }
 
@@ -1144,11 +1174,15 @@ export function renderPull(pull) {
 
   const linkWrap = $("[data-ag-link-wrap]");
 
+  // A riddle that is remembered once solved (outcome "pinRemember") stays
+  // open for that day; the plain number gates are asked every time.
+  const pinKey = `${pull.day}|${pull.outcome.pin}`;
+  const pinOpen = () => isPinUnlocked(pull.outcome.pin) || (pull.outcome.pinRemember === true && isPinRemembered(pinKey));
   if (pull.outcome.pin) {
     const hasSeparateMsg = !!pull.outcome.pinMessage;
-    if (!hasSeparateMsg) msgEl.hidden = !isPinUnlocked(pull.outcome.pin);
+    if (!hasSeparateMsg) msgEl.hidden = !pinOpen();
 
-    if (!isPinUnlocked(pull.outcome.pin)) {
+    if (!pinOpen()) {
       let pinMsgEl = null;
       if (hasSeparateMsg) {
         pinMsgEl = document.createElement("div");
@@ -1158,11 +1192,12 @@ export function renderPull(pull) {
         msgEl.parentNode.insertBefore(pinMsgEl, msgEl.nextSibling);
       }
       const gate = buildPinGate(pull.outcome.pin, () => {
+        if (pull.outcome.pinRemember === true) rememberPinUnlock(pinKey);
         gate.remove();
         if (hasSeparateMsg) { pinMsgEl.hidden = false; }
         else { msgEl.hidden = false; }
         if (pull.outcome.link && linkWrap) renderLinkInto(linkWrap, pull.outcome.link);
-      }, pull.outcome.pinHint);
+      }, pull.outcome.pinHint, { hint2: pull.outcome.pinHint2, skip: pull.outcome.pinSkip === true });
       gate.setAttribute("data-ag-pin-gate", "");
       const anchor = hasSeparateMsg ? pinMsgEl : msgEl;
       anchor.parentNode.insertBefore(gate, anchor);
@@ -1217,7 +1252,7 @@ export function renderPull(pull) {
       }
     }
   } else {
-    const blockedByPin = pull.outcome.pin && !isPinUnlocked(pull.outcome.pin);
+    const blockedByPin = pull.outcome.pin && !pinOpen();
     if (!blockedByPin) renderLinkInto(linkWrap, pull.outcome.link || null);
   }
 

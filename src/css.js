@@ -1575,6 +1575,10 @@ export const css = `
       .ag-pin-row{display:flex;gap:8px;align-items:center}
       .ag-pin-input{width:88px;padding:8px 10px;border-radius:var(--ag-radius);border:1px solid var(--ag-border);background:var(--ag-surface);color:var(--ag-text);font-size:1.1rem;letter-spacing:.25em;text-align:center;font-family:monospace;outline:none;transition:border-color .15s}
       .ag-pin-input:focus{border-color:var(--ag-primary)}
+      .ag-pin-input-word{width:100%;letter-spacing:normal;text-align:left;font-size:1rem}
+      .ag-pin-row:has(.ag-pin-input-word){flex-wrap:wrap}
+      .ag-pin-tip{margin:10px 0 0;font-style:italic}
+      .ag-pin-skip{margin-top:10px}
       .ag-pin-err{margin:8px 0 0;font-size:.82rem;color:#c0392b}
       @keyframes ag-pin-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
       .ag-pin-shake{animation:ag-pin-shake .4s ease}

@@ -153,3 +153,21 @@ test("a course written for a later day stays hidden until then", () => {
   assert.deepEqual(configKurse(days, "2026-10-24").map((k) => k.title), ["A"]);
   assert.deepEqual(configKurse(days, "2026-12-24").map((k) => k.title), ["B", "A"]);
 });
+
+test("code gates: digits must match exactly, riddle answers are forgiving", async () => {
+  const { pinMatches, isWordPin } = await import("../src/utils.js");
+  assert.equal(isWordPin("1234"), false);
+  assert.equal(isWordPin("fundament"), true);
+  assert.equal(pinMatches("1234", "1234"), true);
+  assert.equal(pinMatches("1234", " 1234 "), true);
+  assert.equal(pinMatches("1234", "12345"), false);
+  assert.equal(pinMatches("1234", ""), false);
+  for (const ok of ["Fundament", "fundament", "  FUNDAMENT ", "das Fundament", "Das fundament!", "fundamente", "Ein Fundament."]) {
+    assert.equal(pinMatches("fundament|grundmauer", ok), true, ok);
+  }
+  assert.equal(pinMatches("fundament|grundmauer", "Grundmauer"), true, "another accepted answer");
+  for (const bad of ["", "   ", "Dach", "Fundam", "!!!", "Wand"]) assert.equal(pinMatches("fundament|grundmauer", bad), false, JSON.stringify(bad));
+  assert.equal(pinMatches("grüsse", "GRUESSE"), false, "ü is not ue — accents are only stripped");
+  assert.equal(pinMatches("strasse", "Straße"), true, "ß counts as ss");
+  assert.equal(pinMatches("cafe", "Café"), true);
+});
