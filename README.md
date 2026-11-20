@@ -26,6 +26,7 @@ index.html                  Lennart's entry point (public)
 fionn-gacha.html            Fionn's Eingänge (noindex, not on the public URL; the file name is historical)
 fionn.html                  Redirect to fionn-gacha.html, for old bookmarks
 lichter.html                Lichtsteuerung — vendored from the lights repo
+lugano.html  lugano/        A one-day page: "Drei Kameras, ein Tag" (see Lugano-Tag below)
 dist/
   affection-gacha.js        Compiled PWA (built from src/ via Vite)
   fionn-admin.js            Fionn's Eingänge (built from admin/)
@@ -372,6 +373,26 @@ The jobs fail — and so mail you — only for things a human must act on:
 Valid `preview-category` values: `niete`, `common`, `quest`, `uncommon`, `cursed`, `rare`, `photo`, `jackpot`.
 
 ---
+
+## Lugano-Tag (a page for one day)
+
+`lugano.html` is a standalone page, opened from the 2026-11-21 capsule's link
+(and shareable: the capsule's *Kopieren* button carries the link, and the page
+has its own *Teilen*). It is a day out as a small game: the plan, a seven-part
+**Kamera-Schule** for a first Pentax (with a live exposure simulator, a
+Sunny-16 calculator, a focus lens and a quiz question after each lesson),
+photo **Aufgaben** with a list for each of the three of them plus shared ones,
+a **Bingo** (looking only), a **Quiz** about Lugano and Switzerland, and a
+**Logbuch** that notes aperture, time and light per frame so the developed
+negatives can be matched to what was set. Everyone picks who they are once;
+progress, log and score are kept on that phone only.
+
+Words and data live in `lugano/content.js` (stops, lessons, every task, the
+quiz); the maths behind the simulator is `lugano/exposure.js` and is tested in
+`tests/lugano.test.js`. The page registers the shared service worker, so after
+one visit it works without signal. Quiz facts were checked against Wikipedia
+(Monte Brè 925 m, funicular since 1912, Gandria's smuggling and the 1709 frost,
+Gotthard Base Tunnel 57.09 km, the Pentax name from *Pentaprism + Contax*).
 
 ## Special days
 

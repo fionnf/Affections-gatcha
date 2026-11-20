@@ -513,7 +513,7 @@ export function buildLinkPinGate(pin, linkWrap, pull) {
     if (input.value.trim().toLowerCase() === pin.toLowerCase()) {
       persistPinUnlock("link-" + pin);
       wrap.remove();
-      renderLinkInto(linkWrap, pull.outcome.link);
+      renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
     } else {
       err.hidden = false;
       input.classList.add("ag-pin-shake");
@@ -560,23 +560,25 @@ function buildSpotifyEmbed(url) {
   }
 }
 
-function buildGenericLink(url) {
+// `label` is the capsule's optional linkLabel ("🎞️ Zum Lugano-Tag"); without
+// one the button says what it always said.
+function buildGenericLink(url, label) {
   const a = document.createElement("a");
   a.href = url;
   a.rel = "noopener noreferrer";
   a.target = "_blank";
   a.className = "ag-outcome-link ag-secondary";
-  a.textContent = "🔗 Link öffnen";
+  a.textContent = typeof label === "string" && label.trim() ? label.trim().slice(0, 40) : "🔗 Link öffnen";
   return a;
 }
 
-export function renderLinkInto(container, link) {
+export function renderLinkInto(container, link, label) {
   container.innerHTML = "";
   if (!link) { container.hidden = true; return; }
   const safe = safeUrl(link);
   if (!safe) { container.hidden = true; return; }
   const spotifyEl = buildSpotifyEmbed(safe);
-  container.appendChild(spotifyEl || buildGenericLink(safe));
+  container.appendChild(spotifyEl || buildGenericLink(safe, label));
   container.hidden = false;
 }
 
@@ -1196,7 +1198,7 @@ export function renderPull(pull) {
         gate.remove();
         if (hasSeparateMsg) { pinMsgEl.hidden = false; }
         else { msgEl.hidden = false; }
-        if (pull.outcome.link && linkWrap) renderLinkInto(linkWrap, pull.outcome.link);
+        if (pull.outcome.link && linkWrap) renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
       }, pull.outcome.pinHint, { hint2: pull.outcome.pinHint2, skip: pull.outcome.pinSkip === true });
       gate.setAttribute("data-ag-pin-gate", "");
       const anchor = hasSeparateMsg ? pinMsgEl : msgEl;
@@ -1221,7 +1223,7 @@ export function renderPull(pull) {
     const lpin = pull.outcome.linkPin;
     if (lpin) {
       if (isPinUnlocked("link-" + lpin)) {
-        renderLinkInto(linkWrap, pull.outcome.link);
+        renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
       } else {
         const pinAvailable = !pull.outcome.linkPinFrom || clockReached(pull.outcome.linkPinFrom, lockTz);
         if (pinAvailable) {
@@ -1241,7 +1243,7 @@ export function renderPull(pull) {
     } else {
       const unlockedByTime = clockReached(pull.unlockTime, lockTz);
       if (unlockedByTime) {
-        renderLinkInto(linkWrap, pull.outcome.link);
+        renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
       } else {
         const lockSpan = document.createElement("span");
         lockSpan.className = "ag-outcome-link-locked";
@@ -1253,7 +1255,7 @@ export function renderPull(pull) {
     }
   } else {
     const blockedByPin = pull.outcome.pin && !pinOpen();
-    if (!blockedByPin) renderLinkInto(linkWrap, pull.outcome.link || null);
+    if (!blockedByPin) renderLinkInto(linkWrap, pull.outcome.link || null, pull.outcome.linkLabel);
   }
 
   renderTokenInto($("[data-ag-token-wrap]"), pull);
@@ -1429,6 +1431,7 @@ export function recordHistoryEntry(pull) {
     title: pull.outcome.title,
     message: pull.outcome.message,
     link: pull.outcome.link || null,
+    linkLabel: pull.outcome.linkLabel || null,
     unlockTime: pull.unlockTime || null,
     unlockTimezone: pull.unlockTimezone || null,
     promptAnswer: pull.promptAnswer || null,
@@ -1525,7 +1528,7 @@ function buildHistoryLink(entry) {
     }
   }
   const safeLink = safeUrl(entry.link);
-  return safeLink ? buildGenericLink(safeLink) : null;
+  return safeLink ? buildGenericLink(safeLink, entry.linkLabel) : null;
 }
 
 export function renderHistoryItemEl(entry) {

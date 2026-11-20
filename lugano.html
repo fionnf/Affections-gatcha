@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#f5f0e6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101a15" media="(prefers-color-scheme: dark)">
+  <title>Lugano · Drei Kameras, ein Tag</title>
+  <link rel="icon" href="media/icon-96.png">
+  <link rel="stylesheet" href="lugano/style.css">
+</head>
+<body>
+  <div id="app"></div>
+  <noscript><p style="padding:2rem;font-family:system-ui">Diese Seite braucht JavaScript.</p></noscript>
+  <script type="module" src="lugano/app.js"></script>
+  <script>
+    // Cache the page for the day: the mountain has patchy signal. The shared
+    // worker is network-first, so an edit to the page still arrives online.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+    }
+  </script>
+</body>
+</html>
