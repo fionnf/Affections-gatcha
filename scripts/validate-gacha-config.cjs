@@ -133,6 +133,14 @@ function validateConfig(config, facts = loadRuntimeFacts()) {
     if (outcome.link !== undefined) {
       assert(typeof outcome.link === "string" && isValidHttpUrl(outcome.link), `${where}.link must be a valid http(s) URL when present.`);
     }
+    if (outcome.sendTo !== undefined) {
+      assert(outcome.link, `${where}.sendTo needs a link to send.`);
+      assert(Array.isArray(outcome.sendTo) && outcome.sendTo.length <= 4, `${where}.sendTo must be a list of at most 4 buttons.`);
+      for (const [i, s] of (Array.isArray(outcome.sendTo) ? outcome.sendTo : []).entries()) {
+        assert(s && typeof s.label === "string" && s.label.trim() && s.label.trim().length <= 40, `${where}.sendTo[${i}].label must be 1 to 40 characters.`);
+        assert(typeof s.text === "string" && s.text.length <= 600, `${where}.sendTo[${i}].text must be a string of at most 600 characters.`);
+      }
+    }
     if (outcome.linkPinFrom !== undefined && !TIME_HHMM.test(String(outcome.linkPinFrom))) {
       addError(`${where}.linkPinFrom must be "HH:MM" (got ${JSON.stringify(outcome.linkPinFrom)}).`);
     }

@@ -1555,6 +1555,7 @@ export const css = `
         padding:8px 16px;border-radius:999px;
         text-decoration:none;font-size:.9rem;
       }
+      .ag-send{cursor:pointer;font:inherit;font-size:.9rem;margin-right:8px}
       .ag-history-item .ag-outcome-link{margin-top:8px;font-size:.84rem;padding:6px 12px;min-height:34px}
       .ag-outcome-link-locked{
         display:inline-block;margin-top:10px;padding:8px 16px;border-radius:999px;

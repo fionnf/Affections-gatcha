@@ -293,11 +293,11 @@
       "outcomes": [
         {
           "title": "Du bist bereit. Ich weiss es.",
-        "pin": "fundament|grundmauer|grundmauern",
-        "pinHint": "🏗️ Erst ein Rätsel, Architekt: Ohne mich steht kein Haus. Nach dem Einzug sieht mich niemand mehr. Ich trage alles. Was bin ich?",
-        "pinHint2": "Tipp: Es ist das Allererste, was auf jeder Baustelle passiert. Und in meiner Nachricht an dich kommt es auch vor.",
-        "pinSkip": true,
-        "pinRemember": true,
+          "pin": "fundament|grundmauer|grundmauern",
+          "pinHint": "🏗️ Erst ein Rätsel, Architekt: Ohne mich steht kein Haus. Nach dem Einzug sieht mich niemand mehr. Ich trage alles. Was bin ich?",
+          "pinHint2": "Tipp: Es ist das Allererste, was auf jeder Baustelle passiert. Und in meiner Nachricht an dich kommt es auch vor.",
+          "pinSkip": true,
+          "pinRemember": true,
           "message": "Guten Morgen, du. 🏗️\n\nHeute ist dein Jahresgespräch, und ich will, dass du zuerst das hier liest.\n\nEin ganzes Jahr lang hast du gezeichnet, gerechnet, geplant, korrigiert und wieder von vorn angefangen, wenn es sein musste. Du machst das so ruhig und gründlich, dass man fast vergisst, wie viel dahintersteckt. Ich vergess es nicht. Und deine Chefs sehen es auch, glaub mir.\n\nEs wird gut. Nicht vielleicht, nicht hoffentlcih: gut. Du musst heute niemandem etwas beweisen. Du erzählst einfach, was du in diesem Jahr geschafft hast, und das darf ruhig laut und stolz sein. Du darfst auch sagen, was du dir wünschst. Wer so arbeitet wie du, darf fragen.\n\nUnd falls ein Satz mal nicht so rauskommt, wie du ihn dir zurechtgelgt hast: völlig egal. Ein Gespräch ist keine Abgabe. Niemand erwartet den perfekten Plan, nur dich.\n\nEin Haus steht, weil das Fundament hält. Meins hält. Egal wie es heute läuft, egal was gesagt wird: ich steh hinter dir. Heute, morgen und bei jedem Gespräch, das noch kommt. Läuft es wie erwartet, feiern wir. Läuft etwas anders, sortieren wir es zusammen, mit etwas Gutem zu essen und so lange, wie du willst. Du bist damit nie allein.\n\nTief durchatmen. Schultren runter. Kopf hoch. Du kannst das.\n\nUnd danach will ich alles hören. Ich glaub so fest an dich. 💚"
         }
       ]
@@ -310,9 +310,19 @@
       "outcomes": [
         {
           "title": "Drei Kameras, ein Tag",
-          "message": "Guten Morgen, du. 🎞️\n\nHeute ist Lugano. Hoch auf den Monte Brè, über den Berg nach Gandria, am See entlang zurück. Du, ich und Natalie, jeder mit einer Kamera.\n\nUnd weil Natalie ihre erste Filmkamera dabeihat, hab ich uns etwas gebaut: ein kleines Spiel für unterwegs. Eine Kamera-Schule in sieben kurzen Lektionen, Foto-Aufgaben für jeden von uns, ein Quiz über Lugano und die Schweiz, und ein Logbuch, das sich merkt, wie jedes Bild entstanden ist.\n\nNichts zum Durchlesen. Alles zum Rausholen, wenn man Lust hat: im Zug, auf dem Gipfel, beim Mittagessen.\n\nMach die Seite einmal auf, bevor wir losgehen, dann läuft sie auch ohne Netz auf dem Berg. Und schick den Link gern an Natalie weiter. 💚",
+          "message": "Guten Morgen, du. 🎞️\n\nHeute ist Lugano. Hoch auf den Monte Brè, über den Berg nach Gandria, am See entlang zurück. Du, ich und Natalie, jeder mit einer Kamera.\n\nUnd weil Natalie ihre erste Filmkamera dabeihat, hab ich uns etwas gebaut: ein kleines Spiel für unterwegs. Eine Kamera-Schule in sieben kurzen Lektionen, Foto-Aufgaben für jeden von uns, ein Quiz über Lugano und die Schweiz, und ein Logbuch, das sich merkt, wie jedes Bild entstanden ist.\n\nNichts zum Durchlesen. Alles zum Rausholen, wenn man Lust hat: im Zug, auf dem Gipfel, beim Mittagessen.\n\nMach die Seite einmal auf, bevor wir losgehen, dann läuft sie auch ohne Netz auf dem Berg. Unten kannst du den Link gleich an Natalie schicken. Und an mich, damit ich weiss, dass du bereit bist. 💚",
           "link": "https://fionnf.github.io/Affections-gatcha/lugano.html",
-          "linkLabel": "🎞️ Zum Lugano-Tag"
+          "linkLabel": "🎞️ Zum Lugano-Tag",
+          "sendTo": [
+            {
+              "label": "💌 An Natalie schicken",
+              "text": "Natalie, Samstag ist Lugano. Fionn hat uns eine kleine Seite gebaut: Kamera-Schule für deine Pentax, Fotoaufgaben für jeden von uns und ein Quiz. Mach sie einmal auf, bevor wir losgehen, dann läuft sie auch ohne Netz auf dem Berg. 🎞️"
+            },
+            {
+              "label": "💌 An Fionn schicken",
+              "text": "Ich hab den Lugano-Tag aufgemacht. Sieht gut aus, ich bin bereit. 🎞️💚"
+            }
+          ]
         }
       ]
     }

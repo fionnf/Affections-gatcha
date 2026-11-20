@@ -513,7 +513,7 @@ export function buildLinkPinGate(pin, linkWrap, pull) {
     if (input.value.trim().toLowerCase() === pin.toLowerCase()) {
       persistPinUnlock("link-" + pin);
       wrap.remove();
-      renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
+      renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel, pull.outcome.sendTo);
     } else {
       err.hidden = false;
       input.classList.add("ag-pin-shake");
@@ -572,13 +572,42 @@ function buildGenericLink(url, label) {
   return a;
 }
 
-export function renderLinkInto(container, link, label) {
+// A capsule can offer "send this to someone" buttons next to its link:
+// sendTo: [{ label: "💌 An Natalie schicken", text: "…" }]. The phone's share
+// sheet opens with the text and the link ready, and the person picks the
+// chat; where sharing is not available the message is copied instead.
+function buildSendButton(item, url) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "ag-outcome-link ag-secondary ag-send";
+  const label = item.label.trim().slice(0, 40);
+  btn.textContent = label;
+  btn.addEventListener("click", async () => {
+    const text = String(item.text || "").trim().slice(0, 600);
+    try {
+      if (navigator.share) await navigator.share({ text, url });
+      else {
+        await navigator.clipboard.writeText(text ? `${text}\n${url}` : url);
+        btn.textContent = "Kopiert ✓ Jetzt einfügen";
+        setTimeout(() => { btn.textContent = label; }, 2600);
+      }
+    } catch (_e) { /* share sheet cancelled */ }
+  });
+  return btn;
+}
+
+export function renderLinkInto(container, link, label, sendTo) {
   container.innerHTML = "";
   if (!link) { container.hidden = true; return; }
   const safe = safeUrl(link);
   if (!safe) { container.hidden = true; return; }
   const spotifyEl = buildSpotifyEmbed(safe);
   container.appendChild(spotifyEl || buildGenericLink(safe, label));
+  if (Array.isArray(sendTo)) {
+    for (const item of sendTo.slice(0, 4)) {
+      if (item && typeof item.label === "string" && item.label.trim()) container.appendChild(buildSendButton(item, safe));
+    }
+  }
   container.hidden = false;
 }
 
@@ -1198,7 +1227,7 @@ export function renderPull(pull) {
         gate.remove();
         if (hasSeparateMsg) { pinMsgEl.hidden = false; }
         else { msgEl.hidden = false; }
-        if (pull.outcome.link && linkWrap) renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
+        if (pull.outcome.link && linkWrap) renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel, pull.outcome.sendTo);
       }, pull.outcome.pinHint, { hint2: pull.outcome.pinHint2, skip: pull.outcome.pinSkip === true });
       gate.setAttribute("data-ag-pin-gate", "");
       const anchor = hasSeparateMsg ? pinMsgEl : msgEl;
@@ -1223,7 +1252,7 @@ export function renderPull(pull) {
     const lpin = pull.outcome.linkPin;
     if (lpin) {
       if (isPinUnlocked("link-" + lpin)) {
-        renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
+        renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel, pull.outcome.sendTo);
       } else {
         const pinAvailable = !pull.outcome.linkPinFrom || clockReached(pull.outcome.linkPinFrom, lockTz);
         if (pinAvailable) {
@@ -1243,7 +1272,7 @@ export function renderPull(pull) {
     } else {
       const unlockedByTime = clockReached(pull.unlockTime, lockTz);
       if (unlockedByTime) {
-        renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel);
+        renderLinkInto(linkWrap, pull.outcome.link, pull.outcome.linkLabel, pull.outcome.sendTo);
       } else {
         const lockSpan = document.createElement("span");
         lockSpan.className = "ag-outcome-link-locked";
@@ -1255,7 +1284,7 @@ export function renderPull(pull) {
     }
   } else {
     const blockedByPin = pull.outcome.pin && !pinOpen();
-    if (!blockedByPin) renderLinkInto(linkWrap, pull.outcome.link || null, pull.outcome.linkLabel);
+    if (!blockedByPin) renderLinkInto(linkWrap, pull.outcome.link || null, pull.outcome.linkLabel, pull.outcome.sendTo);
   }
 
   renderTokenInto($("[data-ag-token-wrap]"), pull);
