@@ -270,7 +270,7 @@ export const BINGO = [
   { icon: "🐈", text: "Katze, die dich komplett ignoriert" },
   { icon: "☁️", text: "Wolken unter dir" },
   { icon: "🥾", text: "«Nur noch zehn Minuten!»" },
-  { icon: "🛥️", text: "Boot, teurer als dein Auto" },
+  { icon: "🛥️", text: "Boot, das mehr kostet als eine Wohnung" },
   { icon: "📷", text: "Noch jemand mit Filmkamera" },
   { icon: "🌰", text: "Marroni-Stand" },
   { icon: "☕", text: "Espresso, nach einem Schluck leer" }
