@@ -45,7 +45,7 @@ function toast(msg) {
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2200);
 }
-function confetti(emojis = ["🎞️", "📸", "💚", "✨"]) {
+function confetti(emojis = ["🎞️", "📸", "💚", "✨", "🌸", "🧡"]) {
   if (reduced()) return;
   for (let i = 0; i < 26; i++) {
     const el = document.createElement("span");
@@ -90,6 +90,25 @@ const heroSvg = () => `
   <rect x="176" y="136" width="22" height="14" rx="3" fill="#e0702a" transform="rotate(-38 187 143)"/>
   <g transform="translate(430 206)"><path d="M0 0h46l-8 12H8z" fill="#fff"/><path d="M23 0V-30l22 28z" fill="#fbf1df"/><path d="M23 0V-34l-14 30z" fill="#e0702a"/></g>
 </svg>`;
+
+// Rollo: the camera whose lens is a face. Moods: happy, wow, sleepy.
+const mascot = (mood = "happy", cls = "") => {
+  const eyes = mood === "sleepy"
+    ? `<path d="M41 62q7 6 14 0M65 62q7 6 14 0" stroke="#2b1620" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+    : `<g class="eyes"><ellipse cx="48" cy="62" rx="5" ry="6.5" fill="#2b1620"/><ellipse cx="72" cy="62" rx="5" ry="6.5" fill="#2b1620"/><circle cx="49.8" cy="59.5" r="1.9" fill="#fff"/><circle cx="73.8" cy="59.5" r="1.9" fill="#fff"/></g>`;
+  const mouth = mood === "wow"
+    ? `<ellipse cx="60" cy="79" rx="5" ry="6" fill="#7a2b3a"/>`
+    : `<path d="M52 76q8 9 16 0" stroke="#7a2b3a" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+  return `<svg class="mascot ${cls}" viewBox="0 0 120 112" aria-hidden="true">
+    <rect x="8" y="26" width="104" height="80" rx="26" fill="#ff9fb2"/>
+    <rect x="42" y="10" width="34" height="22" rx="9" fill="#ff9fb2"/>
+    <rect x="84" y="14" width="16" height="11" rx="4" fill="#fff3b0"/>
+    <circle cx="24" cy="24" r="7" fill="#ff7d96"/>
+    <circle cx="60" cy="66" r="33" fill="#fff6f0" stroke="#f0728a" stroke-width="5"/>
+    ${eyes}${mouth}
+    <ellipse cx="37" cy="74" rx="6.5" ry="4" fill="#ff9fb2" opacity=".75"/><ellipse cx="83" cy="74" rx="6.5" ry="4" fill="#ff9fb2" opacity=".75"/>
+  </svg>`;
+};
 
 const sceneSvg = () => `
 <svg viewBox="0 0 320 200" role="img" aria-label="Szene: Berge, See, Boot, Pfosten im Vordergrund">
@@ -140,9 +159,10 @@ const focusScene = () => `<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYM
 
 // ── views ────────────────────────────────────────────────────────────────────
 function whoView() {
-  return `<div class="wrap fade" style="padding-top:28px">
+  return `<div class="wrap fade" style="padding-top:22px">
+    <div class="who-top">${mascot("happy", "bob")}</div>
     <p class="kicker">${esc(TRIP.where)} · ${esc(TRIP.date)}</p>
-    <h1 style="font-size:2.2rem">Wer bist du?</h1>
+    <h1 style="font-size:2.2rem">Hallo! Wer bist du?</h1>
     <p class="muted">Das merkt sich dein Handy. Jeder hat seine eigene Liste, sein Logbuch und seinen Punktestand.</p>
     <div class="who-pick">${TRIP.people.map((p) => `<button data-act="who" data-id="${p.id}">${esc(p.name)}</button>`).join("")}</div>
   </div>`;
@@ -167,10 +187,10 @@ function tagView() {
     </div>`).join("");
   const pack = PACK.map((p) => `<label><input type="checkbox" data-act="pack" data-id="${p.id}" ${m.pack[p.id] ? "checked" : ""}><span>${esc(p.text)}</span></label>`).join("");
   return `<div class="wrap fade">
-    <section class="hero"><div class="perfs"></div>${heroSvg()}
+    <section class="hero"><div class="perfs"></div><div class="heroimg">${heroSvg()}${mascot("happy", "bob")}</div>
       <div class="txt"><p class="kicker">${esc(TRIP.where)} · ${esc(TRIP.date)}</p>
         <h1>${esc(TRIP.title)}</h1>
-        <p class="sub">${TRIP.people.map((p) => esc(p.name)).join(" · ")}. Heute ist der Berg dran, dann der See, und dazwischen ein Film.</p></div>
+        <p class="sub">${TRIP.people.map((p) => esc(p.name)).join(" · ")}. Heute ist der Berg dran, dann der See, und dazwischen ein ganzer Film.</p></div>
       <div class="perfs"></div></section>
     <div class="progress">
       <a class="pbox" href="#aufgaben" style="text-decoration:none;color:inherit"><b>${st.tasks}/${st.tasksOf}</b><small>Aufgaben</small><div class="bar"><i style="width:${pct(st.tasks, st.tasksOf)}%"></i></div></a>
@@ -196,7 +216,7 @@ function schuleView(arg) {
       const tick = a === undefined ? `<span class="tick"></span>` : a === l.check.correct ? `<span class="tick ok">✓</span>` : `<span class="tick no">·</span>`;
       return `<button class="lesson-row" data-act="go" data-to="schule/${i}"><span class="ic">${l.emoji}</span><span><b>${i + 1}. ${esc(l.title)}</b><small>${l.minutes} Min.</small></span>${tick}</button>`;
     }).join("");
-    const diploma = done === LESSONS.length ? `<div class="diploma"><div style="font-size:2.4rem">🎞️</div><p class="kicker">Kamera-Schule</p><h2>${esc(nameOf(S.who))} ist bereit für 36 Bilder</h2><p class="muted">${right} von ${LESSONS.length} Fragen gleich richtig.</p></div>` : "";
+    const diploma = done === LESSONS.length ? `<div class="diploma">${mascot("wow", "bob")}<p class="kicker">Kamera-Schule</p><h2>${esc(nameOf(S.who))} ist bereit für 36 Bilder</h2><p class="muted">${right} von ${LESSONS.length} Fragen gleich richtig.</p></div>` : "";
     return `<div class="wrap fade"><h1 style="font-size:1.9rem;margin:4px 0 6px">Kamera-Schule</h1>
       <p class="muted">Sieben kurze Lektionen, zwei Minuten pro Stück. Nicht zum Auswendiglernen: zum Nachschlagen, wenn es auf dem Berg windig wird.</p>
       ${diploma}${rows}</div>`;
@@ -365,7 +385,7 @@ function quizView() {
   if (qz.i >= QUIZ.length) {
     const right = QUIZ.filter((q) => qz.answers[q.id] === q.correct).length;
     const rating = QUIZ_RATING.find((r) => right >= r.min);
-    return `<div class="wrap fade"><div class="card" style="text-align:center"><p class="kicker">Ergebnis</p><div class="score">${right}/${QUIZ.length}</div><p>${esc(rating.text)}</p>
+    return `<div class="wrap fade"><div class="card" style="text-align:center">${mascot(right >= 8 ? "wow" : "happy", "bob")}<p class="kicker">Ergebnis</p><div class="score">${right}/${QUIZ.length}</div><p>${esc(rating.text)}</p>
       <p class="muted small">Vergleicht beim Mittagessen. Wer verliert, gibt die erste Runde aus.</p>
       <button class="btn block" data-act="quiz-again">Nochmal von vorn</button></div></div>`;
   }
@@ -397,7 +417,7 @@ function logView() {
       <div class="lbl">Notiz (kann leer bleiben)</div><input class="field" data-note maxlength="80" placeholder="z. B. Aussicht, Gegenlicht, Katze">
       <div class="row" style="margin-top:12px"><button class="btn" data-act="log-add" style="flex:1">Bild ${n + 1} speichern</button><button class="btn ghost" data-act="log-bare" title="Bild gemacht, keine Zeit zum Notieren">Nur zählen</button></div></div>
     ${n ? `<div class="card"><h2>Bisher</h2><table class="log">${rows}</table>
-      <div class="row" style="margin-top:12px"><button class="btn ghost" data-act="log-copy">Als Text kopieren</button><button class="btn ghost" data-act="log-share">Teilen</button></div></div>` : `<p class="muted small" style="margin:0 4px">Beim Entwickeln weisst du dann, welches Bild mit welchen Werten entstanden ist. Das ist die halbe Kamera-Schule.</p>`}
+      <div class="row" style="margin-top:12px"><button class="btn ghost" data-act="log-copy">Als Text kopieren</button><button class="btn ghost" data-act="log-share">Teilen</button></div></div>` : `<div class="empty">${mascot("sleepy")}<p class="muted small">Noch nichts drin, Rollo schläft. Beim Entwickeln weisst du dann, welches Bild mit welchen Werten entstanden ist. Das ist die halbe Kamera-Schule.</p></div>`}
   </div>`;
 }
 function logText() {
@@ -437,6 +457,8 @@ function afterRender() {
   if (f) updateFocus(Number(f.value));
 }
 
+const CHEERS = ["Schön gesehen 👀", "Und das Bild ist im Kasten 📸", "Eins weniger auf der Liste 🌸", "Sehr gut 💚", "Notiert ✨", "Das war ein guter Moment 🧡"];
+
 // ── events ───────────────────────────────────────────────────────────────────
 document.addEventListener("click", async (e) => {
   const el = e.target.closest("[data-act],[data-part]");
@@ -450,16 +472,20 @@ document.addEventListener("click", async (e) => {
     case "go": location.hash = el.dataset.to; break;
     case "share": {
       const data = { title: "Lugano: Drei Kameras, ein Tag", text: "Lugano, Samstag. Kamera-Schule, Foto-Aufgaben und ein Quiz für unterwegs:", url: TRIP.url };
-      try { if (navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(TRIP.url); toast("Link kopiert"); } }
+      try { if (navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(TRIP.url); toast("Link kopiert 💌"); } }
       catch (_e) { /* cancelled */ }
       break;
     }
     case "pack": m.pack[el.dataset.id] = el.checked; save(); break;
-    case "task": m.tasks[el.dataset.id] = el.checked; save(); render(true); break;
+    case "task": {
+      m.tasks[el.dataset.id] = el.checked; save(); render(true);
+      if (el.checked) toast(CHEERS[Object.values(m.tasks).filter(Boolean).length % CHEERS.length]);
+      break;
+    }
     case "bingo": {
       const k = el.dataset.k, before = bingoLines(m.bingo).length;
       m.bingo[k] = !m.bingo[k]; save();
-      if (bingoLines(m.bingo).length > before) { confetti(["🌴", "⛴️", "🚠", "🐈"]); toast("Bingo!"); }
+      if (bingoLines(m.bingo).length > before) { confetti(["🌴", "⛴️", "🚠", "🐈"]); toast("Bingo! 🎉"); }
       render(true); break;
     }
     case "check": {
@@ -498,8 +524,8 @@ document.addEventListener("click", async (e) => {
       if (!confirm("Diesen Eintrag löschen? Die Nummern rücken nach.")) break;
       m.log = m.log.filter((x) => x.n !== Number(el.dataset.n)).map((x, i) => ({ ...x, n: i + 1 })); save(); render(true); break;
     }
-    case "log-copy": try { await navigator.clipboard.writeText(logText()); toast("Kopiert"); } catch (_e) { toast("Kopieren ging nicht"); } break;
-    case "log-share": try { if (navigator.share) await navigator.share({ title: "Logbuch", text: logText() }); else { await navigator.clipboard.writeText(logText()); toast("Kopiert"); } } catch (_e) { /* cancelled */ } break;
+    case "log-copy": try { await navigator.clipboard.writeText(logText()); toast("Kopiert ✨"); } catch (_e) { toast("Kopieren ging nicht"); } break;
+    case "log-share": try { if (navigator.share) await navigator.share({ title: "Logbuch", text: logText() }); else { await navigator.clipboard.writeText(logText()); toast("Kopiert ✨"); } } catch (_e) { /* cancelled */ } break;
     default: break;
   }
 });
@@ -515,12 +541,12 @@ document.addEventListener("input", (e) => { if (e.target.matches("[data-note]"))
 function keepNote(fn) { fn(); const f = $("[data-note]"); if (f) f.value = noteDraft; }
 function addLog(bare) {
   const m = me();
-  if (m.log.length >= ROLL + 6) { toast("Das ist schon mehr als eine Rolle."); return; }
+  if (m.log.length >= ROLL + 6) { toast("Die Rolle ist voll, mehr geht nicht rein 🎞️"); return; }
   const d = m.draft;
   m.log.push({ n: m.log.length + 1, N: bare ? 0 : d.N, t: bare ? 0 : d.t, light: d.light, note: bare ? "" : noteDraft.trim(), at: Date.now() });
   noteDraft = "";
   save(); render(true);
-  if (m.log.length === ROLL) { confetti(["🎞️"]); toast("36 von 36. Zurückspulen!"); }
+  if (m.log.length === ROLL) { confetti(["🎞️"]); toast("36 von 36! Zurückspulen 🎞️💚"); }
 }
 
 render();
