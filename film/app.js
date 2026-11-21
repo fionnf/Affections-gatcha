@@ -1,5 +1,5 @@
 import { API, API_ORIGIN, WEEK_START, PEOPLE } from "./config.js";
-import { WEEKS } from "./content.js";
+import { WEEKS, FOLLOW } from "./content.js";
 import { zurichToday, releasedWeeks, weekIndex, weekLabel } from "./weeks.js";
 import { mascot } from "./mascot.js";
 
@@ -143,10 +143,14 @@ function whoView() {
   </div>`;
 }
 
+const pinterestUrl = (q) => `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(q)}`;
+const instagramTagUrl = (tag) => `https://www.instagram.com/explore/tags/${encodeURIComponent(tag)}/`;
+const instagramUrl = (h) => `https://www.instagram.com/${encodeURIComponent(h)}/`;
+
 function weekBlock(n) {
   const w = WEEKS[n - 1];
   const posts = P.list.filter((p) => p.week === n);
-  const thumbs = posts.slice(0, 6).map((p) => `<img src="${esc(p.thumb || p.url)}" alt="" loading="lazy" decoding="async" data-act="lb" data-src="${esc(p.url)}">`).join("");
+  const thumbs = posts.slice(0, 6).map((p) => `<img src="${esc(p.thumb || p.url)}" alt="" decoding="async" data-act="lb" data-src="${esc(p.url)}">`).join("");
   return `
     <section class="hero week-hero"><div class="perfs"></div>
       <div class="txt"><div class="stamp"><small>Woche</small>${String(n).padStart(2, "0")}</div>
@@ -154,12 +158,15 @@ function weekBlock(n) {
         <h1>${esc(w.theme)}</h1></div>
       <div class="perfs"></div></section>
     <div class="card note"><span class="pin" aria-hidden="true">📌</span><p class="kicker">Tipp der Woche</p><h2>${esc(w.tip.title)}</h2>
-      ${w.tip.text.map((t) => `<p>${esc(t)}</p>`).join("")}
+      <p>${esc(w.tip.text[0])}</p>
+      ${w.tip.text.length > 1 ? `<details class="more"><summary>Mehr</summary>${w.tip.text.slice(1).map((t) => `<p>${esc(t)}</p>`).join("")}</details>` : ""}
       <div class="tip">${esc(w.tip.tryIt)}</div></div>
     <div class="card ticket"><p class="kicker">Aufgabe der Woche</p><h2>${esc(w.challenge.title)}</h2>
       <p>${esc(w.challenge.how)}</p>
       ${w.challenge.rule ? `<p class="rule">${esc(w.challenge.rule)}</p>` : ""}
       <button class="btn block" data-act="post-for" data-week="${n}" style="margin-top:12px">📮 Bild zu dieser Woche posten</button></div>
+    <div class="section-title">Echte Beispiele</div>
+    <div class="looks"><a class="chip" href="${esc(pinterestUrl(w.look.q))}" target="_blank" rel="noopener noreferrer">📌 Pinterest</a><a class="chip" href="${esc(instagramTagUrl(w.look.tag))}" target="_blank" rel="noopener noreferrer">📷 #${esc(w.look.tag)}</a><button class="chip" data-act="go" data-to="folgen">👀 Wem folgen</button></div>
     <div class="section-title">${posts.length ? `${posts.length} ${posts.length === 1 ? "Bild" : "Bilder"} dazu` : "Noch kein Bild dazu"}</div>
     ${thumbs ? `<div class="thumbs">${thumbs}</div><p><button class="mini" data-act="filter-week" data-week="${n}">Alle ansehen</button></p>` :
       `<div class="empty">${mascot("sleepy")}<p class="muted small">Film braucht Zeit. Du darfst auch später posten, wenn die Rolle entwickelt ist.</p></div>`}`;
@@ -242,6 +249,21 @@ function postenView() {
     </div></div>`;
 }
 
+function folgenView() {
+  const links = (f) => [
+    f.ig ? `<a class="chip sm" href="${esc(instagramUrl(f.ig))}" target="_blank" rel="noopener noreferrer">📷 @${esc(f.ig)}</a>` : "",
+    f.site ? `<a class="chip sm" href="${esc(f.site)}" target="_blank" rel="noopener noreferrer">🌐 Webseite</a>` : ""
+  ].join("");
+  return `<div class="wrap fade"><h1 style="font-size:1.9rem;margin:4px 0 6px">Zum Anschauen</h1>
+    <p class="muted">Echte Bilder statt Theorie. Eine kleine Auswahl, mit der man sich Lust auf Film holt.</p>
+    ${FOLGEN_NOTE}
+    ${FOLLOW.map((f) => `<div class="card follow"><h2>${esc(f.name)}</h2><p class="muted">${esc(f.focus)}</p><div class="looks">${links(f)}</div></div>`).join("")}
+    <div class="section-title">Nach Thema suchen</div>
+    <div class="looks"><a class="chip" href="${esc(pinterestUrl("film photography"))}" target="_blank" rel="noopener noreferrer">📌 Pinterest: Filmfotografie</a><a class="chip" href="${esc(instagramTagUrl("filmphotography"))}" target="_blank" rel="noopener noreferrer">📷 #filmphotography</a></div>
+  </div>`;
+}
+const FOLGEN_NOTE = `<p class="why">Die Namen stammen aus Artikeln über Filmfotografen. Ob ein Konto noch aktiv ist, siehst du erst auf Instagram.</p>`;
+
 function karten() {
   const rel = released();
   return `<div class="wrap fade"><h1 style="font-size:1.9rem;margin:4px 0 6px">Alle Karten</h1>
@@ -253,14 +275,14 @@ function karten() {
 }
 
 // ── router + render ──────────────────────────────────────────────────────────
-const TABS = [["woche", "🎞️", "Woche"], ["board", "🖼️", "Board"], ["posten", "📮", "Posten"], ["karten", "🗂️", "Karten"]];
+const TABS = [["woche", "🎞️", "Woche"], ["board", "🖼️", "Board"], ["posten", "📮", "Posten"], ["folgen", "👀", "Folgen"], ["karten", "🗂️", "Karten"]];
 const route = () => { const [tab, arg] = (location.hash.slice(1) || "woche").split("/"); return { tab: TABS.some((t) => t[0] === tab) ? tab : "woche", arg }; };
 
 function render(keepScroll = false) {
   const app = $("#app");
   if (!S.who) { app.innerHTML = whoView(); return; }
   const { tab, arg } = route();
-  const views = { woche: wocheView, board: boardView, posten: postenView, karten };
+  const views = { woche: wocheView, board: boardView, posten: postenView, folgen: folgenView, karten };
   const y = window.scrollY;
   const focusId = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.comment : null;
   const typed = focusId ? document.activeElement.value : "";

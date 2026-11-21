@@ -2,10 +2,10 @@
 // Edit the words here. The week counts from WEEK_START in config.js; when the
 // list runs out, the page says so and the club writes the next batch.
 //
-// Each week: theme (short), tip { title, text[], tryIt }, challenge { title, how, rule? }
+// Each week: theme (short), look { q: Pinterest search, tag: Instagram hashtag }, tip { title, text[], tryIt }, challenge { title, how, rule? }
 
 export const WEEKS = [
-  { theme: "Fenster",
+  { theme: "Fenster", look: { q: "film photography window light portrait", tag: "windowlight" },
     tip: { title: "Belichte für die Schatten",
       text: ["Farbnegativfilm verzeiht zu viel Licht gut und zu wenig Licht schlecht. Zu dunkle Stellen sind einfach leer, zu helle haben meistens noch Zeichnung.",
              "Im Zweifel also lieber eine halbe bis eine ganze Blende mehr Licht als zu wenig."],
@@ -14,7 +14,7 @@ export const WEEKS = [
       how: "Such ein Fenster und lass das Licht von der Seite auf etwas fallen: eine Person, eine Tasse, die Pflanze auf dem Sims.",
       rule: "Höchstens zwei Bilder." } },
 
-  { theme: "Dein Ort",
+  { theme: "Dein Ort", look: { q: "film photography everyday life hometown", tag: "35mmfilm" },
     tip: { title: "Der Alltag ist das Motiv",
       text: ["Wir wohnen an verschiedenen Orten. Genau das ist das Spannende: Was dir normal vorkommt, ist für die anderen neu.",
              "Fotografier nicht das Schönste, sondern das Typischste."],
@@ -22,7 +22,7 @@ export const WEEKS = [
     challenge: { title: "Zeig uns, wo du bist",
       how: "Ein Bild von einem Ort, den du jeden Tag siehst. Kein Postkartenmotiv, eher die Ecke, die nur du kennst." } },
 
-  { theme: "Schatten",
+  { theme: "Schatten", look: { q: "film photography shadows", tag: "shadowphotography" },
     tip: { title: "Der Schatten ist auch ein Motiv",
       text: ["Tiefer Winterstand der Sonne macht lange, klare Schatten. Das ist die beste Zeit für Bilder, in denen der Schatten wichtiger ist als das, was ihn wirft.",
              "Bei hartem Licht zählt jede Blende: Miss auf das, was noch Zeichnung haben soll."],
@@ -30,7 +30,7 @@ export const WEEKS = [
     challenge: { title: "Schatten statt Ding",
       how: "Der Schatten ist das Motiv. Das, was ihn wirft, darf angeschnitten sein oder fehlen." } },
 
-  { theme: "Blaue Stunde",
+  { theme: "Blaue Stunde", look: { q: "film photography blue hour", tag: "bluehour" },
     tip: { title: "Aus der Hand bei wenig Licht",
       text: ["Faustregel: die Belichtungszeit sollte nicht länger sein als 1 durch Brennweite. Bei 50 mm also etwa 1/60 s.",
              "Bei Dämmerung geht es oft nur mit 1/30 s. Dann hilft: Ellenbogen an den Körper, ausatmen, dann erst auslösen, oder die Kamera an eine Wand drücken."],
@@ -39,7 +39,7 @@ export const WEEKS = [
       how: "Ein Bild in der Dämmerung, kurz nach Sonnenuntergang, wenn der Himmel noch blau ist und die ersten Lichter an sind.",
       rule: "Kein Stativ." } },
 
-  { theme: "Lichter",
+  { theme: "Lichter", look: { q: "film photography bokeh christmas lights", tag: "bokeh" },
     tip: { title: "Lichterketten und offene Blende",
       text: ["Punktlichter in der Ferne werden bei ganz offener Blende zu runden, weichen Scheiben. Das nennt man Bokeh.",
              "Je weiter die Lichter hinter dem Motiv sind und je offener die Blende, desto grösser und weicher werden sie."],
@@ -47,7 +47,7 @@ export const WEEKS = [
     challenge: { title: "Weihnachtslicht",
       how: "Lichter, Kerzen, ein beleuchtetes Fenster. Das Motiv darf unscharf sein, wenn es dadurch schöner wird." } },
 
-  { theme: "Ein Bild fürs Jahr",
+  { theme: "Ein Bild fürs Jahr", look: { q: "film photography best of the year", tag: "filmphotography" },
     tip: { title: "Eine Rolle ist wenig",
       text: ["36 Bilder klingen viel und sind es nicht. Wer jedes Bild einzeln zählt, schaut besser hin.",
              "Das Jahr geht zu Ende. Es ist eine gute Woche, um nicht zu knipsen, sondern auszusuchen."],
@@ -56,7 +56,7 @@ export const WEEKS = [
       how: "Ein einziges Bild, das dieses Jahr für dich zusammenfasst. Es muss nicht hübsch sein, nur wahr.",
       rule: "Genau ein Bild." } },
 
-  { theme: "Tief unten",
+  { theme: "Tief unten", look: { q: "low angle film photography", tag: "lowangle" },
     tip: { title: "Dein Standpunkt ist die halbe Komposition",
       text: ["Die meisten Bilder entstehen aus Augenhöhe. Genau deshalb sehen sie aus wie alle anderen.",
              "Geh in die Knie, leg dich hin, steig auf eine Bank. Eine Linie, die vom Boden auf das Motiv zuläuft, zieht den Blick hinein."],
@@ -64,7 +64,7 @@ export const WEEKS = [
     challenge: { title: "Von unten",
       how: "Ein Bild aus mindestens einem Meter tieferer Perspektive als gewohnt. Linien dürfen dich führen." } },
 
-  { theme: "Kälte",
+  { theme: "Kälte", look: { q: "film photography winter cold", tag: "winterphotography" },
     tip: { title: "Film im Frost",
       text: ["Kalter Film wird steif und kann beim Spulen reissen oder durch statische Entladung Blitzspuren bekommen. Spul bei Frost langsam.",
              "Batterien verlieren in der Kälte Kraft. Trag die Kamera nah am Körper, dann bleibt beides warm."],
@@ -72,7 +72,7 @@ export const WEEKS = [
     challenge: { title: "Es ist kalt",
       how: "Man sieht, dass es kalt ist: Atem, Reif, Mütze, dampfender Tee. Das Bild soll frieren." } },
 
-  { theme: "Näher ran",
+  { theme: "Näher ran", look: { q: "film photography candid portrait close up", tag: "filmportrait" },
     tip: { title: "Geh näher",
       text: ["Robert Capa soll gesagt haben: Wenn deine Bilder nicht gut genug sind, warst du nicht nah genug.",
              "Es stimmt öfter, als einem lieb ist. Das Motiv füllt das Bild, alles Unwichtige fällt raus."],
@@ -80,7 +80,7 @@ export const WEEKS = [
     challenge: { title: "Porträt, ohne dass sie schauen",
       how: "Ein Porträt von jemandem, der nicht in die Kamera schaut: beschäftigt, lachend, mitten im Satz. Frag vorher um Erlaubnis oder zeig es nachher." } },
 
-  { theme: "Hände",
+  { theme: "Hände", look: { q: "film photography hands", tag: "handsphotography" },
     tip: { title: "Wohin fokussieren?",
       text: ["Bei offener Blende ist nur ein dünner Streifen scharf. Bei Porträts sitzt die Schärfe auf den Augen, bei Händen auf den Fingern, die etwas tun.",
              "Stell scharf, halt den Auslöser halb gedrückt, wenn deine Kamera das kann, und komponier dann um."],
@@ -88,7 +88,7 @@ export const WEEKS = [
     challenge: { title: "Hände bei der Arbeit",
       how: "Hände, die etwas machen: kochen, schreiben, flicken, halten. Die Hände sind das Motiv, das Gesicht nicht nötig." } },
 
-  { theme: "Gelb",
+  { theme: "Gelb", look: { q: "film photography yellow", tag: "yellowphotography" },
     tip: { title: "Warum Kunstlicht orange wird",
       text: ["Die meisten Farbfilme sind für Tageslicht gemacht. Unter Glühlampen oder Kerzen wird alles warm, gelb bis orange.",
              "Das ist kein Fehler. Es ist oft genau die Stimmung, die man haben wollte."],
@@ -96,7 +96,7 @@ export const WEEKS = [
     challenge: { title: "Gelb",
       how: "Ein Bild, in dem Gelb die Hauptrolle spielt. Eine Tür, ein Regenmantel, ein Taxi, eine Zitrone." } },
 
-  { theme: "Strasse",
+  { theme: "Strasse", look: { q: "35mm street photography film", tag: "streetphotography" },
     tip: { title: "Zonenfokus",
       text: ["Wenn es schnell gehen muss, stell Blende und Entfernung vorher ein. Bei 50 mm, f/8 und 3 Metern Entfernung ist ungefähr alles von 2,3 bis 4 Metern scharf.",
              "Dann musst du nur noch abdrücken, wenn etwas passiert."],
@@ -105,7 +105,7 @@ export const WEEKS = [
       how: "Drei Bilder von Menschen im Vorbeigehen. Gern von hinten oder als Silhouette, es geht um Bewegung und Stimmung, nicht um Gesichter.",
       rule: "Ohne lange zu zielen." } },
 
-  { theme: "Rollen-Woche",
+  { theme: "Rollen-Woche", look: { q: "film photography contact sheet", tag: "contactsheet" },
     tip: { title: "Eine Rolle lesen",
       text: ["Manche Labore schicken zu den Scans eine Übersicht aller Bilder, einen Kontaktbogen. Schau sie dir an, ohne zu urteilen.",
              "Die ersten Bilder einer Rolle sind oft die wackligsten. Gegen Ende sieht man, wann du angefangen hast, sicher zu werden."],
@@ -114,7 +114,7 @@ export const WEEKS = [
       how: "Du hast Rollen entwickeln lassen? Dann stell das Bild ein, das anders aussieht, als du dachtest. Schreib dazu, was du erwartet hattest.",
       rule: "Gern auch Bilder aus früheren Wochen." } },
 
-  { theme: "Spiegelung",
+  { theme: "Spiegelung", look: { q: "film photography reflection puddle", tag: "reflectionphotography" },
     tip: { title: "Auf was fokussierst du?",
       text: ["Bei Spiegelungen in Pfützen oder Glas fragt die Kamera: Was soll scharf sein, die Oberfläche oder das, was darin zu sehen ist?",
              "Bei einer Pfütze liegt das Spiegelbild optisch so weit hinter der Oberfläche, wie das Motiv darüber steht. Meist stellst du auf das Spiegelbild scharf."],
@@ -122,7 +122,7 @@ export const WEEKS = [
     challenge: { title: "Doppelt",
       how: "Spiegelung in einer Pfütze, einem Fenster, einer Brille, einem See. Das Bild darf auf dem Kopf stehen." } },
 
-  { theme: "Mitzieher",
+  { theme: "Mitzieher", look: { q: "film photography panning motion blur", tag: "panning" },
     tip: { title: "Der Hintergrund zieht Streifen",
       text: ["Beim Mitziehen folgst du dem Motiv mit der Kamera und drückst während der Bewegung ab. Das Motiv wird halbwegs scharf, der Hintergrund zieht Streifen.",
              "Probier 1/30 bis 1/60 s. Dreh dich aus der Hüfte, nicht aus dem Arm."],
@@ -131,7 +131,7 @@ export const WEEKS = [
       how: "Ein Mitzieher oder ein bewusst verwackeltes Bild von etwas, das sich bewegt. Es darf misslingen, das gehört dazu.",
       rule: "Mindestens drei Versuche, eines posten." } },
 
-  { theme: "Gegenlicht",
+  { theme: "Gegenlicht", look: { q: "film photography backlight sun flare", tag: "backlight" },
     tip: { title: "Gegen die Sonne",
       text: ["Gegenlicht macht Silhouetten und Glühen. Wenn du auf das helle Licht misst, wird alles andere schwarz, und das kann genau richtig sein.",
              "Mit kleiner Blende, etwa f/16, bekommt eine tief stehende Sonne am Bildrand oft einen kleinen Stern."],
@@ -139,7 +139,7 @@ export const WEEKS = [
     challenge: { title: "Gegen das Licht",
       how: "Fotografier mit der Sonne vor oder neben dir. Silhouette, Glühen, Sternchen: Hauptsache, du schaust nicht weg." } },
 
-  { theme: "Symmetrie",
+  { theme: "Symmetrie", look: { q: "film photography symmetry", tag: "symmetry" },
     tip: { title: "Die Mitte darf",
       text: ["Die Drittel-Regel kennt jeder. Dabei sehen symmetrische Bilder aus der Mitte oft am ruhigsten aus.",
              "Wenn du die Mitte nutzt, dann ganz: Horizont, Kamera und Linien gerade."],
@@ -147,7 +147,7 @@ export const WEEKS = [
     challenge: { title: "Genau in der Mitte",
       how: "Ein streng symmetrisches Bild: ein Gang, eine Fassade, eine Brücke. Und ein Detail, das die Symmetrie stört, wenn du es findest." } },
 
-  { theme: "Textur",
+  { theme: "Textur", look: { q: "film photography texture close up", tag: "texture" },
     tip: { title: "Wie nah kannst du?",
       text: ["Jedes Objektiv hat eine kleinste Entfernung, auf die es scharf stellen kann. Bei 50 mm sind das typischerweise etwa 45 cm. Du findest sie auf der Entfernungsskala.",
              "Näher geht ohne Zubehör nicht. Dann tritt einen Schritt zurück und schneide später aus."],
@@ -155,7 +155,7 @@ export const WEEKS = [
     challenge: { title: "Anfassen",
       how: "Eine Oberfläche, die man fast fühlen kann: rostiges Blech, Wolle, Rinde, Putz. Nah dran, aber scharf." } },
 
-  { theme: "Tier",
+  { theme: "Tier", look: { q: "film photography cat dog animals", tag: "animalphotography" },
     tip: { title: "Kurze Zeit für Fell",
       text: ["Tiere bewegen sich, wenn man es am wenigsten erwartet. Mit 1/250 s bist du bei Spaziergängen meistens sicher, bei Spielen eher 1/500 s.",
              "Geh auf Augenhöhe. Ein Tier von oben sieht aus wie ein Gegenstand."],
@@ -163,7 +163,7 @@ export const WEEKS = [
     challenge: { title: "Tier mit Charakter",
       how: "Ein Haustier, eine Taube, ein Eichhörnchen. Es soll nach Persönlichkeit aussehen, nicht nur nach Fell." } },
 
-  { theme: "Doppelbelichtung",
+  { theme: "Doppelbelichtung", look: { q: "film photography double exposure", tag: "doubleexposure" },
     tip: { title: "Zweimal auf dasselbe Bild",
       text: ["Manche Kameras haben dafür einen Hebel, bei anderen geht es mit einem Trick am Rückspulknopf. Schau im Handbuch deiner Pentax nach, wie es bei ihr geht.",
              "Faustregel: belichte jedes der beiden Bilder eine Blende knapper, sonst wird die Summe zu hell."],
@@ -172,7 +172,7 @@ export const WEEKS = [
       how: "Eine Doppelbelichtung. Wenn deine Kamera es nicht kann: zwei Bilder, die ein Paar ergeben.",
       rule: "Optional, nur wenn es geht." } },
 
-  { theme: "Tisch",
+  { theme: "Tisch", look: { q: "film photography food table", tag: "foodphotography" },
     tip: { title: "Essen am Fenster",
       text: ["Essen sieht am besten im weichen Licht eines Fensters aus. Kein Blitz, keine Lampe von oben.",
              "Geh etwas tiefer und nah ran. Dann sieht man Dampf, Krümel, Hände."],
@@ -180,7 +180,7 @@ export const WEEKS = [
     challenge: { title: "Ein gedeckter Tisch",
       how: "Ein Tisch mit etwas Essen oder Trinken drauf. Ob aufgeräumt oder halb leer gegessen, entscheidest du." } },
 
-  { theme: "Grün",
+  { theme: "Grün", look: { q: "film photography green spring", tag: "greenphotography" },
     tip: { title: "Fotografieren ohne Sonne",
       text: ["Bedeckter Himmel ist ein riesiges Softbox: weiches Licht, keine harten Schatten, satte Farben, vor allem Grün.",
              "Dafür wird es dunkler. Mit ISO 400 und f/4 kommst du meistens auf 1/125 s."],
@@ -188,7 +188,7 @@ export const WEEKS = [
     challenge: { title: "Alles Grün",
       how: "Das erste Grün des Jahres oder das letzte. Es soll nach Frühling riechen." } },
 
-  { theme: "Himmel",
+  { theme: "Himmel", look: { q: "film photography sky clouds", tag: "skyphotography" },
     tip: { title: "Himmel und Boden sind verschieden hell",
       text: ["Der Himmel ist oft mehrere Blenden heller als der Boden. Du kannst nicht beides perfekt haben.",
              "Entscheide, was stimmen soll, und miss darauf. Negativfilm verzeiht Fehler in den Lichtern deutlich mehr als in den Schatten."],
@@ -196,7 +196,7 @@ export const WEEKS = [
     challenge: { title: "Heute viel Himmel",
       how: "Ein Bild, in dem der Himmel mindestens zwei Drittel einnimmt. Wolken, Kondensstreifen, Vögel, nichts." } },
 
-  { theme: "Ein Mensch",
+  { theme: "Ein Mensch", look: { q: "film portrait photography natural light", tag: "portraitphotography" },
     tip: { title: "Gesprächsabstand",
       text: ["Für ein Porträt ist nicht die Kamera entscheidend, sondern wie sehr sich die Person bei dir wohlfühlt.",
              "Rede, während du fotografierst. Das beste Bild kommt meistens zwischen zwei Sätzen."],
@@ -204,7 +204,7 @@ export const WEEKS = [
     challenge: { title: "Jemand, den du magst",
       how: "Ein Bild von jemandem, den du gern hast. Er oder sie darf wissen, dass du fotografierst." } },
 
-  { theme: "Klein",
+  { theme: "Klein", look: { q: "film photography small details everyday", tag: "detailphotography" },
     tip: { title: "Die Details sind das Motiv",
       text: ["Wenn du jeden Tag denselben Weg gehst, siehst du ihn irgendwann nicht mehr. Fotografieren hilft: Man sieht plötzlich wieder hin.",
              "Such nach Dingen, die du bisher übersehen hast."],
@@ -212,7 +212,7 @@ export const WEEKS = [
     challenge: { title: "Dein Weg",
       how: "Ein Bild von einem kleinen Ding auf deinem alltäglichen Weg: Klingelschild, Kaugummi, Kreide, Graffiti." } },
 
-  { theme: "Rollen-Woche II",
+  { theme: "Rollen-Woche II", look: { q: "film photography best photos", tag: "analogphotography" },
     tip: { title: "Das Beste auswählen",
       text: ["Ein halbes Jahr, mehrere Rollen. Gute Fotografen zeigen nicht alles, sondern wenig und das Richtige.",
              "Stell dein Lieblingsbild neben ein Bild vom Anfang. Der Unterschied ist meistens grösser, als man denkt."],
@@ -220,4 +220,18 @@ export const WEEKS = [
     challenge: { title: "Mein Bild des halben Jahres",
       how: "Poste dein bestes Bild des halben Jahres. Schreib auf, was du damals gesehen hast und was du heute siehst.",
       rule: "Ein Bild, mit Geschichte." } }
+];
+
+// People to look at. Handles come from published roundups of film photographers
+// and were not checked on Instagram itself: if one has gone quiet, swap it.
+// The two masters link to their own sites.
+export const FOLLOW = [
+  { name: "Saul Leiter", focus: "Fenster, Regen, Spiegelungen, Farbe. Der Meister des Sehens durch etwas hindurch.", site: "https://www.saulleiterfoundation.org/" },
+  { name: "Joel Meyerowitz", focus: "Farbe auf der Strasse, lange bevor es normal war.", site: "https://joelmeyerowitz.com/" },
+  { name: "Henri Prestes", focus: "Südeuropa auf Film, warm und ruhig.", ig: "henrifilm" },
+  { name: "Paola Franqui", focus: "Strasse in New York, Farbe und Licht.", ig: "monaris_" },
+  { name: "Grace Hall", focus: "Porträts und Alltag auf Kodak Portra 400.", ig: "35mmofgrace" },
+  { name: "Philip Reekers", focus: "Farbe auf Mittelformat, Kodak Gold.", ig: "philshootsphilm" },
+  { name: "Simon King", focus: "Dokumentarisch, ein laufender Strom von Bildern.", ig: "simonking_v" },
+  { name: "Annette Young", focus: "Holga und Lomography: jede Rolle eine kleine Geschichte.", ig: "annetteyoungphotography" }
 ];

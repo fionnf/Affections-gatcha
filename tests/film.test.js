@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { WEEKS } from "../film/content.js";
+import { WEEKS, FOLLOW } from "../film/content.js";
 import { WEEK_START, PEOPLE, API } from "../film/config.js";
 import { weekIndex, releasedWeeks, weekLabel, zurichToday } from "../film/weeks.js";
 
@@ -41,4 +41,18 @@ test("the day is read in Zurich time", () => {
 test("the people match what the server accepts and the API is an https URL", () => {
   assert.deepEqual(PEOPLE.map((p) => p.id), ["fionn", "lennart", "natalie"]);
   assert.match(API, /^https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\/film-api$/);
+});
+
+test("every week points at real examples and the follow list has usable links", () => {
+  for (const [i, w] of WEEKS.entries()) {
+    assert.ok(w.look && w.look.q.length > 5, `week ${i + 1} look.q`);
+    assert.match(w.look.tag, /^[a-z0-9]+$/, `week ${i + 1} hashtag`);
+  }
+  assert.ok(FOLLOW.length >= 6);
+  for (const f of FOLLOW) {
+    assert.ok(f.name && f.focus, f.name);
+    assert.ok(f.ig || f.site, `${f.name} needs a link`);
+    if (f.ig) assert.match(f.ig, /^[A-Za-z0-9._]+$/, f.name);
+    if (f.site) assert.match(f.site, /^https:\/\//, f.name);
+  }
 });

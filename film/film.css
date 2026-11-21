@@ -34,7 +34,7 @@
 .lb .mini{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px}
 select.field{appearance:auto}
 
-.nav .wrap{grid-template-columns:repeat(4,1fr)}
+.nav .wrap{grid-template-columns:repeat(5,1fr)}
 
 /* ── nicer look ────────────────────────────────────────────────────────────── */
 .brand:before{content:none}
@@ -129,3 +129,11 @@ select.field{appearance:auto}
 :root[data-theme="dark"] .polaroid .chip.on{background:#d9486a;border-color:#d9486a;color:#fff}
 :root[data-theme="dark"] .polaroid .field{background:#fff;color:#3b2a33}
 .top .mini{white-space:nowrap}
+
+.looks{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.looks .chip{text-decoration:none;color:var(--ink);display:inline-flex;align-items:center}
+.more{margin:2px 0 6px}
+.more summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:.9rem;list-style:none;margin-bottom:6px}
+.more summary::-webkit-details-marker{display:none}
+.follow h2{margin-bottom:2px}
+.follow .muted{margin-bottom:10px}
