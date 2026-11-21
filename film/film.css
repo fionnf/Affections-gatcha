@@ -83,6 +83,7 @@ select.field{appearance:auto}
 .drop{min-height:200px;background:color-mix(in srgb,var(--pink) 40%,var(--card));transition:transform .15s}
 .drop:active{transform:scale(.99)}
 .drop span{font-size:3rem}
+.weekpick{margin-bottom:4px}
 .drop b{font-family:var(--round)}
 .drop small{font-size:.8rem}
 

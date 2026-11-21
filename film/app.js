@@ -163,8 +163,7 @@ function weekBlock(n) {
       <div class="tip">${esc(w.tip.tryIt)}</div></div>
     <div class="card ticket"><p class="kicker">Aufgabe der Woche</p><h2>${esc(w.challenge.title)}</h2>
       <p>${esc(w.challenge.how)}</p>
-      ${w.challenge.rule ? `<p class="rule">${esc(w.challenge.rule)}</p>` : ""}
-      <button class="btn block" data-act="post-for" data-week="${n}" style="margin-top:12px">📮 Bild zu dieser Woche posten</button></div>
+      ${w.challenge.rule ? `<p class="rule">${esc(w.challenge.rule)}</p>` : ""}</div>
     <div class="section-title">Echte Beispiele</div>
     <div class="looks"><a class="chip" href="${esc(pinterestUrl(w.look.q))}" target="_blank" rel="noopener noreferrer">📌 Pinterest</a><a class="chip" href="${esc(instagramTagUrl(w.look.tag))}" target="_blank" rel="noopener noreferrer">📷 #${esc(w.look.tag)}</a><button class="chip" data-act="go" data-to="folgen">👀 Wem folgen</button></div>
     <div class="section-title">${posts.length ? `${posts.length} ${posts.length === 1 ? "Bild" : "Bilder"} dazu` : "Noch kein Bild dazu"}</div>
@@ -230,15 +229,15 @@ function boardView() {
 
 function postenView() {
   const rel = released();
-  const selected = draft.week === null ? rel : draft.week;
-  const weekOpts = [`<option value="0" ${selected === 0 ? "selected" : ""}>Frei, ohne Woche</option>`, ...Array.from({ length: rel }, (_, i) => `<option value="${i + 1}" ${selected === i + 1 ? "selected" : ""}>Woche ${i + 1}: ${esc(WEEKS[i].theme)}</option>`)].join("");
+  const selected = draft.week || 0;
+  const weekChips = [`<button class="chip sm ${selected === 0 ? "on" : ""}" data-act="tag-week" data-v="0">Frei</button>`, ...Array.from({ length: rel }, (_, i) => `<button class="chip sm ${selected === i + 1 ? "on" : ""}" data-act="tag-week" data-v="${i + 1}">${i + 1} · ${esc(WEEKS[i].theme)}</button>`)].join("");
   return `<div class="wrap fade">
     <h1 style="font-size:1.9rem;margin:4px 0 6px">Bild posten</h1>
     <p class="muted">Aus dem Scan oder vom Abzug. Das Bild wird vor dem Hochladen verkleinert, dein Original bleibt, wo es ist.</p>
     <div class="card">
       <label class="drop ${draft.preview ? "has" : ""}" for="file">${draft.preview ? `<img src="${esc(draft.preview)}" alt="Vorschau">` : `<span>📷</span><b>Tippen, um ein Bild zu wählen</b><small class="muted">aus Galerie oder Scan</small>`}</label>
       <input id="file" type="file" accept="image/*" data-file hidden>
-      <div class="lbl">Woche</div><select class="field" data-week>${weekOpts}</select>
+      <div class="lbl">Zu welcher Woche gehört das Bild?</div><div class="chips weekpick">${weekChips}</div>
       <div class="lbl">Ein Satz dazu (kann leer bleiben)</div><input class="field" data-caption maxlength="200" placeholder="Was du gesehen oder gedacht hast">
       <div class="lbl">Kamera</div><input class="field" data-camera maxlength="40" placeholder="z. B. Pentax K1000" value="${esc(S.camera)}">
       <div class="lbl">Film</div><input class="field" data-film maxlength="40" list="films" placeholder="z. B. Kodak Gold 200" value="${esc(S.film)}">
@@ -308,7 +307,7 @@ document.addEventListener("click", async (e) => {
     case "go": location.hash = el.dataset.to; break;
     case "invite": shareInvite(); break;
     case "theme": S.theme = S.theme === "light" ? "dark" : "light"; save(); applyTheme(); render(true); break;
-    case "post-for": draft.week = Number(el.dataset.week); location.hash = "posten"; break;
+    case "tag-week": draft.week = Number(el.dataset.v); keepFields(); break;
     case "filter-week": filter = { who: "", week: el.dataset.week }; location.hash = "board"; render(); break;
     case "filter-who": filter.who = el.dataset.v; render(true); break;
     case "lb": {
@@ -359,7 +358,6 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("change", async (e) => {
   const t = e.target;
   if (t.matches("[data-filter-week]")) { filter.week = t.value; render(true); }
-  if (t.matches("[data-week]")) draft.week = Number(t.value);
   if (t.matches("[data-file]") && t.files[0]) {
     draft.error = "";
     try {
@@ -385,7 +383,7 @@ async function sendPost() {
   S.camera = val("camera"); S.film = val("film"); save();
   const fd = new FormData();
   fd.set("who", S.who);
-  fd.set("week", String(draft.week === null ? released() : draft.week));
+  fd.set("week", String(draft.week || 0));
   for (const k of ["caption", "camera", "film", "settings"]) fd.set(k, val(k));
   fd.set("file", draft.blob, "photo.jpg");
   if (draft.thumb) fd.set("thumb", draft.thumb, "thumb.jpg");
