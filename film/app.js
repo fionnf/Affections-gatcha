@@ -7,6 +7,7 @@ const KEY = "filmclub:v1";
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nameOf = (id) => (PEOPLE.find((p) => p.id === id) || { name: id }).name;
+const avatar = (id) => `<span class="av av-${esc(id)}" aria-hidden="true">${esc(nameOf(id).slice(0, 1))}</span>`;
 const reduced = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ── state: who and the club code live on this phone; the board lives on the server ──
@@ -128,13 +129,14 @@ function weekBlock(n) {
   const thumbs = posts.slice(0, 6).map((p) => `<img src="${esc(p.url)}" alt="" loading="lazy" data-act="lb" data-src="${esc(p.url)}">`).join("");
   return `
     <section class="hero week-hero"><div class="perfs"></div>
-      <div class="txt"><p class="kicker">Woche ${n} · ab ${esc(weekLabel(WEEK_START, n))}</p>
+      <div class="txt"><div class="stamp"><small>Woche</small>${String(n).padStart(2, "0")}</div>
+        <p class="kicker">ab ${esc(weekLabel(WEEK_START, n))}</p>
         <h1>${esc(w.theme)}</h1></div>
       <div class="perfs"></div></section>
-    <div class="card"><p class="kicker">Tipp der Woche</p><h2>${esc(w.tip.title)}</h2>
+    <div class="card note"><span class="pin" aria-hidden="true">📌</span><p class="kicker">Tipp der Woche</p><h2>${esc(w.tip.title)}</h2>
       ${w.tip.text.map((t) => `<p>${esc(t)}</p>`).join("")}
       <div class="tip">${esc(w.tip.tryIt)}</div></div>
-    <div class="card challenge"><p class="kicker">Aufgabe der Woche</p><h2>${esc(w.challenge.title)}</h2>
+    <div class="card ticket"><p class="kicker">Aufgabe der Woche</p><h2>${esc(w.challenge.title)}</h2>
       <p>${esc(w.challenge.how)}</p>
       ${w.challenge.rule ? `<p class="rule">${esc(w.challenge.rule)}</p>` : ""}
       <button class="btn block" data-act="post-for" data-week="${n}" style="margin-top:12px">📮 Bild zu dieser Woche posten</button></div>
@@ -151,7 +153,8 @@ function wocheView(arg) {
   const early = !started() ? `<p class="muted small" style="text-align:center">Ein Vorgeschmack. Offiziell geht es am Montag, ${esc(weekLabel(WEEK_START, 1))}, los.</p>` : "";
   const end = weekIndex(today(), WEEK_START) > total
     ? `<div class="card" style="text-align:center">${mascot("wow", "bob")}<h2>Das war das halbe Jahr!</h2><p class="muted">Die nächsten Karten schreibt Fionn bald. Bis dahin: alle Wochen noch einmal durchblättern.</p></div>` : "";
-  return `<div class="wrap fade">${early}${end}${weekBlock(n)}<div class="lnav">${prev}${next}</div></div>`;
+  const strip = rel < 2 ? "" : `<div class="strip" role="tablist">${Array.from({ length: rel }, (_, i) => i + 1).map((i) => `<button class="${i === n ? "on" : ""}" data-act="go" data-to="woche/${i}" aria-label="Woche ${i}">${i}</button>`).join("")}</div>`;
+  return `<div class="wrap fade">${early}${end}${strip}${weekBlock(n)}<div class="lnav">${prev}${next}</div></div>`;
 }
 
 function chipRow(act, items, current) {
@@ -166,11 +169,11 @@ function postHtml(p) {
   const meta = [p.camera, p.film, p.settings].filter(Boolean).map(esc).join(" · ");
   const week = p.week && WEEKS[p.week - 1] ? `<span class="tag skill">Woche ${p.week}: ${esc(WEEKS[p.week - 1].theme)}</span>` : "";
   const open = openComments.has(p.id);
-  const comments = open ? `<div class="comments">${p.comments.map((c) => `<p><b>${esc(nameOf(c.who))}</b> ${esc(c.body)}${c.who === S.who ? ` <button class="x" data-act="uncomment" data-id="${esc(c.id)}" aria-label="Kommentar löschen">✕</button>` : ""}</p>`).join("")}
+  const comments = open ? `<div class="comments">${p.comments.map((c) => `<p>${avatar(c.who)}<span>${esc(c.body)}</span>${c.who === S.who ? ` <button class="x" data-act="uncomment" data-id="${esc(c.id)}" aria-label="Kommentar löschen">✕</button>` : ""}</p>`).join("")}
     <div class="row"><input class="field" data-comment="${esc(p.id)}" maxlength="200" placeholder="Schreib was dazu…" style="flex:1"><button class="btn" data-act="comment" data-id="${esc(p.id)}">Senden</button></div></div>` : "";
   return `<article class="polaroid" data-id="${esc(p.id)}">
     <img src="${esc(p.url)}" alt="${esc(p.caption || "Foto von " + nameOf(p.who))}" loading="lazy" data-act="lb" data-src="${esc(p.url)}">
-    <div class="who-line"><b>${esc(nameOf(p.who))}</b> ${week}</div>
+    <div class="who-line">${avatar(p.who)}<b>${esc(nameOf(p.who))}</b> ${week}</div>
     ${p.caption ? `<p class="cap">${esc(p.caption)}</p>` : ""}
     ${meta ? `<p class="meta-line">${meta}</p>` : ""}
     <div class="actions">
@@ -206,7 +209,7 @@ function postenView() {
     <h1 style="font-size:1.9rem;margin:4px 0 6px">Bild posten</h1>
     <p class="muted">Aus dem Scan oder vom Abzug. Das Bild wird vor dem Hochladen verkleinert, dein Original bleibt, wo es ist.</p>
     <div class="card">
-      <label class="drop ${draft.preview ? "has" : ""}" for="file">${draft.preview ? `<img src="${esc(draft.preview)}" alt="Vorschau">` : `<span>📷</span><b>Bild auswählen</b>`}</label>
+      <label class="drop ${draft.preview ? "has" : ""}" for="file">${draft.preview ? `<img src="${esc(draft.preview)}" alt="Vorschau">` : `<span>📷</span><b>Tippen, um ein Bild zu wählen</b><small class="muted">aus Galerie oder Scan</small>`}</label>
       <input id="file" type="file" accept="image/*" data-file hidden>
       <div class="lbl">Woche</div><select class="field" data-week>${weekOpts}</select>
       <div class="lbl">Ein Satz dazu (kann leer bleiben)</div><input class="field" data-caption maxlength="200" placeholder="Was du gesehen oder gedacht hast">
@@ -242,7 +245,7 @@ function render(keepScroll = false) {
   const focusId = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.comment : null;
   const typed = focusId ? document.activeElement.value : "";
   app.innerHTML = `
-    <header class="top"><div class="wrap"><div class="brand">Filmclub</div>
+    <header class="top"><div class="wrap"><div class="brand"><span class="brand-ro">${mascot("happy")}</span>Filmclub</div>
       <button class="mini" data-act="invite">Einladen</button><button class="mini" data-act="change-who">${esc(nameOf(S.who))} ⇄</button></div></header>
     <main>${views[tab](arg)}</main>
     <nav class="nav"><div class="wrap">${TABS.map(([id, ic, label]) => `<button class="${id === tab ? "on" : ""}" data-act="go" data-to="${id}"><span>${ic}</span>${label}</button>`).join("")}</div></nav>`;
