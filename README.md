@@ -409,10 +409,11 @@ never "late": it is simply filed under the week it belongs to.
   Monday set by `WEEK_START` in `film/config.js`; the week flips on Zurich time.
 - **Board:** a Supabase project (`filmclub`, eu-west-1) with tables `posts`,
   `reactions`, `comments` (closed to the public API) and a public `photos`
-  bucket. Everything goes through the `film-api` edge function, which checks the
-  shared club code (the `FILM_CODE` function secret, set in the Supabase
-  dashboard under Edge Functions → Secrets). The code is the only gate; share
-  the invite link (the *Einladen* button) so nobody types it.
+  bucket. Everything goes through the `film-api` edge function. There is no
+  password: the page is only linked among friends, and the function caps what a
+  stranger could do (15 photos and 80 comments per day, 500 photos in all,
+  JPEG/WebP up to 2 MB). People only pick their name; a photo can be deleted
+  only by the name that posted it.
 - **Images** are shrunk in the browser to 1600 px before upload (max 2 MB).
 
 ## Special days

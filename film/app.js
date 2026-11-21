@@ -10,17 +10,9 @@ const nameOf = (id) => (PEOPLE.find((p) => p.id === id) || { name: id }).name;
 const reduced = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ── state: who and the club code live on this phone; the board lives on the server ──
-let S = { who: null, code: "", cache: [], camera: "", film: "" };
+let S = { who: null, cache: [], camera: "", film: "" };
 try { S = { ...S, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (_e) { /* private mode */ }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_e) { /* full or blocked */ } };
-
-// An invite link carries the code: film.html#code=…
-function takeCodeFromLink() {
-  const m = /[#&?]code=([^&]+)/.exec(location.hash + location.search);
-  if (!m) return false;
-  try { S.code = decodeURIComponent(m[1]); save(); history.replaceState(null, "", location.pathname); return true; } catch (_e) { return false; }
-}
-takeCodeFromLink();
 
 let P = { list: S.cache || [], loaded: false, offline: false, busy: false };
 let draft = { week: null, preview: "", blob: null, error: "", sending: false };
@@ -36,16 +28,14 @@ const started = () => today() >= WEEK_START;
 async function handle(r) {
   let d = null;
   try { d = await r.json(); } catch (_e) { /* not json */ }
-  if (r.status === 401) { S.code = ""; save(); render(); throw new Error("Der Club-Code stimmt nicht."); }
   if (!r.ok || !d || !d.ok) throw new Error((d && d.error) || "Das hat nicht geklappt.");
   return d;
 }
-const api = (body) => fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...body, code: S.code }) }).then(handle);
+const api = (body) => fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(handle);
 
 const safeImg = (u) => { try { return new URL(u).origin === API_ORIGIN ? u : ""; } catch (_e) { return ""; } };
 
 async function loadPosts() {
-  if (!S.code) return;
   P.busy = true;
   try {
     const d = await api({ action: "list" });
@@ -58,7 +48,7 @@ async function loadPosts() {
     if (!P.offline) notice = e.message;
   }
   P.busy = false;
-  if (!S.code || ["board", "woche"].includes(route().tab)) render(true);
+  if (["board", "woche"].includes(route().tab)) render(true);
 }
 
 // ── pictures ─────────────────────────────────────────────────────────────────
@@ -113,7 +103,7 @@ async function sharePhoto(p) {
   window.open("https://wa.me/?text=" + encodeURIComponent(`${text}\n${p.url}`), "_blank", "noopener");
 }
 async function shareInvite() {
-  const url = `${location.origin}${location.pathname}#code=${encodeURIComponent(S.code)}`;
+  const url = `${location.origin}${location.pathname}`;
   const text = "Komm in den Filmclub: jede Woche ein Tipp, eine Aufgabe und eine Pinnwand für unsere Filmbilder. 🎞️";
   try {
     if (navigator.share) await navigator.share({ title: "Filmclub", text, url });
@@ -122,18 +112,6 @@ async function shareInvite() {
 }
 
 // ── views ────────────────────────────────────────────────────────────────────
-function codeView() {
-  return `<div class="wrap fade" style="padding-top:22px">
-    <div class="who-top">${mascot("happy", "bob")}</div>
-    <p class="kicker">Filmclub</p>
-    <h1 style="font-size:2.1rem">Der Club-Code, bitte</h1>
-    <p class="muted">Den hat dir Fionn geschickt. Am einfachsten öffnest du den Einladungslink, dann ist er schon drin.</p>
-    <input class="field" data-code placeholder="Club-Code" autocomplete="off" autocapitalize="none" spellcheck="false" style="margin:12px 0">
-    <button class="btn block" data-act="code">Rein</button>
-    ${notice ? `<p class="why" style="color:var(--bad)">${esc(notice)}</p>` : ""}
-  </div>`;
-}
-
 function whoView() {
   return `<div class="wrap fade" style="padding-top:22px">
     <div class="who-top">${mascot("happy", "bob")}</div>
@@ -257,7 +235,6 @@ const route = () => { const [tab, arg] = (location.hash.slice(1) || "woche").spl
 
 function render(keepScroll = false) {
   const app = $("#app");
-  if (!S.code) { app.innerHTML = codeView(); return; }
   if (!S.who) { app.innerHTML = whoView(); return; }
   const { tab, arg } = route();
   const views = { woche: wocheView, board: boardView, posten: postenView, karten };
@@ -281,11 +258,6 @@ document.addEventListener("click", async (e) => {
   if (!el) return;
   const id = el.dataset.id;
   switch (el.dataset.act) {
-    case "code": {
-      const v = ($("[data-code]") || {}).value || "";
-      if (!v.trim()) break;
-      S.code = v.trim(); save(); notice = ""; render(); loadPosts(); break;
-    }
     case "who": S.who = id; save(); render(); loadPosts(); break;
     case "change-who": S.who = null; save(); render(); break;
     case "go": location.hash = el.dataset.to; break;
@@ -335,7 +307,6 @@ async function sendComment(id) {
 }
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.matches && e.target.matches("[data-comment]")) { e.preventDefault(); sendComment(e.target.dataset.comment); }
-  if (e.key === "Enter" && e.target.matches && e.target.matches("[data-code]")) { e.preventDefault(); const b = $('[data-act="code"]'); if (b) b.click(); }
   if (e.key === "Escape") { const lb = $(".lb"); if (lb) lb.remove(); }
 });
 
@@ -366,7 +337,7 @@ async function sendPost() {
   const val = (k) => (($(`[data-${k}]`) || {}).value || "").trim();
   S.camera = val("camera"); S.film = val("film"); save();
   const fd = new FormData();
-  fd.set("code", S.code); fd.set("who", S.who);
+  fd.set("who", S.who);
   fd.set("week", String(draft.week === null ? released() : draft.week));
   for (const k of ["caption", "camera", "film", "settings"]) fd.set(k, val(k));
   fd.set("file", draft.blob, "photo.jpg");
@@ -385,7 +356,7 @@ async function sendPost() {
   }
 }
 
-window.addEventListener("hashchange", () => { if (takeCodeFromLink()) { notice = ""; render(); loadPosts(); } else render(); });
+window.addEventListener("hashchange", () => render());
 window.addEventListener("online", () => loadPosts());
 render();
 loadPosts();
