@@ -1,0 +1,37 @@
+/* Filmclub: builds on lugano/style.css (the cute layer) */
+.week-hero .txt{padding:16px 18px}
+.week-hero h1{font-size:2.3rem}
+.challenge{background:var(--butter)}
+.rule{display:inline-block;background:var(--card);border:2px dashed var(--accent);border-radius:999px;padding:4px 12px;font-size:.85rem;font-weight:700;margin:0 0 4px}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px;border:2px solid var(--line);cursor:zoom-in}
+
+/* the wall */
+.wall{columns:2;column-gap:12px}
+@media (min-width:640px){.wall{columns:3}}
+.polaroid{break-inside:avoid;display:inline-block;width:100%;margin:0 0 14px;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:8px 8px 10px;box-shadow:0 4px 0 var(--line),var(--shadow)}
+.polaroid:nth-child(odd){transform:rotate(-.8deg)}
+.polaroid:nth-child(even){transform:rotate(.7deg)}
+.polaroid img{display:block;width:100%;height:auto;border-radius:10px;cursor:zoom-in;background:var(--paper2)}
+.who-line{margin:8px 2px 0;font-size:.9rem}
+.who-line .tag{margin-left:4px}
+.cap{margin:4px 2px 0;font-size:.92rem}
+.meta-line{margin:2px 2px 0;font-size:.78rem;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.comments{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;font-size:.88rem}
+.comments p{margin:0 0 6px}
+.comments .x{border:0;background:none;color:var(--muted);padding:2px 6px}
+.comments .row{flex-wrap:nowrap}
+
+/* posting */
+.drop{display:grid;place-items:center;gap:4px;min-height:160px;border:2px dashed var(--accent);border-radius:var(--r);background:color-mix(in srgb,var(--pink) 45%,transparent);cursor:pointer;text-align:center;overflow:hidden}
+.drop span{font-size:2.4rem}
+.drop.has{padding:0;border-style:solid}
+.drop img{width:100%;max-height:360px;object-fit:contain;display:block}
+
+.lb{position:fixed;inset:0;z-index:80;background:rgba(20,10,14,.92);display:grid;place-items:center;padding:16px}
+.lb img{max-width:100%;max-height:82vh;border-radius:10px}
+.lb .mini{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px}
+select.field{appearance:auto}
+
+.nav .wrap{grid-template-columns:repeat(4,1fr)}

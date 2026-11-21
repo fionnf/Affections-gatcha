@@ -27,6 +27,7 @@ fionn-gacha.html            Fionn's Eingänge (noindex, not on the public URL; t
 fionn.html                  Redirect to fionn-gacha.html, for old bookmarks
 lichter.html                Lichtsteuerung — vendored from the lights repo
 lugano.html  lugano/        A one-day page: "Drei Kameras, ein Tag" (see Lugano-Tag below)
+film.html    film/          Filmclub: weekly film-photo tip + challenge and a shared board (see Filmclub below)
 dist/
   affection-gacha.js        Compiled PWA (built from src/ via Vite)
   fionn-admin.js            Fionn's Eingänge (built from admin/)
@@ -393,6 +394,26 @@ quiz); the maths behind the simulator is `lugano/exposure.js` and is tested in
 one visit it works without signal. Quiz facts were checked against Wikipedia
 (Monte Brè 925 m, funicular since 1912, Gandria's smuggling and the 1709 frost,
 Gotthard Base Tunnel 57.09 km, the Pentax name from *Pentaprism + Contax*).
+
+## Filmclub (weekly tip, challenge and a shared board)
+
+`film.html` is a standalone page for the three of us, who live in different
+places: each Monday a new **card** (a tip and a challenge), and a **Pinnwand**
+where finished, developed photos are posted with camera, film and settings,
+hearts and short comments. A photo can be sent on to the WhatsApp chat with
+the share button on each post (the phone's share sheet; WhatsApp has no way
+for a web page to post into a group by itself). Film is slow, so a photo is
+never "late": it is simply filed under the week it belongs to.
+
+- **Cards:** `film/content.js` (26 weeks, edit the words there). Week 1 is the
+  Monday set by `WEEK_START` in `film/config.js`; the week flips on Zurich time.
+- **Board:** a Supabase project (`filmclub`, eu-west-1) with tables `posts`,
+  `reactions`, `comments` (closed to the public API) and a public `photos`
+  bucket. Everything goes through the `film-api` edge function, which checks the
+  shared club code (the `FILM_CODE` function secret, set in the Supabase
+  dashboard under Edge Functions → Secrets). The code is the only gate; share
+  the invite link (the *Einladen* button) so nobody types it.
+- **Images** are shrunk in the browser to 1600 px before upload (max 2 MB).
 
 ## Special days
 
