@@ -11,12 +11,18 @@ const avatar = (id) => `<span class="av av-${esc(id)}" aria-hidden="true">${esc(
 const reduced = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ── state: who and the club code live on this phone; the board lives on the server ──
-let S = { who: null, cache: [], camera: "", film: "" };
+let S = { who: null, cache: [], camera: "", film: "", theme: "dark" };
 try { S = { ...S, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (_e) { /* private mode */ }
+const applyTheme = () => {
+  document.documentElement.dataset.theme = S.theme === "light" ? "light" : "dark";
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = S.theme === "light" ? "#fff4ec" : "#140d10";
+};
+applyTheme();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_e) { /* full or blocked */ } };
 
 let P = { list: S.cache || [], loaded: false, offline: false, busy: false };
-let draft = { week: null, preview: "", blob: null, error: "", sending: false };
+let draft = { week: null, preview: "", blob: null, thumb: null, width: 0, height: 0, error: "", sending: false };
 let openComments = new Set();
 let notice = "";
 
@@ -40,7 +46,7 @@ async function loadPosts() {
   P.busy = true;
   try {
     const d = await api({ action: "list" });
-    P.list = d.posts.map((p) => ({ ...p, url: safeImg(p.url) })).filter((p) => p.url);
+    P.list = d.posts.map((p) => ({ ...p, url: safeImg(p.url), thumb: p.thumb ? safeImg(p.thumb) : "" })).filter((p) => p.url);
     P.offline = false; P.loaded = true;
     S.cache = P.list.slice(0, 60); save();
   } catch (e) {
@@ -53,6 +59,24 @@ async function loadPosts() {
 }
 
 // ── pictures ─────────────────────────────────────────────────────────────────
+function toBlob(canvas, qualities, maxBytes) {
+  return (async () => {
+    for (const q of qualities) {
+      const blob = await new Promise((ok) => canvas.toBlob(ok, "image/jpeg", q));
+      if (blob && blob.size <= maxBytes) return blob;
+    }
+    return null;
+  })();
+}
+function scaled(src, w, h, max) {
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+// The picture (1600 px, under 2 MB) and a small preview (640 px, under 280 KB)
+// so the board fills quickly; the big one opens when you tap.
 async function shrink(file) {
   let src, w, h;
   try { src = await createImageBitmap(file); w = src.width; h = src.height; }
@@ -60,15 +84,11 @@ async function shrink(file) {
     src = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });
     w = src.naturalWidth; h = src.naturalHeight;
   }
-  const k = Math.min(1, 1600 / Math.max(w, h));
-  const c = document.createElement("canvas");
-  c.width = Math.round(w * k); c.height = Math.round(h * k);
-  c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
-  for (const q of [0.86, 0.75, 0.62]) {
-    const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", q));
-    if (blob && blob.size <= 1.9 * 1024 * 1024) return blob;
-  }
-  throw new Error("Das Bild ist zu gross. Probier ein kleineres.");
+  const big = scaled(src, w, h, 1600);
+  const blob = await toBlob(big, [0.86, 0.75, 0.62], 1.9 * 1024 * 1024);
+  if (!blob) throw new Error("Das Bild ist zu gross. Probier ein kleineres.");
+  const thumb = await toBlob(scaled(src, w, h, 640), [0.74, 0.6, 0.48], 280 * 1024);
+  return { blob, thumb, width: big.width, height: big.height };
 }
 
 function toast(msg) {
@@ -126,7 +146,7 @@ function whoView() {
 function weekBlock(n) {
   const w = WEEKS[n - 1];
   const posts = P.list.filter((p) => p.week === n);
-  const thumbs = posts.slice(0, 6).map((p) => `<img src="${esc(p.url)}" alt="" loading="lazy" data-act="lb" data-src="${esc(p.url)}">`).join("");
+  const thumbs = posts.slice(0, 6).map((p) => `<img src="${esc(p.thumb || p.url)}" alt="" loading="lazy" decoding="async" data-act="lb" data-src="${esc(p.url)}">`).join("");
   return `
     <section class="hero week-hero"><div class="perfs"></div>
       <div class="txt"><div class="stamp"><small>Woche</small>${String(n).padStart(2, "0")}</div>
@@ -163,7 +183,7 @@ function chipRow(act, items, current) {
 
 let filter = { who: "", week: "" };
 
-function postHtml(p) {
+function postHtml(p, i = 0) {
   const mine = p.who === S.who;
   const hearted = p.hearts.includes(S.who);
   const meta = [p.camera, p.film, p.settings].filter(Boolean).map(esc).join(" · ");
@@ -172,7 +192,7 @@ function postHtml(p) {
   const comments = open ? `<div class="comments">${p.comments.map((c) => `<p>${avatar(c.who)}<span>${esc(c.body)}</span>${c.who === S.who ? ` <button class="x" data-act="uncomment" data-id="${esc(c.id)}" aria-label="Kommentar löschen">✕</button>` : ""}</p>`).join("")}
     <div class="row"><input class="field" data-comment="${esc(p.id)}" maxlength="200" placeholder="Schreib was dazu…" style="flex:1"><button class="btn" data-act="comment" data-id="${esc(p.id)}">Senden</button></div></div>` : "";
   return `<article class="polaroid" data-id="${esc(p.id)}">
-    <img src="${esc(p.url)}" alt="${esc(p.caption || "Foto von " + nameOf(p.who))}" loading="lazy" data-act="lb" data-src="${esc(p.url)}">
+    <img src="${esc(p.thumb || p.url)}" alt="${esc(p.caption || "Foto von " + nameOf(p.who))}" ${p.width && p.height ? `width="${p.width}" height="${p.height}" style="aspect-ratio:${p.width}/${p.height}"` : ""} ${i < 4 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" data-act="lb" data-src="${esc(p.url)}">
     <div class="who-line">${avatar(p.who)}<b>${esc(nameOf(p.who))}</b> ${week}</div>
     ${p.caption ? `<p class="cap">${esc(p.caption)}</p>` : ""}
     ${meta ? `<p class="meta-line">${meta}</p>` : ""}
@@ -195,7 +215,7 @@ function boardView() {
     ${notice ? `<p class="why" style="color:var(--bad)">${esc(notice)}</p>` : ""}
     <div class="lbl">Von</div>${chipRow("filter-who", [["", "Alle"], ...PEOPLE.map((p) => [p.id, p.name])], filter.who)}
     <div class="lbl">Woche</div><select class="field" data-filter-week>${weeks.map(([v, l]) => `<option value="${esc(v)}" ${v === filter.week ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>
-    <div class="wall" style="margin-top:14px">${list.length ? list.map(postHtml).join("") : ""}</div>
+    <div class="wall" style="margin-top:14px">${list.length ? list.map((p, i) => postHtml(p, i)).join("") : ""}</div>
     ${list.length ? "" : `<div class="empty" style="margin-top:14px">${mascot("sleepy")}<p class="muted small">${P.loaded ? "Hier hängt noch nichts. Das erste Bild gehört dir." : "Lade die Pinnwand…"}</p></div>`}
     <p style="text-align:center;margin-top:16px"><button class="btn" data-act="go" data-to="posten">📮 Bild posten</button></p>
   </div>`;
@@ -246,7 +266,7 @@ function render(keepScroll = false) {
   const typed = focusId ? document.activeElement.value : "";
   app.innerHTML = `
     <header class="top"><div class="wrap"><div class="brand"><span class="brand-ro">${mascot("happy")}</span>Filmclub</div>
-      <button class="mini" data-act="invite">Einladen</button><button class="mini" data-act="change-who">${esc(nameOf(S.who))} ⇄</button></div></header>
+      <button class="mini icon" data-act="invite" aria-label="Zum Filmclub einladen">💌</button><button class="mini icon" data-act="theme" aria-label="Hell oder dunkel">${S.theme === "light" ? "🌙" : "☀️"}</button><button class="mini" data-act="change-who">${esc(nameOf(S.who))} ⇄</button></div></header>
     <main>${views[tab](arg)}</main>
     <nav class="nav"><div class="wrap">${TABS.map(([id, ic, label]) => `<button class="${id === tab ? "on" : ""}" data-act="go" data-to="${id}"><span>${ic}</span>${label}</button>`).join("")}</div></nav>`;
   if (focusId) { const f = $(`[data-comment="${CSS.escape(focusId)}"]`); if (f) { f.value = typed; f.focus(); } }
@@ -265,6 +285,7 @@ document.addEventListener("click", async (e) => {
     case "change-who": S.who = null; save(); render(); break;
     case "go": location.hash = el.dataset.to; break;
     case "invite": shareInvite(); break;
+    case "theme": S.theme = S.theme === "light" ? "dark" : "light"; save(); applyTheme(); render(true); break;
     case "post-for": draft.week = Number(el.dataset.week); location.hash = "posten"; break;
     case "filter-week": filter = { who: "", week: el.dataset.week }; location.hash = "board"; render(); break;
     case "filter-who": filter.who = el.dataset.v; render(true); break;
@@ -320,10 +341,11 @@ document.addEventListener("change", async (e) => {
   if (t.matches("[data-file]") && t.files[0]) {
     draft.error = "";
     try {
-      draft.blob = await shrink(t.files[0]);
+      const r = await shrink(t.files[0]);
+      draft.blob = r.blob; draft.thumb = r.thumb; draft.width = r.width; draft.height = r.height;
       if (draft.preview) URL.revokeObjectURL(draft.preview);
       draft.preview = URL.createObjectURL(draft.blob);
-    } catch (err) { draft.blob = null; draft.preview = ""; draft.error = err.message; }
+    } catch (err) { draft.blob = null; draft.thumb = null; draft.preview = ""; draft.error = err.message; }
     keepFields();
   }
 });
@@ -344,11 +366,13 @@ async function sendPost() {
   fd.set("week", String(draft.week === null ? released() : draft.week));
   for (const k of ["caption", "camera", "film", "settings"]) fd.set(k, val(k));
   fd.set("file", draft.blob, "photo.jpg");
+  if (draft.thumb) fd.set("thumb", draft.thumb, "thumb.jpg");
+  fd.set("width", String(draft.width)); fd.set("height", String(draft.height));
   draft.sending = true; draft.error = ""; keepFields();
   try {
     await handle(await fetch(API, { method: "POST", body: fd }));
     if (draft.preview) URL.revokeObjectURL(draft.preview);
-    draft = { week: null, preview: "", blob: null, error: "", sending: false };
+    draft = { week: null, preview: "", blob: null, thumb: null, width: 0, height: 0, error: "", sending: false };
     confetti(); toast("Hängt an der Pinnwand 🎞️");
     filter = { who: "", week: "" };
     location.hash = "board";

@@ -85,3 +85,47 @@ select.field{appearance:auto}
 .drop span{font-size:3rem}
 .drop b{font-family:var(--round)}
 .drop small{font-size:.8rem}
+
+/* ── theme: dark is the home of this page ─────────────────────────────────── */
+:root[data-theme="light"]{
+  --paper:#fff4ec;--paper2:#ffe8dc;--card:#fffdfb;--ink:#3b2a33;--muted:#7a6670;--line:#f1d6ca;
+  --accent:#d9486a;--accent-ink:#fff;--lake:#2c8f84;--ok:#2f8a5b;--bad:#c8453a;--warn:#b97a10;
+  --pink:#ffd9e1;--mint:#d5f0e6;--butter:#fff1bd;--sky:#d8ebf8;--dot:rgba(217,72,106,.09);
+  --shadow:0 1px 2px rgba(59,42,51,.06),0 12px 26px rgba(217,72,106,.09);color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --paper:#120b0e;--paper2:#1d1317;--card:#1a1115;--ink:#f8ebe4;--muted:#bba5ac;--line:#36262d;
+  --accent:#ff7d9b;--accent-ink:#2a0f19;--lake:#62c0b4;--ok:#5fd09a;--bad:#f58a79;--warn:#ecb44a;
+  --pink:#3a1e2a;--mint:#16322a;--butter:#3a2e17;--sky:#162b3c;--dot:rgba(255,125,155,.06);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 14px 30px rgba(0,0,0,.45);color-scheme:dark;
+}
+.mini.icon{padding:6px 10px;font-size:1rem}
+
+/* a darkroom: a faint red safelight glow over the wall */
+:root[data-theme="dark"] body{background-image:radial-gradient(130% 55% at 50% -12%,rgba(255,64,98,.17),transparent 62%),radial-gradient(circle at 1px 1px,var(--dot) 1.6px,transparent 1.7px);background-size:100% 100%,22px 22px;background-attachment:fixed,scroll}
+:root[data-theme="dark"] .top{background:color-mix(in srgb,var(--paper) 82%,transparent)}
+:root[data-theme="dark"] .nav{background:color-mix(in srgb,var(--card) 92%,transparent)}
+:root[data-theme="dark"] .nav button.on{background:var(--pink);color:var(--ink)}
+:root[data-theme="dark"] .perfs{background:radial-gradient(circle at 8px 8px,var(--paper) 3.6px,transparent 4px) 0 0/16px 16px repeat-x,#050304}
+:root[data-theme="dark"] .hero,:root[data-theme="dark"] .card,:root[data-theme="dark"] .lesson-row{box-shadow:0 4px 0 rgba(0,0,0,.35),var(--shadow)}
+:root[data-theme="dark"] .note{background-color:var(--card)}
+:root[data-theme="dark"] .ticket{background:var(--butter);box-shadow:0 4px 0 rgba(0,0,0,.35)}
+:root[data-theme="dark"] .tip{background:color-mix(in srgb,var(--butter) 70%,var(--card))}
+:root[data-theme="dark"] .stamp{text-shadow:0 0 14px color-mix(in srgb,var(--accent) 55%,transparent)}
+:root[data-theme="dark"] .week-hero h1{text-shadow:0 0 28px color-mix(in srgb,var(--accent) 22%,transparent)}
+:root[data-theme="dark"] .btn{box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 22px color-mix(in srgb,var(--accent) 30%,transparent)}
+:root[data-theme="dark"] .btn.ghost{box-shadow:0 4px 0 rgba(0,0,0,.4);background:var(--paper2);color:var(--ink)}
+:root[data-theme="dark"] .field{background:var(--paper2)}
+:root[data-theme="dark"] .drop{background:color-mix(in srgb,var(--pink) 55%,var(--card))}
+:root[data-theme="dark"] .strip button{background:var(--paper2)}
+:root[data-theme="dark"] .toast{box-shadow:0 0 24px color-mix(in srgb,var(--accent) 45%,transparent)}
+
+/* the prints stay bright on the dark wall, like photos under a lamp */
+:root[data-theme="dark"] .polaroid{
+  --ink:#3b2a33;--muted:#7a6670;--line:#f1d6ca;--card:#fffdfb;--paper2:#fff1ea;--accent:#d9486a;--accent-ink:#fff;--pink:#ffd9e1;--mint:#d5f0e6;--butter:#fff1bd;
+  background:#fff8f2;color:#3b2a33;border-color:#fff8f2;box-shadow:0 2px 3px rgba(0,0,0,.5),0 14px 30px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.04)}
+:root[data-theme="dark"] .polaroid .tag.skill{background:#d5f0e6;color:#1f6f5c}
+:root[data-theme="dark"] .polaroid .chip{background:#fffdfb}
+:root[data-theme="dark"] .polaroid .chip.on{background:#d9486a;border-color:#d9486a;color:#fff}
+:root[data-theme="dark"] .polaroid .field{background:#fff;color:#3b2a33}
+.top .mini{white-space:nowrap}
